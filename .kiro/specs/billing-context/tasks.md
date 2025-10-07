@@ -153,8 +153,13 @@
     - Include invoice status synchronization
     - _Requirements: 1.4, 8.1, 8.2, 8.3_
 
-- [ ] 6. Create application layer command handlers
-  - [ ] 6.1 Implement ProcessPaymentCommandHandler
+- [-] 6. Create application layer command handlers
+
+
+
+
+  - [x] 6.1 Implement ProcessPaymentCommandHandler
+
     - Create ProcessPaymentCommand record with validation
     - Implement pure function processPayment() with closure dependencies
     - Add user data extraction from saga correlation ID
@@ -163,25 +168,36 @@
     - Publish PaymentVerifiedEvent to IAM context
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 9.2_
 
+
+
   - [ ] 6.2 Implement CreateSubscriptionCommandHandler
     - Create command and response DTOs with validation
     - Add subscription creation logic with tier validation
     - Include billing account status verification
+
+
     - _Requirements: 3.1, 3.2_
 
   - [ ] 6.3 Implement GenerateInvoiceCommandHandler
     - Create command for manual invoice generation
+
     - Add usage metrics querying from ingestion context
     - Include overage calculation logic
     - _Requirements: 4.1, 4.2, 6.1, 6.2_
 
-  - [ ] 6.4 Implement ProcessWebhookCommandHandler
+  - [x] 6.4 Implement ProcessWebhookCommandHandler
+
+
     - Create webhook processing command with event validation
     - Add idempotency checking using processed_webhook_events table
     - Include event type routing and processing
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 7. Implement Monthly Billing Saga
+- [-] 7. Implement Monthly Billing Saga
+
+
+
+
   - [ ] 7.1 Create MonthlyBillingSagaData
     - Implement saga data with billing period tracking
     - Add usage metrics and charge calculation fields
