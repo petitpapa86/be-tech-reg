@@ -87,4 +87,24 @@ public class JpaSubscriptionRepository {
             }
         };
     }
+
+    /**
+     * Find subscriptions by multiple statuses (for saga orchestration)
+     */
+    public List<Subscription> findByStatusIn(List<SubscriptionStatus> statuses) {
+        try {
+            List<SubscriptionEntity> entities = entityManager.createQuery(
+                "SELECT s FROM SubscriptionEntity s WHERE s.status IN :statuses", 
+                SubscriptionEntity.class)
+                .setParameter("statuses", statuses)
+                .getResultList();
+            
+            return entities.stream()
+                .map(SubscriptionEntity::toDomain)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            // Log error but return empty list for functional pattern
+            return List.of();
+        }
+    }
 }

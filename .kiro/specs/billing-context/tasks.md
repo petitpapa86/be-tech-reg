@@ -193,24 +193,31 @@
     - Include event type routing and processing
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [-] 7. Implement Monthly Billing Saga
+- [x] 7. Implement Monthly Billing Saga
 
 
 
 
-  - [ ] 7.1 Create MonthlyBillingSagaData
+
+
+  - [x] 7.1 Create MonthlyBillingSagaData
+
     - Implement saga data with billing period tracking
     - Add usage metrics and charge calculation fields
     - Include billing step enumeration and progression
     - _Requirements: 5.1, 5.2, 11.1_
 
-  - [ ] 7.2 Implement MonthlyBillingSaga with closure dependencies
+
+  - [x] 7.2 Implement MonthlyBillingSaga with closure dependencies
+
     - Create saga with step-based execution (gather metrics, calculate charges, generate invoice, finalize)
     - Add usage metrics querying from ingestion context
     - Include overage calculation based on tier limits
     - Implement invoice generation through Stripe integration
     - Add compensation logic for partial operation reversal
     - _Requirements: 5.3, 5.4, 5.5, 6.1, 6.2, 6.3_
+
+
 
   - [ ] 7.3 Create saga orchestration and scheduling
     - Implement scheduled job to start monthly billing sagas

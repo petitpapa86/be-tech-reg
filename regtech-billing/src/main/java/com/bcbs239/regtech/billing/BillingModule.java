@@ -2,6 +2,7 @@ package com.bcbs239.regtech.billing;
 
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Billing Module Configuration
@@ -32,5 +33,6 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 @ComponentScan(basePackages = "com.bcbs239.regtech.billing")
+@EnableScheduling
 public class BillingModule {
 }
