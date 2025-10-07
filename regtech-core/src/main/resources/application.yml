@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: regtech
+  profiles:
+    active: development
+  datasource:
+    url: jdbc:postgresql://localhost:5432/compliance-core-app
+    username: postgres
+    password: dracons86
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: iam
+    show-sql: false
+  flyway:
+    locations: classpath:db/migration
+    schemas: iam,billing
+    baseline-on-migrate: true
+  security:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  health:
+    diskspace:
+      enabled: true
+
+logging:
+  level:
+    com.bcbs239.regtech: INFO
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/regtech.log
+
+---
+spring:
+  config:
+    activate:
+      on-profile: development
+  datasource:
+    url: jdbc:h2:mem:regtech;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  h2:
+    console:
+      enabled: true
+  flyway:
+    enabled: false
+  docker:
+    compose:
+      enabled: false
