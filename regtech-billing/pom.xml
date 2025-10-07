@@ -21,7 +21,7 @@
 		<dependency>
 			<groupId>com.stripe</groupId>
 			<artifactId>stripe-java</artifactId>
-			<version>26.13.0</version>
+			<version>25.12.0</version>
 		</dependency>
 		
 		<!-- Spring Boot JPA for data persistence -->

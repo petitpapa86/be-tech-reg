@@ -18,6 +18,8 @@ target/
 *.iws
 *.iml
 *.ipr
+out/
+.idea_modules/
 
 ### NetBeans ###
 /nbproject/private/
@@ -31,6 +33,7 @@ build/
 
 ### VS Code ###
 .vscode/
+*.code-workspace
 
 ### Java ###
 *.class
@@ -57,6 +60,7 @@ dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.properties
 
 ### Gradle ###
 .gradle
@@ -72,6 +76,8 @@ gradle-app.setting
 application-local.yml
 application-prod.yml
 application-secret.yml
+application-dev.yml
+application-test.yml
 !application.yml
 !application.properties
 
@@ -79,10 +85,14 @@ application-secret.yml
 logs/
 *.log
 log/
+spring.log
+catalina.out
 
 ### H2 Database ###
 *.db
 *.trace.db
+*.mv.db
+*.lock.db
 
 ### OS ###
 .DS_Store
@@ -99,6 +109,9 @@ Thumbs.db
 *.swp
 *.swo
 *~
+*.bak
+*.orig
+*.rej
 
 ### Eclipse ###
 .metadata
@@ -125,6 +138,9 @@ local.properties
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+$RECYCLE.BIN/
+*.stackdump
+*.lnk
 
 ### Linux ###
 *~
@@ -151,3 +167,71 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+### Docker ###
+.dockerignore
+Dockerfile.*
+docker-compose.override.yml
+.env
+.env.local
+.env.*.local
+
+### IDEs - Additional ###
+*.sublime-project
+*.sublime-workspace
+.history/
+.ionide/
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+
+### Java - Additional ###
+*.log.*
+*.log.????-??-??
+hs_err_pid*.log
+replay_pid*.log
+*.hprof
+*.jfr
+dump.hprof
+
+### Testing ###
+test-output/
+surefire-reports/
+failsafe-reports/
+jacoco.exec
+jacoco/
+
+### CI/CD ###
+.github/workflows/*.yml
+.travis.yml
+.circleci/
+Jenkinsfile
+buildspec.yml
+
+### Package Managers ###
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+### Database ###
+*.sqlite
+*.sqlite3
+postgres_data/
+mysql_data/
+redis_data/
+
+### Security ###
+secrets/
+*.key
+*.pem
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+
+### Git Keep Files ###
+.gitkeep
