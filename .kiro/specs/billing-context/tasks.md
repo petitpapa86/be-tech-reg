@@ -143,7 +143,9 @@
     - Include subscription cancellation methods
     - _Requirements: 1.3, 10.3_
 
-  - [-] 5.3 Add invoice management to StripeService
+  - [x] 5.3 Add invoice management to StripeService
+
+
 
 
     - Implement invoice creation and retrieval methods
