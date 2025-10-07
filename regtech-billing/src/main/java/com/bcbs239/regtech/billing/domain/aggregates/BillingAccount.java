@@ -24,8 +24,8 @@ public class BillingAccount {
     private Instant updatedAt;
     private long version;
     
-    // Private constructor for factory method pattern
-    private BillingAccount() {}
+    // Package-private constructor for factory method pattern and JPA entity mapping
+    BillingAccount() {}
     
     /**
      * Factory method to create a new BillingAccount

@@ -94,20 +94,30 @@
     - Include dunning action tracking
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 4. Implement repository interfaces with closure-based patterns
-  - [ ] 4.1 Create BillingAccountRepository with functional operations
+- [-] 4. Implement repository interfaces with closure-based patterns
+
+
+  - [x] 4.1 Create BillingAccountRepository with functional operations
+
+
     - Implement billingAccountFinder() returning Function<BillingAccountId, Maybe<BillingAccount>>
     - Add billingAccountByUserFinder() returning Function<UserId, Maybe<BillingAccount>>
     - Create billingAccountSaver() returning Function<BillingAccount, Result<BillingAccountId>>
     - _Requirements: 2.1, 10.1, 10.2_
 
-  - [ ] 4.2 Create SubscriptionRepository with functional operations
+
+  - [x] 4.2 Create SubscriptionRepository with functional operations
+
     - Implement activeSubscriptionFinder() returning Function<BillingAccountId, Maybe<Subscription>>
     - Add subscriptionSaver() returning Function<Subscription, Result<SubscriptionId>>
     - Create subscriptionsByStatusFinder() for dunning processes
     - _Requirements: 3.1, 10.1, 10.2_
 
-  - [ ] 4.3 Create InvoiceRepository with functional operations
+
+  - [x] 4.3 Create InvoiceRepository with functional operations
+
+
+
     - Implement invoiceFinder() returning Function<InvoiceId, Maybe<Invoice>>
     - Add overdueInvoicesFinder() for dunning process
     - Create invoiceSaver() returning Function<Invoice, Result<InvoiceId>>

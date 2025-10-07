@@ -35,6 +35,11 @@ public class Invoice {
     private Instant updatedAt;
     private long version;
 
+    // Package-private constructor for JPA entity mapping
+    Invoice() {
+        this.lineItems = new ArrayList<>();
+    }
+
     // Private constructor for factory methods
     private Invoice(Supplier<Instant> clock, Supplier<LocalDate> dateSupplier) {
         this.lineItems = new ArrayList<>();
@@ -346,6 +351,25 @@ public class Invoice {
     public int hashCode() {
         return Objects.hash(id);
     }
+
+    // Package-private setters for JPA/persistence layer
+    void setId(InvoiceId id) { this.id = id; }
+    void setBillingAccountId(BillingAccountId billingAccountId) { this.billingAccountId = billingAccountId; }
+    void setInvoiceNumber(InvoiceNumber invoiceNumber) { this.invoiceNumber = invoiceNumber; }
+    void setStripeInvoiceId(StripeInvoiceId stripeInvoiceId) { this.stripeInvoiceId = stripeInvoiceId; }
+    void setStatus(InvoiceStatus status) { this.status = status; }
+    void setSubscriptionAmount(Money subscriptionAmount) { this.subscriptionAmount = subscriptionAmount; }
+    void setOverageAmount(Money overageAmount) { this.overageAmount = overageAmount; }
+    void setTotalAmount(Money totalAmount) { this.totalAmount = totalAmount; }
+    void setBillingPeriod(BillingPeriod billingPeriod) { this.billingPeriod = billingPeriod; }
+    void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
+    void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
+    void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
+    void setSentAt(Instant sentAt) { this.sentAt = sentAt; }
+    void setLineItems(List<InvoiceLineItem> lineItems) { this.lineItems = lineItems; }
+    void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    void setVersion(long version) { this.version = version; }
 
     @Override
     public String toString() {
