@@ -48,22 +48,35 @@
     - Add InvoiceNumber value object with generation logic
     - _Requirements: 1.2_
 
-- [ ] 3. Implement domain aggregate roots with business logic
-  - [ ] 3.1 Create BillingAccount aggregate root
+- [-] 3. Implement domain aggregate roots with business logic
+
+
+
+  - [x] 3.1 Create BillingAccount aggregate root
+
+
     - Implement BillingAccount with factory method create()
     - Add business methods: activate(), suspend(), canCreateSubscription()
     - Include status transition validation using Result<T> pattern
     - Add version field for optimistic locking
     - _Requirements: 2.1, 2.2, 2.4_
 
-  - [ ] 3.2 Create Subscription aggregate root
+  - [x] 3.2 Create Subscription aggregate root
+
+
     - Implement Subscription with factory method create()
     - Add business methods: cancel(), getMonthlyAmount(), isActive()
     - Include tier-based pricing logic
     - Add start/end date management
     - _Requirements: 3.1, 3.2, 3.5_
 
-  - [ ] 3.3 Create Invoice aggregate root
+  - [x] 3.3 Create Invoice aggregate root
+
+
+
+
+
+
     - Implement Invoice with factory method create()
     - Add business methods: markAsPaid(), markAsOverdue(), isOverdue()
     - Include automatic line item generation for subscription and overage
