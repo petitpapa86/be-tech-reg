@@ -31,7 +31,7 @@ public class User {
     }
 
     /**
-     * Factory method to create a new user during registration
+     * Factory method to create a new user
      */
     public static User create(Email email, Password password, String firstName, String lastName) {
         User user = new User();
@@ -40,7 +40,25 @@ public class User {
         user.password = password;
         user.firstName = firstName;
         user.lastName = lastName;
-        user.status = UserStatus.PENDING_PAYMENT; // As per requirements
+        user.status = UserStatus.ACTIVE; // New users are active by default
+        user.createdAt = Instant.now();
+        user.updatedAt = Instant.now();
+        user.version = 0;
+        return user;
+    }
+
+    /**
+     * Factory method to create a new user from OAuth authentication
+     */
+    public static User createOAuth(Email email, String firstName, String lastName, String externalId) {
+        User user = new User();
+        user.id = UserId.generate().getValue();
+        user.email = email;
+        user.password = Password.create("TEMP_PASSWORD").getValue().get(); // Temporary password
+        user.firstName = firstName;
+        user.lastName = lastName;
+        user.status = UserStatus.ACTIVE; // OAuth users are active by default
+        user.googleId = externalId; // Assume Google for now
         user.createdAt = Instant.now();
         user.updatedAt = Instant.now();
         user.version = 0;

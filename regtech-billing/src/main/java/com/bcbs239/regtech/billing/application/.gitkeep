@@ -1,0 +1,3 @@
+# Application Layer
+# This directory contains command handlers, query handlers, and application services
+# Orchestrates business workflows and coordinates between domain and infrastructure layers
