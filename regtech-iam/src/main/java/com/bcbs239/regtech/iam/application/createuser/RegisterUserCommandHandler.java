@@ -37,7 +37,7 @@ public class RegisterUserCommandHandler {
      * @param userRepository Function to save the user
      * @return Result of registration attempt
      */
-    private static Result<RegisterUserResponse> registerUser(
+    static Result<RegisterUserResponse> registerUser(
             RegisterUserCommand command,
             Function<Email, Maybe<User>> emailLookup,
             Function<User, Result<UserId>> userRepository
