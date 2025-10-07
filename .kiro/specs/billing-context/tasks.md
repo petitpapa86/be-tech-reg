@@ -83,7 +83,12 @@
     - Add billing period and due date calculation
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-  - [ ] 3.4 Create DunningCase aggregate root
+  - [x] 3.4 Create DunningCase aggregate root
+
+
+
+
+
     - Implement DunningCase with step progression logic
     - Add methods for step execution and case resolution
     - Include dunning action tracking
