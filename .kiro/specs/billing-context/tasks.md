@@ -12,19 +12,30 @@
   - Create BillingModule configuration class
   - _Requirements: 1.1, 2.1_
 
-- [ ] 2. Implement core domain value objects and enums
-  - [ ] 2.1 Create Money value object with currency support and arithmetic operations
+- [x] 2. Implement core domain value objects and enums
+
+
+
+
+
+
+  - [x] 2.1 Create Money value object with currency support and arithmetic operations
+
     - Implement Money record with BigDecimal amount and Currency
     - Add factory methods (of, zero) and arithmetic operations (add, multiply)
     - Include validation for currency matching in operations
     - _Requirements: 1.3, 4.2_
 
-  - [ ] 2.2 Create billing-specific value objects and enums
+  - [x] 2.2 Create billing-specific value objects and enums
+
+
     - Implement BillingAccountId, SubscriptionId, InvoiceId as typed identifiers
     - Create SubscriptionTier enum with STARTER tier (€500.00/month, 10000 exposure limit)
     - Implement BillingPeriod record with pro-ration calculation methods
     - Create status enums (BillingAccountStatus, SubscriptionStatus, InvoiceStatus)
     - _Requirements: 2.2, 3.1, 3.2_
+
+
 
   - [ ] 2.3 Create Stripe integration value objects
     - Implement StripeCustomerId, StripeSubscriptionId, StripeInvoiceId as typed wrappers
