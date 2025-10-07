@@ -123,20 +123,29 @@
     - Create invoiceSaver() returning Function<Invoice, Result<InvoiceId>>
     - _Requirements: 4.1, 10.1, 10.2_
 
-- [ ] 5. Implement Stripe service integration
-  - [ ] 5.1 Create StripeService with customer management
+- [-] 5. Implement Stripe service integration
+
+
+
+
+  - [x] 5.1 Create StripeService with customer management
+
     - Implement createCustomer() method returning Result<StripeCustomer>
     - Add attachPaymentMethod() and setDefaultPaymentMethod() methods
     - Include proper error handling wrapping StripeException in Result<T>
     - _Requirements: 1.2, 10.3_
 
-  - [ ] 5.2 Add subscription management to StripeService
+
+  - [x] 5.2 Add subscription management to StripeService
+
     - Implement createSubscription() with billing anchor to next month start
     - Add pro-ration behavior configuration
     - Include subscription cancellation methods
     - _Requirements: 1.3, 10.3_
 
-  - [ ] 5.3 Add invoice management to StripeService
+  - [-] 5.3 Add invoice management to StripeService
+
+
     - Implement invoice creation and retrieval methods
     - Add webhook signature verification
     - Include invoice status synchronization

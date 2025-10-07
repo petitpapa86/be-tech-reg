@@ -69,7 +69,6 @@ public class JpaSubscriptionRepository {
         };
     }
 
-    @Override
     public Function<SubscriptionStatus, List<Subscription>> subscriptionsByStatusFinder() {
         return status -> {
             try {
