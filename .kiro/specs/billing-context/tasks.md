@@ -37,7 +37,12 @@
 
 
 
-  - [ ] 2.3 Create Stripe integration value objects
+  - [x] 2.3 Create Stripe integration value objects
+
+
+
+
+
     - Implement StripeCustomerId, StripeSubscriptionId, StripeInvoiceId as typed wrappers
     - Create PaymentMethodId value object
     - Add InvoiceNumber value object with generation logic
