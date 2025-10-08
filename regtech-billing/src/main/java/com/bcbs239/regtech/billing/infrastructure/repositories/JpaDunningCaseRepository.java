@@ -42,7 +42,7 @@ public class JpaDunningCaseRepository {
         };
     }
 
-    public Function<InvoiceId, Maybe<DunningCase>> dunningCaseByInvoiceFinder() {
+    public Function<InvoiceId, Maybe<DunningCase>> dunningCaseByInvoiceIdFinder() {
         return invoiceId -> {
             try {
                 DunningCaseEntity entity = entityManager.createQuery(
@@ -148,6 +148,46 @@ public class JpaDunningCaseRepository {
                 "SELECT dc FROM DunningCaseEntity dc WHERE dc.status = :status ORDER BY dc.updatedAt ASC", 
                 DunningCaseEntity.class)
                 .setParameter("status", DunningCaseStatus.IN_PROGRESS)
+                .getResultList();
+            
+            return entities.stream()
+                .map(DunningCaseEntity::toDomain)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            // Log error but return empty list for functional pattern
+            return List.of();
+        }
+    }
+
+    /**
+     * Find dunning cases ready for their next action
+     */
+    public List<DunningCase> findReadyForAction() {
+        try {
+            List<DunningCaseEntity> entities = entityManager.createQuery(
+                "SELECT dc FROM DunningCaseEntity dc WHERE dc.status = :status AND dc.nextActionDate <= CURRENT_DATE ORDER BY dc.nextActionDate ASC", 
+                DunningCaseEntity.class)
+                .setParameter("status", DunningCaseStatus.IN_PROGRESS)
+                .getResultList();
+            
+            return entities.stream()
+                .map(DunningCaseEntity::toDomain)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            // Log error but return empty list for functional pattern
+            return List.of();
+        }
+    }
+
+    /**
+     * Find dunning cases by status
+     */
+    public List<DunningCase> findByStatus(DunningCaseStatus status) {
+        try {
+            List<DunningCaseEntity> entities = entityManager.createQuery(
+                "SELECT dc FROM DunningCaseEntity dc WHERE dc.status = :status ORDER BY dc.createdAt DESC", 
+                DunningCaseEntity.class)
+                .setParameter("status", status)
                 .getResultList();
             
             return entities.stream()

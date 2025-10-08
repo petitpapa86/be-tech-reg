@@ -104,4 +104,26 @@ public class JpaInvoiceRepository {
             }
         };
     }
+
+    /**
+     * Find overdue invoices that don't have existing dunning cases
+     */
+    public List<Invoice> findOverdueInvoicesWithoutDunningCases() {
+        try {
+            List<InvoiceEntity> entities = entityManager.createQuery(
+                "SELECT i FROM InvoiceEntity i WHERE i.status = :status AND i.dueDate < :currentDate " +
+                "AND NOT EXISTS (SELECT dc FROM DunningCaseEntity dc WHERE dc.invoiceId = i.id)", 
+                InvoiceEntity.class)
+                .setParameter("status", InvoiceStatus.PENDING)
+                .setParameter("currentDate", LocalDate.now())
+                .getResultList();
+            
+            return entities.stream()
+                .map(InvoiceEntity::toDomain)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            // Log error but return empty list for functional pattern
+            return List.of();
+        }
+    }
 }
