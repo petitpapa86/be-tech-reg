@@ -48,6 +48,15 @@ public class User {
     }
 
     /**
+     * Factory method to create a new user with bank assignment
+     */
+    public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId) {
+        User user = create(email, password, firstName, lastName);
+        user.assignToBank(bankId, "USER"); // Default role for new users
+        return user;
+    }
+
+    /**
      * Factory method to create a new user from OAuth authentication
      */
     public static User createOAuth(Email email, String firstName, String lastName, String externalId) {

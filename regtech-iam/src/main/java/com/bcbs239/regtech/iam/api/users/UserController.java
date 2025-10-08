@@ -39,7 +39,18 @@ public class UserController extends BaseController {
             request.email(),
             request.password(),
             request.firstName(),
-            request.lastName()
+            request.lastName(),
+            request.bankId(),
+            request.paymentMethodId(),
+            request.phone(),
+            request.address() != null ? new RegisterUserCommand.AddressInfo(
+                request.address().line1(),
+                request.address().line2(),
+                request.address().city(),
+                request.address().state(),
+                request.address().postalCode(),
+                request.address().country()
+            ) : null
         );
 
         if (commandResult.isFailure()) {
@@ -56,12 +67,29 @@ public class UserController extends BaseController {
     }
 
     /**
-     * Request DTO for user registration
+     * Request DTO for user registration with Stripe payment information
      */
     public record RegisterUserRequest(
         String email,
         String password,
         String firstName,
-        String lastName
+        String lastName,
+        String bankId,
+        String paymentMethodId,
+        // Optional Stripe-related fields
+        String phone,
+        AddressInfo address
+    ) {}
+
+    /**
+     * Address information for Stripe customer creation and tax compliance
+     */
+    public record AddressInfo(
+        String line1,
+        String line2,
+        String city,
+        String state,
+        String postalCode,
+        String country
     ) {}
 }

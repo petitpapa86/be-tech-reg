@@ -17,26 +17,42 @@ These contexts communicate through domain events using an event-driven architect
 
 ### Billing Context Components
 
-#### Domain Events
+#### Cross-Module Event Handlers
+- `UserRegisteredEventHandler`: Handles user registration events from IAM context
+
+#### Domain Events (Internal)
 - `PaymentVerifiedEvent`: Published when payment is successfully verified
 - `BillingAccountStatusChangedEvent`: Published when billing account status changes
 - `SubscriptionCancelledEvent`: Published when a subscription is cancelled
 - `InvoiceGeneratedEvent`: Published when an invoice is generated
 
-#### Event Infrastructure
+#### Outbox Pattern Infrastructure
 - `BillingEventPublisher`: Main service for publishing events using outbox pattern
 - `BillingDomainEventEntity`: JPA entity for storing events reliably
 - `OutboxEventProcessor`: Scheduled processor for reliable event delivery
 - `EventSerializer`: JSON serialization/deserialization service
 
 #### Command Handlers
-- `ProcessPaymentCommandHandler`: Handles payment processing and publishes events
+- `ProcessPaymentCommandHandler`: Handles payment processing and publishes events via outbox
+
+### Core Components
+
+#### Cross-Module Event Bus
+- `CrossModuleEventBus`: Spring-based event publisher for cross-context communication
+- Uses Spring's `ApplicationEventPublisher` with async support
+
+#### Cross-Module Events
+- Located in `regtech-core/src/main/java/com/bcbs239/regtech/core/events/`
+- All extend `BaseEvent` with correlation ID and source module tracking
 
 ### IAM Context Components
 
-#### Event Handlers
-- `PaymentVerificationEventHandler`: Handles payment verification events
-- `BillingAccountEventHandler`: Handles billing account status changes
+#### Cross-Module Event Publishers
+- `RegisterUserCommandHandler`: Publishes cross-module `UserRegisteredEvent` via `CrossModuleEventBus`
+
+#### Cross-Module Event Handlers
+- `PaymentVerificationEventHandler`: Handles payment verification events from billing
+- `BillingAccountEventHandler`: Handles billing account status changes from billing
 
 #### Domain Model
 - `User`: User aggregate with status management
@@ -74,6 +90,14 @@ Events flow between contexts through a structured process:
 4. **Event Handling**: IAM context receives and processes cross-module events
 
 ## User Registration and Payment Flow
+
+### Implementation Status
+✅ **COMPLETED**: RegisterUserCommandHandler with proper cross-module event-driven integration
+✅ **COMPLETED**: UserRegisteredEvent as cross-module event in regtech-core
+✅ **COMPLETED**: UserRegisteredEventHandler in billing context
+✅ **COMPLETED**: ProcessPaymentCommandHandler with outbox pattern event publishing
+✅ **COMPLETED**: User creation with PENDING_PAYMENT status and bank assignment
+✅ **FIXED**: Consistent event architecture using CrossModuleEventBus and outbox pattern
 
 ### Complete Sequence Diagram
 
@@ -176,9 +200,12 @@ sequenceDiagram
 ### Detailed Flow Steps
 
 #### Phase 1: User Registration
-1. User submits registration form with payment method
-2. IAM context creates user with `PENDING_PAYMENT` status
-3. IAM context triggers payment processing in Billing context
+1. User submits registration form with payment method and bank ID
+2. IAM context creates user with `PENDING_PAYMENT` status and bank assignment
+3. IAM context publishes cross-module `UserRegisteredEvent` via `CrossModuleEventBus`
+4. Billing context receives event via `UserRegisteredEventHandler` and triggers payment processing
+5. Payment processing publishes events via outbox pattern for reliable delivery
+6. Enhanced correlation ID includes user data for billing context extraction
 
 #### Phase 2: Payment Processing
 1. **User Data Extraction**: Billing context extracts user data from correlation ID
@@ -205,6 +232,46 @@ sequenceDiagram
 1. **Outbox Monitoring**: Background processor checks for pending/failed events
 2. **Retry Logic**: Failed events are retried with exponential backoff
 3. **Dead Letter Handling**: Events exceeding retry limit are marked as dead letters
+
+## Event-Driven Cross-Context Communication
+
+The integration uses a consistent event architecture with two layers:
+
+### Cross-Module Events (regtech-core)
+For communication between bounded contexts:
+- `UserRegisteredEvent` - Published by IAM when user needs payment processing
+- `PaymentVerifiedEvent` - Published by Billing when payment is verified
+- `BillingAccountStatusChangedEvent` - Published by Billing for account status changes
+- `SubscriptionCancelledEvent` - Published by Billing when subscription is cancelled
+
+### Outbox Pattern (Billing Context)
+For reliable event delivery within billing context:
+- Domain events stored in outbox table
+- Automatic conversion to cross-module events
+- Retry mechanism for failed deliveries
+- Dead letter handling for persistent failures
+
+### UserRegisteredEvent Structure
+```java
+UserRegisteredEvent extends BaseEvent {
+    String userId,
+    String email,
+    String name,
+    String bankId,
+    String paymentMethodId,
+    String correlationId  // inherited from BaseEvent
+}
+```
+
+### Enhanced Correlation ID Format
+The billing context receives an enhanced correlation ID format:
+
+```
+Format: "user-registration-{uuid}|userId={userId}|email={email}|name={name}|bankId={bankId}"
+Example: "user-registration-123e4567-e89b-12d3-a456-426614174000|userId=usr_456|email=john@example.com|name=John Doe|bankId=bank_123"
+```
+
+This maintains loose coupling while providing necessary data for payment processing.
 
 ## Event Types and Mappings
 

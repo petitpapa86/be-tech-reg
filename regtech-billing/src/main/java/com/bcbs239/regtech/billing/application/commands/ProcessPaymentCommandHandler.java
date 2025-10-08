@@ -169,34 +169,53 @@ public class ProcessPaymentCommandHandler {
     }
 
     /**
-     * Extract user data from saga correlation ID.
-     * In a real implementation, this would query the saga repository or event store.
+     * Extract user data from enhanced correlation ID.
+     * Format: "user-registration-{uuid}|userId={userId}|email={email}|name={name}|bankId={bankId}"
      */
     private Result<UserData> extractUserDataFromSaga(String correlationId) {
-        // TODO: Implement actual saga lookup
-        // For now, return mock data for development
         try {
             // Parse correlation ID to extract user information
-            // Format expected: "user-registration-{userId}"
             if (!correlationId.startsWith("user-registration-")) {
                 return Result.failure(ErrorDetail.of("INVALID_CORRELATION_ID", 
                     "Invalid correlation ID format: " + correlationId, "payment.correlation.id.invalid"));
             }
             
-            String userIdString = correlationId.substring("user-registration-".length());
-            UserId userId = UserId.fromString(userIdString);
+            // Split by pipe to get the data parts
+            String[] parts = correlationId.split("\\|");
+            if (parts.length < 4) {
+                return Result.failure(ErrorDetail.of("INVALID_CORRELATION_ID", 
+                    "Correlation ID missing required data: " + correlationId, "payment.correlation.id.invalid"));
+            }
             
-            // In real implementation, this would query the saga data
-            UserData userData = UserData.of(
-                userId,
-                "user@example.com", // Would be extracted from saga
-                "John Doe" // Would be extracted from saga
-            );
+            // Extract data from key=value pairs
+            String userIdValue = null;
+            String emailValue = null;
+            String nameValue = null;
+            
+            for (int i = 1; i < parts.length; i++) {
+                String[] keyValue = parts[i].split("=", 2);
+                if (keyValue.length == 2) {
+                    switch (keyValue[0]) {
+                        case "userId" -> userIdValue = keyValue[1];
+                        case "email" -> emailValue = keyValue[1];
+                        case "name" -> nameValue = keyValue[1];
+                        // bankId is available but not needed for UserData
+                    }
+                }
+            }
+            
+            if (userIdValue == null || emailValue == null || nameValue == null) {
+                return Result.failure(ErrorDetail.of("INVALID_CORRELATION_ID", 
+                    "Correlation ID missing required user data: " + correlationId, "payment.correlation.id.invalid"));
+            }
+            
+            UserId userId = UserId.fromString(userIdValue);
+            UserData userData = UserData.of(userId, emailValue, nameValue);
             
             return Result.success(userData);
         } catch (Exception e) {
             return Result.failure(ErrorDetail.of("SAGA_LOOKUP_FAILED", 
-                "Failed to extract user data from saga: " + e.getMessage(), "payment.saga.lookup.failed"));
+                "Failed to extract user data from correlation ID: " + e.getMessage(), "payment.saga.lookup.failed"));
         }
     }
 

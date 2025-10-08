@@ -71,6 +71,56 @@ public class StripeService {
     }
 
     /**
+     * Create a new Stripe customer with additional information
+     */
+    public Result<StripeCustomer> createCustomer(String email, String name, String phone, StripeAddress address) {
+        try {
+            CustomerCreateParams.Builder paramsBuilder = CustomerCreateParams.builder()
+                .setEmail(email)
+                .setName(name);
+
+            if (phone != null && !phone.trim().isEmpty()) {
+                paramsBuilder.setPhone(phone);
+            }
+
+            if (address != null) {
+                paramsBuilder.setAddress(CustomerCreateParams.Address.builder()
+                    .setLine1(address.line1())
+                    .setLine2(address.line2())
+                    .setCity(address.city())
+                    .setState(address.state())
+                    .setPostalCode(address.postalCode())
+                    .setCountry(address.country())
+                    .build());
+            }
+
+            Customer customer = Customer.create(paramsBuilder.build());
+            
+            return StripeCustomerId.fromString(customer.getId())
+                .map(customerId -> new StripeCustomer(customerId, email, name));
+                
+        } catch (StripeException e) {
+            return Result.failure(new ErrorDetail(
+                "STRIPE_CUSTOMER_CREATION_FAILED",
+                "Failed to create Stripe customer: " + e.getMessage(),
+                "stripe.customer.creation.failed"
+            ));
+        }
+    }
+
+    /**
+     * Address information for Stripe customer creation
+     */
+    public record StripeAddress(
+        String line1,
+        String line2,
+        String city,
+        String state,
+        String postalCode,
+        String country
+    ) {}
+
+    /**
      * Attach a payment method to a customer
      */
     public Result<Void> attachPaymentMethod(StripeCustomerId customerId, PaymentMethodId paymentMethodId) {
