@@ -12,7 +12,7 @@ import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceReposit
 import com.bcbs239.regtech.billing.infrastructure.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.stripe.StripeCustomer;
 import com.bcbs239.regtech.billing.infrastructure.stripe.StripeSubscription;
-import com.bcbs239.regtech.core.events.CrossModuleEventBus;
+import com.bcbs239.regtech.billing.infrastructure.events.BillingEventPublisher;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.iam.domain.users.UserId;
@@ -35,19 +35,19 @@ public class ProcessPaymentCommandHandler {
     private final JpaSubscriptionRepository subscriptionRepository;
     private final JpaInvoiceRepository invoiceRepository;
     private final StripeService stripeService;
-    private final CrossModuleEventBus eventBus;
+    private final BillingEventPublisher eventPublisher;
 
     public ProcessPaymentCommandHandler(
             JpaBillingAccountRepository billingAccountRepository,
             JpaSubscriptionRepository subscriptionRepository,
             JpaInvoiceRepository invoiceRepository,
             StripeService stripeService,
-            CrossModuleEventBus eventBus) {
+            BillingEventPublisher eventPublisher) {
         this.billingAccountRepository = billingAccountRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.invoiceRepository = invoiceRepository;
         this.stripeService = stripeService;
-        this.eventBus = eventBus;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -59,7 +59,7 @@ public class ProcessPaymentCommandHandler {
             billingAccountRepository.billingAccountSaver(),
             subscriptionRepository.subscriptionSaver(),
             invoiceRepository.invoiceSaver(),
-            eventBus::publishEvent,
+            event -> eventPublisher.publishEvent(event),
             this::extractUserDataFromSaga,
             this::createStripeCustomer,
             this::createStripeSubscription

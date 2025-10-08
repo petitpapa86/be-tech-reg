@@ -30,6 +30,15 @@ billing:
     timezone: Europe/Amsterdam
     billing-day: 1 # first day of month
     
+  # Outbox pattern configuration
+  outbox:
+    enabled: true
+    processing-interval: 30000 # milliseconds
+    retry-interval: 120000 # milliseconds
+    max-retries: 3
+    cleanup-interval: 86400000 # 24 hours in milliseconds
+    cleanup-retention-days: 7
+    
 # Logging configuration for billing module
 logging:
   level:

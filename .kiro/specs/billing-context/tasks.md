@@ -260,7 +260,7 @@
     - Create concrete repository classes extending closure-based interfaces
     - Add EntityManager integration with proper transaction handling
     - Include query implementations for complex finders
-    - _Requirements: 10.1, 10.2_
+    - _Requiremenbefore ts: 10.1, 10.2_
 
 - [x] 9. Implement API controllers and endpoints
 
@@ -292,15 +292,24 @@
     - Include event processing and idempotency handling
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 10. Implement event publishing and domain events
-  - [ ] 10.1 Create billing domain events
+- [x] 10. Implement event publishing and domain events
+
+
+
+
+
+  - [x] 10.1 Create billing domain events
+
+
     - Implement PaymentVerifiedEvent for IAM context integration
     - Add InvoiceGeneratedEvent for notification systems
     - Create BillingAccountStatusChangedEvent for status tracking
     - Add SubscriptionCancelledEvent for cleanup processes
     - _Requirements: 9.1, 9.2, 9.3, 9.4_
 
-  - [ ] 10.2 Implement event outbox pattern
+  - [x] 10.2 Implement event outbox pattern
+
+
     - Create BillingDomainEventEntity for reliable event delivery
     - Add event publishing service with outbox processing
     - Include event serialization and deserialization
