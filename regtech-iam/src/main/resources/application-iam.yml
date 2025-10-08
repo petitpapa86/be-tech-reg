@@ -1,29 +1,4 @@
-# IAM Module Configuration
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/regtech
-    username: regtech_user
-    password: ${DATABASE_PASSWORD:regtech_password}
-    driver-class-name: org.postgresql.Driver
-  
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_schema: iam
-        format_sql: true
-        show_sql: false
-    show-sql: false
-  
-  flyway:
-    locations: classpath:db/migration
-    schemas: iam
-    baseline-on-migrate: true
-    validate-on-migrate: true
-
-# IAM specific configuration
+# IAM Module Default Configuration
 iam:
   security:
     jwt:
@@ -58,57 +33,6 @@ iam:
 logging:
   level:
     com.bcbs239.regtech.iam: INFO
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-
----
-# Development profile
-spring:
-  config:
-    activate:
-      on-profile: development
-  
-  datasource:
-    url: jdbc:h2:mem:regtech-iam;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    properties:
-      hibernate:
-        default_schema: PUBLIC
-  
-  flyway:
-    enabled: false
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
----
-# Test profile
-spring:
-  config:
-    activate:
-      on-profile: test
-  
-  datasource:
-    url: jdbc:h2:mem:regtech-iam-test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    properties:
-      hibernate:
-        default_schema: PUBLIC
-  
-  flyway:
-    enabled: false
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN

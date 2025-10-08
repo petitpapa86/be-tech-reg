@@ -1,10 +1,12 @@
 package com.bcbs239.regtech.billing.application.processpayment;
 
 import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
+import com.bcbs239.regtech.billing.infrastructure.validation.BillingValidationUtils;
+import com.bcbs239.regtech.billing.infrastructure.validation.ValidStripeId;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * Command for processing payment information during user registration.
@@ -12,9 +14,11 @@ import jakarta.validation.constraints.NotNull;
  */
 public record ProcessPaymentCommand(
     @NotBlank(message = "Payment method ID is required")
+    @ValidStripeId(type = ValidStripeId.StripeIdType.PAYMENT_METHOD, message = "Invalid payment method ID format")
     String paymentMethodId,
     
     @NotBlank(message = "Correlation ID is required")
+    @Size(min = 3, max = 100, message = "Correlation ID must be between 3 and 100 characters")
     String correlationId
 ) {
     
@@ -22,19 +26,25 @@ public record ProcessPaymentCommand(
      * Factory method to create and validate ProcessPaymentCommand
      */
     public static Result<ProcessPaymentCommand> create(String paymentMethodId, String correlationId) {
-        if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("PAYMENT_METHOD_ID_REQUIRED", 
-                "Payment method ID is required", "payment.method.id.required"));
+        // Sanitize inputs
+        String sanitizedPaymentMethodId = BillingValidationUtils.sanitizeStringInput(paymentMethodId);
+        String sanitizedCorrelationId = BillingValidationUtils.sanitizeStringInput(correlationId);
+        
+        // Validate payment method ID
+        Result<Void> paymentMethodValidation = BillingValidationUtils.validateStripePaymentMethodId(sanitizedPaymentMethodId);
+        if (paymentMethodValidation.isFailure()) {
+            return Result.failure(paymentMethodValidation.getError().get());
         }
         
-        if (correlationId == null || correlationId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("CORRELATION_ID_REQUIRED", 
-                "Correlation ID is required", "payment.correlation.id.required"));
+        // Validate correlation ID
+        Result<Void> correlationIdValidation = BillingValidationUtils.validateCorrelationId(sanitizedCorrelationId);
+        if (correlationIdValidation.isFailure()) {
+            return Result.failure(correlationIdValidation.getError().get());
         }
         
         return Result.success(new ProcessPaymentCommand(
-            paymentMethodId.trim(),
-            correlationId.trim()
+            sanitizedPaymentMethodId,
+            sanitizedCorrelationId
         ));
     }
     

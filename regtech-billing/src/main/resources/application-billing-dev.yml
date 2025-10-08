@@ -1,0 +1,85 @@
+# Billing Module Development Profile Configuration
+spring:
+  datasource:
+    # H2 in-memory database for development
+    url: jdbc:h2:mem:billing_dev;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+        
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+        
+  flyway:
+    # Disable Flyway in dev mode since we use create-drop
+    enabled: false
+
+billing:
+  stripe:
+    # Stripe test API keys for development
+    api-key: ${STRIPE_TEST_API_KEY:sk_test_51234567890abcdef}
+    webhook-secret: ${STRIPE_TEST_WEBHOOK_SECRET:whsec_test_1234567890abcdef}
+    
+  # Development-specific overrides
+  outbox:
+    enabled: true
+    processing-interval: 5000 # 5 seconds for faster development feedback
+    retry-interval: 10000 # 10 seconds
+    cleanup-interval: 300000 # 5 minutes
+    cleanup-retention-days: 1 # Keep only 1 day in development
+    
+  scheduling:
+    monthly-billing:
+      enabled: false # Disable scheduled jobs in development
+      cron: "0 0 0 1 * ?" # Keep cron for testing
+      timezone: "UTC"
+    dunning-process:
+      enabled: false # Disable scheduled jobs in development
+      cron: "0 0 9 * * ?"
+      timezone: "UTC"
+      thread-pool-size: 2 # Smaller pool for development
+      
+  notifications:
+    email:
+      enabled: false # Disable email notifications in development
+    sms:
+      enabled: false
+    push:
+      enabled: false
+
+# Development logging configuration
+logging:
+  level:
+    com.bcbs239.regtech.billing: DEBUG
+    com.stripe: DEBUG
+    org.springframework.web: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.transaction: DEBUG
+    
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    
+# Development actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,configprops,beans,flyway,liquibase
+  endpoint:
+    health:
+      show-details: always
+      show-components: always

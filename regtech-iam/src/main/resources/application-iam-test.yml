@@ -1,0 +1,78 @@
+# IAM Module Test Profile Configuration
+spring:
+  datasource:
+    # H2 in-memory database for testing
+    url: jdbc:h2:mem:regtech_iam_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false # Keep quiet during tests
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.H2Dialect
+        default_schema: PUBLIC
+        
+  flyway:
+    # Use Flyway in tests to ensure migration scripts work
+    enabled: true
+    locations: classpath:db/migration
+    clean-disabled: false # Allow clean in tests
+
+iam:
+  security:
+    jwt:
+      # Test JWT secret
+      secret: test-jwt-secret-key-for-unit-tests-only-not-secure-at-all
+      expiration: 3600 # 1 hour for tests
+    password:
+      # Minimal password policy for tests
+      min-length: 6
+      require-uppercase: false
+      require-lowercase: true
+      require-digits: false
+      require-special-chars: false
+    oauth2:
+      google:
+        client-id: test-google-client-id
+        client-secret: test-google-client-secret
+      facebook:
+        client-id: test-facebook-client-id
+        client-secret: test-facebook-client-secret
+  
+  authorization:
+    cache:
+      enabled: false # Disable caching in tests for predictable behavior
+      ttl: 30 # 30 seconds if enabled
+    multi-tenant:
+      enabled: false # Disable multi-tenancy in tests for simplicity
+      default-organization: "test-org"
+    permissions:
+      strict-mode: false # Relaxed permissions for tests
+      audit-enabled: false # Disable audit in tests for performance
+
+# Test logging configuration (minimal)
+logging:
+  level:
+    com.bcbs239.regtech.iam: WARN # Only show warnings and errors in tests
+    org.springframework.security: ERROR
+    org.hibernate.SQL: ERROR
+    org.springframework.transaction: ERROR
+    org.springframework.test: WARN
+    org.testcontainers: WARN
+    
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"
+
+# Test actuator endpoints (disabled)
+management:
+  endpoints:
+    enabled-by-default: false
+  endpoint:
+    health:
+      enabled: true
+      show-details: always

@@ -1,11 +1,13 @@
-package com.bcbs239.regtech.billing.application.commands;
+package com.bcbs239.regtech.billing.application.createsubscription;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.billing.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
+import com.bcbs239.regtech.billing.infrastructure.validation.BillingValidationUtils;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 /**
  * Command for creating a new subscription for a billing account.
@@ -13,6 +15,7 @@ import jakarta.validation.constraints.NotNull;
  */
 public record CreateSubscriptionCommand(
     @NotBlank(message = "Billing account ID is required")
+    @Size(min = 3, max = 50, message = "Billing account ID must be between 3 and 50 characters")
     String billingAccountId,
     
     @NotNull(message = "Subscription tier is required")
@@ -23,9 +26,13 @@ public record CreateSubscriptionCommand(
      * Factory method to create and validate CreateSubscriptionCommand
      */
     public static Result<CreateSubscriptionCommand> create(String billingAccountId, SubscriptionTier tier) {
-        if (billingAccountId == null || billingAccountId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_ID_REQUIRED", 
-                "Billing account ID is required", "subscription.billing.account.id.required"));
+        // Sanitize input
+        String sanitizedBillingAccountId = BillingValidationUtils.sanitizeStringInput(billingAccountId);
+        
+        // Validate billing account ID
+        Result<Void> billingAccountIdValidation = BillingValidationUtils.validateBillingAccountId(sanitizedBillingAccountId);
+        if (billingAccountIdValidation.isFailure()) {
+            return Result.failure(billingAccountIdValidation.getError().get());
         }
         
         if (tier == null) {
@@ -34,7 +41,7 @@ public record CreateSubscriptionCommand(
         }
         
         return Result.success(new CreateSubscriptionCommand(
-            billingAccountId.trim(),
+            sanitizedBillingAccountId,
             tier
         ));
     }

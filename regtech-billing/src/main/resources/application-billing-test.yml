@@ -1,0 +1,85 @@
+# Billing Module Test Profile Configuration
+spring:
+  datasource:
+    # H2 in-memory database for testing
+    url: jdbc:h2:mem:billing_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false # Keep quiet during tests
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.H2Dialect
+        
+  flyway:
+    # Use Flyway in tests to ensure migration scripts work
+    enabled: true
+    locations: classpath:db/migration
+    clean-disabled: false # Allow clean in tests
+
+billing:
+  stripe:
+    # Stripe test API keys for testing
+    api-key: sk_test_51234567890abcdef_test_key_for_unit_tests
+    webhook-secret: whsec_test_1234567890abcdef_test_secret_for_unit_tests
+    
+  # Test-specific configuration
+  outbox:
+    enabled: false # Disable outbox processing in tests for faster execution
+    processing-interval: 1000 # 1 second if enabled
+    retry-interval: 2000 # 2 seconds if enabled
+    cleanup-interval: 10000 # 10 seconds if enabled
+    cleanup-retention-days: 1
+    max-retries: 1
+    
+  scheduling:
+    monthly-billing:
+      enabled: false # Disable scheduled jobs in tests
+      cron: "0 0 0 1 * ?"
+      timezone: "UTC"
+    dunning-process:
+      enabled: false # Disable scheduled jobs in tests
+      cron: "0 0 9 * * ?"
+      timezone: "UTC"
+      thread-pool-size: 1
+      
+  notifications:
+    email:
+      enabled: false # Disable notifications in tests
+      templates:
+        first-reminder: "test-first-reminder"
+        second-reminder: "test-second-reminder"
+        final-notice: "test-final-notice"
+        suspension-notice: "test-suspension-notice"
+    sms:
+      enabled: false
+    push:
+      enabled: false
+
+# Test logging configuration (minimal)
+logging:
+  level:
+    com.bcbs239.regtech.billing: WARN # Only show warnings and errors in tests
+    com.stripe: ERROR
+    org.springframework.web: ERROR
+    org.hibernate.SQL: ERROR
+    org.springframework.transaction: ERROR
+    org.springframework.test: WARN
+    org.testcontainers: WARN
+    
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n"
+
+# Test actuator endpoints (disabled)
+management:
+  endpoints:
+    enabled-by-default: false
+  endpoint:
+    health:
+      enabled: true
+      show-details: always

@@ -1,11 +1,13 @@
 package com.bcbs239.regtech.billing.application.generateinvoice;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
+import com.bcbs239.regtech.billing.domain.billing.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.billing.BillingPeriod;
+import com.bcbs239.regtech.billing.infrastructure.validation.BillingValidationUtils;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.YearMonth;
 
@@ -15,6 +17,7 @@ import java.time.YearMonth;
  */
 public record GenerateInvoiceCommand(
     @NotBlank(message = "Billing account ID is required")
+    @Size(min = 3, max = 50, message = "Billing account ID must be between 3 and 50 characters")
     String billingAccountId,
     
     @NotNull(message = "Billing period is required")
@@ -25,9 +28,13 @@ public record GenerateInvoiceCommand(
      * Factory method to create and validate GenerateInvoiceCommand
      */
     public static Result<GenerateInvoiceCommand> create(String billingAccountId, BillingPeriod billingPeriod) {
-        if (billingAccountId == null || billingAccountId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_ID_REQUIRED", 
-                "Billing account ID is required", "invoice.billing.account.id.required"));
+        // Sanitize input
+        String sanitizedBillingAccountId = BillingValidationUtils.sanitizeStringInput(billingAccountId);
+        
+        // Validate billing account ID
+        Result<Void> billingAccountIdValidation = BillingValidationUtils.validateBillingAccountId(sanitizedBillingAccountId);
+        if (billingAccountIdValidation.isFailure()) {
+            return Result.failure(billingAccountIdValidation.getError().get());
         }
         
         if (billingPeriod == null) {
@@ -35,8 +42,14 @@ public record GenerateInvoiceCommand(
                 "Billing period is required", "invoice.billing.period.required"));
         }
         
+        // Validate billing period dates
+        if (billingPeriod.startDate().isAfter(billingPeriod.endDate())) {
+            return Result.failure(ErrorDetail.of("INVALID_BILLING_PERIOD", 
+                "Billing period start date cannot be after end date", "invoice.billing.period.invalid"));
+        }
+        
         return Result.success(new GenerateInvoiceCommand(
-            billingAccountId.trim(),
+            sanitizedBillingAccountId,
             billingPeriod
         ));
     }

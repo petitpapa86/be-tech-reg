@@ -1,8 +1,9 @@
-package com.bcbs239.regtech.billing.api;
+package com.bcbs239.regtech.billing.api.webhooks;
 
 import com.bcbs239.regtech.billing.application.processwebhook.ProcessWebhookCommand;
 import com.bcbs239.regtech.billing.application.processwebhook.ProcessWebhookCommandHandler;
 import com.bcbs239.regtech.billing.application.processwebhook.ProcessWebhookResponse;
+import com.bcbs239.regtech.billing.infrastructure.validation.BillingValidationUtils;
 import com.bcbs239.regtech.core.shared.ApiResponse;
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.Result;
@@ -43,10 +44,28 @@ public class WebhookController extends BaseController {
             @RequestHeader("Stripe-Signature") String signatureHeader) {
         
         try {
-            // Parse the payload to extract event ID and type
-            JsonNode eventJson = objectMapper.readTree(payload);
+            // Pre-validate webhook signature format
+            Result<Void> signatureValidation = BillingValidationUtils.validateWebhookSignature(signatureHeader);
+            if (signatureValidation.isFailure()) {
+                return handleError(signatureValidation.getError().get());
+            }
+            
+            // Pre-validate webhook payload structure
+            Result<JsonNode> payloadValidation = BillingValidationUtils.validateWebhookPayload(payload);
+            if (payloadValidation.isFailure()) {
+                return handleError(payloadValidation.getError().get());
+            }
+            
+            JsonNode eventJson = payloadValidation.getValue().get();
             String eventId = eventJson.get("id").asText();
             String eventType = eventJson.get("type").asText();
+            
+            // Check if event type is supported
+            if (!BillingValidationUtils.isSupportedWebhookEvent(eventType)) {
+                return ResponseEntity.ok(
+                    ApiResponse.success(null, "Webhook event type not supported: " + eventType)
+                );
+            }
             
             // Create and validate command
             Result<ProcessWebhookCommand> commandResult = ProcessWebhookCommand.create(
