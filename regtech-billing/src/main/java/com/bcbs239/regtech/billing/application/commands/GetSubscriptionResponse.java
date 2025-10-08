@@ -1,6 +1,10 @@
 package com.bcbs239.regtech.billing.application.commands;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import java.time.LocalDate;
 
 /**
@@ -24,7 +28,7 @@ public record GetSubscriptionResponse(
     /**
      * Factory method to create GetSubscriptionResponse from Subscription aggregate
      */
-    public static GetSubscriptionResponse from(com.bcbs239.regtech.billing.domain.aggregates.Subscription subscription) {
+    public static GetSubscriptionResponse from(com.bcbs239.regtech.billing.domain.subscriptions.Subscription subscription) {
         return new GetSubscriptionResponse(
             subscription.getId(),
             subscription.getBillingAccountId(),

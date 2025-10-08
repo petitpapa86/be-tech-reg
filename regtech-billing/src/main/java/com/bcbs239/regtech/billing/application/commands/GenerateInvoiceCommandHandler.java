@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.application.commands;
 
 import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
-import com.bcbs239.regtech.billing.domain.aggregates.Subscription;
+import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.aggregates.Invoice;
 import com.bcbs239.regtech.billing.domain.valueobjects.*;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaBillingAccountRepository;

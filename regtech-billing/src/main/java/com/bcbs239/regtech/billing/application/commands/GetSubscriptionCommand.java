@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.application.commands;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.SubscriptionId;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import jakarta.validation.constraints.NotBlank;

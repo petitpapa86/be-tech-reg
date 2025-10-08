@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.application.commands;
 
-import com.bcbs239.regtech.billing.domain.aggregates.Subscription;
-import com.bcbs239.regtech.billing.domain.valueobjects.SubscriptionId;
+import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaSubscriptionRepository;
 import com.bcbs239.regtech.billing.infrastructure.stripe.StripeService;
 import com.bcbs239.regtech.core.shared.Result;

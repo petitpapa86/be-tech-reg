@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.billing.domain.aggregates;
+package com.bcbs239.regtech.billing.domain.invoices;
 
 import com.bcbs239.regtech.billing.domain.valueobjects.*;
 import com.bcbs239.regtech.core.shared.Result;

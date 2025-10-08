@@ -27,10 +27,15 @@ These contexts communicate through domain events using an event-driven architect
 - `InvoiceGeneratedEvent`: Published when an invoice is generated
 
 #### Outbox Pattern Infrastructure
-- `BillingEventPublisher`: Main service for publishing events using outbox pattern
+- `BillingEventPublisher`: Main service for publishing events using outbox pattern (implements `OutboxEventPublisher`)
 - `BillingDomainEventEntity`: JPA entity for storing events reliably
-- `OutboxEventProcessor`: Scheduled processor for reliable event delivery
+- `OutboxEventProcessor`: Billing-specific processor extending `GenericOutboxEventProcessor`
 - `EventSerializer`: JSON serialization/deserialization service
+
+### Generic Outbox Components (regtech-core)
+- `OutboxEventPublisher`: Generic interface for outbox event publishers
+- `GenericOutboxEventProcessor`: Generic scheduled processor for reliable event delivery
+- `OutboxEventStats`: Statistics record for monitoring event processing
 
 #### Command Handlers
 - `ProcessPaymentCommandHandler`: Handles payment processing and publishes events via outbox
@@ -415,6 +420,61 @@ billing:
 - Event handler logging
 - Cross-module event tracing
 
+## Generic Outbox Pattern Usage
+
+### For Other Bounded Contexts
+
+To implement the outbox pattern in other bounded contexts:
+
+1. **Implement OutboxEventPublisher Interface**:
+```java
+@Service
+public class YourContextEventPublisher implements OutboxEventPublisher {
+    @Override
+    public void processPendingEvents() { /* Implementation */ }
+    
+    @Override
+    public void retryFailedEvents(int maxRetries) { /* Implementation */ }
+    
+    @Override
+    public OutboxEventStats getStats() { /* Implementation */ }
+}
+```
+
+2. **Extend GenericOutboxEventProcessor**:
+```java
+@Component
+@ConditionalOnProperty(name = "yourcontext.outbox.enabled", havingValue = "true")
+public class YourContextOutboxEventProcessor extends GenericOutboxEventProcessor {
+    
+    public YourContextOutboxEventProcessor(YourContextEventPublisher eventPublisher,
+                                          @Value("${yourcontext.outbox.enabled:false}") boolean enabled) {
+        super(eventPublisher, "YourContext");
+    }
+    
+    @Override
+    protected boolean isProcessingEnabled() {
+        return enabled;
+    }
+}
+```
+
+3. **Configure in application.yml**:
+```yaml
+yourcontext:
+  outbox:
+    enabled: true
+    max-retries: 3
+```
+
+### Benefits of Generic Implementation
+
+1. **Code Reuse**: Common outbox logic shared across contexts
+2. **Consistency**: Same scheduling and retry patterns everywhere
+3. **Maintainability**: Single place to update outbox behavior
+4. **Monitoring**: Consistent statistics and logging format
+5. **Configuration**: Standardized configuration patterns
+
 ## Future Enhancements
 
 ### Potential Improvements
@@ -424,4 +484,4 @@ billing:
 4. **Distributed Tracing**: Integrate with distributed tracing systems
 5. **Event Replay**: Add capability to replay events for recovery scenarios
 
-This integration provides a robust, reliable foundation for cross-context communication while maintaining loose coupling between the Billing and IAM bounded contexts.
+This integration provides a robust, reliable foundation for cross-context communication while maintaining loose coupling between bounded contexts.
