@@ -82,7 +82,7 @@ public class UserRoleEntity {
      */
     public UserRole toDomain() {
         return UserRole.create(
-            UserId.fromString(userId).getValue().get(),
+            UserId.fromString(userId),
             role,
             organizationId
         );

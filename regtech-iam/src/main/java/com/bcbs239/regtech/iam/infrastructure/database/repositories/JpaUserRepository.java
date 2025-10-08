@@ -84,7 +84,7 @@ public class JpaUserRepository {
                 }
                 
                 entityManager.flush();
-                return Result.success(UserId.fromString(entity.getId()).getValue().get());
+                return Result.success(UserId.fromString(entity.getId()));
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("USER_SAVE_FAILED",
                     "Failed to save user: " + e.getMessage(), "error.user.saveFailed"));
@@ -242,19 +242,16 @@ public class JpaUserRepository {
      */
     public record UserOrgQuery(UserId userId, String organizationId) {}
 
-    /**
-     * Closure to generate JWT token for user
-     */
     public Function<User, Result<JwtToken>> tokenGenerator(String jwtSecretKey) {
         return user -> {
             try {
                 // Create JWT token with user information
-                JwtToken token = JwtToken.create(
-                    user.getId().getValue(),
-                    user.getEmail().getValue(),
-                    jwtSecretKey
+                Result<JwtToken> tokenResult = JwtToken.generate(
+                    user,
+                    jwtSecretKey,
+                    java.time.Duration.ofHours(24)
                 );
-                return Result.success(token);
+                return tokenResult;
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("TOKEN_GENERATION_FAILED",
                     "Failed to generate JWT token: " + e.getMessage(),

@@ -1,11 +1,15 @@
 package com.bcbs239.regtech.iam.infrastructure.security;
 
+import com.bcbs239.regtech.core.security.SecurityConfigurationRegistry;
 import com.bcbs239.regtech.core.security.SecurityConfigurationRegistry.ModuleSecurityConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import jakarta.annotation.PostConstruct;
 
 /**
  * IAM module security configuration.
@@ -13,6 +17,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  */
 @Configuration
 public class IamSecurityConfiguration implements ModuleSecurityConfiguration {
+
+    @Autowired
+    private SecurityConfigurationRegistry securityConfigurationRegistry;
+
+    @PostConstruct
+    public void registerSecurityConfiguration() {
+        securityConfigurationRegistry.registerModuleSecurityConfiguration("iam", this);
+    }
 
     @Override
     public String[] getPathPatterns() {
@@ -32,17 +44,17 @@ public class IamSecurityConfiguration implements ModuleSecurityConfiguration {
                 .requestMatchers("/api/v1/users/register").permitAll()
                 .requestMatchers("/api/v1/auth/login").permitAll()
                 .requestMatchers("/api/v1/auth/refresh").permitAll()
-                
+
                 // Health endpoints - public
                 .requestMatchers("/api/v1/users/health/**").permitAll()
                 .requestMatchers("/api/v1/auth/health/**").permitAll()
-                
+
                 // User profile management - authenticated users
                 .requestMatchers("/api/v1/users/profile/**").authenticated()
-                
+
                 // User administration - admin role required
                 .requestMatchers("/api/v1/users/admin/**").hasRole("ADMIN")
-                
+
                 // All other IAM endpoints require authentication
                 .anyRequest().authenticated()
             );

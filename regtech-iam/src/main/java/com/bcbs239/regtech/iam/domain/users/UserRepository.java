@@ -46,7 +46,7 @@ public interface UserRepository {
     /**
      * Returns a function that generates JWT tokens
      */
-    Function<String, JwtToken> tokenGenerator(String secretKey);
+    Function<User, Result<JwtToken>> tokenGenerator(String secretKey);
     
     /**
      * Query object for user organization role lookups

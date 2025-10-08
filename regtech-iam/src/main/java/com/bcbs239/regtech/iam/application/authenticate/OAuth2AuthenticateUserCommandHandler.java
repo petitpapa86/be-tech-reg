@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
+import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -16,12 +17,12 @@ import java.util.function.Function;
 @Component
 public class OAuth2AuthenticateUserCommandHandler {
 
-    private final UserRepository userRepository;
+    private final JpaUserRepository userRepository;
     private final OAuth2ProviderService oAuth2ProviderService;
     private final String jwtSecretKey;
 
     public OAuth2AuthenticateUserCommandHandler(
-            UserRepository userRepository,
+            JpaUserRepository userRepository,
             OAuth2ProviderService oAuth2ProviderService) {
         this.userRepository = userRepository;
         this.oAuth2ProviderService = oAuth2ProviderService;

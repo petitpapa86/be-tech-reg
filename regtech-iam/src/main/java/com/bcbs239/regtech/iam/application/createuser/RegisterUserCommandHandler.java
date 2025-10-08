@@ -141,7 +141,7 @@ public class RegisterUserCommandHandler {
     private Result<Void> publishUserRegisteredEvent(UserRegistrationData data) {
         try {
             UserRegisteredEvent event = new UserRegisteredEvent(
-                data.userId().value(),
+                data.userId().getValue(),
                 data.email(),
                 data.name(),
                 data.bankId(),

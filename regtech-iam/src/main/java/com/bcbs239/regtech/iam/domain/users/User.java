@@ -78,7 +78,7 @@ public class User {
      * Package-private factory method for persistence layer reconstruction
      * Used by JPA entities to recreate domain objects from database
      */
-    static User createFromPersistence(UserId id, Email email, Password password, String firstName, 
+    public static User createFromPersistence(UserId id, Email email, Password password, String firstName, 
                                     String lastName, UserStatus status, String googleId, String facebookId,
                                     Instant createdAt, Instant updatedAt, long version, 
                                     List<BankAssignment> bankAssignments) {

@@ -5,6 +5,7 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
+import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,7 +22,7 @@ import static org.mockito.Mockito.*;
 class PaymentVerificationEventHandlerTest {
 
     @Mock
-    private UserRepository userRepository;
+    private JpaUserRepository userRepository;
 
     @InjectMocks
     private PaymentVerificationEventHandler eventHandler;

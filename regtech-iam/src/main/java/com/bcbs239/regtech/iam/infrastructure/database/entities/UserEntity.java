@@ -111,7 +111,7 @@ public class UserEntity {
         // Use reflection or package-private constructor to create domain object
         // This is a simplified approach - in practice you might need a more sophisticated builder
         User user = User.createFromPersistence(
-            UserId.fromString(id).getValue().get(),
+            UserId.fromString(id),
             emailVO,
             passwordVO,
             firstName,

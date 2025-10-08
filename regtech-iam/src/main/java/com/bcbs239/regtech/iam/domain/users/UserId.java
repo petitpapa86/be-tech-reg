@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.iam.domain.users;
 
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -21,6 +22,10 @@ public record UserId(UUID value) {
 
     public UUID getUUID() {
         return value;
+    }
+
+    public Optional<UserId> toOptional() {
+        return Optional.of(this);
     }
 
     @Override
