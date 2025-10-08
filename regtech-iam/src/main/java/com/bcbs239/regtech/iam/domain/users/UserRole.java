@@ -16,14 +16,22 @@ public class UserRole {
     // Private constructor for JPA
     private UserRole() {}
     
-    public static UserRole create(String userId, Role role, String organizationId) {
+    public static UserRole create(UserId userId, Role role, String organizationId) {
         UserRole userRole = new UserRole();
         userRole.id = java.util.UUID.randomUUID().toString();
-        userRole.userId = userId;
+        userRole.userId = userId.getValue();
         userRole.role = role;
         userRole.organizationId = organizationId;
         userRole.active = true;
         return userRole;
+    }
+    
+    /**
+     * Create UserRole from BCBS239 business role
+     */
+    public static UserRole createFromBcbs239Role(UserId userId, Bcbs239Role bcbs239Role, String organizationId) {
+        Role coreRole = RoleMapping.toCoreRole(bcbs239Role);
+        return create(userId, coreRole, organizationId);
     }
     
     public void activate() {
@@ -32,6 +40,23 @@ public class UserRole {
     
     public void deactivate() {
         this.active = false;
+    }
+    
+    /**
+     * Get the BCBS239 business role if applicable
+     */
+    public Bcbs239Role getBcbs239Role() {
+        if (RoleMapping.isBcbs239Role(role)) {
+            return RoleMapping.fromCoreRole(role);
+        }
+        throw new IllegalStateException("Role " + role + " is not a BCBS239 role");
+    }
+    
+    /**
+     * Check if this is a BCBS239 role
+     */
+    public boolean isBcbs239Role() {
+        return RoleMapping.isBcbs239Role(role);
     }
     
     // Getters
