@@ -104,7 +104,8 @@ public class BillingEventPublisher {
 
         // Immediately try to publish the event
         try {
-            eventPublisher.accept(event);
+            Object eventToPublish = convertToCrossModuleEvent(event);
+            crossModuleEventBus.publishEvent(eventToPublish);
             eventEntity.markAsProcessed();
             eventSaver.apply(eventEntity); // Update the entity status
         } catch (Exception e) {
@@ -124,7 +125,7 @@ public class BillingEventPublisher {
         processPendingEventsWithClosures(
             pendingEventsFinder(),
             eventDeserializer(),
-            crossModuleEventBus::publishEvent,
+            crossModuleEventPublisher(),
             eventUpdater()
         );
     }
@@ -178,7 +179,7 @@ public class BillingEventPublisher {
         retryFailedEventsWithClosures(
             () -> retryableEventsFinder(maxRetries),
             eventDeserializer(),
-            crossModuleEventBus::publishEvent,
+            crossModuleEventPublisher(),
             eventUpdater()
         );
     }
@@ -267,6 +268,58 @@ public class BillingEventPublisher {
     }
 
     /**
+     * Publish a billing domain event by converting it to a core event if needed.
+     */
+    public Result<Void> publishBillingEvent(Object billingEvent) {
+        // Convert billing domain events to core events for cross-module communication
+        Object coreEvent = convertToCoreEvent(billingEvent);
+        if (coreEvent != null) {
+            return publishEvent(coreEvent);
+        }
+        
+        // For internal billing events, publish as-is
+        return publishEvent(billingEvent);
+    }
+
+    /**
+     * Convert billing domain events to core events for cross-module communication.
+     */
+    private Object convertToCoreEvent(Object billingEvent) {
+        if (billingEvent instanceof com.bcbs239.regtech.billing.domain.events.PaymentVerifiedEvent) {
+            var event = (com.bcbs239.regtech.billing.domain.events.PaymentVerifiedEvent) billingEvent;
+            return new PaymentVerifiedEvent(
+                event.getUserId().toString(),
+                event.getBillingAccountId().toString(),
+                event.getCorrelationId()
+            );
+        } else if (billingEvent instanceof com.bcbs239.regtech.billing.domain.events.BillingAccountStatusChangedEvent) {
+            var event = (com.bcbs239.regtech.billing.domain.events.BillingAccountStatusChangedEvent) billingEvent;
+            return new BillingAccountStatusChangedEvent(
+                event.getBillingAccountId().toString(),
+                event.getUserId().toString(),
+                event.getPreviousStatus().toString(),
+                event.getNewStatus().toString(),
+                event.getReason(),
+                event.getCorrelationId()
+            );
+        } else if (billingEvent instanceof com.bcbs239.regtech.billing.domain.events.SubscriptionCancelledEvent) {
+            var event = (com.bcbs239.regtech.billing.domain.events.SubscriptionCancelledEvent) billingEvent;
+            return new SubscriptionCancelledEvent(
+                event.getSubscriptionId().toString(),
+                event.getBillingAccountId().toString(),
+                event.getUserId().toString(),
+                event.getTier().toString(),
+                event.getCancellationDate(),
+                event.getCancellationReason(),
+                event.getCorrelationId()
+            );
+        }
+        
+        // Return null for events that don't need cross-module communication
+        return null;
+    }
+
+    /**
      * Determine the target module for an event based on its type.
      */
     private String determineTargetModule(Object event) {
@@ -282,6 +335,48 @@ public class BillingEventPublisher {
         
         // Default to null for internal billing events
         return null;
+    }
+
+    private Consumer<Object> crossModuleEventPublisher() {
+        return domainEvent -> {
+            Object eventToPublish = convertToCrossModuleEvent(domainEvent);
+            crossModuleEventBus.publishEvent(eventToPublish);
+        };
+    }
+
+    /**
+     * Convert domain events to cross-module events for inter-context communication.
+     */
+    private Object convertToCrossModuleEvent(Object domainEvent) {
+        if (domainEvent instanceof PaymentVerifiedEvent billingEvent) {
+            return new com.bcbs239.regtech.core.events.PaymentVerifiedEvent(
+                billingEvent.getUserId().toString(),
+                billingEvent.getBillingAccountId().toString(),
+                billingEvent.getCorrelationId()
+            );
+        } else if (domainEvent instanceof BillingAccountStatusChangedEvent billingEvent) {
+            return new com.bcbs239.regtech.core.events.BillingAccountStatusChangedEvent(
+                billingEvent.getBillingAccountId().toString(),
+                billingEvent.getUserId().toString(),
+                billingEvent.getPreviousStatus().toString(),
+                billingEvent.getNewStatus().toString(),
+                billingEvent.getReason(),
+                billingEvent.getCorrelationId()
+            );
+        } else if (domainEvent instanceof SubscriptionCancelledEvent billingEvent) {
+            return new com.bcbs239.regtech.core.events.SubscriptionCancelledEvent(
+                billingEvent.getSubscriptionId().toString(),
+                billingEvent.getBillingAccountId().toString(),
+                billingEvent.getUserId().toString(),
+                billingEvent.getTier().toString(),
+                billingEvent.getCancellationDate(),
+                billingEvent.getCancellationReason(),
+                billingEvent.getCorrelationId()
+            );
+        }
+        
+        // Return the original event if no conversion is needed
+        return domainEvent;
     }
 
     /**

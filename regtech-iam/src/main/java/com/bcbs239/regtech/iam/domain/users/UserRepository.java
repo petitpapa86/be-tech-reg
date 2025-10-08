@@ -42,6 +42,26 @@ public class UserRepository {
     }
 
     /**
+     * Function to load user by ID
+     * Returns Result<User> for functional error handling
+     */
+    public Function<UserId, Result<User>> userLoader() {
+        return userId -> {
+            try {
+                User user = entityManager.find(User.class, userId.getValue());
+                if (user == null) {
+                    return Result.failure(ErrorDetail.of("USER_NOT_FOUND",
+                        "User not found with ID: " + userId, "error.user.notFound"));
+                }
+                return Result.success(user);
+            } catch (Exception e) {
+                return Result.failure(ErrorDetail.of("USER_LOAD_FAILED",
+                    "Failed to load user: " + e.getMessage(), "error.user.loadFailed"));
+            }
+        };
+    }
+
+    /**
      * Function to save user
      * Returns Result<UserId> for functional error handling
      */

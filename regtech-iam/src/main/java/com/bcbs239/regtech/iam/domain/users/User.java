@@ -40,7 +40,7 @@ public class User {
         user.password = password;
         user.firstName = firstName;
         user.lastName = lastName;
-        user.status = UserStatus.ACTIVE; // New users are active by default
+        user.status = UserStatus.PENDING_PAYMENT; // New users need payment verification
         user.createdAt = Instant.now();
         user.updatedAt = Instant.now();
         user.version = 0;
@@ -120,6 +120,33 @@ public class User {
      */
     public void activate() {
         this.status = UserStatus.ACTIVE;
+        this.updatedAt = Instant.now();
+        this.version++;
+    }
+
+    /**
+     * Suspends user account
+     */
+    public void suspend() {
+        this.status = UserStatus.SUSPENDED;
+        this.updatedAt = Instant.now();
+        this.version++;
+    }
+
+    /**
+     * Cancels user account
+     */
+    public void cancel() {
+        this.status = UserStatus.CANCELLED;
+        this.updatedAt = Instant.now();
+        this.version++;
+    }
+
+    /**
+     * Sets user to pending payment status
+     */
+    public void setPendingPayment() {
+        this.status = UserStatus.PENDING_PAYMENT;
         this.updatedAt = Instant.now();
         this.version++;
     }
