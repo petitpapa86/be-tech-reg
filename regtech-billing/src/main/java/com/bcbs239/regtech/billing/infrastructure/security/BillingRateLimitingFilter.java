@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.iam.infrastructure.security;
+package com.bcbs239.regtech.billing.infrastructure.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -27,13 +27,21 @@ public class BillingRateLimitingFilter extends OncePerRequestFilter {
 
     private final int paymentRateLimit;
     private final int webhookRateLimit;
+    private final int defaultRateLimit;
     
     // Rate limiting storage - in production this should be replaced with Redis
     private final ConcurrentHashMap<String, RateLimitInfo> rateLimitStore = new ConcurrentHashMap<>();
 
+    public BillingRateLimitingFilter(int paymentRateLimit) {
+        this.paymentRateLimit = paymentRateLimit;
+        this.webhookRateLimit = paymentRateLimit * 10; // Webhooks can be more frequent
+        this.defaultRateLimit = paymentRateLimit * 2;
+    }
+
     public BillingRateLimitingFilter(int paymentRateLimit, int webhookRateLimit) {
         this.paymentRateLimit = paymentRateLimit;
         this.webhookRateLimit = webhookRateLimit;
+        this.defaultRateLimit = paymentRateLimit * 2;
     }
 
     @Override
@@ -111,8 +119,7 @@ public class BillingRateLimitingFilter extends OncePerRequestFilter {
         } else if (endpoint.contains("/webhooks/")) {
             return webhookRateLimit;
         } else {
-            // Default rate limit for other billing endpoints
-            return paymentRateLimit * 2;
+            return defaultRateLimit;
         }
     }
 
@@ -156,7 +163,8 @@ public class BillingRateLimitingFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         // Only filter billing endpoints
-        return !request.getRequestURI().startsWith("/api/v1/billing/");
+        return !request.getRequestURI().startsWith("/api/v1/billing/") && 
+               !request.getRequestURI().startsWith("/api/v1/subscriptions/");
     }
 
     /**
