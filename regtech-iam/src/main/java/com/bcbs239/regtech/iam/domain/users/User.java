@@ -75,6 +75,30 @@ public class User {
     }
 
     /**
+     * Package-private factory method for persistence layer reconstruction
+     * Used by JPA entities to recreate domain objects from database
+     */
+    static User createFromPersistence(UserId id, Email email, Password password, String firstName, 
+                                    String lastName, UserStatus status, String googleId, String facebookId,
+                                    Instant createdAt, Instant updatedAt, long version, 
+                                    List<BankAssignment> bankAssignments) {
+        User user = new User();
+        user.id = id.getValue();
+        user.email = email;
+        user.password = password;
+        user.firstName = firstName;
+        user.lastName = lastName;
+        user.status = status;
+        user.googleId = googleId;
+        user.facebookId = facebookId;
+        user.createdAt = createdAt;
+        user.updatedAt = updatedAt;
+        user.version = version;
+        user.bankAssignments = new ArrayList<>(bankAssignments);
+        return user;
+    }
+
+    /**
      * Records a successful authentication
      */
     public void recordAuthentication() {

@@ -52,4 +52,11 @@ public class Result<T> {
             return Result.failure(error);
         }
     }
+
+    /**
+     * Convert Result to Optional, discarding error information
+     */
+    public Optional<T> toOptional() {
+        return getValue();
+    }
 }

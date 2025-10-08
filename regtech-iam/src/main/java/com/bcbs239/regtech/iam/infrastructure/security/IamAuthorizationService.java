@@ -3,6 +3,8 @@ package com.bcbs239.regtech.iam.infrastructure.security;
 import com.bcbs239.regtech.core.security.authorization.AuthorizationService;
 import com.bcbs239.regtech.core.security.authorization.Role;
 import com.bcbs239.regtech.iam.domain.users.UserRole;
+import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -19,10 +21,10 @@ import java.util.stream.Collectors;
 @Service
 public class IamAuthorizationService implements AuthorizationService {
     
-    private final UserRoleRepository userRoleRepository;
+    private final JpaUserRepository userRepository;
     
-    public IamAuthorizationService(UserRoleRepository userRoleRepository) {
-        this.userRoleRepository = userRoleRepository;
+    public IamAuthorizationService(JpaUserRepository userRepository) {
+        this.userRepository = userRepository;
     }
     
     @Override
@@ -107,7 +109,9 @@ public class IamAuthorizationService implements AuthorizationService {
     @Override
     public boolean canAccessOrganization(String organizationId) {
         return getCurrentUserId()
-            .map(userId -> userRoleRepository.findByUserIdAndOrganizationId(userId, organizationId))
+            .flatMap(userId -> UserId.fromString(userId).toOptional())
+            .map(userId -> userRepository.userOrgRolesFinder().apply(
+                new JpaUserRepository.UserOrgQuery(userId, organizationId)))
             .map(roles -> !roles.isEmpty())
             .orElse(false);
     }
@@ -116,8 +120,10 @@ public class IamAuthorizationService implements AuthorizationService {
      * Get all permissions for a specific user
      */
     private Set<String> getUserPermissions(String userId) {
-        List<UserRole> userRoles = userRoleRepository.findActiveByUserId(userId);
-        return userRoles.stream()
+        return UserId.fromString(userId).toOptional()
+            .map(userIdVO -> userRepository.userRolesFinder().apply(userIdVO))
+            .orElse(List.of())
+            .stream()
             .map(UserRole::getRole)
             .flatMap(role -> role.getPermissions().stream())
             .collect(Collectors.toSet());
@@ -127,8 +133,10 @@ public class IamAuthorizationService implements AuthorizationService {
      * Get all roles for a specific user
      */
     private Set<String> getUserRoles(String userId) {
-        List<UserRole> userRoles = userRoleRepository.findActiveByUserId(userId);
-        return userRoles.stream()
+        return UserId.fromString(userId).toOptional()
+            .map(userIdVO -> userRepository.userRolesFinder().apply(userIdVO))
+            .orElse(List.of())
+            .stream()
             .map(userRole -> userRole.getRole().name())
             .collect(Collectors.toSet());
     }

@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
+import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
 import com.bcbs239.regtech.core.events.UserRegisteredEvent;
 import com.bcbs239.regtech.core.events.CrossModuleEventBus;
 import org.springframework.stereotype.Component;
@@ -17,11 +18,11 @@ import java.util.function.Function;
 @Component
 public class RegisterUserCommandHandler {
 
-    private final UserRepository userRepository;
+    private final JpaUserRepository userRepository;
     private final CrossModuleEventBus crossModuleEventBus;
 
     public RegisterUserCommandHandler(
-            UserRepository userRepository,
+            JpaUserRepository userRepository,
             CrossModuleEventBus crossModuleEventBus) {
         this.userRepository = userRepository;
         this.crossModuleEventBus = crossModuleEventBus;

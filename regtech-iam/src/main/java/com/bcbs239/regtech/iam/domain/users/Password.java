@@ -65,4 +65,18 @@ public record Password(String hash) {
         // TODO: Implement proper password verification
         return ("HASHED:" + plainPassword).equals(hash);
     }
+
+    /**
+     * Factory method to create Password from existing hash (for persistence layer)
+     */
+    public static Password fromHash(String hashedPassword) {
+        return new Password(hashedPassword);
+    }
+
+    /**
+     * Get the hashed value for persistence
+     */
+    public String getHashedValue() {
+        return hash;
+    }
 }

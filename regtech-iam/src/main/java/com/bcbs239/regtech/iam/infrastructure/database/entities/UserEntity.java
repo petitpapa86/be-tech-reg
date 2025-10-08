@@ -1,12 +1,14 @@
-package com.bcbs239.regtech.iam.infrastructure.persistence;
+package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
+import com.bcbs239.regtech.iam.domain.users.*;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * JPA Entity for users table
+ * JPA Entity for users table with proper domain conversion.
+ * Follows the established pattern of separating persistence from domain model.
  */
 @Entity
 @Table(name = "users", indexes = {
@@ -35,7 +37,7 @@ public class UserEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 50)
-    private UserStatusEntity status;
+    private UserStatus status;
 
     @Column(name = "google_id", length = 255)
     private String googleId;
@@ -53,14 +55,15 @@ public class UserEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "userId", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<UserBankAssignmentEntity> bankAssignments = new ArrayList<>();
 
-    // Constructors
+    // Default constructor for JPA
     protected UserEntity() {}
 
+    // Constructor for creation
     public UserEntity(String id, String email, String passwordHash, String firstName,
-                     String lastName, UserStatusEntity status, Instant createdAt, Instant updatedAt) {
+                     String lastName, UserStatus status, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;
@@ -70,6 +73,61 @@ public class UserEntity {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.version = 0L;
+    }
+
+    /**
+     * Factory method to create entity from domain object
+     */
+    public static UserEntity fromDomain(User user) {
+        UserEntity entity = new UserEntity();
+        entity.id = user.getId().getValue();
+        entity.email = user.getEmail().getValue();
+        entity.passwordHash = user.getPassword().getHashedValue();
+        entity.firstName = user.getFirstName();
+        entity.lastName = user.getLastName();
+        entity.status = user.getStatus();
+        entity.googleId = user.getGoogleId();
+        entity.facebookId = user.getFacebookId();
+        entity.createdAt = user.getCreatedAt();
+        entity.updatedAt = user.getUpdatedAt();
+        entity.version = user.getVersion();
+        
+        // Convert bank assignments
+        entity.bankAssignments = user.getBankAssignments().stream()
+            .map(assignment -> UserBankAssignmentEntity.fromDomain(assignment, entity.id))
+            .toList();
+        
+        return entity;
+    }
+
+    /**
+     * Convert to domain object
+     */
+    public User toDomain() {
+        // Create email and password value objects
+        Email emailVO = Email.create(email).getValue().get();
+        Password passwordVO = Password.fromHash(passwordHash);
+        
+        // Use reflection or package-private constructor to create domain object
+        // This is a simplified approach - in practice you might need a more sophisticated builder
+        User user = User.createFromPersistence(
+            UserId.fromString(id).getValue().get(),
+            emailVO,
+            passwordVO,
+            firstName,
+            lastName,
+            status,
+            googleId,
+            facebookId,
+            createdAt,
+            updatedAt,
+            version,
+            bankAssignments.stream()
+                .map(UserBankAssignmentEntity::toDomain)
+                .toList()
+        );
+        
+        return user;
     }
 
     // Getters and setters
@@ -88,8 +146,8 @@ public class UserEntity {
     public String getLastName() { return lastName; }
     public void setLastName(String lastName) { this.lastName = lastName; }
 
-    public UserStatusEntity getStatus() { return status; }
-    public void setStatus(UserStatusEntity status) { this.status = status; }
+    public UserStatus getStatus() { return status; }
+    public void setStatus(UserStatus status) { this.status = status; }
 
     public String getGoogleId() { return googleId; }
     public void setGoogleId(String googleId) { this.googleId = googleId; }
