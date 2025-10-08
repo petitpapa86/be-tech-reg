@@ -37,7 +37,8 @@ public class JpaSagaAuditLogRepository {
                 return Result.success(auditLog.getId());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("SAGA_AUDIT_LOG_SAVE_FAILED",
-                    "Failed to save saga audit log: " + e.getMessage()));
+                    "Failed to save saga audit log: " + e.getMessage(),
+                    "saga.audit.log.save.failed"));
             }
         };
     }
@@ -124,7 +125,8 @@ public class JpaSagaAuditLogRepository {
             return Result.success(auditLog.getId());
         } catch (Exception e) {
             return Result.failure(ErrorDetail.of("SAGA_AUDIT_LOG_FAILED",
-                "Failed to log saga event: " + e.getMessage()));
+                "Failed to log saga event: " + e.getMessage(),
+                "saga.audit.log.failed"));
         }
     }
 

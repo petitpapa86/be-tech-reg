@@ -8,6 +8,7 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.SubscriptionStatus;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaSubscriptionRepository;
+import com.bcbs239.regtech.core.saga.Saga;
 import com.bcbs239.regtech.core.saga.SagaOrchestrator;
 import com.bcbs239.regtech.core.saga.SagaResult;
 import com.bcbs239.regtech.core.shared.Maybe;
@@ -34,17 +35,17 @@ public class MonthlyBillingScheduler {
     private static final Logger logger = LoggerFactory.getLogger(MonthlyBillingScheduler.class);
 
     private final SagaOrchestrator sagaOrchestrator;
-    private final MonthlyBillingSaga monthlyBillingSaga;
+    private final Saga<MonthlyBillingSagaData> monitoredMonthlyBillingSaga;
     private final JpaSubscriptionRepository subscriptionRepository;
     private final JpaBillingAccountRepository billingAccountRepository;
 
     public MonthlyBillingScheduler(
             SagaOrchestrator sagaOrchestrator,
-            MonthlyBillingSaga monthlyBillingSaga,
+            Saga<MonthlyBillingSagaData> monitoredMonthlyBillingSaga,
             JpaSubscriptionRepository subscriptionRepository,
             JpaBillingAccountRepository billingAccountRepository) {
         this.sagaOrchestrator = sagaOrchestrator;
-        this.monthlyBillingSaga = monthlyBillingSaga;
+        this.monitoredMonthlyBillingSaga = monitoredMonthlyBillingSaga;
         this.subscriptionRepository = subscriptionRepository;
         this.billingAccountRepository = billingAccountRepository;
     }
@@ -160,8 +161,8 @@ public class MonthlyBillingScheduler {
                 sagaData.addMetadata("orchestrationTimestamp", java.time.Instant.now().toString());
                 sagaData.addMetadata("scheduledBillingPeriod", billingMonth.toString());
 
-                // Start the saga using the core orchestrator
-                CompletableFuture<SagaResult> sagaFuture = sagaOrchestrator.startSaga(monthlyBillingSaga, sagaData);
+                // Start the saga using the core orchestrator with monitoring
+                CompletableFuture<SagaResult> sagaFuture = sagaOrchestrator.startSaga(monitoredMonthlyBillingSaga, sagaData);
                 
                 // For now, we'll just log the saga start - in production you might want to track these futures
                 successCount++;

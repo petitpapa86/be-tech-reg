@@ -2,14 +2,20 @@ package com.bcbs239.regtech.billing.infrastructure.config;
 
 import com.bcbs239.regtech.billing.application.commands.UsageMetrics;
 import com.bcbs239.regtech.billing.application.sagas.MonthlyBillingSaga;
+import com.bcbs239.regtech.billing.application.sagas.MonthlyBillingSagaData;
+import com.bcbs239.regtech.billing.infrastructure.monitoring.BillingPerformanceMetricsService;
+import com.bcbs239.regtech.billing.infrastructure.monitoring.BillingSagaAuditService;
+import com.bcbs239.regtech.billing.infrastructure.monitoring.MonitoredSagaWrapper;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceRepository;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaSubscriptionRepository;
 import com.bcbs239.regtech.billing.infrastructure.stripe.StripeInvoice;
 import com.bcbs239.regtech.billing.infrastructure.stripe.StripeService;
 import com.bcbs239.regtech.core.events.CrossModuleEventBus;
+import com.bcbs239.regtech.core.saga.Saga;
 import com.bcbs239.regtech.core.saga.SagaClosures;
 import com.bcbs239.regtech.core.shared.Result;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -45,6 +51,16 @@ public class MonthlyBillingSagaConfiguration {
             invoiceRepository.invoiceSaver(),
             eventPublisher(eventBus)
         );
+    }
+
+    @Bean
+    public Saga<MonthlyBillingSagaData> monitoredMonthlyBillingSaga(
+            MonthlyBillingSaga monthlyBillingSaga,
+            BillingSagaAuditService auditService,
+            BillingPerformanceMetricsService metricsService,
+            ObjectMapper objectMapper) {
+
+        return MonitoredSagaWrapper.wrap(monthlyBillingSaga, auditService, metricsService, objectMapper);
     }
 
     // Closure implementations
