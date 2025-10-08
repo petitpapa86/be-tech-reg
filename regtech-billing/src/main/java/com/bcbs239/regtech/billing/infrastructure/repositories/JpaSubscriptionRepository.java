@@ -29,6 +29,24 @@ public class JpaSubscriptionRepository {
     @PersistenceContext
     private EntityManager entityManager;
 
+    public Function<SubscriptionId, Maybe<Subscription>> subscriptionFinder() {
+        return subscriptionId -> {
+            try {
+                SubscriptionEntity entity = entityManager.createQuery(
+                    "SELECT s FROM SubscriptionEntity s WHERE s.id = :subscriptionId", 
+                    SubscriptionEntity.class)
+                    .setParameter("subscriptionId", subscriptionId.value())
+                    .getSingleResult();
+                return Maybe.some(entity.toDomain());
+            } catch (NoResultException e) {
+                return Maybe.none();
+            } catch (Exception e) {
+                // Log error but return none for functional pattern
+                return Maybe.none();
+            }
+        };
+    }
+
     public Function<BillingAccountId, Maybe<Subscription>> activeSubscriptionFinder() {
         return billingAccountId -> {
             try {

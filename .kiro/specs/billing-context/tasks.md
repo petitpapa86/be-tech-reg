@@ -262,20 +262,31 @@
     - Include query implementations for complex finders
     - _Requirements: 10.1, 10.2_
 
-- [ ] 9. Implement API controllers and endpoints
-  - [ ] 9.1 Create BillingController for payment processing
+- [x] 9. Implement API controllers and endpoints
+
+
+
+
+
+
+  - [x] 9.1 Create BillingController for payment processing
+
     - Implement POST /api/v1/billing/process-payment endpoint
     - Add request/response DTOs with validation
     - Include proper error handling with ApiResponse<T> envelope
     - _Requirements: 1.1, 10.1, 10.2_
 
-  - [ ] 9.2 Create SubscriptionController for subscription management
+
+  - [x] 9.2 Create SubscriptionController for subscription management
+
     - Implement GET /api/v1/subscriptions/{id} endpoint
     - Add POST /api/v1/subscriptions/{id}/cancel endpoint
     - Include subscription status and tier information
     - _Requirements: 3.1, 3.5_
 
-  - [ ] 9.3 Create WebhookController for Stripe webhooks
+
+  - [x] 9.3 Create WebhookController for Stripe webhooks
+
     - Implement POST /api/v1/billing/webhooks/stripe endpoint
     - Add webhook signature verification
     - Include event processing and idempotency handling
