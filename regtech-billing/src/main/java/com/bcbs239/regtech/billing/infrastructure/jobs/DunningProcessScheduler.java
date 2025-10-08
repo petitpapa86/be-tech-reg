@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.billing.infrastructure.jobs;
 
 import com.bcbs239.regtech.billing.domain.aggregates.DunningCase;
-import com.bcbs239.regtech.billing.domain.aggregates.Invoice;
+import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseStatus;
-import com.bcbs239.regtech.billing.domain.valueobjects.InvoiceStatus;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceStatus;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaDunningCaseRepository;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceRepository;
 import com.bcbs239.regtech.core.shared.Maybe;

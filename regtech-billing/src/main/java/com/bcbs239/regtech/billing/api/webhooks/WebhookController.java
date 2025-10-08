@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.billing.api;
 
-import com.bcbs239.regtech.billing.application.commands.ProcessWebhookCommand;
-import com.bcbs239.regtech.billing.application.commands.ProcessWebhookCommandHandler;
-import com.bcbs239.regtech.billing.application.commands.ProcessWebhookResponse;
+import com.bcbs239.regtech.billing.application.processwebhook.ProcessWebhookCommand;
+import com.bcbs239.regtech.billing.application.processwebhook.ProcessWebhookCommandHandler;
+import com.bcbs239.regtech.billing.application.processwebhook.ProcessWebhookResponse;
 import com.bcbs239.regtech.core.shared.ApiResponse;
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.Result;

@@ -1,11 +1,11 @@
 package com.bcbs239.regtech.billing.infrastructure.jobs;
 
 import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
-import com.bcbs239.regtech.billing.domain.aggregates.Invoice;
+import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountStatus;
 import com.bcbs239.regtech.billing.domain.valueobjects.DunningStep;
-import com.bcbs239.regtech.billing.domain.valueobjects.InvoiceId;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceRepository;
 import com.bcbs239.regtech.core.shared.Maybe;

@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.infrastructure.configuration;
 
-import com.bcbs239.regtech.billing.application.commands.UsageMetrics;
+import com.bcbs239.regtech.billing.application.shared.UsageMetrics;
 import com.bcbs239.regtech.billing.application.sagas.MonthlyBillingSaga;
 import com.bcbs239.regtech.billing.application.sagas.MonthlyBillingSagaData;
 import com.bcbs239.regtech.billing.infrastructure.monitoring.BillingPerformanceMetricsService;

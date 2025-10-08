@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.infrastructure.external.stripe;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.StripeInvoiceId;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 

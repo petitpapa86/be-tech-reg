@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.application.events;
 
-import com.bcbs239.regtech.billing.application.commands.ProcessPaymentCommand;
-import com.bcbs239.regtech.billing.application.commands.ProcessPaymentCommandHandler;
+import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommand;
+import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommandHandler;
 import com.bcbs239.regtech.billing.infrastructure.events.BillingEventPublisher;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.events.UserRegisteredEvent;

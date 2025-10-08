@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
-import com.bcbs239.regtech.billing.domain.aggregates.Invoice;
+import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.valueobjects.*;
 import jakarta.persistence.*;
 import java.math.BigDecimal;

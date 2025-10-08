@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.billing.api;
 
-import com.bcbs239.regtech.billing.application.commands.ProcessPaymentCommand;
-import com.bcbs239.regtech.billing.application.commands.ProcessPaymentCommandHandler;
-import com.bcbs239.regtech.billing.application.commands.ProcessPaymentResponse;
+import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommand;
+import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommandHandler;
+import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentResponse;
 import com.bcbs239.regtech.core.shared.ApiResponse;
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.Result;

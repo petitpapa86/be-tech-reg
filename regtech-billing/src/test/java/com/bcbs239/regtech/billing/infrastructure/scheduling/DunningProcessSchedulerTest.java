@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.infrastructure.scheduling;
 
 import com.bcbs239.regtech.billing.domain.aggregates.DunningCase;
-import com.bcbs239.regtech.billing.domain.aggregates.Invoice;
+import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.valueobjects.*;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaDunningCaseRepository;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceRepository;
