@@ -2,12 +2,15 @@ package com.bcbs239.regtech.billing.infrastructure.scheduling;
 
 import com.bcbs239.regtech.billing.application.sagas.MonthlyBillingSaga;
 import com.bcbs239.regtech.billing.application.sagas.MonthlyBillingSagaData;
+import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
 import com.bcbs239.regtech.billing.domain.aggregates.Subscription;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.SubscriptionStatus;
+import com.bcbs239.regtech.billing.infrastructure.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.repositories.JpaSubscriptionRepository;
 import com.bcbs239.regtech.core.saga.SagaOrchestrator;
 import com.bcbs239.regtech.core.saga.SagaResult;
+import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,14 +36,17 @@ public class MonthlyBillingScheduler {
     private final SagaOrchestrator sagaOrchestrator;
     private final MonthlyBillingSaga monthlyBillingSaga;
     private final JpaSubscriptionRepository subscriptionRepository;
+    private final JpaBillingAccountRepository billingAccountRepository;
 
     public MonthlyBillingScheduler(
             SagaOrchestrator sagaOrchestrator,
             MonthlyBillingSaga monthlyBillingSaga,
-            JpaSubscriptionRepository subscriptionRepository) {
+            JpaSubscriptionRepository subscriptionRepository,
+            JpaBillingAccountRepository billingAccountRepository) {
         this.sagaOrchestrator = sagaOrchestrator;
         this.monthlyBillingSaga = monthlyBillingSaga;
         this.subscriptionRepository = subscriptionRepository;
+        this.billingAccountRepository = billingAccountRepository;
     }
 
     /**
@@ -127,31 +133,45 @@ public class MonthlyBillingScheduler {
         // Create saga for each active subscription
         for (Subscription subscription : activeSubscriptions) {
             try {
-                // Extract user ID from subscription (simplified implementation)
-                UserId userId = extractUserIdFromSubscription(subscription);
+                // Extract user ID from subscription by looking up billing account
+                Maybe<UserId> userIdMaybe = extractUserIdFromSubscription(subscription);
                 
-                // Create saga data with correlation ID format: userId-billingPeriod
+                if (userIdMaybe.isEmpty()) {
+                    failureCount++;
+                    logger.error("Failed to extract user ID for subscription {}: billing account not found", 
+                        subscription.getId());
+                    continue;
+                }
+                
+                UserId userId = userIdMaybe.get();
+                
+                // Generate correlation ID in format: userId-billingPeriod (e.g., "user-123-2024-01")
+                String correlationId = generateCorrelationId(userId, billingPeriod);
+                
+                // Create saga data with correlation ID
                 MonthlyBillingSagaData sagaData = MonthlyBillingSagaData.create(userId, billingPeriod);
                 sagaData.setId(UUID.randomUUID().toString());
+                sagaData.setCorrelationId(correlationId);
                 
-                // Add metadata for tracking
-                sagaData.addMetadata("subscriptionId", subscription.getId().getValue());
-                sagaData.addMetadata("billingAccountId", subscription.getBillingAccountId().getValue());
+                // Add metadata for tracking and audit
+                sagaData.addMetadata("subscriptionId", subscription.getId().value());
+                sagaData.addMetadata("billingAccountId", subscription.getBillingAccountId().value());
                 sagaData.addMetadata("subscriptionTier", subscription.getTier().name());
                 sagaData.addMetadata("orchestrationTimestamp", java.time.Instant.now().toString());
+                sagaData.addMetadata("scheduledBillingPeriod", billingMonth.toString());
 
                 // Start the saga using the core orchestrator
                 CompletableFuture<SagaResult> sagaFuture = sagaOrchestrator.startSaga(monthlyBillingSaga, sagaData);
                 
                 // For now, we'll just log the saga start - in production you might want to track these futures
                 successCount++;
-                logger.info("Started monthly billing saga {} for subscription {}", 
-                    sagaData.getId(), subscription.getId());
+                logger.info("Started monthly billing saga {} with correlation ID {} for subscription {} (user: {})", 
+                    sagaData.getId(), correlationId, subscription.getId(), userId.getValue());
                 
             } catch (Exception e) {
                 failureCount++;
                 logger.error("Failed to start monthly billing saga for subscription {}: {}", 
-                    subscription.getId(), e.getMessage());
+                    subscription.getId(), e.getMessage(), e);
             }
         }
 
@@ -164,19 +184,36 @@ public class MonthlyBillingScheduler {
     }
 
     /**
-     * Extract user ID from subscription (simplified implementation)
+     * Extract user ID from subscription by looking up the billing account
      */
-    private UserId extractUserIdFromSubscription(Subscription subscription) {
-        // This is a simplified implementation
-        // In reality, we would need to look up the billing account to get the user ID
-        // or have the user ID directly in the subscription
-        
-        // For now, we'll extract from the billing account ID (mock implementation)
-        String billingAccountValue = subscription.getBillingAccountId().getValue();
-        String userIdValue = billingAccountValue.replace("billing-account-", "");
-        
-        return UserId.fromString(userIdValue).getValue()
-            .orElse(UserId.fromString("unknown-user-" + UUID.randomUUID()).getValue().get());
+    private Maybe<UserId> extractUserIdFromSubscription(Subscription subscription) {
+        try {
+            // Look up the billing account to get the user ID
+            Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository
+                .billingAccountFinder()
+                .apply(subscription.getBillingAccountId());
+            
+            if (billingAccountMaybe.isEmpty()) {
+                logger.warn("Billing account {} not found for subscription {}", 
+                    subscription.getBillingAccountId(), subscription.getId());
+                return Maybe.none();
+            }
+            
+            BillingAccount billingAccount = billingAccountMaybe.get();
+            return Maybe.some(billingAccount.getUserId());
+            
+        } catch (Exception e) {
+            logger.error("Error extracting user ID for subscription {}: {}", 
+                subscription.getId(), e.getMessage(), e);
+            return Maybe.none();
+        }
+    }
+    
+    /**
+     * Generate correlation ID in format: userId-billingPeriod (e.g., "user-123-2024-01")
+     */
+    public String generateCorrelationId(UserId userId, BillingPeriod billingPeriod) {
+        return userId.getValue() + "-" + billingPeriod.getPeriodId();
     }
 
     /**

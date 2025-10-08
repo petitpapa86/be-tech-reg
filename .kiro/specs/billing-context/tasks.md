@@ -219,20 +219,34 @@
 
 
 
-  - [ ] 7.3 Create saga orchestration and scheduling
+  - [x] 7.3 Create saga orchestration and scheduling
+
+
+
+
+
     - Implement scheduled job to start monthly billing sagas
     - Add saga correlation ID generation (userId-billingPeriod format)
     - Include active subscription querying for saga creation
     - _Requirements: 5.1, 5.2, 12.1, 12.2_
 
-- [ ] 8. Create database schema and JPA entities
-  - [ ] 8.1 Create Flyway migration scripts
+- [x] 8. Create database schema and JPA entities
+
+
+
+
+
+  - [x] 8.1 Create Flyway migration scripts
+
+
     - Create billing schema with all required tables
     - Add indexes for performance optimization
     - Include foreign key constraints and cascading rules
     - _Requirements: 2.1, 3.1, 4.1, 7.1, 8.1, 9.1, 11.1_
 
-  - [ ] 8.2 Implement JPA entity mappings
+
+  - [x] 8.2 Implement JPA entity mappings
+
     - Create BillingAccountEntity with proper annotations
     - Add SubscriptionEntity with relationship mappings
     - Implement InvoiceEntity with embedded line items
@@ -240,7 +254,9 @@
     - Add ProcessedWebhookEventEntity for idempotency
     - _Requirements: 2.1, 3.1, 4.1, 7.1, 8.1_
 
-  - [ ] 8.3 Implement JPA repository implementations
+  - [x] 8.3 Implement JPA repository implementations
+
+
     - Create concrete repository classes extending closure-based interfaces
     - Add EntityManager integration with proper transaction handling
     - Include query implementations for complex finders
