@@ -5,7 +5,7 @@ import com.bcbs239.regtech.core.events.SubscriptionCancelledEvent;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.User;
 import com.bcbs239.regtech.iam.domain.users.UserId;
-import com.bcbs239.regtech.iam.domain.users.UserRepository;
+import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
 import com.bcbs239.regtech.iam.domain.users.UserStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,9 +25,9 @@ public class BillingAccountEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(BillingAccountEventHandler.class);
 
-    private final UserRepository userRepository;
+    private final JpaUserRepository userRepository;
 
-    public BillingAccountEventHandler(UserRepository userRepository) {
+    public BillingAccountEventHandler(JpaUserRepository userRepository) {
         this.userRepository = userRepository;
     }
 

@@ -7,7 +7,11 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 /**
  * Modular security configuration that allows each bounded context
@@ -63,7 +67,8 @@ public class ModularSecurityConfiguration {
     }
 
     /**
-     * Billing module security configuration
+     * Billing module security configuration - basic setup
+     * Billing module will override this with its own filters
      */
     @Bean
     @Order(2)
@@ -87,26 +92,21 @@ public class ModularSecurityConfiguration {
             )
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/api/v1/billing/webhooks/**")
-            )
-            .addFilterBefore(webhookSignatureValidationFilter(), UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(billingRateLimitingFilter(), UsernamePasswordAuthenticationFilter.class);
+            );
 
         return http.build();
     }
 
     @Bean
-    public WebhookSignatureValidationFilter webhookSignatureValidationFilter() {
-        return new WebhookSignatureValidationFilter();
-    }
-
-    @Bean
-    public BillingRateLimitingFilter billingRateLimitingFilter() {
-        return new BillingRateLimitingFilter();
-    }
-
-    @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        // Global CORS configuration
-        return new GlobalCorsConfigurationSource();
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

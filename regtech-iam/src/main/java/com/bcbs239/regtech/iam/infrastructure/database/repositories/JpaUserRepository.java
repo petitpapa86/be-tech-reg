@@ -235,10 +235,33 @@ public class JpaUserRepository {
             .toList();
     }
 
+
+
     /**
      * Query record for user-organization role lookup
      */
     public record UserOrgQuery(UserId userId, String organizationId) {}
+
+    /**
+     * Closure to generate JWT token for user
+     */
+    public Function<User, Result<JwtToken>> tokenGenerator(String jwtSecretKey) {
+        return user -> {
+            try {
+                // Create JWT token with user information
+                JwtToken token = JwtToken.create(
+                    user.getId().getValue(),
+                    user.getEmail().getValue(),
+                    jwtSecretKey
+                );
+                return Result.success(token);
+            } catch (Exception e) {
+                return Result.failure(ErrorDetail.of("TOKEN_GENERATION_FAILED",
+                    "Failed to generate JWT token: " + e.getMessage(),
+                    "error.token.generationFailed"));
+            }
+        };
+    }
 
     /**
      * Query record for user role checking

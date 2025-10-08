@@ -85,9 +85,9 @@ public class IamInputSanitizer {
         
         return sanitized;
     }
-}    /**
-   
-  * Sanitizes and validates email addresses
+
+    /**
+     * Sanitizes and validates email addresses
      */
     public String sanitizeEmail(String email) {
         if (!StringUtils.hasText(email)) {

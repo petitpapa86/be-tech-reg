@@ -1,7 +1,5 @@
 package com.bcbs239.regtech.core.events;
 
-import java.time.Instant;
-
 /**
  * Cross-module event published when a user is registered and needs payment processing.
  * This event is consumed by the billing context to initiate payment processing.
@@ -24,7 +22,7 @@ public class UserRegisteredEvent extends BaseEvent {
             String phone,
             AddressInfo address,
             String correlationId) {
-        super(correlationId, "iam", Instant.now());
+        super(correlationId, "iam");
         this.userId = userId;
         this.email = email;
         this.name = name;
@@ -66,7 +64,7 @@ public class UserRegisteredEvent extends BaseEvent {
                 ", address=" + address +
                 ", correlationId='" + getCorrelationId() + '\'' +
                 ", sourceModule='" + getSourceModule() + '\'' +
-                ", occurredAt=" + getOccurredAt() +
+                ", timestamp=" + getTimestamp() +
                 '}';
     }
 }

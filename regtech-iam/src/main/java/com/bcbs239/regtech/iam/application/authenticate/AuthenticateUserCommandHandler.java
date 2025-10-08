@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
+import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -16,10 +17,10 @@ import java.util.function.Function;
 @Component
 public class AuthenticateUserCommandHandler {
 
-    private final UserRepository userRepository;
+    private final JpaUserRepository userRepository;
     private final String jwtSecretKey;
 
-    public AuthenticateUserCommandHandler(UserRepository userRepository) {
+    public AuthenticateUserCommandHandler(JpaUserRepository userRepository) {
         this.userRepository = userRepository;
         // TODO: Move to configuration
         this.jwtSecretKey = "mySecretKey123456789012345678901234567890123456789012345678901234567890";

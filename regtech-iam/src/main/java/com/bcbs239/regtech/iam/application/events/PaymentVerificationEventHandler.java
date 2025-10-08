@@ -4,7 +4,7 @@ import com.bcbs239.regtech.core.events.PaymentVerifiedEvent;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.User;
 import com.bcbs239.regtech.iam.domain.users.UserId;
-import com.bcbs239.regtech.iam.domain.users.UserRepository;
+import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -23,9 +23,9 @@ public class PaymentVerificationEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentVerificationEventHandler.class);
 
-    private final UserRepository userRepository;
+    private final JpaUserRepository userRepository;
 
-    public PaymentVerificationEventHandler(UserRepository userRepository) {
+    public PaymentVerificationEventHandler(JpaUserRepository userRepository) {
         this.userRepository = userRepository;
     }
 
