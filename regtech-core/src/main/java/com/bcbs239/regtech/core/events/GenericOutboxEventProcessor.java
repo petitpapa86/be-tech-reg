@@ -3,6 +3,7 @@ package com.bcbs239.regtech.core.events;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Generic scheduled processor for outbox events to ensure reliable event delivery.
@@ -35,6 +36,7 @@ public abstract class GenericOutboxEventProcessor {
      * Can be overridden by subclasses to provide different scheduling.
      */
     @Scheduled(fixedDelay = 30000, initialDelay = 10000)
+    @Transactional
     public void processPendingEvents() {
         if (!isProcessingEnabled()) {
             return;
@@ -53,6 +55,7 @@ public abstract class GenericOutboxEventProcessor {
      * Can be overridden by subclasses to provide different scheduling.
      */
     @Scheduled(fixedDelay = 120000, initialDelay = 60000)
+    @Transactional
     public void retryFailedEvents() {
         if (!isProcessingEnabled()) {
             return;

@@ -10,6 +10,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import com.bcbs239.regtech.core.outbox.ProcessOutboxEventPublisher;
 import com.bcbs239.regtech.core.events.GenericOutboxEventProcessor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,7 +33,7 @@ public class IamOutboxWiring {
 
     @Bean
     public OutboxOptions iamOutboxOptions() {
-        return new OutboxOptions(50, Duration.ofSeconds(10), "iam");
+        return new OutboxOptions(50, Duration.ofSeconds(10), "iam", true); // Enable parallel processing
     }
 
     @Bean
@@ -143,6 +144,7 @@ public class IamOutboxWiring {
     }
 
     @Bean
+    @Qualifier("iamOutboxHandlers")
     public Map<String, Function<Object, Boolean>> iamOutboxHandlers(ObjectMapper objectMapper,
                                                                     java.util.List<com.bcbs239.regtech.core.events.DomainEventHandler<?>> handlers) {
         Map<String, Function<Object, Boolean>> map = new HashMap<>();

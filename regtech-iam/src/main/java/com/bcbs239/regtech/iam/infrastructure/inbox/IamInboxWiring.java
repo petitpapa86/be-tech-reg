@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.InboxEventEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -28,7 +29,7 @@ public class IamInboxWiring {
 
     @Bean
     public InboxOptions iamInboxOptions() {
-        return new InboxOptions(50, Duration.ofSeconds(10), "iam");
+        return new InboxOptions(50, Duration.ofSeconds(10), "iam", true); // Enable parallel processing
     }
 
     @Bean
@@ -139,6 +140,7 @@ public class IamInboxWiring {
     }
 
     @Bean
+    @Qualifier("iamInboxHandlers")
     public Map<String, Function<Object, Boolean>> iamInboxHandlers(ObjectMapper objectMapper,
                                                                     java.util.List<com.bcbs239.regtech.core.events.DomainEventHandler<?>> handlers) {
         Map<String, Function<Object, Boolean>> map = new HashMap<>();
