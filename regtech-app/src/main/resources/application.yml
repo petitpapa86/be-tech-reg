@@ -20,6 +20,7 @@ spring:
   h2:
     console:
       enabled: true
+      path: /h2-console
   docker:
     compose:
       enabled: false

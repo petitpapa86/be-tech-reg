@@ -11,7 +11,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.function.Function;
@@ -21,7 +20,6 @@ import java.util.function.Function;
  * Follows the established architecture patterns with proper domain/persistence separation.
  */
 @Repository
-@Transactional
 public class JpaUserRepository {
 
     @PersistenceContext
@@ -75,18 +73,12 @@ public class JpaUserRepository {
         return user -> {
             try {
                 UserEntity entity = UserEntity.fromDomain(user);
-                
-                if (entity.getId() == null) {
-                    entityManager.persist(entity);
-                } else {
-                    entity = entityManager.merge(entity);
-                }
-                
+                entity.setId(null);
+                entityManager.persist(entity);
                 entityManager.flush();
-                return Result.success(UserId.fromString(entity.getId()));
+                return Result.success(user.getId());
             } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("USER_SAVE_FAILED",
-                    "Failed to save user: " + e.getMessage(), "error.user.saveFailed"));
+                throw new RuntimeException("USER_SAVE_FAILED: Failed to save user: " + e.getMessage(), e);
             }
         };
     }

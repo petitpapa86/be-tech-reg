@@ -10,6 +10,7 @@ import com.bcbs239.regtech.iam.application.createuser.RegisterUserCommand;
 import com.bcbs239.regtech.iam.application.createuser.RegisterUserCommandHandler;
 import com.bcbs239.regtech.iam.application.createuser.RegisterUserResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

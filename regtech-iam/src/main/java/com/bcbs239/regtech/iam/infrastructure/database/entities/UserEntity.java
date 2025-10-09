@@ -21,6 +21,7 @@ public class UserEntity {
 
     @Id
     @Column(name = "id", columnDefinition = "UUID")
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @Column(name = "email", nullable = false, unique = true, length = 255)
@@ -55,11 +56,13 @@ public class UserEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
-    @OneToMany(mappedBy = "userId", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // Unidirectional OneToMany with explicit join column. The child table has a user_id FK column.
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
     private List<UserBankAssignmentEntity> bankAssignments = new ArrayList<>();
 
     // Default constructor for JPA
-    protected UserEntity() {}
+    public UserEntity() {}
 
     // Constructor for creation
     public UserEntity(String id, String email, String passwordHash, String firstName,
@@ -96,7 +99,7 @@ public class UserEntity {
         entity.bankAssignments = user.getBankAssignments().stream()
             .map(assignment -> UserBankAssignmentEntity.fromDomain(assignment, entity.id))
             .toList();
-        
+
         return entity;
     }
 

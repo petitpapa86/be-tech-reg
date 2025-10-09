@@ -6,12 +6,16 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @Configuration
 @EntityScan(basePackages = {
+    // Domain packages (value objects, enums) and persistence entity packages
     "com.bcbs239.regtech.iam.domain",
-    "com.bcbs239.regtech.billing.domain"
+    "com.bcbs239.regtech.billing.domain",
+    "com.bcbs239.regtech.iam.infrastructure.database.entities",
+    "com.bcbs239.regtech.billing.infrastructure.database.entities"
 })
 @EnableJpaRepositories(basePackages = {
-    "com.bcbs239.regtech.iam.infrastructure.repository",
-    "com.bcbs239.regtech.billing.infrastructure.repository"
+    // Repository packages used by modules (consolidated JPA repositories)
+    "com.bcbs239.regtech.iam.infrastructure.database.repositories",
+    "com.bcbs239.regtech.billing.infrastructure.database.repositories"
 })
 public class ModularJpaConfiguration {
 }

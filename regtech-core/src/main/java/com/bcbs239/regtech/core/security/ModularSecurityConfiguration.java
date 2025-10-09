@@ -68,6 +68,7 @@ public class ModularSecurityConfiguration {
         http
             .authorizeHttpRequests(authz -> authz
                 // Health endpoints - public
+                .requestMatchers("/h2-console/**").permitAll()
                 .requestMatchers("/actuator/health/**").permitAll()
                 .requestMatchers("/api/*/health/**").permitAll()
 

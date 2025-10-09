@@ -10,13 +10,13 @@ import org.springframework.stereotype.Component;
  * Provides IAM context configuration and conditional processing logic.
  */
 @Component
-@ConditionalOnProperty(name = "iam.outbox.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(name = "iam.outbox.enabled", havingValue = "true", matchIfMissing = true)
 public class IamOutboxEventProcessor extends GenericOutboxEventProcessor {
 
     private final boolean processingEnabled;
 
     public IamOutboxEventProcessor(IamEventPublisher eventPublisher,
-                                  @Value("${iam.outbox.enabled:false}") boolean processingEnabled,
+                                  @Value("${iam.outbox.enabled:true}") boolean processingEnabled,
                                   @Value("${iam.outbox.max-retries:3}") int maxRetries) {
         super(eventPublisher, "IAM", maxRetries);
         this.processingEnabled = processingEnabled;
