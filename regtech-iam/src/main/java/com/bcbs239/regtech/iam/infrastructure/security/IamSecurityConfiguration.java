@@ -39,6 +39,7 @@ public class IamSecurityConfiguration implements ModuleSecurityConfiguration {
     @Override
     public void configure(HttpSecurity http) throws Exception {
         http
+            .csrf(csrf -> csrf.disable()) // Disable CSRF for REST API endpoints FIRST
             .authorizeHttpRequests(authz -> authz
                 // Public registration and authentication endpoints
                 .requestMatchers("/api/v1/users/register").permitAll()

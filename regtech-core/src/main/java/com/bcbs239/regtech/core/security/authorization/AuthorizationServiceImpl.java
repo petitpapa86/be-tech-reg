@@ -12,8 +12,8 @@ import java.util.stream.Collectors;
 /**
  * Implementation of AuthorizationService that integrates with Spring Security.
  * This provides a basic authorization service that can be extended by modules.
+ * Note: This is not registered as a bean - modules should provide their own implementations.
  */
-@Service
 public class AuthorizationServiceImpl implements AuthorizationService {
 
     @Override

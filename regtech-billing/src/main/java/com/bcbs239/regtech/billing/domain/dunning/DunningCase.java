@@ -59,7 +59,7 @@ public class DunningCase {
         dunningCase.status = DunningCaseStatus.IN_PROGRESS;
         dunningCase.currentStep = DunningStep.getFirstStep();
         dunningCase.startDate = LocalDate.now();
-        dunningCase.nextActionDate = LocalDate.now().plusDays(dunningCase.currentStep.getDelayFromPrevious().toDays());
+        dunningCase.nextActionDate = LocalDate.now().plusDays(dunningCase.currentStep.getDelayFromPrevious().getDays());
         dunningCase.createdAt = Instant.now();
         dunningCase.updatedAt = Instant.now();
         dunningCase.version = 0;
@@ -101,7 +101,7 @@ public class DunningCase {
             
             if (nextStep != null) {
                 this.currentStep = nextStep;
-                this.nextActionDate = LocalDate.now().plusDays(nextStep.getDelayFromPrevious().toDays());
+                this.nextActionDate = LocalDate.now().plusDays(nextStep.getDelayFromPrevious().getDays());
             } else {
                 // Final step completed - mark as failed since no payment was received
                 this.status = DunningCaseStatus.FAILED;
