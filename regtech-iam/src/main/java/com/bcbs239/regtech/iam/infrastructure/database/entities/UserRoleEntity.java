@@ -20,6 +20,7 @@ public class UserRoleEntity {
 
     @Id
     @Column(name = "id", columnDefinition = "UUID")
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @Column(name = "user_id", nullable = false, columnDefinition = "UUID")
@@ -73,7 +74,6 @@ public class UserRoleEntity {
         entity.active = userRole.isActive();
         entity.createdAt = Instant.now(); // Set from domain if available
         entity.updatedAt = Instant.now();
-        entity.version = 0L;
         return entity;
     }
 

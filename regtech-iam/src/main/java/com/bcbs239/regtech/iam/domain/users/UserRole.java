@@ -18,7 +18,6 @@ public class UserRole {
     
     public static UserRole create(UserId userId, Role role, String organizationId) {
         UserRole userRole = new UserRole();
-        userRole.id = java.util.UUID.randomUUID().toString();
         userRole.userId = userId.getValue();
         userRole.role = role;
         userRole.organizationId = organizationId;
