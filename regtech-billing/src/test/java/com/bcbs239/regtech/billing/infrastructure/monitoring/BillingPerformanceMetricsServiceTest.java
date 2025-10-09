@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.billing.infrastructure.monitoring;
+package com.bcbs239.regtech.billing.infrastructure.observability;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;

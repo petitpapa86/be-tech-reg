@@ -1,10 +1,16 @@
-package com.bcbs239.regtech.billing.infrastructure.scheduling;
+package com.bcbs239.regtech.billing.infrastructure.jobs;
 
-import com.bcbs239.regtech.billing.domain.aggregates.DunningCase;
+import com.bcbs239.regtech.billing.domain.billing.DunningCase;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaDunningCaseRepository;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceRepository;
+import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseId;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
+import com.bcbs239.regtech.billing.domain.valueobjects.Money;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
+import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseStatus;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaDunningCaseRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,7 +65,7 @@ class DunningProcessSchedulerTest {
         when(dunningCaseRepository.dunningCaseByInvoiceIdFinder())
             .thenReturn(id -> Maybe.none()); // No existing dunning case
         when(dunningCaseRepository.dunningCaseSaver())
-            .thenReturn(dunningCase -> Result.success("dunning-case-123"));
+            .thenReturn(dunningCase -> Result.success(DunningCaseId.fromString("dunning-case-123").getValue().get()));
 
         // When
         DunningProcessScheduler.DunningProcessResult result = scheduler.triggerDunningProcess();
@@ -162,7 +168,7 @@ class DunningProcessSchedulerTest {
         when(dunningCaseRepository.dunningCaseByInvoiceIdFinder())
             .thenReturn(id -> Maybe.some(activeDunningCase));
         when(dunningCaseRepository.dunningCaseSaver())
-            .thenReturn(dunningCase -> Result.success("dunning-case-123"));
+            .thenReturn(dunningCase -> Result.success(DunningCaseId.fromString("dunning-case-123").getValue().get()));
 
         // When
         scheduler.resolveDunningCasesForInvoice(invoiceId, resolutionReason);

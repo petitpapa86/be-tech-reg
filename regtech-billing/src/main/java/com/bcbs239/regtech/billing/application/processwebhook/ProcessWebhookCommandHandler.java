@@ -3,9 +3,9 @@ package com.bcbs239.regtech.billing.application.processwebhook;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceRepository;
-import com.bcbs239.regtech.billing.infrastructure.stripe.StripeService;
+import com.bcbs239.regtech.billing.domain.valueobjects.ProcessedWebhookEvent;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
@@ -41,9 +41,9 @@ public class ProcessWebhookCommandHandler {
             command,
             this::checkIfEventProcessed,
             this::recordEventProcessed,
-            invoiceRepository.invoiceFinder(),
+            invoiceRepository.invoiceByStripeIdFinder(),
             invoiceRepository.invoiceSaver(),
-            stripeService::verifyWebhookSignature,
+            verificationData -> stripeService.verifyWebhookSignature(verificationData.payload(), verificationData.signatureHeader()),
             stripeService::synchronizeInvoiceStatus
         );
     }
@@ -64,7 +64,7 @@ public class ProcessWebhookCommandHandler {
         // Step 1: Check if event was already processed (idempotency)
         Maybe<ProcessedWebhookEvent> existingEvent = eventChecker.apply(command.eventId());
         if (existingEvent.isPresent()) {
-            ProcessedWebhookEvent processed = existingEvent.get();
+            ProcessedWebhookEvent processed = existingEvent.getValue();
             if (processed.wasSuccessful()) {
                 return Result.success(ProcessWebhookResponse.alreadyProcessed(
                     command.eventId(), command.eventType()));
@@ -168,7 +168,7 @@ public class ProcessWebhookCommandHandler {
             return Result.success("Invoice not found locally: " + statusUpdate.invoiceId());
         }
         
-        Invoice invoice = invoiceMaybe.get();
+        Invoice invoice = invoiceMaybe.getValue();
         
         // Update invoice status based on Stripe event
         Result<Void> updateResult = updateInvoiceFromStripeEvent(invoice, statusUpdate);

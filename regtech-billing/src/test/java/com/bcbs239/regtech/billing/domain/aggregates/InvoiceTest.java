@@ -1,6 +1,11 @@
-package com.bcbs239.regtech.billing.domain.aggregates;
+package com.bcbs239.regtech.billing.domain.billing;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
+import com.bcbs239.regtech.billing.domain.invoices.Invoice;
+import com.bcbs239.regtech.billing.domain.valueobjects.Money;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
+import com.bcbs239.regtech.billing.domain.valueobjects.InvoiceStatus;
 import com.bcbs239.regtech.core.shared.Result;
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
@@ -19,11 +24,11 @@ class InvoiceTest {
     @Test
     void shouldCreateInvoiceWithLineItems() {
         // Given
-        BillingAccountId billingAccountId = BillingAccountId.generate();
-        StripeInvoiceId stripeInvoiceId = StripeInvoiceId.fromString("in_test123");
+        BillingAccountId billingAccountId = BillingAccountId.generate("test");
+        StripeInvoiceId stripeInvoiceId = StripeInvoiceId.fromString("in_test123").getValue().get();
         Money subscriptionAmount = Money.of(new BigDecimal("500.00"), Currency.getInstance("EUR"));
         Money overageAmount = Money.of(new BigDecimal("25.00"), Currency.getInstance("EUR"));
-        BillingPeriod billingPeriod = BillingPeriod.forCurrentMonth();
+        BillingPeriod billingPeriod = BillingPeriod.current();
 
         // When
         Result<Invoice> result = Invoice.create(billingAccountId, stripeInvoiceId, subscriptionAmount, 
@@ -35,7 +40,7 @@ class InvoiceTest {
         
         assertNotNull(invoice.getId());
         assertNotNull(invoice.getInvoiceNumber());
-        assertEquals(InvoiceStatus.PENDING, invoice.getStatus());
+        assertEquals(InvoiceStatus.DRAFT, invoice.getStatus());
         assertEquals(subscriptionAmount, invoice.getSubscriptionAmount());
         assertEquals(overageAmount, invoice.getOverageAmount());
         assertEquals(2, invoice.getLineItems().size()); // Subscription + overage
@@ -96,11 +101,11 @@ class InvoiceTest {
     }
 
     private Invoice createTestInvoice() {
-        BillingAccountId billingAccountId = BillingAccountId.generate();
-        StripeInvoiceId stripeInvoiceId = StripeInvoiceId.fromString("in_test123");
+        BillingAccountId billingAccountId = BillingAccountId.generate("test");
+        StripeInvoiceId stripeInvoiceId = StripeInvoiceId.fromString("in_test123").getValue().get();
         Money subscriptionAmount = Money.of(new BigDecimal("500.00"), Currency.getInstance("EUR"));
         Money overageAmount = Money.zero(Currency.getInstance("EUR"));
-        BillingPeriod billingPeriod = BillingPeriod.forCurrentMonth();
+        BillingPeriod billingPeriod = BillingPeriod.current();
 
         return Invoice.create(billingAccountId, stripeInvoiceId, subscriptionAmount, overageAmount, 
                             billingPeriod, testClock, testDateSupplier).getValue().get();

@@ -34,7 +34,7 @@
 	<modules>
 		<module>regtech-core</module>
 		<module>regtech-iam</module>
-		<!-- <module>regtech-billing</module> -->
+		<module>regtech-billing</module>
 		<module>regtech-app</module>
 	</modules>
 	<build>

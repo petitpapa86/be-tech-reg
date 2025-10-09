@@ -1,11 +1,13 @@
 package com.bcbs239.regtech.billing.infrastructure.jobs;
 
-import com.bcbs239.regtech.billing.domain.aggregates.DunningCase;
+import com.bcbs239.regtech.billing.domain.billing.DunningCase;
+import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseId;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseStatus;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceStatus;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaDunningCaseRepository;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaDunningCaseRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
 import org.slf4j.Logger;
@@ -146,7 +148,7 @@ public class DunningProcessScheduler {
                     invoice.getBillingAccountId()
                 );
 
-                Result<String> saveResult = dunningCaseRepository
+                Result<DunningCaseId> saveResult = dunningCaseRepository
                     .dunningCaseSaver()
                     .apply(dunningCase);
 
@@ -225,7 +227,7 @@ public class DunningProcessScheduler {
 
             if (stepResult.isSuccess()) {
                 // Save the updated dunning case
-                Result<String> saveResult = dunningCaseRepository
+                Result<DunningCaseId> saveResult = dunningCaseRepository
                     .dunningCaseSaver()
                     .apply(dunningCase);
 
@@ -253,18 +255,27 @@ public class DunningProcessScheduler {
      */
     public void resolveDunningCasesForInvoice(String invoiceId, String resolutionReason) {
         try {
+            // Convert string to InvoiceId
+            Result<InvoiceId> invoiceIdResult = InvoiceId.fromString(invoiceId);
+            if (invoiceIdResult.isFailure()) {
+                logger.error("Invalid invoice ID format: {}", invoiceId);
+                return;
+            }
+            
+            InvoiceId invoiceIdObj = invoiceIdResult.getValue().get();
+            
             Maybe<DunningCase> dunningCaseMaybe = dunningCaseRepository
                 .dunningCaseByInvoiceIdFinder()
-                .apply(invoiceId);
+                .apply(invoiceIdObj);
 
             if (dunningCaseMaybe.isPresent()) {
-                DunningCase dunningCase = dunningCaseMaybe.get();
+                DunningCase dunningCase = dunningCaseMaybe.getValue();
                 
                 if (dunningCase.isActive()) {
                     Result<Void> resolveResult = dunningCase.resolve(resolutionReason);
                     
                     if (resolveResult.isSuccess()) {
-                        Result<String> saveResult = dunningCaseRepository
+                        Result<DunningCaseId> saveResult = dunningCaseRepository
                             .dunningCaseSaver()
                             .apply(dunningCase);
 

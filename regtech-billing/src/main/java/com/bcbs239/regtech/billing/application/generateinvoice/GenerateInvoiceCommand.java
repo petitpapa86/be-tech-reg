@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.application.generateinvoice;
 
-import com.bcbs239.regtech.billing.domain.billing.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.billing.BillingPeriod;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.infrastructure.validation.BillingValidationUtils;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
@@ -43,7 +43,7 @@ public record GenerateInvoiceCommand(
         }
         
         // Validate billing period dates
-        if (billingPeriod.startDate().isAfter(billingPeriod.endDate())) {
+        if (billingPeriod.getStartDate().isAfter(billingPeriod.getEndDate())) {
             return Result.failure(ErrorDetail.of("INVALID_BILLING_PERIOD", 
                 "Billing period start date cannot be after end date", "invoice.billing.period.invalid"));
         }

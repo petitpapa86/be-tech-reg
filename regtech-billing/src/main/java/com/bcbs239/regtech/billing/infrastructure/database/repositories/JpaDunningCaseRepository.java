@@ -1,8 +1,12 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
-import com.bcbs239.regtech.billing.domain.aggregates.DunningCase;
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
-import com.bcbs239.regtech.billing.infrastructure.entities.DunningCaseEntity;
+import com.bcbs239.regtech.billing.domain.billing.DunningCase;
+import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseId;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseStatus;
+import com.bcbs239.regtech.billing.domain.valueobjects.DunningStep;
+import com.bcbs239.regtech.billing.infrastructure.database.entities.DunningCaseEntity;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
@@ -131,10 +135,10 @@ public class JpaDunningCaseRepository {
                 
                 entityManager.flush(); // Ensure the entity is persisted
                 
-                return Result.success(new DunningCaseId(entity.getId()));
+                return Result.success(DunningCaseId.fromString(entity.getId()).getValue().get());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("DUNNING_CASE_SAVE_FAILED",
-                    "Failed to save dunning case: " + e.getMessage()));
+                    "Failed to save dunning case: " + e.getMessage(), "dunning.case.save.failed"));
             }
         };
     }

@@ -68,7 +68,7 @@ public class BillingRateLimitingFilter extends OncePerRequestFilter {
         if (isRateLimited(rateLimitKey, rateLimit)) {
             logger.warn("Rate limit exceeded for client {} on endpoint {}", clientIp, endpoint);
             
-            response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+            response.setStatus(429);
             response.setHeader("X-RateLimit-Limit", String.valueOf(rateLimit));
             response.setHeader("X-RateLimit-Remaining", "0");
             response.setHeader("X-RateLimit-Reset", String.valueOf(getNextResetTime()));

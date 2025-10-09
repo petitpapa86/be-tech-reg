@@ -4,24 +4,56 @@ spring:
   profiles:
     active: development
   datasource:
-    url: jdbc:postgresql://localhost:5432/compliance-core-app
-    username: postgres
-    password: dracons86
-    driver-class-name: org.postgresql.Driver
+    url: jdbc:h2:mem:regtech;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: create-drop
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        default_schema: iam
+        dialect: org.hibernate.dialect.H2Dialect
     show-sql: false
   flyway:
-    locations: classpath:db/migration
-    schemas: iam,billing
-    baseline-on-migrate: true
+    enabled: false
+  h2:
+    console:
+      enabled: true
+  docker:
+    compose:
+      enabled: false
+
+# IAM Module Configuration
+iam:
   security:
-    enabled: true
+    jwt:
+      secret: mySecretKey123456789012345678901234567890123456789012345678901234567890
+      expiration: 86400 # 24 hours in seconds
+    password:
+      min-length: 12
+      require-uppercase: true
+      require-lowercase: true
+      require-digits: true
+      require-special-chars: true
+    oauth2:
+      google:
+        client-id: ${GOOGLE_CLIENT_ID:}
+        client-secret: ${GOOGLE_CLIENT_SECRET:}
+      facebook:
+        client-id: ${FACEBOOK_CLIENT_ID:}
+        client-secret: ${FACEBOOK_CLIENT_SECRET:}
+
+  authorization:
+    cache:
+      enabled: true
+      ttl: 300 # 5 minutes
+    multi-tenant:
+      enabled: true
+      default-organization: "default-org"
+    permissions:
+      strict-mode: true
+      audit-enabled: true
 
 management:
   endpoints:
@@ -38,31 +70,9 @@ management:
 logging:
   level:
     com.bcbs239.regtech: INFO
-    org.springframework.security: DEBUG
+    org.springframework.security: WARN
+    org.springframework: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/regtech.log
-
----
-spring:
-  config:
-    activate:
-      on-profile: development
-  datasource:
-    url: jdbc:h2:mem:regtech;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-  h2:
-    console:
-      enabled: true
-  flyway:
-    enabled: false
-  docker:
-    compose:
-      enabled: false

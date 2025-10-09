@@ -36,7 +36,7 @@ class RegisterUserCommandTest {
             String lastName = "Doe";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isSuccess()).isTrue();
@@ -59,7 +59,7 @@ class RegisterUserCommandTest {
             String lastName = "  Doe  ";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isSuccess()).isTrue();
@@ -80,7 +80,7 @@ class RegisterUserCommandTest {
             String lastName = "B";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isSuccess()).isTrue();
@@ -107,7 +107,7 @@ class RegisterUserCommandTest {
             String lastName = "Doe";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(invalidEmail, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(invalidEmail, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -145,7 +145,7 @@ class RegisterUserCommandTest {
             String lastName = "Doe";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, invalidPassword, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, invalidPassword, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -178,7 +178,7 @@ class RegisterUserCommandTest {
             String lastName = "Doe";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, invalidFirstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, invalidFirstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -211,7 +211,7 @@ class RegisterUserCommandTest {
             String firstName = "John";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, invalidLastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, invalidLastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -243,7 +243,7 @@ class RegisterUserCommandTest {
             String lastName = null;
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -275,7 +275,7 @@ class RegisterUserCommandTest {
             String lastName = "Doe";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -299,7 +299,7 @@ class RegisterUserCommandTest {
             String lastName = "\t\n";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -328,7 +328,7 @@ class RegisterUserCommandTest {
             String lastName = "Doe";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -368,7 +368,7 @@ class RegisterUserCommandTest {
             String lastName = longString;
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isSuccess()).isTrue();
@@ -388,7 +388,7 @@ class RegisterUserCommandTest {
             String lastName = "O'Connor";
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isSuccess()).isTrue();
@@ -407,7 +407,7 @@ class RegisterUserCommandTest {
             String lastName = "Михаил"; // Cyrillic
 
             // When
-            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName);
+            Result<RegisterUserCommand> result = RegisterUserCommand.create(email, password, firstName, lastName, "BANK001", "pm_test123", null, null);
 
             // Then
             assertThat(result.isSuccess()).isTrue();

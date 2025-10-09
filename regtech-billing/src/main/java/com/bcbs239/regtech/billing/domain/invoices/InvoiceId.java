@@ -38,4 +38,11 @@ public record InvoiceId(String value) {
     public String toString() {
         return value;
     }
+
+    /**
+     * Get the string value of this InvoiceId
+     */
+    public String getValue() {
+        return value;
+    }
 }

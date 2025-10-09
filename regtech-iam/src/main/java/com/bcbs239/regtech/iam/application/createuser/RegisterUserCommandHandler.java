@@ -170,7 +170,7 @@ public class RegisterUserCommandHandler {
     /**
      * Data class for user registration information
      */
-    private record UserRegistrationData(
+    public record UserRegistrationData(
         UserId userId,
         String paymentMethodId,
         String correlationId,

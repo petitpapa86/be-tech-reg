@@ -4,7 +4,7 @@ import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
-import com.bcbs239.regtech.billing.infrastructure.entities.SubscriptionEntity;
+import com.bcbs239.regtech.billing.infrastructure.database.entities.SubscriptionEntity;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
@@ -82,7 +82,7 @@ public class JpaSubscriptionRepository {
                 return Result.success(SubscriptionId.fromString(entity.getId()).getValue().get());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
-                    "Failed to save subscription: " + e.getMessage()));
+                    "Failed to save subscription: " + e.getMessage(), "subscription.save.failed"));
             }
         };
     }

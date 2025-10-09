@@ -14,11 +14,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.context.annotation.Primary;
+
 /**
  * IAM implementation of the authorization service.
  * This is the authoritative source for user permissions and roles.
  */
 @Service
+@Primary
 public class IamAuthorizationService implements AuthorizationService {
     
     private final JpaUserRepository userRepository;

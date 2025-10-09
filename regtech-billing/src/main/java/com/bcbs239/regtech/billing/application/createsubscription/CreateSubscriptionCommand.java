@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.application.createsubscription;
 
-import com.bcbs239.regtech.billing.domain.billing.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.infrastructure.validation.BillingValidationUtils;
 import com.bcbs239.regtech.core.shared.Result;

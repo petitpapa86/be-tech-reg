@@ -38,4 +38,11 @@ public record BillingAccountId(String value) {
     public String toString() {
         return value;
     }
+
+    /**
+     * Get the string value of this BillingAccountId
+     */
+    public String getValue() {
+        return value;
+    }
 }

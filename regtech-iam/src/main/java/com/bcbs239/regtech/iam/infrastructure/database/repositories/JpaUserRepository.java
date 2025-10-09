@@ -4,7 +4,6 @@ import com.bcbs239.regtech.core.security.authorization.Role;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.iam.application.authenticate.OAuth2UserInfo;
 import com.bcbs239.regtech.iam.domain.users.*;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserRoleEntity;
@@ -88,50 +87,6 @@ public class JpaUserRepository {
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("USER_SAVE_FAILED",
                     "Failed to save user: " + e.getMessage(), "error.user.saveFailed"));
-            }
-        };
-    }
-
-    /**
-     * Closure to save OAuth user (find or create)
-     * Returns Result<User> for functional error handling
-     */
-    public Function<OAuth2UserInfo, Result<User>> saveOAuthUser() {
-        return userInfo -> {
-            try {
-                // Check if user already exists
-                Maybe<User> existingUser = emailLookup().apply(userInfo.email());
-                if (existingUser.isPresent()) {
-                    User user = existingUser.getValue();
-                    // Update OAuth ID if not set
-                    if (userInfo.externalId() != null && user.getGoogleId() == null) {
-                        user.setGoogleId(userInfo.externalId());
-                        Result<UserId> saveResult = userSaver().apply(user);
-                        if (saveResult.isFailure()) {
-                            return Result.failure(saveResult.getError().get());
-                        }
-                    }
-                    return Result.success(user);
-                }
-
-                // Create new user from OAuth info
-                User newUser = User.createOAuth(
-                    userInfo.email(),
-                    userInfo.firstName(),
-                    userInfo.lastName(),
-                    userInfo.externalId()
-                );
-
-                Result<UserId> saveResult = userSaver().apply(newUser);
-                if (saveResult.isFailure()) {
-                    return Result.failure(saveResult.getError().get());
-                }
-
-                return Result.success(newUser);
-            } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("OAUTH_USER_SAVE_FAILED",
-                    "Failed to save OAuth user: " + e.getMessage(),
-                    "error.oauth.user.saveFailed"));
             }
         };
     }

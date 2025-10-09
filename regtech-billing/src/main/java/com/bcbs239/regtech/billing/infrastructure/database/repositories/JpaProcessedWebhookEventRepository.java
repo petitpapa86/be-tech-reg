@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
 import com.bcbs239.regtech.billing.domain.valueobjects.ProcessedWebhookEvent;
-import com.bcbs239.regtech.billing.infrastructure.entities.ProcessedWebhookEventEntity;
+import com.bcbs239.regtech.billing.infrastructure.database.entities.ProcessedWebhookEventEntity;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
@@ -56,7 +56,7 @@ public class JpaProcessedWebhookEventRepository {
                 return Result.success(entity.getId());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("PROCESSED_WEBHOOK_EVENT_SAVE_FAILED",
-                    "Failed to save processed webhook event: " + e.getMessage()));
+                    "Failed to save processed webhook event: " + e.getMessage(), "webhook.event.save.failed"));
             }
         };
     }

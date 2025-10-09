@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.billing.infrastructure.observability;
 
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountStatus;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.stripe.StripeService;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.core.health.ModuleHealthIndicator;
 import com.bcbs239.regtech.core.shared.Result;
 import jakarta.persistence.EntityManager;
@@ -105,7 +105,7 @@ public class BillingModuleHealthIndicator implements ModuleHealthIndicator {
     private HealthCheckResult checkStripeConnectivity() {
         try {
             // Test Stripe connectivity by creating a test customer (this will validate API key)
-            Result<com.bcbs239.regtech.billing.infrastructure.stripe.StripeCustomer> testResult = 
+            Result<com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer> testResult = 
                 stripeService.createCustomer("health-check@test.com", "Health Check Test");
             
             Map<String, Object> details = new HashMap<>();

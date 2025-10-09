@@ -1,13 +1,18 @@
 package com.bcbs239.regtech.billing.application.sagas;
 
 import com.bcbs239.regtech.billing.application.shared.UsageMetrics;
-import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
+import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceGeneratedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
-import com.bcbs239.regtech.billing.infrastructure.stripe.StripeInvoice;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
+import com.bcbs239.regtech.billing.domain.valueobjects.Money;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
+import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeInvoice;
 import com.bcbs239.regtech.core.saga.*;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
@@ -354,16 +359,16 @@ public class MonthlyBillingSaga implements Saga<MonthlyBillingSagaData> {
         
         if (mockBillingAccountId == null) {
             return Result.failure(ErrorDetail.of("INVALID_BILLING_ACCOUNT_ID", 
-                "Could not create billing account ID for user: " + userId));
+                "Could not create billing account ID for user: " + userId, "billing.account.id.invalid"));
         }
 
         Maybe<BillingAccount> billingAccountMaybe = billingAccountFinder.apply(mockBillingAccountId);
         if (billingAccountMaybe.isEmpty()) {
             return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", 
-                "Billing account not found for user: " + userId));
+                "Billing account not found for user: " + userId, "billing.account.not.found"));
         }
 
-        return Result.success(billingAccountMaybe.get());
+        return Result.success(billingAccountMaybe.getValue());
     }
 
     /**

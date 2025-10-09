@@ -1,7 +1,12 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
-import com.bcbs239.regtech.billing.domain.aggregates.DunningCase;
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
+import com.bcbs239.regtech.billing.domain.billing.DunningCase;
+import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseStatus;
+import com.bcbs239.regtech.billing.domain.valueobjects.DunningStep;
+import com.bcbs239.regtech.billing.domain.valueobjects.DunningAction;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -60,7 +65,7 @@ public class DunningCaseEntity {
         DunningCaseEntity entity = new DunningCaseEntity();
         
         if (dunningCase.getId() != null) {
-            entity.id = dunningCase.getId().value();
+            entity.id = dunningCase.getId().value().toString();
         }
         entity.billingAccountId = dunningCase.getBillingAccountId().value();
         entity.invoiceId = dunningCase.getInvoiceId().value();
@@ -89,7 +94,7 @@ public class DunningCaseEntity {
         DunningCase dunningCase = new DunningCase();
         
         if (this.id != null) {
-            dunningCase.setId(new DunningCaseId(this.id));
+            dunningCase.setId(DunningCaseId.fromString(this.id).getValue().get());
         }
         dunningCase.setBillingAccountId(new BillingAccountId(this.billingAccountId));
         dunningCase.setInvoiceId(InvoiceId.fromString(this.invoiceId).getValue().get());

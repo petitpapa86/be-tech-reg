@@ -2,8 +2,8 @@ package com.bcbs239.regtech.billing.application.cancelsubscription;
 
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaSubscriptionRepository;
-import com.bcbs239.regtech.billing.infrastructure.stripe.StripeService;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
@@ -63,7 +63,7 @@ public class CancelSubscriptionCommandHandler {
             return Result.failure(ErrorDetail.of("SUBSCRIPTION_NOT_FOUND", 
                 "Subscription not found: " + subscriptionId, "subscription.not.found"));
         }
-        Subscription subscription = subscriptionMaybe.get();
+        Subscription subscription = subscriptionMaybe.getValue();
 
         // Step 3: Cancel subscription in domain
         Result<Void> cancellationResult = subscription.cancel(command.getEffectiveCancellationDate());

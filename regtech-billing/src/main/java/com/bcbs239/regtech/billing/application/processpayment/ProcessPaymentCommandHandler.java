@@ -1,21 +1,23 @@
 package com.bcbs239.regtech.billing.application.processpayment;
 
-import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
+import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.*;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.events.PaymentVerifiedEvent;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceGeneratedEvent;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaSubscriptionRepository;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceRepository;
-import com.bcbs239.regtech.billing.infrastructure.stripe.StripeService;
-import com.bcbs239.regtech.billing.infrastructure.stripe.StripeCustomer;
-import com.bcbs239.regtech.billing.infrastructure.stripe.StripeSubscription;
-import com.bcbs239.regtech.billing.infrastructure.events.BillingEventPublisher;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeSubscription;
+import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.billing.application.shared.UserData;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
@@ -135,7 +137,7 @@ public class ProcessPaymentCommandHandler {
         // Step 6: Generate pro-rated first invoice
         Result<Invoice> invoiceResult = generateProRatedInvoice(
             billingAccount.getId(),
-            stripeSubscription.invoiceId(),
+            stripeSubscription.latestInvoiceId(),
             SubscriptionTier.STARTER
         );
         if (invoiceResult.isFailure()) {
@@ -291,5 +293,5 @@ public class ProcessPaymentCommandHandler {
 
     // Helper records for function parameters
     public record UserDataAndPaymentMethod(UserData userData, PaymentMethodId paymentMethodId) {}
-    public record StripeCustomerAndTier(StripeCustomerId customerId, SubscriptionTier tier) {}
+    public record StripeCustomerAndTier(com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId customerId, SubscriptionTier tier) {}
 }

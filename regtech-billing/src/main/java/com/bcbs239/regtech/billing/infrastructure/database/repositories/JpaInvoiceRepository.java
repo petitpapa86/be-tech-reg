@@ -3,8 +3,9 @@ package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceStatus;
-import com.bcbs239.regtech.billing.infrastructure.entities.InvoiceEntity;
+import com.bcbs239.regtech.billing.infrastructure.database.entities.InvoiceEntity;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
@@ -38,6 +39,24 @@ public class JpaInvoiceRepository {
                     return Maybe.none();
                 }
                 return Maybe.some(entity.toDomain());
+            } catch (Exception e) {
+                // Log error but return none for functional pattern
+                return Maybe.none();
+            }
+        };
+    }
+
+    public Function<StripeInvoiceId, Maybe<Invoice>> invoiceByStripeIdFinder() {
+        return stripeId -> {
+            try {
+                InvoiceEntity entity = entityManager.createQuery(
+                    "SELECT i FROM InvoiceEntity i WHERE i.stripeInvoiceId = :stripeId", 
+                    InvoiceEntity.class)
+                    .setParameter("stripeId", stripeId.value())
+                    .getSingleResult();
+                return Maybe.some(entity.toDomain());
+            } catch (NoResultException e) {
+                return Maybe.none();
             } catch (Exception e) {
                 // Log error but return none for functional pattern
                 return Maybe.none();
@@ -100,7 +119,7 @@ public class JpaInvoiceRepository {
                 return Result.success(InvoiceId.fromString(entity.getId()).getValue().get());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED",
-                    "Failed to save invoice: " + e.getMessage()));
+                    "Failed to save invoice: " + e.getMessage(), "invoice.save.failed"));
             }
         };
     }

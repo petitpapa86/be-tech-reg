@@ -2,7 +2,7 @@ package com.bcbs239.regtech.billing.infrastructure.jobs;
 
 import com.bcbs239.regtech.billing.application.sagas.MonthlyBillingSaga;
 import com.bcbs239.regtech.billing.application.sagas.MonthlyBillingSagaData;
-import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
+import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
@@ -144,7 +144,7 @@ public class MonthlyBillingScheduler {
                     continue;
                 }
                 
-                UserId userId = userIdMaybe.get();
+                UserId userId = userIdMaybe.getValue();
                 
                 // Generate correlation ID in format: userId-billingPeriod (e.g., "user-123-2024-01")
                 String correlationId = generateCorrelationId(userId, billingPeriod);
@@ -200,7 +200,7 @@ public class MonthlyBillingScheduler {
                 return Maybe.none();
             }
             
-            BillingAccount billingAccount = billingAccountMaybe.get();
+            BillingAccount billingAccount = billingAccountMaybe.getValue();
             return Maybe.some(billingAccount.getUserId());
             
         } catch (Exception e) {

@@ -2,7 +2,8 @@ package com.bcbs239.regtech.billing.application.events;
 
 import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommand;
 import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommandHandler;
-import com.bcbs239.regtech.billing.infrastructure.events.BillingEventPublisher;
+import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentResponse;
+import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.events.UserRegisteredEvent;
 import org.slf4j.Logger;
@@ -66,7 +67,7 @@ public class UserRegisteredEventHandler {
             }
 
             // Execute payment processing - this will automatically publish events via outbox pattern
-            Result<com.bcbs239.regtech.billing.application.commands.ProcessPaymentResponse> result = 
+            Result<ProcessPaymentResponse> result = 
                 processPaymentCommandHandler.handle(commandResult.getValue().get());
 
             if (result.isSuccess()) {

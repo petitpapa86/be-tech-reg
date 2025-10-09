@@ -25,8 +25,8 @@ public class Subscription {
     private Instant updatedAt;
     private long version;
     
-    // Package-private constructor for factory method pattern and JPA entity mapping
-    Subscription() {}
+    // Public constructor for JPA entity mapping
+    public Subscription() {}
     
     /**
      * Factory method to create a new Subscription
@@ -90,12 +90,12 @@ public class Subscription {
         
         if (this.status == SubscriptionStatus.CANCELLED) {
             return Result.failure(ErrorDetail.of("ALREADY_CANCELLED", 
-                "Subscription is already cancelled"));
+                "Subscription is already cancelled", "subscription.already.cancelled"));
         }
         
         if (cancellationDate.isBefore(this.startDate)) {
             return Result.failure(ErrorDetail.of("INVALID_CANCELLATION_DATE", 
-                "Cancellation date cannot be before start date"));
+                "Cancellation date cannot be before start date", "subscription.invalid.cancellation.date"));
         }
         
         this.status = SubscriptionStatus.CANCELLED;
@@ -125,7 +125,7 @@ public class Subscription {
         if (this.status != SubscriptionStatus.ACTIVE) {
             return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
                 String.format("Cannot mark as past due from status: %s. Expected: %s", 
-                    this.status, SubscriptionStatus.ACTIVE)));
+                    this.status, SubscriptionStatus.ACTIVE), "subscription.invalid.status.transition"));
         }
         
         this.status = SubscriptionStatus.PAST_DUE;
@@ -145,7 +145,7 @@ public class Subscription {
         if (this.status != SubscriptionStatus.ACTIVE) {
             return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
                 String.format("Cannot pause subscription from status: %s. Expected: %s", 
-                    this.status, SubscriptionStatus.ACTIVE)));
+                    this.status, SubscriptionStatus.ACTIVE), "subscription.invalid.status.transition"));
         }
         
         this.status = SubscriptionStatus.PAUSED;
@@ -163,7 +163,7 @@ public class Subscription {
     public Result<Void> reactivate() {
         if (!this.status.canBeReactivated()) {
             return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
-                String.format("Cannot reactivate subscription from status: %s", this.status)));
+                String.format("Cannot reactivate subscription from status: %s", this.status), "subscription.invalid.status.transition"));
         }
         
         this.status = SubscriptionStatus.ACTIVE;
@@ -185,12 +185,12 @@ public class Subscription {
         
         if (this.status != SubscriptionStatus.ACTIVE) {
             return Result.failure(ErrorDetail.of("SUBSCRIPTION_NOT_ACTIVE", 
-                "Can only change tier for active subscriptions"));
+                "Can only change tier for active subscriptions", "subscription.not.active"));
         }
         
         if (this.tier == newTier) {
             return Result.failure(ErrorDetail.of("SAME_TIER", 
-                "New tier is the same as current tier"));
+                "New tier is the same as current tier", "subscription.same.tier"));
         }
         
         this.tier = newTier;
@@ -307,17 +307,17 @@ public class Subscription {
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
     
-    // Package-private setters for JPA/persistence layer
-    void setId(SubscriptionId id) { this.id = id; }
-    void setBillingAccountId(BillingAccountId billingAccountId) { this.billingAccountId = billingAccountId; }
-    void setStripeSubscriptionId(StripeSubscriptionId stripeSubscriptionId) { this.stripeSubscriptionId = stripeSubscriptionId; }
-    void setTier(SubscriptionTier tier) { this.tier = tier; }
-    void setStatus(SubscriptionStatus status) { this.status = status; }
-    void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-    void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-    void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    void setVersion(long version) { this.version = version; }
+    // Public setters for JPA/persistence layer
+    public void setId(SubscriptionId id) { this.id = id; }
+    public void setBillingAccountId(BillingAccountId billingAccountId) { this.billingAccountId = billingAccountId; }
+    public void setStripeSubscriptionId(StripeSubscriptionId stripeSubscriptionId) { this.stripeSubscriptionId = stripeSubscriptionId; }
+    public void setTier(SubscriptionTier tier) { this.tier = tier; }
+    public void setStatus(SubscriptionStatus status) { this.status = status; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setVersion(long version) { this.version = version; }
     
     @Override
     public boolean equals(Object o) {

@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.infrastructure.messaging;
 
 import com.bcbs239.regtech.billing.domain.events.*;
-import com.bcbs239.regtech.billing.infrastructure.entities.BillingDomainEventEntity;
+import com.bcbs239.regtech.billing.infrastructure.database.entities.BillingDomainEventEntity;
 import com.bcbs239.regtech.core.events.BaseEvent;
 import com.bcbs239.regtech.core.events.CrossModuleEventBus;
 import com.bcbs239.regtech.core.events.OutboxEventPublisher;
@@ -52,6 +52,7 @@ public class BillingEventPublisher implements OutboxEventPublisher {
             event,
             eventSerializer::serialize,
             eventSaver(),
+            this::convertToCrossModuleEvent,
             crossModuleEventBus::publishEvent,
             () -> UUID.randomUUID().toString(),
             this::determineTargetModule
@@ -65,6 +66,7 @@ public class BillingEventPublisher implements OutboxEventPublisher {
             Object event,
             Function<Object, Result<String>> eventSerializer,
             Function<BillingDomainEventEntity, Result<Void>> eventSaver,
+            Function<Object, Object> eventConverter,
             Consumer<Object> eventPublisher,
             Supplier<String> eventIdGenerator,
             Function<Object, String> targetModuleDeterminer) {
@@ -105,8 +107,8 @@ public class BillingEventPublisher implements OutboxEventPublisher {
 
         // Immediately try to publish the event
         try {
-            Object eventToPublish = convertToCrossModuleEvent(event);
-            crossModuleEventBus.publishEvent(eventToPublish);
+            Object eventToPublish = eventConverter.apply(event);
+            eventPublisher.accept(eventToPublish);
             eventEntity.markAsProcessed();
             eventSaver.apply(eventEntity); // Update the entity status
         } catch (Exception e) {
@@ -242,7 +244,8 @@ public class BillingEventPublisher implements OutboxEventPublisher {
         return eventEntity -> {
             try {
                 Class<?> eventClass = Class.forName(eventEntity.getEventType());
-                return eventSerializer.deserialize(eventEntity.getEventData(), eventClass);
+                Result<?> deserializationResult = eventSerializer.deserialize(eventEntity.getEventData(), eventClass);
+                return deserializationResult.map(obj -> (Object) obj);
             } catch (ClassNotFoundException e) {
                 return Result.failure(ErrorDetail.of(
                     "EVENT_TYPE_NOT_FOUND",
@@ -288,14 +291,14 @@ public class BillingEventPublisher implements OutboxEventPublisher {
     private Object convertToCoreEvent(Object billingEvent) {
         if (billingEvent instanceof com.bcbs239.regtech.billing.domain.events.PaymentVerifiedEvent) {
             var event = (com.bcbs239.regtech.billing.domain.events.PaymentVerifiedEvent) billingEvent;
-            return new PaymentVerifiedEvent(
+            return new com.bcbs239.regtech.core.events.PaymentVerifiedEvent(
                 event.getUserId().toString(),
                 event.getBillingAccountId().toString(),
                 event.getCorrelationId()
             );
         } else if (billingEvent instanceof com.bcbs239.regtech.billing.domain.events.BillingAccountStatusChangedEvent) {
             var event = (com.bcbs239.regtech.billing.domain.events.BillingAccountStatusChangedEvent) billingEvent;
-            return new BillingAccountStatusChangedEvent(
+            return new com.bcbs239.regtech.core.events.BillingAccountStatusChangedEvent(
                 event.getBillingAccountId().toString(),
                 event.getUserId().toString(),
                 event.getPreviousStatus().toString(),
@@ -305,7 +308,7 @@ public class BillingEventPublisher implements OutboxEventPublisher {
             );
         } else if (billingEvent instanceof com.bcbs239.regtech.billing.domain.events.SubscriptionCancelledEvent) {
             var event = (com.bcbs239.regtech.billing.domain.events.SubscriptionCancelledEvent) billingEvent;
-            return new SubscriptionCancelledEvent(
+            return new com.bcbs239.regtech.core.events.SubscriptionCancelledEvent(
                 event.getSubscriptionId().toString(),
                 event.getBillingAccountId().toString(),
                 event.getUserId().toString(),

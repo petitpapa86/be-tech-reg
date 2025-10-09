@@ -37,8 +37,8 @@ public class Invoice {
     private Instant updatedAt;
     private long version;
 
-    // Package-private constructor for JPA entity mapping
-    Invoice() {
+    // Public constructor for JPA entity mapping
+    public Invoice() {
         this.lineItems = new ArrayList<>();
     }
 
@@ -354,24 +354,24 @@ public class Invoice {
         return Objects.hash(id);
     }
 
-    // Package-private setters for JPA/persistence layer
-    void setId(InvoiceId id) { this.id = id; }
-    void setBillingAccountId(BillingAccountId billingAccountId) { this.billingAccountId = billingAccountId; }
-    void setInvoiceNumber(InvoiceNumber invoiceNumber) { this.invoiceNumber = invoiceNumber; }
-    void setStripeInvoiceId(StripeInvoiceId stripeInvoiceId) { this.stripeInvoiceId = stripeInvoiceId; }
-    void setStatus(InvoiceStatus status) { this.status = status; }
-    void setSubscriptionAmount(Money subscriptionAmount) { this.subscriptionAmount = subscriptionAmount; }
-    void setOverageAmount(Money overageAmount) { this.overageAmount = overageAmount; }
-    void setTotalAmount(Money totalAmount) { this.totalAmount = totalAmount; }
-    void setBillingPeriod(BillingPeriod billingPeriod) { this.billingPeriod = billingPeriod; }
-    void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
-    void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
-    void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
-    void setSentAt(Instant sentAt) { this.sentAt = sentAt; }
-    void setLineItems(List<InvoiceLineItem> lineItems) { this.lineItems = lineItems; }
-    void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    void setVersion(long version) { this.version = version; }
+    // Public setters for JPA/persistence layer
+    public void setId(InvoiceId id) { this.id = id; }
+    public void setBillingAccountId(BillingAccountId billingAccountId) { this.billingAccountId = billingAccountId; }
+    public void setInvoiceNumber(InvoiceNumber invoiceNumber) { this.invoiceNumber = invoiceNumber; }
+    public void setStripeInvoiceId(StripeInvoiceId stripeInvoiceId) { this.stripeInvoiceId = stripeInvoiceId; }
+    public void setStatus(InvoiceStatus status) { this.status = status; }
+    public void setSubscriptionAmount(Money subscriptionAmount) { this.subscriptionAmount = subscriptionAmount; }
+    public void setOverageAmount(Money overageAmount) { this.overageAmount = overageAmount; }
+    public void setTotalAmount(Money totalAmount) { this.totalAmount = totalAmount; }
+    public void setBillingPeriod(BillingPeriod billingPeriod) { this.billingPeriod = billingPeriod; }
+    public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
+    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
+    public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
+    public void setSentAt(Instant sentAt) { this.sentAt = sentAt; }
+    public void setLineItems(List<InvoiceLineItem> lineItems) { this.lineItems = lineItems; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setVersion(long version) { this.version = version; }
 
     @Override
     public String toString() {

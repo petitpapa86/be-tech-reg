@@ -2,70 +2,64 @@ package com.bcbs239.regtech.billing.domain.invoices;
 
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import java.util.Objects;
-import java.util.UUID;
+import com.bcbs239.regtech.core.shared.Result;
 
 /**
- * Invoice line item value object representing individual charges on an invoice
+ * Value object representing an invoice line item.
+ * Contains details about a specific charge on an invoice.
  */
 public record InvoiceLineItem(
     InvoiceLineItemId id,
     String description,
-    Money unitPrice,
+    Money unitAmount,
     int quantity,
     Money totalAmount
 ) {
-    
-    public InvoiceLineItem {
-        Objects.requireNonNull(id, "InvoiceLineItemId cannot be null");
-        Objects.requireNonNull(description, "Description cannot be null");
-        Objects.requireNonNull(unitPrice, "Unit price cannot be null");
-        Objects.requireNonNull(totalAmount, "Total amount cannot be null");
-    }
-    
+
     /**
-     * Create a new invoice line item with validation
+     * Create a subscription line item for the given tier and amount.
      */
-    public static Result<InvoiceLineItem> create(String description, Money unitPrice, int quantity) {
-        if (description == null || description.trim().isEmpty()) {
-            return Result.failure(new ErrorDetail("INVALID_LINE_ITEM", "Description cannot be null or empty"));
+    public static Result<InvoiceLineItem> forSubscription(String tier, Money amount, BillingPeriod billingPeriod) {
+        if (tier == null || tier.trim().isEmpty()) {
+            return Result.failure(ErrorDetail.of("INVALID_TIER", "Tier cannot be null or empty", "invoice.lineitem.tier.invalid"));
         }
-        if (unitPrice == null) {
-            return Result.failure(new ErrorDetail("INVALID_LINE_ITEM", "Unit price cannot be null"));
+        if (amount == null) {
+            return Result.failure(ErrorDetail.of("INVALID_AMOUNT", "Amount cannot be null", "invoice.lineitem.amount.invalid"));
         }
-        if (quantity <= 0) {
-            return Result.failure(new ErrorDetail("INVALID_LINE_ITEM", "Quantity must be positive"));
+        if (!amount.isPositive()) {
+            return Result.failure(ErrorDetail.of("INVALID_AMOUNT", "Amount must be positive", "invoice.lineitem.amount.negative"));
         }
-        
+
         InvoiceLineItemId id = InvoiceLineItemId.generate();
-        Money totalAmount = unitPrice.multiply(quantity);
-        
-        return Result.success(new InvoiceLineItem(id, description.trim(), unitPrice, quantity, totalAmount));
+        String description = String.format("%s subscription for %s", tier, billingPeriod.toString());
+        Money unitAmount = amount;
+        int quantity = 1;
+        Money totalAmount = amount;
+
+        return Result.success(new InvoiceLineItem(id, description, unitAmount, quantity, totalAmount));
     }
-    
+
     /**
-     * Create a line item for subscription charges
-     */
-    public static Result<InvoiceLineItem> forSubscription(String tierName, Money monthlyAmount, BillingPeriod period) {
-        String description = String.format("Subscription - %s (%s)", tierName, period.toString());
-        return create(description, monthlyAmount, 1);
-    }
-    
-    /**
-     * Create a line item for overage charges
+     * Create an overage line item for the given count and rate.
      */
     public static Result<InvoiceLineItem> forOverage(int overageCount, Money overageRate) {
-        String description = String.format("Usage Overage (%d exposures)", overageCount);
-        return create(description, overageRate, overageCount);
-    }
-    
-    /**
-     * Create a line item for pro-rated charges
-     */
-    public static Result<InvoiceLineItem> forProRatedSubscription(String tierName, Money proRatedAmount, BillingPeriod period) {
-        String description = String.format("Pro-rated Subscription - %s (%s)", tierName, period.toString());
-        return create(description, proRatedAmount, 1);
+        if (overageCount <= 0) {
+            return Result.failure(ErrorDetail.of("INVALID_COUNT", "Overage count must be positive", "invoice.lineitem.count.invalid"));
+        }
+        if (overageRate == null) {
+            return Result.failure(ErrorDetail.of("INVALID_RATE", "Overage rate cannot be null", "invoice.lineitem.rate.invalid"));
+        }
+        if (!overageRate.isPositive()) {
+            return Result.failure(ErrorDetail.of("INVALID_RATE", "Overage rate must be positive", "invoice.lineitem.rate.negative"));
+        }
+
+        InvoiceLineItemId id = InvoiceLineItemId.generate();
+        String description = String.format("Overage charges for %d additional exposures", overageCount);
+        Money unitAmount = overageRate;
+        int quantity = overageCount;
+        Money totalAmount = overageRate.multiply(overageCount);
+
+        return Result.success(new InvoiceLineItem(id, description, unitAmount, quantity, totalAmount));
     }
 }

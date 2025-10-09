@@ -1,7 +1,7 @@
-package com.bcbs239.regtech.billing.infrastructure.monitoring;
+package com.bcbs239.regtech.billing.infrastructure.observability;
 
-import com.bcbs239.regtech.billing.infrastructure.entities.SagaAuditLogEntity;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaSagaAuditLogRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.entities.SagaAuditLogEntity;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSagaAuditLogRepository;
 import com.bcbs239.regtech.core.shared.Result;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;

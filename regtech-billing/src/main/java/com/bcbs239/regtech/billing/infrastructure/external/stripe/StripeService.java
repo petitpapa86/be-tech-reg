@@ -2,7 +2,10 @@ package com.bcbs239.regtech.billing.infrastructure.external.stripe;
 
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
+import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
+import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
+import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.stripe.Stripe;
@@ -326,32 +329,29 @@ public class StripeService {
         }
     }
 
-    /**
-     * Finalize an invoice to make it payable
-     */
     public Result<StripeInvoice> finalizeInvoice(StripeInvoiceId invoiceId) {
         try {
-            Invoice invoice = Invoice.retrieve(invoiceId.value());
+            final Invoice invoice = Invoice.retrieve(invoiceId.value());
             
             InvoiceFinalizeInvoiceParams params = InvoiceFinalizeInvoiceParams.builder()
                 .setAutoAdvance(true)
                 .build();
                 
-            invoice = invoice.finalizeInvoice(params);
+            final Invoice finalizedInvoice = invoice.finalizeInvoice(params);
             
-            return StripeCustomerId.fromString(invoice.getCustomer())
+            return StripeCustomerId.fromString(finalizedInvoice.getCustomer())
                 .flatMap(customerId -> {
                     Money amount = Money.of(
-                        BigDecimal.valueOf(invoice.getAmountDue()).divide(BigDecimal.valueOf(100)),
-                        Currency.getInstance(invoice.getCurrency().toUpperCase())
+                        BigDecimal.valueOf(finalizedInvoice.getAmountDue()).divide(BigDecimal.valueOf(100)),
+                        Currency.getInstance(finalizedInvoice.getCurrency().toUpperCase())
                     );
                     
                     return Result.success(new StripeInvoice(
                         invoiceId,
                         customerId,
                         amount,
-                        invoice.getStatus(),
-                        invoice.getHostedInvoiceUrl()
+                        finalizedInvoice.getStatus(),
+                        finalizedInvoice.getHostedInvoiceUrl()
                     ));
                 });
                 
@@ -400,7 +400,7 @@ public class StripeService {
                 ));
             }
 
-            Invoice stripeInvoice = (Invoice) event.getDataObjectDeserializer().getObject().orElse(null);
+            final Invoice stripeInvoice = (Invoice) event.getDataObjectDeserializer().getObject().orElse(null);
             if (stripeInvoice == null) {
                 return Result.failure(new ErrorDetail(
                     "INVOICE_DATA_MISSING",

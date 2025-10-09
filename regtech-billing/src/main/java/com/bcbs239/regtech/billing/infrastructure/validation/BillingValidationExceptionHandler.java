@@ -27,22 +27,23 @@ public class BillingValidationExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        List<ErrorDetail> errors = new ArrayList<>();
-        
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errors.add(ErrorDetail.of(
+        List<com.bcbs239.regtech.core.shared.FieldError> errors = new ArrayList<>();
+
+        for (org.springframework.validation.FieldError error : ex.getBindingResult().getFieldErrors()) {
+            errors.add(new com.bcbs239.regtech.core.shared.FieldError(
+                error.getField(),
                 "VALIDATION_ERROR",
-                String.format("Field '%s': %s", error.getField(), error.getDefaultMessage()),
+                error.getDefaultMessage(),
                 "validation.field.error"
             ));
         }
-        
-        String message = errors.size() == 1 
+
+        String message = errors.size() == 1
             ? errors.get(0).getMessage()
             : String.format("Validation failed for %d fields", errors.size());
-            
+
         return ResponseEntity.badRequest().body(
-            ApiResponse.validationError(message, errors)
+            ApiResponse.validationError(errors, message)
         );
     }
 
@@ -51,45 +52,45 @@ public class BillingValidationExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException ex) {
-        List<ErrorDetail> errors = ex.getConstraintViolations().stream()
-            .map(this::mapConstraintViolation)
+        List<com.bcbs239.regtech.core.shared.FieldError> errors = ex.getConstraintViolations().stream()
+            .map(this::mapConstraintViolationToFieldError)
             .collect(Collectors.toList());
-        
-        String message = errors.size() == 1 
+
+        String message = errors.size() == 1
             ? errors.get(0).getMessage()
             : String.format("Validation failed for %d constraints", errors.size());
-            
-        return ResponseEntity.badRequest().body(
-            ApiResponse.validationError(message, errors)
-        );
-    }
 
-    /**
+        return ResponseEntity.badRequest().body(
+            ApiResponse.validationError(errors, message)
+        );
+    }    /**
      * Handle illegal argument exceptions that may come from validation utilities
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
-        ErrorDetail error = ErrorDetail.of(
+        com.bcbs239.regtech.core.shared.FieldError error = new com.bcbs239.regtech.core.shared.FieldError(
+            "argument",
             "INVALID_ARGUMENT",
             ex.getMessage(),
             "validation.invalid.argument"
         );
-        
+
         return ResponseEntity.badRequest().body(
-            ApiResponse.validationError(ex.getMessage(), List.of(error))
+            ApiResponse.validationError(List.of(error), ex.getMessage())
         );
     }
 
     /**
-     * Map constraint violation to ErrorDetail
+     * Map constraint violation to FieldError
      */
-    private ErrorDetail mapConstraintViolation(ConstraintViolation<?> violation) {
+    private com.bcbs239.regtech.core.shared.FieldError mapConstraintViolationToFieldError(ConstraintViolation<?> violation) {
         String propertyPath = violation.getPropertyPath().toString();
         String message = violation.getMessage();
-        
-        return ErrorDetail.of(
+
+        return new com.bcbs239.regtech.core.shared.FieldError(
+            propertyPath,
             "CONSTRAINT_VIOLATION",
-            String.format("Property '%s': %s", propertyPath, message),
+            message,
             "validation.constraint.violation"
         );
     }

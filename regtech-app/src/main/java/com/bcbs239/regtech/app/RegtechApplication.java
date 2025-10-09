@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @ComponentScan(basePackages = {
     "com.bcbs239.regtech.core",
     "com.bcbs239.regtech.iam",
-    // "com.bcbs239.regtech.billing",
+    "com.bcbs239.regtech.billing",
     "com.bcbs239.regtech.app"
 })
 @EnableTransactionManagement

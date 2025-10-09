@@ -1,13 +1,13 @@
 package com.bcbs239.regtech.billing.infrastructure.jobs;
 
-import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
+import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountStatus;
 import com.bcbs239.regtech.billing.domain.valueobjects.DunningStep;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
 import org.slf4j.Logger;
@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.bcbs239.regtech.billing.domain.valueobjects.DunningStep.*;
 
 /**
  * Service responsible for executing dunning actions based on the current dunning step.
@@ -72,15 +74,16 @@ public class DunningActionExecutor {
                 );
             }
 
-            Invoice invoice = invoiceMaybe.get();
-            BillingAccount account = accountMaybe.get();
+            Invoice invoice = invoiceMaybe.getValue();
+            BillingAccount account = accountMaybe.getValue();
 
             // Execute step-specific action
             return switch (step) {
-                case STEP_1_REMINDER -> executeFirstReminder(invoice, account);
-                case STEP_2_REMINDER -> executeSecondReminder(invoice, account);
-                case STEP_3_FINAL_NOTICE -> executeFinalNotice(invoice, account);
-                case STEP_4_SUSPENSION -> executeAccountSuspension(invoice, account);
+                case FIRST_REMINDER -> executeFirstReminder(invoice, account);
+                case SECOND_REMINDER -> executeSecondReminder(invoice, account);
+                case FINAL_NOTICE -> executeFinalNotice(invoice, account);
+                case COLLECTION_AGENCY -> executeAccountSuspension(invoice, account); // Reuse suspension logic
+                case LEGAL_ACTION -> executeAccountSuspension(invoice, account); // Reuse suspension logic
             };
 
         } catch (Exception e) {

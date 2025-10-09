@@ -90,7 +90,7 @@ public class MonitoredSagaWrapper<T extends SagaData> implements Saga<T> {
                 extractUserId(sagaData),
                 extractBillingAccountId(sagaData),
                 result.isSuccess(),
-                result.isSuccess() ? "Saga completed successfully" : result.getErrorMessage().orElse("Unknown error"),
+                result.isSuccess() ? "Saga completed successfully" : (result.getErrorMessage() != null ? result.getErrorMessage() : "Unknown error"),
                 sagaData
             );
             
@@ -372,7 +372,7 @@ public class MonitoredSagaWrapper<T extends SagaData> implements Saga<T> {
         }
     }
 
-    private String extractUserId(T sagaData) {
+    private String extractUserId(SagaData sagaData) {
         try {
             if (sagaData instanceof MonthlyBillingSagaData billingData) {
                 return billingData.getUserId().getValue();
@@ -383,7 +383,7 @@ public class MonitoredSagaWrapper<T extends SagaData> implements Saga<T> {
         }
     }
 
-    private String extractBillingAccountId(T sagaData) {
+    private String extractBillingAccountId(SagaData sagaData) {
         try {
             if (sagaData instanceof MonthlyBillingSagaData billingData) {
                 // In a real implementation, this would be extracted from the saga data

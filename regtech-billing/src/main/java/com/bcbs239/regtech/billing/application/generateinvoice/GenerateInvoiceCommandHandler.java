@@ -1,14 +1,18 @@
 package com.bcbs239.regtech.billing.application.generateinvoice;
 
-import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
+import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaSubscriptionRepository;
-import com.bcbs239.regtech.billing.infrastructure.repositories.JpaInvoiceRepository;
-import com.bcbs239.regtech.billing.infrastructure.stripe.StripeService;
-import com.bcbs239.regtech.billing.infrastructure.stripe.StripeInvoice;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
+import com.bcbs239.regtech.billing.domain.valueobjects.Money;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeInvoice;
 import com.bcbs239.regtech.billing.application.shared.UsageMetrics;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
@@ -82,7 +86,7 @@ public class GenerateInvoiceCommandHandler {
             return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", 
                 "Billing account not found: " + billingAccountId, "invoice.billing.account.not.found"));
         }
-        BillingAccount billingAccount = billingAccountMaybe.get();
+        BillingAccount billingAccount = billingAccountMaybe.getValue();
 
         // Step 3: Find active subscription
         Maybe<Subscription> subscriptionMaybe = activeSubscriptionFinder.apply(billingAccountId);
@@ -90,7 +94,7 @@ public class GenerateInvoiceCommandHandler {
             return Result.failure(ErrorDetail.of("NO_ACTIVE_SUBSCRIPTION", 
                 "No active subscription found for billing account: " + billingAccountId, "invoice.no.active.subscription"));
         }
-        Subscription subscription = subscriptionMaybe.get();
+        Subscription subscription = subscriptionMaybe.getValue();
 
         // Step 4: Query usage metrics from ingestion context
         UsageQuery usageQuery = new UsageQuery(billingAccount.getUserId(), command.billingPeriod());

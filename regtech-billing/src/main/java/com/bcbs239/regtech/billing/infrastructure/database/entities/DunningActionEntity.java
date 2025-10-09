@@ -63,11 +63,12 @@ public class DunningActionEntity {
      */
     public DunningAction toDomain() {
         return new DunningAction(
+            DunningActionId.fromString(this.id).getValue().get(),
             this.step,
-            this.executedAt,
             this.actionType,
             this.notes,
-            "SUCCESS".equals(this.result)
+            "SUCCESS".equals(this.result),
+            this.executedAt
         );
     }
 

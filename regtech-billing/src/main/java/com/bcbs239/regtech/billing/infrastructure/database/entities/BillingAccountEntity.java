@@ -1,7 +1,11 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
-import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
+import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountStatus;
+import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
+import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import jakarta.persistence.*;
 import java.math.BigDecimal;

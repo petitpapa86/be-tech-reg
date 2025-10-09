@@ -1,11 +1,18 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceNumber;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceStatus;
+import com.bcbs239.regtech.billing.domain.valueobjects.Money;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Currency;
 
 /**
@@ -112,8 +119,8 @@ public class InvoiceEntity {
         }
         
         if (invoice.getBillingPeriod() != null) {
-            entity.billingPeriodStartDate = invoice.getBillingPeriod().startDate();
-            entity.billingPeriodEndDate = invoice.getBillingPeriod().endDate();
+            entity.billingPeriodStartDate = invoice.getBillingPeriod().getStartDate();
+            entity.billingPeriodEndDate = invoice.getBillingPeriod().getEndDate();
         }
         
         entity.issueDate = invoice.getIssueDate();
@@ -158,7 +165,7 @@ public class InvoiceEntity {
         }
         
         if (this.billingPeriodStartDate != null && this.billingPeriodEndDate != null) {
-            invoice.setBillingPeriod(new BillingPeriod(this.billingPeriodStartDate, this.billingPeriodEndDate));
+            invoice.setBillingPeriod(BillingPeriod.of(YearMonth.from(this.billingPeriodStartDate)));
         }
         
         invoice.setIssueDate(this.issueDate);

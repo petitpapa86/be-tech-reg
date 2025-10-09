@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
-import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
+import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
-import com.bcbs239.regtech.billing.infrastructure.entities.BillingAccountEntity;
+import com.bcbs239.regtech.billing.infrastructure.database.entities.BillingAccountEntity;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
@@ -75,7 +75,7 @@ public class JpaBillingAccountRepository {
                 return Result.success(BillingAccountId.fromString(entity.getId()).getValue().get());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_SAVE_FAILED",
-                    "Failed to save billing account: " + e.getMessage()));
+                    "Failed to save billing account: " + e.getMessage(), "billing.account.save.failed"));
             }
         };
     }

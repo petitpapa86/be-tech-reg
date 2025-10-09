@@ -7,6 +7,7 @@ import com.bcbs239.regtech.core.saga.SagaData;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Currency;
 
 /**
@@ -66,8 +67,8 @@ public class MonthlyBillingSagaData extends SagaData {
         MonthlyBillingSagaData sagaData = new MonthlyBillingSagaData();
         sagaData.userId = userId;
         sagaData.billingPeriodId = billingPeriod.getPeriodId();
-        sagaData.startDate = billingPeriod.startDate();
-        sagaData.endDate = billingPeriod.endDate();
+        sagaData.startDate = billingPeriod.getStartDate();
+        sagaData.endDate = billingPeriod.getEndDate();
         
         // Set correlation ID in format: userId-billingPeriod (e.g., "user-123-2024-01")
         sagaData.setCorrelationId(userId.getValue() + "-" + billingPeriod.getPeriodId());
@@ -132,7 +133,7 @@ public class MonthlyBillingSagaData extends SagaData {
      * Get billing period from stored dates
      */
     public BillingPeriod getBillingPeriod() {
-        return new BillingPeriod(startDate, endDate);
+        return BillingPeriod.of(YearMonth.from(startDate));
     }
     
     /**

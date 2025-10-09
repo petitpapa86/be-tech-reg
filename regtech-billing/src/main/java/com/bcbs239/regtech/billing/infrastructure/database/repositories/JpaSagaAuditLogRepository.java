@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
-import com.bcbs239.regtech.billing.infrastructure.entities.SagaAuditLogEntity;
+import com.bcbs239.regtech.billing.infrastructure.database.entities.SagaAuditLogEntity;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
 import jakarta.persistence.EntityManager;

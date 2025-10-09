@@ -1,6 +1,10 @@
 package com.bcbs239.regtech.billing.domain.billing;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.*;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountStatus;
+import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
+import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.iam.domain.users.UserId;
@@ -24,8 +28,8 @@ public class BillingAccount {
     private Instant updatedAt;
     private long version;
     
-    // Package-private constructor for factory method pattern and JPA entity mapping
-    BillingAccount() {}
+    // Public constructor for JPA entity mapping
+    public BillingAccount() {}
     
     /**
      * Factory method to create a new BillingAccount
@@ -39,7 +43,7 @@ public class BillingAccount {
         Objects.requireNonNull(stripeCustomerId, "StripeCustomerId cannot be null");
         
         BillingAccount account = new BillingAccount();
-        account.id = BillingAccountId.generate();
+        account.id = BillingAccountId.generate("BA");
         account.userId = userId;
         account.stripeCustomerId = stripeCustomerId;
         account.status = BillingAccountStatus.PENDING_VERIFICATION;
@@ -64,7 +68,7 @@ public class BillingAccount {
         if (this.status != BillingAccountStatus.PENDING_VERIFICATION) {
             return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
                 String.format("Cannot activate account from status: %s. Expected: %s", 
-                    this.status, BillingAccountStatus.PENDING_VERIFICATION)));
+                    this.status, BillingAccountStatus.PENDING_VERIFICATION), "billing.account.invalid.status.transition"));
         }
         
         this.status = BillingAccountStatus.ACTIVE;
@@ -87,12 +91,12 @@ public class BillingAccount {
         
         if (this.status == BillingAccountStatus.CANCELLED) {
             return Result.failure(ErrorDetail.of("ACCOUNT_CANCELLED", 
-                "Cannot suspend cancelled account"));
+                "Cannot suspend cancelled account", "billing.account.cancelled"));
         }
         
         if (this.status == BillingAccountStatus.SUSPENDED) {
             return Result.failure(ErrorDetail.of("ALREADY_SUSPENDED", 
-                "Account is already suspended"));
+                "Account is already suspended", "billing.account.already.suspended"));
         }
         
         this.status = BillingAccountStatus.SUSPENDED;
@@ -112,7 +116,7 @@ public class BillingAccount {
         if (this.status != BillingAccountStatus.ACTIVE) {
             return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
                 String.format("Cannot mark as past due from status: %s. Expected: %s", 
-                    this.status, BillingAccountStatus.ACTIVE)));
+                    this.status, BillingAccountStatus.ACTIVE), "billing.account.invalid.status.transition"));
         }
         
         this.status = BillingAccountStatus.PAST_DUE;
@@ -131,7 +135,7 @@ public class BillingAccount {
     public Result<Void> cancel() {
         if (this.status == BillingAccountStatus.CANCELLED) {
             return Result.failure(ErrorDetail.of("ALREADY_CANCELLED", 
-                "Account is already cancelled"));
+                "Account is already cancelled", "billing.account.already.cancelled"));
         }
         
         this.status = BillingAccountStatus.CANCELLED;
@@ -151,7 +155,7 @@ public class BillingAccount {
             this.status != BillingAccountStatus.SUSPENDED) {
             return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
                 String.format("Cannot reactivate account from status: %s. Expected: %s or %s", 
-                    this.status, BillingAccountStatus.PAST_DUE, BillingAccountStatus.SUSPENDED)));
+                    this.status, BillingAccountStatus.PAST_DUE, BillingAccountStatus.SUSPENDED), "billing.account.invalid.status.transition"));
         }
         
         this.status = BillingAccountStatus.ACTIVE;
@@ -182,7 +186,7 @@ public class BillingAccount {
         
         if (this.status == BillingAccountStatus.CANCELLED) {
             return Result.failure(ErrorDetail.of("ACCOUNT_CANCELLED", 
-                "Cannot update payment method for cancelled account"));
+                "Cannot update payment method for cancelled account", "billing.account.cancelled"));
         }
         
         this.defaultPaymentMethodId = paymentMethodId;
@@ -205,7 +209,7 @@ public class BillingAccount {
             return Result.failure(ErrorDetail.of("CURRENCY_MISMATCH", 
                 String.format("Balance currency %s does not match account currency %s", 
                     newBalance.currency().getCurrencyCode(), 
-                    this.accountBalance.currency().getCurrencyCode())));
+                    this.accountBalance.currency().getCurrencyCode()), "billing.account.currency.mismatch"));
         }
         
         this.accountBalance = newBalance;
@@ -226,16 +230,16 @@ public class BillingAccount {
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
     
-    // Package-private setters for JPA/persistence layer
-    void setId(BillingAccountId id) { this.id = id; }
-    void setUserId(UserId userId) { this.userId = userId; }
-    void setStripeCustomerId(StripeCustomerId stripeCustomerId) { this.stripeCustomerId = stripeCustomerId; }
-    void setStatus(BillingAccountStatus status) { this.status = status; }
-    void setDefaultPaymentMethodId(PaymentMethodId defaultPaymentMethodId) { this.defaultPaymentMethodId = defaultPaymentMethodId; }
-    void setAccountBalance(Money accountBalance) { this.accountBalance = accountBalance; }
-    void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    void setVersion(long version) { this.version = version; }
+    // Public setters for JPA/persistence layer
+    public void setId(BillingAccountId id) { this.id = id; }
+    public void setUserId(UserId userId) { this.userId = userId; }
+    public void setStripeCustomerId(StripeCustomerId stripeCustomerId) { this.stripeCustomerId = stripeCustomerId; }
+    public void setStatus(BillingAccountStatus status) { this.status = status; }
+    public void setDefaultPaymentMethodId(PaymentMethodId defaultPaymentMethodId) { this.defaultPaymentMethodId = defaultPaymentMethodId; }
+    public void setAccountBalance(Money accountBalance) { this.accountBalance = accountBalance; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setVersion(long version) { this.version = version; }
     
     @Override
     public boolean equals(Object o) {

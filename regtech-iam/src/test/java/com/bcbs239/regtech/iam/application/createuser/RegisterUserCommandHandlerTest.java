@@ -28,15 +28,20 @@ class RegisterUserCommandHandlerTest {
                 "john.doe@example.com",
                 "ValidPass123!",
                 "John",
-                "Doe"
+                "Doe",
+                "BANK001",
+                "pm_test123",
+                null,
+                null
             );
 
             UserId expectedUserId = UserId.generate();
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(expectedUserId);
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isSuccess()).isTrue();
@@ -52,18 +57,19 @@ class RegisterUserCommandHandlerTest {
         void shouldGenerateUniqueCorrelationIdForEachRequest() {
             // Given
             RegisterUserCommand command1 = new RegisterUserCommand(
-                "user1@example.com", "ValidPass123!", "User", "One"
+                "user1@example.com", "ValidPass123!", "User", "One", "BANK001", "pm_test123", null, null
             );
             RegisterUserCommand command2 = new RegisterUserCommand(
-                "user2@example.com", "ValidPass123!", "User", "Two"
+                "user2@example.com", "ValidPass123!", "User", "Two", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result1 = RegisterUserCommandHandler.registerUser(command1, emailLookup, userSaver);
-            Result<RegisterUserResponse> result2 = RegisterUserCommandHandler.registerUser(command2, emailLookup, userSaver);
+            Result<RegisterUserResponse> result1 = RegisterUserCommandHandler.registerUser(command1, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result2 = RegisterUserCommandHandler.registerUser(command2, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result1.getValue().get().correlationId())
@@ -80,14 +86,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenEmailIsNull() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                null, "ValidPass123!", "John", "Doe"
+                null, "ValidPass123!", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -102,14 +109,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenEmailIsEmpty() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "", "ValidPass123!", "John", "Doe"
+                "", "ValidPass123!", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -121,14 +129,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenEmailFormatIsInvalid() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "invalid-email", "ValidPass123!", "John", "Doe"
+                "invalid-email", "ValidPass123!", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -145,7 +154,7 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenEmailAlreadyExists() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "existing@example.com", "ValidPass123!", "John", "Doe"
+                "existing@example.com", "ValidPass123!", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             User existingUser = User.create(
@@ -156,9 +165,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.some(existingUser);
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -178,14 +188,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenPasswordIsNull() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", null, "John", "Doe"
+                "john@example.com", null, "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -197,14 +208,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenPasswordIsTooShort() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "short", "John", "Doe"
+                "john@example.com", "short", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -216,14 +228,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenPasswordLacksUppercase() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "validpass123!", "John", "Doe"
+                "john@example.com", "validpass123!", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -235,14 +248,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenPasswordLacksLowercase() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "VALIDPASS123!", "John", "Doe"
+                "john@example.com", "VALIDPASS123!", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -254,14 +268,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenPasswordLacksDigit() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "ValidPassword!", "John", "Doe"
+                "john@example.com", "ValidPassword!", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -273,14 +288,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenPasswordLacksSpecialCharacter() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "ValidPass123", "John", "Doe"
+                "john@example.com", "ValidPass123", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -297,14 +313,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenFirstNameIsNull() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "ValidPass123!", null, "Doe"
+                "john@example.com", "ValidPass123!", null, "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -316,14 +333,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenFirstNameIsEmpty() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "ValidPass123!", "", "Doe"
+                "john@example.com", "ValidPass123!", "", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -335,14 +353,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenLastNameIsNull() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "ValidPass123!", "John", null
+                "john@example.com", "ValidPass123!", "John", null, "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -354,14 +373,15 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenLastNameIsEmpty() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "ValidPass123!", "John", ""
+                "john@example.com", "ValidPass123!", "John", "", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -378,15 +398,16 @@ class RegisterUserCommandHandlerTest {
         void shouldFailWhenUserSaveOperationFails() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "ValidPass123!", "John", "Doe"
+                "john@example.com", "ValidPass123!", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user ->
                 Result.failure(ErrorDetail.of("USER_SAVE_FAILED", "Database error", "error.save.failed"));
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -406,14 +427,15 @@ class RegisterUserCommandHandlerTest {
         void shouldHandleMultipleValidationFailuresInSequence() {
             // Given - command with multiple issues
             RegisterUserCommand command = new RegisterUserCommand(
-                "invalid-email", "weak", "John", "Doe"
+                "invalid-email", "weak", "John", "Doe", "BANK001", "pm_test123", null, null
             );
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then - should fail at first validation (email format)
             assertThat(result.isFailure()).isTrue();
@@ -425,7 +447,7 @@ class RegisterUserCommandHandlerTest {
         void shouldTrimWhitespaceFromNames() {
             // Given
             RegisterUserCommand command = new RegisterUserCommand(
-                "john@example.com", "ValidPass123!", "  John  ", "  Doe  "
+                "john@example.com", "ValidPass123!", "  John  ", "  Doe  ", "BANK001", "pm_test123", null, null
             );
 
             UserId expectedUserId = UserId.generate();
@@ -437,9 +459,10 @@ class RegisterUserCommandHandlerTest {
                 assertThat(user.getLastName()).isEqualTo("Doe");
                 return Result.success(expectedUserId);
             };
+            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
 
             // Then
             assertThat(result.isSuccess()).isTrue();

@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.api.scheduling;
 
-import com.bcbs239.regtech.billing.infrastructure.scheduling.DunningProcessScheduler;
-import com.bcbs239.regtech.billing.infrastructure.scheduling.MonthlyBillingScheduler;
+import com.bcbs239.regtech.billing.infrastructure.jobs.DunningProcessScheduler;
+import com.bcbs239.regtech.billing.infrastructure.jobs.MonthlyBillingScheduler;
 import com.bcbs239.regtech.core.shared.ApiResponse;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
@@ -69,7 +69,7 @@ public class BillingSchedulingController {
      */
     @PostMapping("/monthly-billing/trigger/{year}/{month}")
     @PreAuthorize("hasRole('BILLING_ADMIN')")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> triggerMonthlyBilling(
+    public ResponseEntity<? extends ApiResponse<?>> triggerMonthlyBilling(
             @PathVariable int year,
             @PathVariable int month) {
         
@@ -84,7 +84,7 @@ public class BillingSchedulingController {
             
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                .body(ApiResponse.error("INVALID_DATE", "Invalid year/month: " + year + "/" + month));
+                .body(ApiResponse.businessRuleError("Invalid year/month: " + year + "/" + month));
         }
     }
 
@@ -124,7 +124,7 @@ public class BillingSchedulingController {
      */
     @PostMapping("/dunning-process/resolve/{invoiceId}")
     @PreAuthorize("hasRole('BILLING_ADMIN')")
-    public ResponseEntity<ApiResponse<String>> resolveDunningCase(
+    public ResponseEntity<? extends ApiResponse<?>> resolveDunningCase(
             @PathVariable String invoiceId,
             @RequestParam(defaultValue = "Manual resolution") String reason) {
         
@@ -136,8 +136,7 @@ public class BillingSchedulingController {
                 
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                .body(ApiResponse.error("RESOLUTION_FAILED", 
-                    "Failed to resolve dunning case: " + e.getMessage()));
+                .body(ApiResponse.systemError("Failed to resolve dunning case: " + e.getMessage()));
         }
     }
 

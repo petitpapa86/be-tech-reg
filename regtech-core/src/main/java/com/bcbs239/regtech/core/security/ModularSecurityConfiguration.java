@@ -30,34 +30,34 @@ public class ModularSecurityConfiguration {
     /**
      * IAM module security filter chain
      */
-    @Bean
-    @Order(1)
-    public SecurityFilterChain iamSecurityFilterChain(HttpSecurity http) throws Exception {
-        SecurityConfigurationRegistry.ModuleSecurityConfiguration iamConfig =
-            securityConfigurationRegistry.getAllConfigurations().get("iam");
-        if (iamConfig != null) {
-            http.securityMatcher(iamConfig.getPathPatterns());
-            iamConfig.configure(http);
-            return http.build();
-        }
-        return null;
-    }
+    // @Bean
+    // @Order(1)
+    // public SecurityFilterChain iamSecurityFilterChain(HttpSecurity http) throws Exception {
+    //     SecurityConfigurationRegistry.ModuleSecurityConfiguration iamConfig =
+    //         securityConfigurationRegistry.getAllConfigurations().get("iam");
+    //     if (iamConfig != null) {
+    //         http.securityMatcher(iamConfig.getPathPatterns());
+    //         iamConfig.configure(http);
+    //         return http.build();
+    //     }
+    //     return null;
+    // }
 
     /**
      * Billing module security filter chain
      */
-    @Bean
-    @Order(2)
-    public SecurityFilterChain billingSecurityFilterChain(HttpSecurity http) throws Exception {
-        SecurityConfigurationRegistry.ModuleSecurityConfiguration billingConfig =
-            securityConfigurationRegistry.getAllConfigurations().get("billing");
-        if (billingConfig != null) {
-            http.securityMatcher(billingConfig.getPathPatterns());
-            billingConfig.configure(http);
-            return http.build();
-        }
-        return null;
-    }
+    // @Bean
+    // @Order(2)
+    // public SecurityFilterChain billingSecurityFilterChain(HttpSecurity http) throws Exception {
+    //     SecurityConfigurationRegistry.ModuleSecurityConfiguration billingConfig =
+    //         securityConfigurationRegistry.getAllConfigurations().get("billing");
+    //     if (billingConfig != null) {
+    //         http.securityMatcher(billingConfig.getPathPatterns());
+    //         billingConfig.configure(http);
+    //         return http.build();
+    //     }
+    //     return null;
+    // }
 
     /**
      * Base security configuration for all modules - lowest priority

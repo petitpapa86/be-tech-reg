@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
-import com.bcbs239.regtech.billing.infrastructure.entities.BillingDomainEventEntity;
+import com.bcbs239.regtech.billing.infrastructure.database.entities.BillingDomainEventEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

@@ -2,7 +2,6 @@ package com.bcbs239.regtech.iam.domain.users;
 
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.iam.application.authenticate.OAuth2UserInfo;
 
 import java.util.List;
 import java.util.function.Function;
@@ -37,11 +36,6 @@ public interface UserRepository {
      * Returns a function that finds user by email
      */
     Function<Email, Maybe<User>> emailLookup();
-    
-    /**
-     * Returns a function that saves OAuth user
-     */
-    Function<OAuth2UserInfo, Result<User>> saveOAuthUser();
     
     /**
      * Returns a function that generates JWT tokens

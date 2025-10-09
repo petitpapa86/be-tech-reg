@@ -1,9 +1,10 @@
-package com.bcbs239.regtech.billing.application.commands;
+package com.bcbs239.regtech.billing.application.createsubscription;
 
-import com.bcbs239.regtech.billing.domain.aggregates.BillingAccount;
+import com.bcbs239.regtech.billing.application.createsubscription.CreateSubscriptionCommand;
+import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
@@ -76,7 +77,7 @@ public class CreateSubscriptionCommandHandler {
             return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", 
                 "Billing account not found: " + billingAccountId, "subscription.billing.account.not.found"));
         }
-        BillingAccount billingAccount = billingAccountMaybe.get();
+        BillingAccount billingAccount = billingAccountMaybe.getValue();
 
         // Step 3: Verify billing account can create subscriptions
         if (!billingAccount.canCreateSubscription()) {

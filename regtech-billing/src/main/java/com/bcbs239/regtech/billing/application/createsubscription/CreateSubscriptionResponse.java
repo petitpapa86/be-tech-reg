@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.billing.application.commands;
+package com.bcbs239.regtech.billing.application.createsubscription;
 
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;

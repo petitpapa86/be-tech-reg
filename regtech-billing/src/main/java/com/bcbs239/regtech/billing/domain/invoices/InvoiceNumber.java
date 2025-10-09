@@ -86,4 +86,11 @@ public record InvoiceNumber(String value) {
     public String toString() {
         return value;
     }
+
+    /**
+     * Get the string value of this InvoiceNumber
+     */
+    public String getValue() {
+        return value;
+    }
 }
