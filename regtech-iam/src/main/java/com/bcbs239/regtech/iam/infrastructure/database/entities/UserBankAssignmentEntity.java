@@ -16,6 +16,7 @@ public class UserBankAssignmentEntity {
 
     @Id
     @Column(name = "id", columnDefinition = "UUID")
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @Column(name = "user_id", nullable = false, columnDefinition = "UUID")
@@ -38,8 +39,7 @@ public class UserBankAssignmentEntity {
     protected UserBankAssignmentEntity() {}
 
     // Constructor for creation
-    public UserBankAssignmentEntity(String id, String userId, String bankId, String role, Instant assignedAt) {
-        this.id = id;
+    public UserBankAssignmentEntity(String userId, String bankId, String role, Instant assignedAt) {
         this.userId = userId;
         this.bankId = bankId;
         this.role = role;
@@ -52,7 +52,6 @@ public class UserBankAssignmentEntity {
      */
     public static UserBankAssignmentEntity fromDomain(BankAssignment assignment, String userId) {
         return new UserBankAssignmentEntity(
-            assignment.getId(),
             userId,
             assignment.getBankId(),
             assignment.getRole(),
@@ -64,7 +63,7 @@ public class UserBankAssignmentEntity {
      * Convert to domain object
      */
     public BankAssignment toDomain() {
-        return new BankAssignment(id, bankId, role, assignedAt);
+        return new BankAssignment( bankId, role, assignedAt);
     }
 
     // Getters and setters

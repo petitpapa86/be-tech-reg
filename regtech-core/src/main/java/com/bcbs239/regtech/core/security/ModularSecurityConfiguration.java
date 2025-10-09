@@ -80,7 +80,10 @@ public class ModularSecurityConfiguration {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .csrf(csrf -> csrf.disable()) // Modules can override
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()));
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            // Allow frames from same origin so the H2 console can render in a frame
+            // In production, restrict or remove this as appropriate
+            .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()));
 
         return http.build();
     }

@@ -119,7 +119,6 @@ public class User {
      */
     public void assignToBank(String bankId, String role) {
         BankAssignment assignment = new BankAssignment(
-            java.util.UUID.randomUUID().toString(),
             bankId,
             role,
             Instant.now()
@@ -241,13 +240,12 @@ public class User {
      * Bank Assignment embedded entity
      */
     public static class BankAssignment {
-        private final String id;
+        private String id;
         private final String bankId;
         private final String role;
         private final Instant assignedAt;
 
-        public BankAssignment(String id, String bankId, String role, Instant assignedAt) {
-            this.id = id;
+        public BankAssignment( String bankId, String role, Instant assignedAt) {
             this.bankId = bankId;
             this.role = role;
             this.assignedAt = assignedAt;

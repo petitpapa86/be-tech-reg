@@ -57,15 +57,16 @@ public class UserEntity {
     private Long version;
 
     // Unidirectional OneToMany with explicit join column. The child table has a user_id FK column.
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @OneToMany(fetch = FetchType.LAZY, orphanRemoval = true)
+    @JoinColumn(name = "user_id", referencedColumnName = "id", updatable = false, insertable = false)
     private List<UserBankAssignmentEntity> bankAssignments = new ArrayList<>();
+
 
     // Default constructor for JPA
     public UserEntity() {}
 
     // Constructor for creation
-    public UserEntity(String id, String email, String passwordHash, String firstName,
+    public UserEntity(String email, String passwordHash, String firstName,
                      String lastName, UserStatus status, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.email = email;
@@ -75,7 +76,6 @@ public class UserEntity {
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-        this.version = 0L;
     }
 
     /**
@@ -83,7 +83,6 @@ public class UserEntity {
      */
     public static UserEntity fromDomain(User user) {
         UserEntity entity = new UserEntity();
-        entity.id = user.getId().getValue();
         entity.email = user.getEmail().getValue();
         entity.passwordHash = user.getPassword().getHashedValue();
         entity.firstName = user.getFirstName();

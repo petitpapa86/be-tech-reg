@@ -5,6 +5,7 @@ import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
+import com.bcbs239.regtech.iam.infrastructure.database.entities.UserBankAssignmentEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserRoleEntity;
 import jakarta.persistence.EntityManager;
@@ -75,6 +76,11 @@ public class JpaUserRepository {
                 UserEntity entity = UserEntity.fromDomain(user);
                 entity.setId(null);
                 entityManager.persist(entity);
+                for (UserBankAssignmentEntity assignment : entity.getBankAssignments()) {
+                    assignment.setUserId(entity.getId());
+                    assignment.setVersion(null);
+                    entityManager.persist(assignment);
+                }
                 entityManager.flush();
                 return Result.success(user.getId());
             } catch (Exception e) {
