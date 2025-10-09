@@ -46,7 +46,8 @@ public class RegisterUserCommandHandler {
             command,
             userRepository.emailLookup(),
             userRepository.userSaver(),
-            this::saveUserRegisteredEventToOutbox
+            this::saveUserRegisteredEventToOutbox,
+            userRepository.userRoleSaver()
         );
     }
 
@@ -61,10 +62,22 @@ public class RegisterUserCommandHandler {
      */
     @Transactional
     static Result<RegisterUserResponse> registerUser(
-            RegisterUserCommand command,
-            Function<Email, Maybe<User>> emailLookup,
-            Function<User, Result<UserId>> userSaver,
-            Function<UserRegistrationData, Result<Void>> eventSaver
+        RegisterUserCommand command,
+        Function<Email, Maybe<User>> emailLookup,
+        Function<User, Result<UserId>> userSaver,
+        Function<UserRegistrationData, Result<Void>> eventSaver
+    ) {
+    // Fallback to overload that doesn't persist roles (keeps existing tests working)
+    return registerUser(command, emailLookup, userSaver, eventSaver, null);
+    }
+
+    @Transactional
+    static Result<RegisterUserResponse> registerUser(
+        RegisterUserCommand command,
+        Function<Email, Maybe<User>> emailLookup,
+        Function<User, Result<UserId>> userSaver,
+        Function<UserRegistrationData, Result<Void>> eventSaver,
+        java.util.function.Function<com.bcbs239.regtech.iam.domain.users.UserRole, Result<String>> userRoleSaver
     ) {
         // Generate correlation ID for saga tracking with user data embedded
         String correlationId = "user-registration-" + UUID.randomUUID().toString();
@@ -90,18 +103,20 @@ public class RegisterUserCommandHandler {
         }
         Password password = passwordResult.getValue().get();
 
-        // Validate names
-        String firstName = validateName(command.firstName(), "firstName");
-        if (firstName == null) {
+        // Validate names using Maybe to avoid nulls
+        com.bcbs239.regtech.core.shared.Maybe<String> maybeFirst = com.bcbs239.regtech.core.shared.ValidationUtils.validateName(command.firstName());
+        if (maybeFirst.isEmpty()) {
             return Result.failure(ErrorDetail.of("INVALID_FIRST_NAME",
                 "First name is required and cannot be empty", "error.firstName.required"));
         }
+        String firstName = maybeFirst.getValue();
 
-        String lastName = validateName(command.lastName(), "lastName");
-        if (lastName == null) {
+        com.bcbs239.regtech.core.shared.Maybe<String> maybeLast = com.bcbs239.regtech.core.shared.ValidationUtils.validateName(command.lastName());
+        if (maybeLast.isEmpty()) {
             return Result.failure(ErrorDetail.of("INVALID_LAST_NAME",
                 "Last name is required and cannot be empty", "error.lastName.required"));
         }
+        String lastName = maybeLast.getValue();
 
         // Create user aggregate with PENDING_PAYMENT status and bank assignment
         User newUser = User.createWithBank(email, password, firstName, lastName, command.bankId());
@@ -113,6 +128,17 @@ public class RegisterUserCommandHandler {
         }
 
         UserId userId = saveResult.getValue().get();
+
+        // Persist default ADMIN role for new users if a saver was provided
+        if (userRoleSaver != null) {
+            com.bcbs239.regtech.iam.domain.users.UserRole adminRole = com.bcbs239.regtech.iam.domain.users.UserRole.create(
+                userId, com.bcbs239.regtech.core.security.authorization.Role.ADMIN, "default-org"
+            );
+            Result<String> roleSaveResult = userRoleSaver.apply(adminRole);
+            if (roleSaveResult.isFailure()) {
+                return Result.failure(roleSaveResult.getError().get());
+            }
+        }
 
         // Save user registered event to outbox (transactional outbox pattern)
         UserRegistrationData registrationData = new UserRegistrationData(
