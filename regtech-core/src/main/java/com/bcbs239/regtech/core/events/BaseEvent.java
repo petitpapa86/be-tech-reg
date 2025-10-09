@@ -2,7 +2,7 @@ package com.bcbs239.regtech.core.events;
 
 import java.time.LocalDateTime;
 
-public abstract class BaseEvent {
+public abstract class BaseEvent implements DomainEvent {
 
     private final String correlationId;
     private final LocalDateTime timestamp;
@@ -24,5 +24,11 @@ public abstract class BaseEvent {
 
     public String getSourceModule() {
         return sourceModule;
+    }
+
+    @Override
+    public String eventType() {
+        // Default event type is the simple class name; subclasses can override if needed
+        return this.getClass().getSimpleName();
     }
 }

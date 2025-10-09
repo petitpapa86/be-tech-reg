@@ -7,7 +7,6 @@ import com.bcbs239.regtech.iam.domain.users.UserId;
 import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,9 +15,9 @@ import java.util.function.Function;
 /**
  * Event handler for payment verification events from the billing context.
  * Activates users when their payment is successfully verified.
+ * Now called by InboxProcessorJob instead of being a DomainEventHandler.
  */
 @Component
-@Transactional
 public class PaymentVerificationEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentVerificationEventHandler.class);
@@ -31,11 +30,11 @@ public class PaymentVerificationEventHandler {
 
     /**
      * Handles PaymentVerifiedEvent by activating the user account.
+     * Called by InboxProcessorJob for asynchronous processing.
      */
-    @EventListener
-    public void handlePaymentVerified(PaymentVerifiedEvent event) {
-        logger.info("Received PaymentVerifiedEvent for user: {} with correlation: {}", 
-            event.getUserId(), event.getCorrelationId());
+    @Transactional
+    public boolean handle(PaymentVerifiedEvent event) {
+        logger.info("Handling PaymentVerifiedEvent for user: {} with correlation: {}", event.getUserId(), event.getCorrelationId());
 
         Result<Void> result = activateUserWithClosures(
             UserId.fromString(event.getUserId()),
@@ -45,14 +44,12 @@ public class PaymentVerificationEventHandler {
         );
 
         if (result.isFailure()) {
-            logger.error("Failed to activate user {} after payment verification: {}", 
-                event.getUserId(), result.getError().get().getMessage());
-            // In a production system, you might want to publish a compensation event
-            // or add the event to a dead letter queue for manual processing
-        } else {
-            logger.info("Successfully activated user {} after payment verification with correlation: {}", 
-                event.getUserId(), event.getCorrelationId());
+            logger.error("Failed to activate user {} after payment verification: {}", event.getUserId(), result.getError().get().getMessage());
+            return false;
         }
+
+        logger.info("Successfully activated user {} after payment verification with correlation: {}", event.getUserId(), event.getCorrelationId());
+        return true;
     }
 
     /**
