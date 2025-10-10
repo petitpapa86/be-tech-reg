@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.security.authorization.Role;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.iam.domain.users.*;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserBankAssignmentEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
@@ -11,9 +12,12 @@ import com.bcbs239.regtech.iam.infrastructure.database.entities.UserRoleEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -22,6 +26,8 @@ import java.util.function.Function;
  */
 @Repository
 public class JpaUserRepository {
+
+    private static final Logger logger = LoggerFactory.getLogger(JpaUserRepository.class);
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -41,6 +47,10 @@ public class JpaUserRepository {
             } catch (NoResultException e) {
                 return Maybe.none();
             } catch (Exception e) {
+                logger.error("Failed to lookup user by email", LoggingConfiguration.createStructuredLog("REPO_EMAIL_LOOKUP_FAILED", Map.of(
+                    "email", email.getValue(),
+                    "error", e.getMessage()
+                )), e);
                 return Maybe.none();
             }
         };
@@ -84,6 +94,10 @@ public class JpaUserRepository {
                 entityManager.flush();
                 return Result.success(user.getId());
             } catch (Exception e) {
+                logger.error("Failed to save user", LoggingConfiguration.createStructuredLog("REPO_USER_SAVE_FAILED", Map.of(
+                    "email", user.getEmail().getValue(),
+                    "error", e.getMessage()
+                )), e);
                 throw new RuntimeException("USER_SAVE_FAILED: Failed to save user: " + e.getMessage(), e);
             }
         };
@@ -149,6 +163,12 @@ public class JpaUserRepository {
                 entityManager.flush();
                 return Result.success(entity.getId());
             } catch (Exception e) {
+                logger.error("Failed to save user role", LoggingConfiguration.createStructuredLog("REPO_USER_ROLE_SAVE_FAILED", Map.of(
+                    "userId", userRole.getUserId(),
+                    "role", userRole.getRole().name(),
+                    "organizationId", userRole.getOrganizationId(),
+                    "error", e.getMessage()
+                )), e);
                 return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED",
                     "Failed to save user role: " + e.getMessage(), "error.user.role.saveFailed"));
             }

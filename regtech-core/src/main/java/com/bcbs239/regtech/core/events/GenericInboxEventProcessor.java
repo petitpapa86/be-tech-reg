@@ -1,9 +1,14 @@
 package com.bcbs239.regtech.core.events;
 
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
 
 /**
  * Generic scheduled processor for inbox events to ensure reliable event processing.
@@ -32,59 +37,148 @@ public abstract class GenericInboxEventProcessor {
     }
 
     /**
-     * Process pending events every 30 seconds.
+     * Process pending events every 30 seconds asynchronously.
      * Can be overridden by subclasses to provide different scheduling.
      */
     @Scheduled(fixedDelay = 30000, initialDelay = 10000)
+    @Async
     @Transactional
     public void processPendingEvents() {
         if (!isProcessingEnabled()) {
             return;
         }
 
+        long startTime = System.currentTimeMillis();
+        MDC.put("module", contextName);
+        MDC.put("processor", "inbox");
+
         try {
-            logger.debug("Processing pending inbox events for context: {}", contextName);
+            logger.info("Starting inbox event processing", LoggingConfiguration.createStructuredLog("INBOX_PROCESSING_START", Map.of(
+                "context", contextName,
+                "operation", "process_pending"
+            )));
+
+            // Get stats before processing
+            InboxEventPublisher.InboxEventStats beforeStats = eventPublisher.getStats();
+
+            // Process pending events
             eventPublisher.processPendingEvents();
+
+            // Get stats after processing to calculate how many were processed
+            InboxEventPublisher.InboxEventStats afterStats = eventPublisher.getStats();
+            long processed = afterStats.processed() - beforeStats.processed();
+
+            long duration = System.currentTimeMillis() - startTime;
+            LoggingConfiguration.logBatchProcessing("inbox", contextName, 0, (int) processed, 0, duration);
+
+            logger.info("Completed inbox event processing", LoggingConfiguration.createStructuredLog("INBOX_PROCESSING_COMPLETED", Map.of(
+                "context", contextName,
+                "processed", processed,
+                "duration", duration
+            )));
+
         } catch (Exception e) {
-            logger.error("Error processing pending inbox events for context: {}", contextName, e);
+            long duration = System.currentTimeMillis() - startTime;
+            LoggingConfiguration.logError("inbox_processing", "PROCESSING_FAILED", e.getMessage(), e, Map.of(
+                "context", contextName,
+                "duration", duration
+            ));
+
+            logger.error("Error processing pending inbox events", LoggingConfiguration.createStructuredLog("INBOX_PROCESSING_FAILED", Map.of(
+                "context", contextName,
+                "error", e.getMessage(),
+                "duration", duration
+            )), e);
+        } finally {
+            MDC.remove("module");
+            MDC.remove("processor");
         }
     }
 
     /**
-     * Retry failed events every 2 minutes.
+     * Retry failed events every 2 minutes asynchronously.
      * Can be overridden by subclasses to provide different scheduling.
      */
     @Scheduled(fixedDelay = 120000, initialDelay = 60000)
+    @Async
     @Transactional
     public void retryFailedEvents() {
         if (!isProcessingEnabled()) {
             return;
         }
 
+        long startTime = System.currentTimeMillis();
+        MDC.put("module", contextName);
+        MDC.put("processor", "inbox");
+
         try {
-            logger.debug("Retrying failed inbox events for context: {}", contextName);
+            logger.info("Starting inbox event retry", LoggingConfiguration.createStructuredLog("INBOX_RETRY_START", Map.of(
+                "context", contextName,
+                "maxRetries", maxRetries
+            )));
+
             eventPublisher.retryFailedEvents(maxRetries);
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Completed inbox event retry", LoggingConfiguration.createStructuredLog("INBOX_RETRY_COMPLETED", Map.of(
+                "context", contextName,
+                "duration", duration
+            )));
+
         } catch (Exception e) {
-            logger.error("Error retrying failed inbox events for context: {}", contextName, e);
+            long duration = System.currentTimeMillis() - startTime;
+            LoggingConfiguration.logError("inbox_retry", "RETRY_FAILED", e.getMessage(), e, Map.of(
+                "context", contextName,
+                "duration", duration
+            ));
+
+            logger.error("Error retrying failed inbox events", LoggingConfiguration.createStructuredLog("INBOX_RETRY_FAILED", Map.of(
+                "context", contextName,
+                "error", e.getMessage(),
+                "duration", duration
+            )), e);
+        } finally {
+            MDC.remove("module");
+            MDC.remove("processor");
         }
     }
 
     /**
-     * Log inbox statistics every 5 minutes for monitoring.
+     * Log inbox statistics every 5 minutes asynchronously.
      * Can be overridden by subclasses to provide different scheduling.
      */
     @Scheduled(fixedDelay = 300000, initialDelay = 300000)
+    @Async
     public void logInboxStats() {
         if (!isProcessingEnabled()) {
             return;
         }
 
+        MDC.put("module", contextName);
+        MDC.put("processor", "inbox");
+
         try {
             var stats = eventPublisher.getStats();
-            logger.info("{} inbox stats - Pending: {}, Processing: {}, Processed: {}, Failed: {}, Dead Letter: {}",
-                contextName, stats.pending(), stats.processing(), stats.processed(), stats.failed(), stats.deadLetter());
+            logger.info("Inbox statistics", LoggingConfiguration.createStructuredLog("INBOX_STATS", Map.of(
+                "context", contextName,
+                "pending", stats.pending(),
+                "processing", stats.processing(),
+                "processed", stats.processed(),
+                "failed", stats.failed(),
+                "deadLetter", stats.deadLetter()
+            )));
         } catch (Exception e) {
-            logger.error("Error logging inbox statistics for context: {}", contextName, e);
+            LoggingConfiguration.logError("inbox_stats", "STATS_FAILED", e.getMessage(), e, Map.of(
+                "context", contextName
+            ));
+
+            logger.error("Error logging inbox statistics", LoggingConfiguration.createStructuredLog("INBOX_STATS_FAILED", Map.of(
+                "context", contextName,
+                "error", e.getMessage()
+            )), e);
+        } finally {
+            MDC.remove("module");
+            MDC.remove("processor");
         }
     }
 

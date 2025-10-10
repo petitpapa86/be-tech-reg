@@ -69,11 +69,42 @@ management:
       enabled: true
 
 logging:
+  # Logback configuration file for structured logging
+  config: classpath:logback-spring.xml
+
   level:
     com.bcbs239.regtech: INFO
+    # Event processing components
+    com.bcbs239.regtech.core.events: INFO
+    com.bcbs239.regtech.core.inbox: INFO
+    com.bcbs239.regtech.core.outbox: INFO
+    # Bounded contexts
+    com.bcbs239.regtech.iam: INFO
+    com.bcbs239.regtech.billing: INFO
+    # Spring framework
     org.springframework.security: WARN
     org.springframework: WARN
+    org.springframework.scheduling: INFO
+    # Database
     org.hibernate.SQL: WARN
     org.hibernate.type.descriptor.sql.BasicBinder: WARN
+
+  # For GCP deployment, set SPRING_PROFILES_ACTIVE=gcp to enable JSON structured logging
+  # This will automatically use the GCP_JSON appender in logback-spring.xml
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: gcp
+
+logging:
+  # GCP profile enables JSON structured logging for Google Cloud Logging
+  level:
+    com.bcbs239.regtech: INFO
+    # Increase verbosity for event processing in GCP
+    com.bcbs239.regtech.core.events: DEBUG
+    com.bcbs239.regtech.core.inbox: DEBUG
+    com.bcbs239.regtech.core.outbox: DEBUG

@@ -17,4 +17,11 @@ public class IamOutboxProcessor extends GenericOutboxEventProcessor {
         // For now enable processing; could be driven by config
         return true;
     }
+
+    /**
+     * Manually trigger outbox processing for testing purposes.
+     */
+    public void processPendingEventsManually() {
+        super.processPendingEvents();
+    }
 }

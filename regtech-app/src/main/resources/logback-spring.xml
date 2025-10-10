@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Include Spring Boot's default configuration -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- Console appender for development -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- JSON appender for GCP production -->
+    <appender name="GCP_JSON" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <!-- Timestamp -->
+                <timestamp>
+                    <fieldName>timestamp</fieldName>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+
+                <!-- Log level -->
+                <logLevel>
+                    <fieldName>severity</fieldName>
+                </logLevel>
+
+                <!-- Logger name -->
+                <loggerName>
+                    <fieldName>logger</fieldName>
+                </loggerName>
+
+                <!-- Message -->
+                <message/>
+
+                <!-- Exception -->
+                <stackTrace>
+                    <fieldName>exception</fieldName>
+                </stackTrace>
+
+                <!-- MDC fields -->
+                <mdc/>
+
+                <!-- Thread name -->
+                <threadName>
+                    <fieldName>thread</fieldName>
+                </threadName>
+
+                <!-- Custom fields for GCP -->
+                <provider class="net.logstash.logback.provider.StructuredArgumentsJsonProvider">
+                    <fieldName>context</fieldName>
+                    <value>${mdc:module:-unknown}</value>
+                </provider>
+
+                <provider class="net.logstash.logback.provider.StructuredArgumentsJsonProvider">
+                    <fieldName>component</fieldName>
+                    <value>${mdc:component:-unknown}</value>
+                </provider>
+
+                <provider class="net.logstash.logback.provider.StructuredArgumentsJsonProvider">
+                    <fieldName>operation</fieldName>
+                    <value>${mdc:operation:-unknown}</value>
+                </provider>
+
+                <provider class="net.logstash.logback.provider.StructuredArgumentsJsonProvider">
+                    <fieldName>correlationId</fieldName>
+                    <value>${mdc:correlationId:-unknown}</value>
+                </provider>
+
+                <provider class="net.logstash.logback.provider.StructuredArgumentsJsonProvider">
+                    <fieldName>messageId</fieldName>
+                    <value>${mdc:messageId:-unknown}</value>
+                </provider>
+
+                <provider class="net.logstash.logback.provider.StructuredArgumentsJsonProvider">
+                    <fieldName>eventType</fieldName>
+                    <value>${mdc:eventType:-unknown}</value>
+                </provider>
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- Root logger configuration -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+    <!-- Application specific loggers -->
+    <logger name="com.bcbs239.regtech" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <!-- Uncomment for GCP deployment -->
+        <!-- <appender-ref ref="GCP_JSON"/> -->
+    </logger>
+
+    <!-- Event processing loggers -->
+    <logger name="com.bcbs239.regtech.core.events" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <!-- Uncomment for GCP deployment -->
+        <!-- <appender-ref ref="GCP_JSON"/> -->
+    </logger>
+
+    <logger name="com.bcbs239.regtech.core.inbox" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <!-- Uncomment for GCP deployment -->
+        <!-- <appender-ref ref="GCP_JSON"/> -->
+    </logger>
+
+    <logger name="com.bcbs239.regtech.core.outbox" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <!-- Uncomment for GCP deployment -->
+        <!-- <appender-ref ref="GCP_JSON"/> -->
+    </logger>
+
+    <!-- IAM specific loggers -->
+    <logger name="com.bcbs239.regtech.iam" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <!-- Uncomment for GCP deployment -->
+        <!-- <appender-ref ref="GCP_JSON"/> -->
+    </logger>
+
+    <!-- Billing specific loggers -->
+    <logger name="com.bcbs239.regtech.billing" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <!-- Uncomment for GCP deployment -->
+        <!-- <appender-ref ref="GCP_JSON"/> -->
+    </logger>
+
+    <!-- Spring framework loggers -->
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.springframework.security" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="WARN"/>
+
+    <!-- Async processing loggers -->
+    <logger name="org.springframework.scheduling" level="INFO"/>
+    <logger name="org.springframework.aop" level="WARN"/>
+</configuration>

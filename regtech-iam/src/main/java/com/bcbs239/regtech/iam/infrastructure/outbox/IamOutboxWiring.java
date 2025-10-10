@@ -149,21 +149,30 @@ public class IamOutboxWiring {
                                                                     java.util.List<com.bcbs239.regtech.core.events.DomainEventHandler<?>> handlers) {
         Map<String, Function<Object, Boolean>> map = new HashMap<>();
 
+        // Log the discovered handlers
+        System.out.println("IamOutboxWiring: Discovered " + handlers.size() + " DomainEventHandler beans");
+        for (var h : handlers) {
+            System.out.println("IamOutboxWiring: Handler for eventType: " + h.eventType() + ", class: " + h.getClass().getSimpleName());
+        }
+
         // Register discovered typed handlers
         for (var h : handlers) {
             map.put(h.eventType(), raw -> {
                 try {
+                    // Convert the raw Map to the typed event object
                     Object typed = objectMapper.convertValue(raw, h.eventClass());
                     // Use raw type cast to avoid generic bounds issues
                     @SuppressWarnings("rawtypes")
                     com.bcbs239.regtech.core.events.DomainEventHandler dh = (com.bcbs239.regtech.core.events.DomainEventHandler) h;
-                    return dh.handle((com.bcbs239.regtech.core.events.DomainEvent) typed);
+                    boolean result = dh.handle((com.bcbs239.regtech.core.events.DomainEvent) typed);
+                    return result;
                 } catch (Exception e) {
                     return false;
                 }
             });
         }
 
+        System.out.println("IamOutboxWiring: Registered " + map.size() + " handlers in iamOutboxHandlers map");
         return map;
     }
 

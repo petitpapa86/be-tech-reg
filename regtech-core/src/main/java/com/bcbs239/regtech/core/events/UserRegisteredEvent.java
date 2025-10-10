@@ -1,27 +1,36 @@
 package com.bcbs239.regtech.core.events;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Cross-module event published when a user is registered and needs payment processing.
  * This event is consumed by the billing context to initiate payment processing.
  */
-public class UserRegisteredEvent extends BaseEvent {
-    private final String userId;
-    private final String email;
-    private final String name;
-    private final String bankId;
-    private final String paymentMethodId;
-    private final String phone;
-    private final AddressInfo address;
 
+public class UserRegisteredEvent extends BaseEvent {
+    private String userId;
+    private String email;
+    private String name;
+    private String bankId;
+    private String paymentMethodId;
+    private String phone;
+    private AddressInfo address;
+
+    public UserRegisteredEvent() {
+        super(null, "iam");
+    }
+
+    @JsonCreator
     public UserRegisteredEvent(
-            String userId,
-            String email,
-            String name,
-            String bankId,
-            String paymentMethodId,
-            String phone,
-            AddressInfo address,
-            String correlationId) {
+            @JsonProperty("userId") String userId,
+            @JsonProperty("email") String email,
+            @JsonProperty("name") String name,
+            @JsonProperty("bankId") String bankId,
+            @JsonProperty("paymentMethodId") String paymentMethodId,
+            @JsonProperty("phone") String phone,
+            @JsonProperty("address") AddressInfo address,
+            @JsonProperty("correlationId") String correlationId) {
         super(correlationId, "iam");
         this.userId = userId;
         this.email = email;
