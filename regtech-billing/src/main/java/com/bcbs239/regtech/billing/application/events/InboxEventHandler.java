@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.application.events;
 
 import com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity;
-import com.bcbs239.regtech.core.events.UserRegisteredEvent;
+import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -30,13 +30,13 @@ public class InboxEventHandler {
     }
 
     /**
-     * Handle UserRegisteredEvent by storing it in the inbox for asynchronous processing.
+     * Handle UserRegisteredIntegrationEvent by storing it in the inbox for asynchronous processing.
      */
     @EventListener
     @Transactional
-    public void handleUserRegisteredEvent(UserRegisteredEvent event) {
+    public void handleUserRegisteredEvent(UserRegisteredIntegrationEvent event) {
         try {
-            logger.info("Received UserRegisteredEvent for inbox processing: user={}, bank={}",
+            logger.info("Received UserRegisteredIntegrationEvent for inbox processing: user={}, bank={}",
                 event.getUserId(), event.getBankId());
 
             // Serialize the event
@@ -44,7 +44,7 @@ public class InboxEventHandler {
 
             // Create inbox event entity
             InboxEventEntity inboxEvent = new InboxEventEntity(
-                "UserRegisteredEvent",
+                "UserRegisteredIntegrationEvent",
                 event.getUserId(), // aggregateId is the userId
                 eventData
             );

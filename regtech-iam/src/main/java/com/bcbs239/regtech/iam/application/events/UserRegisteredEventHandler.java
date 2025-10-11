@@ -3,6 +3,7 @@ package com.bcbs239.regtech.iam.application.events;
 import com.bcbs239.regtech.core.events.CrossModuleEventBus;
 import com.bcbs239.regtech.core.events.DomainEventHandler;
 import com.bcbs239.regtech.core.events.UserRegisteredEvent;
+import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -33,15 +34,27 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
             logger.info("Publishing UserRegisteredEvent cross-module for user: {} with bank: {}",
                 event.getUserId(), event.getBankId());
 
-            // Publish the event cross-module to billing context
-            crossModuleEventBus.publishEvent(event);
+            // Create integration event from domain event to maintain separation
+            UserRegisteredIntegrationEvent integrationEvent = new UserRegisteredIntegrationEvent(
+                event.getUserId(),
+                event.getEmail(),
+                event.getName(),
+                event.getBankId(),
+                event.getPaymentMethodId(),
+                event.getPhone(),
+                event.getAddress(),
+                event.getCorrelationId()
+            );
 
-            logger.info("Successfully published UserRegisteredEvent for user: {} with correlation: {}",
+            // Publish the integration event cross-module to billing context
+            crossModuleEventBus.publishEvent(integrationEvent);
+
+            logger.info("Successfully published UserRegisteredIntegrationEvent for user: {} with correlation: {}",
                 event.getUserId(), event.getCorrelationId());
 
             return true;
         } catch (Exception e) {
-            logger.error("Failed to publish UserRegisteredEvent for user: {}: {}",
+            logger.error("Failed to publish UserRegisteredIntegrationEvent for user: {}: {}",
                 event.getUserId(), e.getMessage(), e);
             return false;
         }

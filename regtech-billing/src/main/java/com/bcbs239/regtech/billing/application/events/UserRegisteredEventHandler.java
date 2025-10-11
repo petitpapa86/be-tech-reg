@@ -5,16 +5,14 @@ import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentComm
 import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentResponse;
 import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.events.UserRegisteredEvent;
+import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Event handler for UserRegisteredEvent from IAM context.
+ * Event handler for UserRegisteredIntegrationEvent from IAM context.
  * Triggers payment processing in the billing context using proper outbox pattern.
  * Now called asynchronously by InboxProcessorJob instead of direct event listening.
  */
@@ -38,7 +36,7 @@ public class UserRegisteredEventHandler {
      * Called by InboxProcessorJob for asynchronous processing.
      */
     @Transactional
-    public void handle(UserRegisteredEvent event) {
+    public void handle(UserRegisteredIntegrationEvent event) {
         logger.info("Received UserRegisteredEvent for user: {} with correlation: {}", 
             event.getUserId(), event.getCorrelationId());
 
