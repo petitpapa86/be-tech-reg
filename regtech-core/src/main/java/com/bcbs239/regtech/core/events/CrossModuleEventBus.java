@@ -19,12 +19,12 @@ public class CrossModuleEventBus {
 
     @Async
     public void publishEvent(Object event) {
-        logger.info("Publishing cross-module event: {}", event.getClass().getSimpleName());
+        logger.info("📤 ASYNC Publishing cross-module event: {} with data: {}", event.getClass().getSimpleName(), event);
         eventPublisher.publishEvent(event);
     }
 
     public void publishEventSynchronously(Object event) {
-        logger.info("Publishing cross-module event synchronously: {}", event.getClass().getSimpleName());
+        logger.info("📤 SYNC Publishing cross-module event: {} with data: {}", event.getClass().getSimpleName(), event);
         eventPublisher.publishEvent(event);
     }
 }

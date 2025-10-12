@@ -9,7 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Inbox event handler that receives cross-module events and stores them for asynchronous processing.
@@ -24,42 +24,62 @@ public class InboxEventHandler {
     private EntityManager entityManager;
 
     private final ObjectMapper objectMapper;
+    private final TransactionTemplate transactionTemplate;
 
-    public InboxEventHandler(ObjectMapper objectMapper) {
+    public InboxEventHandler(ObjectMapper objectMapper, TransactionTemplate transactionTemplate) {
         this.objectMapper = objectMapper;
+        this.transactionTemplate = transactionTemplate;
+        logger.info("🚀 InboxEventHandler initialized and ready to receive events");
+    }
+
+    /**
+     * Generic event listener to debug all incoming events
+     */
+    @EventListener
+    public void handleAllEvents(Object event) {
+        logger.debug("📨 RECEIVED GENERIC EVENT in billing: {} - {}", event.getClass().getSimpleName(), event);
     }
 
     /**
      * Handle UserRegisteredIntegrationEvent by storing it in the inbox for asynchronous processing.
      */
     @EventListener
-    @Transactional
     public void handleUserRegisteredEvent(UserRegisteredIntegrationEvent event) {
+        logger.info("📨 RECEIVED UserRegisteredIntegrationEvent in billing context: user={}, bank={}, correlation={}",
+            event.getUserId(), event.getBankId(), event.getCorrelationId());
+
         try {
-            logger.info("Received UserRegisteredIntegrationEvent for inbox processing: user={}, bank={}",
-                event.getUserId(), event.getBankId());
+            // Use transaction template for database operations
+            transactionTemplate.execute(status -> {
+                try {
+                    // Serialize the event
+                    String eventData = objectMapper.writeValueAsString(event);
 
-            // Serialize the event
-            String eventData = objectMapper.writeValueAsString(event);
+                    // Create inbox event entity
+                    InboxEventEntity inboxEvent = new InboxEventEntity(
+                        "UserRegisteredIntegrationEvent",
+                        event.getUserId(), // aggregateId is the userId
+                        eventData
+                    );
 
-            // Create inbox event entity
-            InboxEventEntity inboxEvent = new InboxEventEntity(
-                "UserRegisteredIntegrationEvent",
-                event.getUserId(), // aggregateId is the userId
-                eventData
-            );
+                    // Save to inbox
+                    entityManager.persist(inboxEvent);
 
-            // Save to inbox
-            entityManager.persist(inboxEvent);
+                    logger.info("Stored UserRegisteredEvent in inbox: id={}, user={}",
+                        inboxEvent.getId(), event.getUserId());
 
-            logger.info("Stored UserRegisteredEvent in inbox: id={}, user={}",
-                inboxEvent.getId(), event.getUserId());
+                    return null;
+                } catch (Exception e) {
+                    logger.error("Failed to store UserRegisteredEvent in inbox for user {}: {}",
+                        event.getUserId(), e.getMessage(), e);
+                    status.setRollbackOnly();
+                    return null;
+                }
+            });
 
         } catch (Exception e) {
-            logger.error("Failed to store UserRegisteredEvent in inbox for user {}: {}",
+            logger.error("Unexpected error in event handling for user {}: {}",
                 event.getUserId(), e.getMessage(), e);
-            // In a real system, you might want to send this to a dead letter queue
-            // or implement retry logic here
         }
     }
 }

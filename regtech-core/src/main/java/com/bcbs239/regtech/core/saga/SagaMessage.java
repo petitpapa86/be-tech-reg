@@ -7,7 +7,7 @@ import java.util.Map;
  * Message exchanged between saga participants in different bounded contexts.
  * Supports both commands (requests for action) and events (notifications of state changes).
  */
-public class SagaMessage {
+public class SagaMessage implements Message {
 
     private final String sagaId;
     private final String messageId;
@@ -100,6 +100,14 @@ public class SagaMessage {
             return new SagaMessage(this);
         }
     }
+
+    // Message interface implementation
+    @Override
+    public String getCorrelationId() {
+        return sagaId;
+    }
+
+    // getMessageId() is already implemented above
 
     @Override
     public String toString() {

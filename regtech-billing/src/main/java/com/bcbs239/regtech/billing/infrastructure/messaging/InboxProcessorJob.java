@@ -2,7 +2,7 @@ package com.bcbs239.regtech.billing.infrastructure.messaging;
 
 import com.bcbs239.regtech.billing.application.events.UserRegisteredEventHandler;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity;
-import com.bcbs239.regtech.core.events.UserRegisteredEvent;
+import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -91,9 +91,9 @@ public class InboxProcessorJob {
     private boolean processEventByType(InboxEventEntity inboxEvent) {
         try {
             switch (inboxEvent.getEventType()) {
-                case "UserRegisteredEvent":
-                    UserRegisteredEvent event = objectMapper.readValue(
-                        inboxEvent.getEventData(), UserRegisteredEvent.class);
+                case "UserRegisteredIntegrationEvent":
+                    UserRegisteredIntegrationEvent event = objectMapper.readValue(
+                        inboxEvent.getEventData(), UserRegisteredIntegrationEvent.class);
                     userRegisteredEventHandler.handle(event);
                     return true;
                 default:

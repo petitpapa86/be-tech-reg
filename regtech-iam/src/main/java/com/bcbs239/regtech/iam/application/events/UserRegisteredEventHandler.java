@@ -36,6 +36,7 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
 
             // Create integration event from domain event to maintain separation
             UserRegisteredIntegrationEvent integrationEvent = new UserRegisteredIntegrationEvent(
+                this, // source
                 event.getUserId(),
                 event.getEmail(),
                 event.getName(),
@@ -47,7 +48,8 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
             );
 
             // Publish the integration event cross-module to billing context
-            crossModuleEventBus.publishEvent(integrationEvent);
+            // Using synchronous publishing to ensure reliable delivery
+            crossModuleEventBus.publishEventSynchronously(integrationEvent);
 
             logger.info("Successfully published UserRegisteredIntegrationEvent for user: {} with correlation: {}",
                 event.getUserId(), event.getCorrelationId());
