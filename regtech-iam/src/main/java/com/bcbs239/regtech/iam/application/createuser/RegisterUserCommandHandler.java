@@ -136,10 +136,11 @@ public class RegisterUserCommandHandler {
         // Generate correlation ID for saga tracking with user data embedded
         String correlationId = "user-registration-" + UUID.randomUUID().toString();
 
-        logger.info("Generated correlation ID for user registration", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_CORRELATION_ID", Map.of(
-            "correlationId", correlationId,
-            "email", command.email()
-        )));
+        logger.info("Generated correlation ID for user registration",
+                LoggingConfiguration.createStructuredLog("USER_REGISTRATION_CORRELATION_ID", Map.of(
+                        "correlationId", correlationId,
+                        "email", command.email()
+                )));
 
         try {
             // Step 1: Validate and create email

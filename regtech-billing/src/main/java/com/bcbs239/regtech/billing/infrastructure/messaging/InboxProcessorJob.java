@@ -1,12 +1,8 @@
 package com.bcbs239.regtech.billing.infrastructure.messaging;
 
-import com.bcbs239.regtech.billing.application.events.UserRegisteredEventHandler;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity;
-import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.Query;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -26,16 +22,22 @@ public class InboxProcessorJob {
     private static final int BATCH_SIZE = 10;
     private static final int MAX_RETRIES = 3;
 
-    @PersistenceContext
-    private EntityManager entityManager;
-
     private final ObjectMapper objectMapper;
-    private final UserRegisteredEventHandler userRegisteredEventHandler;
+    private final java.util.Map<String, java.util.function.Function<Object, Boolean>> handlers;
+    private final java.util.function.Function<Integer, java.util.List<InboxEventEntity>> inboxLoader;
+    private final java.util.function.Function<String, Boolean> markProcessed;
+    private final java.util.function.BiFunction<String, String, Boolean> markFailed;
 
     public InboxProcessorJob(ObjectMapper objectMapper,
-                           UserRegisteredEventHandler userRegisteredEventHandler) {
+                            java.util.Map<String, java.util.function.Function<Object, Boolean>> handlers,
+                            java.util.function.Function<Integer, java.util.List<InboxEventEntity>> inboxLoader,
+                            java.util.function.Function<String, Boolean> markProcessed,
+                            java.util.function.BiFunction<String, String, Boolean> markFailed) {
         this.objectMapper = objectMapper;
-        this.userRegisteredEventHandler = userRegisteredEventHandler;
+        this.handlers = handlers;
+        this.inboxLoader = inboxLoader;
+        this.markProcessed = markProcessed;
+        this.markFailed = markFailed;
     }
 
     /**
@@ -46,7 +48,7 @@ public class InboxProcessorJob {
     public void processInboxEvents() {
         logger.debug("Starting inbox event processing");
 
-        List<InboxEventEntity> pendingEvents = findPendingEvents();
+        List<InboxEventEntity> pendingEvents = inboxLoader.apply(BATCH_SIZE);
 
         for (InboxEventEntity inboxEvent : pendingEvents) {
             processInboxEvent(inboxEvent);
@@ -61,27 +63,27 @@ public class InboxProcessorJob {
     @Transactional
     public void processInboxEvent(InboxEventEntity inboxEvent) {
         try {
-            // Mark as processing
+            // Mark as processing (optimistic - persisted by closure implementations if needed)
             inboxEvent.markAsProcessing();
-            entityManager.merge(inboxEvent);
 
             // Deserialize and process the event
             boolean success = processEventByType(inboxEvent);
 
             if (success) {
-                inboxEvent.markAsProcessed();
-                logger.info("Successfully processed inbox event: id={}, type={}",
-                    inboxEvent.getId(), inboxEvent.getEventType());
+                // mark processed via closure
+                boolean ok = markProcessed.apply(inboxEvent.getId());
+                if (ok) {
+                    logger.info("Successfully processed inbox event: id={}, type={}", inboxEvent.getId(), inboxEvent.getEventType());
+                } else {
+                    logger.warn("Failed to mark inbox event {} as processed via closure", inboxEvent.getId());
+                }
             } else {
                 handleProcessingFailure(inboxEvent, "Processing failed");
             }
 
-            entityManager.merge(inboxEvent);
-
         } catch (Exception e) {
             logger.error("Error processing inbox event {}: {}", inboxEvent.getId(), e.getMessage(), e);
             handleProcessingFailure(inboxEvent, e.getMessage());
-            entityManager.merge(inboxEvent);
         }
     }
 
@@ -90,16 +92,15 @@ public class InboxProcessorJob {
      */
     private boolean processEventByType(InboxEventEntity inboxEvent) {
         try {
-            switch (inboxEvent.getEventType()) {
-                case "UserRegisteredIntegrationEvent":
-                    UserRegisteredIntegrationEvent event = objectMapper.readValue(
-                        inboxEvent.getEventData(), UserRegisteredIntegrationEvent.class);
-                    userRegisteredEventHandler.handle(event);
-                    return true;
-                default:
-                    logger.warn("Unknown event type in inbox: {}", inboxEvent.getEventType());
-                    return false;
+            java.util.function.Function<Object, Boolean> handler = handlers.get(inboxEvent.getEventType());
+            if (handler == null) {
+                logger.warn("Unknown event type in inbox: {}", inboxEvent.getEventType());
+                return false;
             }
+
+            // Deserialize the stored JSON data to a generic Object (usually Map) then pass to handler
+            Object raw = objectMapper.readValue(inboxEvent.getEventData(), Object.class);
+            return handler.apply(raw);
         } catch (Exception e) {
             logger.error("Failed to deserialize/process event {}: {}", inboxEvent.getId(), e.getMessage(), e);
             return false;
@@ -123,21 +124,7 @@ public class InboxProcessorJob {
         }
     }
 
-    /**
-     * Find pending inbox events to process.
-     */
-    private List<InboxEventEntity> findPendingEvents() {
-        Query query = entityManager.createQuery(
-            "SELECT e FROM InboxEventEntity e WHERE e.processingStatus = :status ORDER BY e.receivedAt ASC",
-            InboxEventEntity.class
-        );
-        query.setParameter("status", InboxEventEntity.ProcessingStatus.PENDING);
-        query.setMaxResults(BATCH_SIZE);
-
-        @SuppressWarnings("unchecked")
-        List<InboxEventEntity> results = query.getResultList();
-        return results;
-    }
+    // Using closure-based loader `inboxLoader` instead of direct EntityManager queries
 
     /**
      * Manually trigger inbox processing (for testing or admin purposes).

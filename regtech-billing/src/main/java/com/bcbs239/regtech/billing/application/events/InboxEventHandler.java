@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.application.events;
 
 import com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity;
-import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
+import com.bcbs239.regtech.core.events.BaseEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -20,15 +20,16 @@ public class InboxEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(InboxEventHandler.class);
 
-    @PersistenceContext
-    private EntityManager entityManager;
-
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
+    private final java.util.function.Consumer<InboxEventEntity> inboxSaver;
 
-    public InboxEventHandler(ObjectMapper objectMapper, TransactionTemplate transactionTemplate) {
+    public InboxEventHandler(ObjectMapper objectMapper,
+                             TransactionTemplate transactionTemplate,
+                             java.util.function.Consumer<InboxEventEntity> inboxSaver) {
         this.objectMapper = objectMapper;
         this.transactionTemplate = transactionTemplate;
+        this.inboxSaver = inboxSaver;
         logger.info("🚀 InboxEventHandler initialized and ready to receive events");
     }
 
@@ -39,47 +40,76 @@ public class InboxEventHandler {
     public void handleAllEvents(Object event) {
         logger.debug("📨 RECEIVED GENERIC EVENT in billing: {} - {}", event.getClass().getSimpleName(), event);
     }
-
     /**
-     * Handle UserRegisteredIntegrationEvent by storing it in the inbox for asynchronous processing.
+     * Generic listener for integration events coming from other bounded contexts.
+     * Stores events in the billing inbox table for reliable asynchronous processing.
      */
     @EventListener
-    public void handleUserRegisteredEvent(UserRegisteredIntegrationEvent event) {
-        logger.info("📨 RECEIVED UserRegisteredIntegrationEvent in billing context: user={}, bank={}, correlation={}",
-            event.getUserId(), event.getBankId(), event.getCorrelationId());
+    public void handleExternalIntegrationEvent(Object event) {
+        // Only handle BaseEvent types (our integration events extend BaseEvent)
+        if (!(event instanceof BaseEvent be)) {
+            logger.debug("Ignoring non-BaseEvent type: {}", event.getClass().getSimpleName());
+            return;
+        }
+
+        // Avoid storing events emitted by this module
+        if ("billing".equalsIgnoreCase(be.getSourceModule())) {
+            logger.debug("Ignoring event from same module: {}", be.getSourceModule());
+            return;
+        }
+
+        String eventType = be.eventType();
+        String aggregateId = extractAggregateId(event);
+
+        logger.info("📨 Storing inbound integration event: type={}, aggregateId={}, correlation={}",
+            eventType, aggregateId, be.getCorrelationId());
 
         try {
-            // Use transaction template for database operations
+            logger.debug("InboxEventHandler: entering transaction to persist event {}", eventType);
             transactionTemplate.execute(status -> {
                 try {
-                    // Serialize the event
                     String eventData = objectMapper.writeValueAsString(event);
 
-                    // Create inbox event entity
-                    InboxEventEntity inboxEvent = new InboxEventEntity(
-                        "UserRegisteredIntegrationEvent",
-                        event.getUserId(), // aggregateId is the userId
-                        eventData
-                    );
-
-                    // Save to inbox
-                    entityManager.persist(inboxEvent);
-
-                    logger.info("Stored UserRegisteredEvent in inbox: id={}, user={}",
-                        inboxEvent.getId(), event.getUserId());
-
+                    InboxEventEntity inboxEvent = new InboxEventEntity(eventType, aggregateId, eventData);
+                    inboxSaver.accept(inboxEvent);
+                    logger.info("Stored inbox event id={} type={} aggregate={}", inboxEvent.getId(), eventType, aggregateId);
+                    logger.debug("InboxEventHandler: after inboxSaver.accept, id={}", inboxEvent.getId());
                     return null;
                 } catch (Exception e) {
-                    logger.error("Failed to store UserRegisteredEvent in inbox for user {}: {}",
-                        event.getUserId(), e.getMessage(), e);
+                    logger.error("Failed to persist inbox event type={} aggregate={}: {}",
+                        eventType, aggregateId, e.getMessage(), e);
                     status.setRollbackOnly();
                     return null;
                 }
             });
-
+            logger.debug("InboxEventHandler: transaction complete for event {}", eventType);
         } catch (Exception e) {
-            logger.error("Unexpected error in event handling for user {}: {}",
-                event.getUserId(), e.getMessage(), e);
+            logger.error("Unexpected error storing inbound event type={} aggregate={}: {}",
+                eventType, aggregateId, e.getMessage(), e);
         }
+    }
+
+    /**
+     * Try to extract an aggregate id from the incoming event using common getter names.
+     */
+    private String extractAggregateId(Object event) {
+        try {
+            java.lang.reflect.Method m;
+
+            // common getter names to try
+            String[] candidates = {"getAggregateId", "getUserId", "getId", "getAccountId", "getCustomerId"};
+            for (String name : candidates) {
+                try {
+                    m = event.getClass().getMethod(name);
+                    Object val = m.invoke(event);
+                    if (val != null) return val.toString();
+                } catch (NoSuchMethodException ignored) {
+                    // try next
+                }
+            }
+        } catch (Exception e) {
+            logger.debug("Failed to extract aggregate id: {}", e.getMessage());
+        }
+        return null;
     }
 }

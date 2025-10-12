@@ -3,9 +3,9 @@ package com.bcbs239.regtech.billing.application.events;
 import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommand;
 import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommandHandler;
 import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentResponse;
-import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
+import com.bcbs239.regtech.billing.infrastructure.inbox.IdempotentIntegrationEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -17,18 +17,15 @@ import org.springframework.transaction.annotation.Transactional;
  * Now called asynchronously by InboxProcessorJob instead of direct event listening.
  */
 @Component
-public class UserRegisteredEventHandler {
+public class UserRegisteredEventHandler implements IdempotentIntegrationEventHandler<UserRegisteredIntegrationEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(UserRegisteredEventHandler.class);
 
     private final ProcessPaymentCommandHandler processPaymentCommandHandler;
-    private final BillingEventPublisher billingEventPublisher;
 
     public UserRegisteredEventHandler(
-            ProcessPaymentCommandHandler processPaymentCommandHandler,
-            BillingEventPublisher billingEventPublisher) {
+            ProcessPaymentCommandHandler processPaymentCommandHandler) {
         this.processPaymentCommandHandler = processPaymentCommandHandler;
-        this.billingEventPublisher = billingEventPublisher;
     }
 
     /**
@@ -36,7 +33,7 @@ public class UserRegisteredEventHandler {
      * Called by InboxProcessorJob for asynchronous processing.
      */
     @Transactional
-    public void handle(UserRegisteredIntegrationEvent event) {
+    public void processTransactional(UserRegisteredIntegrationEvent event) {
         logger.info("Received UserRegisteredEvent for user: {} with correlation: {}", 
             event.getUserId(), event.getCorrelationId());
 
@@ -79,6 +76,28 @@ public class UserRegisteredEventHandler {
         } catch (Exception e) {
             logger.error("Unexpected error processing UserRegisteredEvent for user {}: {}", 
                 event.getUserId(), e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public String eventType() {
+        return "UserRegisteredIntegrationEvent";
+    }
+
+    @Override
+    public Class<UserRegisteredIntegrationEvent> eventClass() {
+        return UserRegisteredIntegrationEvent.class;
+    }
+
+    // Adapter from idempotent interface to the transactional processing method
+    @Override
+    public boolean handle(UserRegisteredIntegrationEvent event) {
+        try {
+            processTransactional(event);
+            return true;
+        } catch (Exception e) {
+            logger.error("Idempotent handler failed for user {}: {}", event.getUserId(), e.getMessage(), e);
+            return false;
         }
     }
 }
