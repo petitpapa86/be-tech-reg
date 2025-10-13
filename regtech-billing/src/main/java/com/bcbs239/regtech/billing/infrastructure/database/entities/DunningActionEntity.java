@@ -12,7 +12,7 @@ import java.util.UUID;
  * Maps domain value object to database table structure.
  */
 @Entity
-@Table(name = "dunning_actions")
+@Table(name = "dunning_actions", schema = "billing")
 public class DunningActionEntity {
 
     @Id

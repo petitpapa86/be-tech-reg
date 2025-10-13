@@ -13,7 +13,7 @@ import java.util.Currency;
  * Maps domain value object to database table structure.
  */
 @Entity
-@Table(name = "invoice_line_items")
+@Table(name = "invoice_line_items", schema = "billing")
 public class InvoiceLineItemEntity {
 
     @Id

@@ -8,7 +8,7 @@ import java.time.Instant;
  * JPA Entity for user_bank_assignments table.
  */
 @Entity
-@Table(name = "user_bank_assignments", indexes = {
+@Table(name = "user_bank_assignments", schema = "iam", indexes = {
     @Index(name = "idx_user_bank_assignments_user_id", columnList = "user_id"),
     @Index(name = "idx_user_bank_assignments_bank_id", columnList = "bank_id")
 })

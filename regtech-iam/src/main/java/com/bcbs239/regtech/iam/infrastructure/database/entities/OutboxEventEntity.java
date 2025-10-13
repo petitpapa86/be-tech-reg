@@ -8,7 +8,7 @@ import java.time.Instant;
  * Stores events to be published reliably after successful business transactions.
  */
 @Entity
-@Table(name = "outbox_events", indexes = {
+@Table(name = "outbox_events", schema = "iam", indexes = {
     @Index(name = "idx_outbox_events_status", columnList = "status"),
     @Index(name = "idx_outbox_events_created_at", columnList = "created_at"),
     @Index(name = "idx_outbox_events_event_type", columnList = "event_type")

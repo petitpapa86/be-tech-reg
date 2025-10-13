@@ -8,7 +8,7 @@ import java.time.Instant;
  * Ensures reliable event delivery by persisting events in the same transaction as business data.
  */
 @Entity
-@Table(name = "billing_domain_events")
+@Table(name = "billing_domain_events", schema = "billing")
 public class BillingDomainEventEntity {
 
     @Id

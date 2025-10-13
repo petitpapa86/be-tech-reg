@@ -20,7 +20,7 @@ import java.util.Currency;
  * Maps domain aggregate to database table structure.
  */
 @Entity
-@Table(name = "invoices")
+@Table(name = "invoices", schema = "billing")
 public class InvoiceEntity {
 
     @Id

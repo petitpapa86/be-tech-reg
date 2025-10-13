@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
  * Maps domain aggregate to database table structure.
  */
 @Entity
-@Table(name = "dunning_cases")
+@Table(name = "dunning_cases", schema = "billing")
 public class DunningCaseEntity {
 
     @Id

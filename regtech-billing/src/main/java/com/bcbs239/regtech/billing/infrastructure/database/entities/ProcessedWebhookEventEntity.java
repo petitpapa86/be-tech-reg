@@ -10,7 +10,7 @@ import java.util.UUID;
  * Maps domain value object to database table structure for idempotency tracking.
  */
 @Entity
-@Table(name = "processed_webhook_events")
+@Table(name = "processed_webhook_events", schema = "billing")
 public class ProcessedWebhookEventEntity {
 
     @Id

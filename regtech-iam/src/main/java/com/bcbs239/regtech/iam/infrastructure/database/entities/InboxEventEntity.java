@@ -8,7 +8,7 @@ import java.time.Instant;
  * Events are received from other bounded contexts and processed asynchronously.
  */
 @Entity(name = "iamInboxEventEntity")
-@Table(name = "iam_inbox_events")
+@Table(name = "iam_inbox_events", schema = "iam")
 public class InboxEventEntity {
 
     @Id

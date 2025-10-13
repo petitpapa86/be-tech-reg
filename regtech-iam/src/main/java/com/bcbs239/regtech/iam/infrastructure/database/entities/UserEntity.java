@@ -11,7 +11,7 @@ import java.util.List;
  * Follows the established pattern of separating persistence from domain model.
  */
 @Entity
-@Table(name = "users", indexes = {
+@Table(name = "users", schema = "iam", indexes = {
     @Index(name = "idx_users_email", columnList = "email"),
     @Index(name = "idx_users_status", columnList = "status"),
     @Index(name = "idx_users_google_id", columnList = "google_id"),

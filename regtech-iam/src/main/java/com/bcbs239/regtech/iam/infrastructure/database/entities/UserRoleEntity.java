@@ -10,7 +10,7 @@ import java.time.Instant;
  * JPA Entity for user_roles table with proper domain conversion.
  */
 @Entity
-@Table(name = "user_roles", indexes = {
+@Table(name = "user_roles", schema = "iam", indexes = {
     @Index(name = "idx_user_roles_user_id", columnList = "user_id"),
     @Index(name = "idx_user_roles_organization_id", columnList = "organization_id"),
     @Index(name = "idx_user_roles_role", columnList = "role"),

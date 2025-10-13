@@ -8,7 +8,7 @@ import java.time.Instant;
  * Tracks saga execution events for compliance and monitoring.
  */
 @Entity
-@Table(name = "saga_audit_log")
+@Table(name = "saga_audit_log", schema = "billing")
 public class SagaAuditLogEntity {
 
     @Id

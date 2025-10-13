@@ -12,7 +12,7 @@ import java.time.LocalDate;
  * Maps domain aggregate to database table structure.
  */
 @Entity
-@Table(name = "subscriptions")
+@Table(name = "subscriptions", schema = "billing")
 public class SubscriptionEntity {
 
     @Id

@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.iam.infrastructure.entities;
+package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
 import jakarta.persistence.*;
 import java.time.Instant;
@@ -8,7 +8,7 @@ import java.time.Instant;
  * Ensures reliable event delivery by persisting events in the same transaction as business data.
  */
 @Entity
-@Table(name = "iam_domain_events")
+@Table(name = "iam_domain_events", schema = "iam")
 public class IamDomainEventEntity {
 
     @Id
