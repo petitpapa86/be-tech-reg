@@ -17,7 +17,7 @@ import java.util.function.Function;
  * Activates users when their payment is successfully verified.
  * Now called by InboxProcessorJob instead of being a DomainEventHandler.
  */
-@Component
+@Component("iamPaymentVerificationEventHandler")
 public class PaymentVerificationEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(PaymentVerificationEventHandler.class);

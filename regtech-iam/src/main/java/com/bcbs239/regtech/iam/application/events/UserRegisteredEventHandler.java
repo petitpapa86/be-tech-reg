@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  * The `RegisterUserCommandHandler` persists the integration event into the outbox
  * and the outbox processor is responsible for delivering it to other bounded contexts.
  */
-@Component
+@Component("iamUserRegisteredEventHandler")
 public class UserRegisteredEventHandler implements DomainEventHandler<UserRegisteredEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(UserRegisteredEventHandler.class);

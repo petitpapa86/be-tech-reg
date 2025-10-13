@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.iam.application.events;
 
+
+
 import com.bcbs239.regtech.iam.infrastructure.database.entities.InboxEventEntity;
 import com.bcbs239.regtech.core.events.PaymentVerifiedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,18 +16,18 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Inbox event handler that receives cross-module events and stores them for asynchronous processing.
  * This implements the inbox pattern for reliable event processing in IAM context.
- */
-@Component
-public class InboxEventHandler {
+*/
+@Component("iamInboxEventHandler")
+public class IamInboxEventHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(InboxEventHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(IamInboxEventHandler.class);
 
     @PersistenceContext
     private EntityManager entityManager;
 
     private final ObjectMapper objectMapper;
 
-    public InboxEventHandler(ObjectMapper objectMapper) {
+    public IamInboxEventHandler(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 

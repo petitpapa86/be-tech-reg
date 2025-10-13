@@ -32,7 +32,7 @@ public class InboxIntegrationTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @org.springframework.context.annotation.Import(com.bcbs239.regtech.billing.application.events.InboxEventHandler.class)
+    @org.springframework.context.annotation.Import(com.bcbs239.regtech.billing.application.events.BillingInboxEventHandler.class)
     static class TestConfig {
         // Minimal Spring Boot configuration to allow @SpringBootTest to bootstrap a context for module tests
 
@@ -52,7 +52,7 @@ public class InboxIntegrationTest {
     private InboxEventRepository inboxEventRepository;
 
     @Autowired
-    private com.bcbs239.regtech.billing.application.events.InboxEventHandler inboxEventHandler;
+    private com.bcbs239.regtech.billing.application.events.BillingInboxEventHandler inboxEventHandler;
 
     @Test
     public void whenPublishUserRegisteredIntegrationEvent_thenInboxRecordCreated() throws InterruptedException {

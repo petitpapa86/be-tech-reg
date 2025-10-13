@@ -19,7 +19,7 @@ import java.util.function.Function;
  * Event handler for billing account status changes from the billing context.
  * Updates user status based on billing account changes.
  */
-@Component
+@Component("iamBillingAccountEventHandler")
 @Transactional
 public class BillingAccountEventHandler {
 

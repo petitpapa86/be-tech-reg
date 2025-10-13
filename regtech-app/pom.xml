@@ -23,11 +23,11 @@
 			<artifactId>regtech-iam</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		<!-- <dependency>
+		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-billing</artifactId>
 			<version>${project.version}</version>
-		</dependency> -->
+		</dependency>
 
 		<!-- Spring Boot Starter -->
 		<dependency>
@@ -40,12 +40,12 @@
 		</dependency>
 
 		<!-- Development Tools -->
-		<dependency>
+		<!-- <dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
 			<scope>runtime</scope>
 			<optional>true</optional>
-		</dependency>
+		</dependency> -->
 
 		<!-- Testing -->
 		<dependency>

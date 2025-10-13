@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +16,7 @@ import java.util.List;
  * Inbox processor job that reads events from the inbox and processes them asynchronously.
  * This implements the inbox pattern for reliable event processing.
  */
-@Component
+@Component("billingInboxProcessorJob")
 public class InboxProcessorJob {
 
     private static final Logger logger = LoggerFactory.getLogger(InboxProcessorJob.class);
@@ -29,7 +30,7 @@ public class InboxProcessorJob {
     private final java.util.function.BiFunction<String, String, Boolean> markFailed;
 
     public InboxProcessorJob(ObjectMapper objectMapper,
-                            java.util.Map<String, java.util.function.Function<Object, Boolean>> handlers,
+                            @Qualifier("billingInboxHandlers") java.util.Map<String, java.util.function.Function<Object, Boolean>> handlers,
                             java.util.function.Function<Integer, java.util.List<InboxEventEntity>> inboxLoader,
                             java.util.function.Function<String, Boolean> markProcessed,
                             java.util.function.BiFunction<String, String, Boolean> markFailed) {

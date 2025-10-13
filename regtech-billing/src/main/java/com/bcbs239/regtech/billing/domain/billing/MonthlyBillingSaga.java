@@ -31,7 +31,6 @@ import java.util.function.Function;
  * Monthly billing saga that orchestrates the billing process for active subscriptions.
  * Uses closure-based dependency injection for better testability and functional programming.
  */
-@Component
 public class MonthlyBillingSaga implements Saga<MonthlyBillingSagaData> {
 
     // Closure dependencies for external operations

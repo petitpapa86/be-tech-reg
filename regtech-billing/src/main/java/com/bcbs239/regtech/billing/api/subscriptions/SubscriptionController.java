@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.billing.api;
+package com.bcbs239.regtech.billing.api.subscriptions;
 
 import com.bcbs239.regtech.billing.application.cancelsubscription.CancelSubscriptionCommand;
 import com.bcbs239.regtech.billing.application.cancelsubscription.CancelSubscriptionCommandHandler;

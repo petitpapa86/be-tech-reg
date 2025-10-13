@@ -18,11 +18,11 @@ public class OutboxPublisherImpl implements OutboxPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxPublisherImpl.class);
 
-    private final OutboxMessageRepository outboxMessageRepository;
+    private final BillingOutboxMessageRepository outboxMessageRepository;
     private final ObjectMapper objectMapper;
 
     public OutboxPublisherImpl(
-            OutboxMessageRepository outboxMessageRepository,
+            BillingOutboxMessageRepository outboxMessageRepository,
             ObjectMapper objectMapper) {
         this.outboxMessageRepository = outboxMessageRepository;
         this.objectMapper = objectMapper;

@@ -53,15 +53,7 @@ public class MonthlyBillingSagaConfiguration {
         );
     }
 
-    @Bean
-    public Saga<MonthlyBillingSagaData> monitoredMonthlyBillingSaga(
-            MonthlyBillingSaga monthlyBillingSaga,
-            BillingSagaAuditService auditService,
-            BillingPerformanceMetricsService metricsService,
-            ObjectMapper objectMapper) {
-
-        return MonitoredSagaWrapper.wrap(monthlyBillingSaga, auditService, metricsService, objectMapper);
-    }
+    // Monitored saga is configured in BillingSchedulingConfiguration
 
     // Closure implementations
 

@@ -19,7 +19,7 @@ public class BillingOutboxWiring {
      */
     @Bean
     public OutboxPublisher billingOutboxPublisher(
-            OutboxMessageRepository outboxMessageRepository,
+            BillingOutboxMessageRepository outboxMessageRepository,
             ObjectMapper objectMapper) {
         return new OutboxPublisherImpl(outboxMessageRepository, objectMapper);
     }
@@ -29,7 +29,7 @@ public class BillingOutboxWiring {
      */
     @Bean
     public ProcessOutboxJob billingOutboxProcessor(
-            OutboxMessageRepository outboxMessageRepository,
+            BillingOutboxMessageRepository outboxMessageRepository,
             CrossModuleEventBus eventBus,
             ObjectMapper objectMapper) {
         return new ProcessOutboxJob(outboxMessageRepository, eventBus, objectMapper);

@@ -19,7 +19,6 @@ import java.util.Map;
  * Wrapper that adds monitoring and audit logging to saga execution.
  * Implements the decorator pattern to add observability without modifying saga logic.
  */
-@Component
 public class MonitoredSagaWrapper<T extends SagaData> implements Saga<T> {
 
     private final Saga<T> wrappedSaga;

@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Triggers payment processing in the billing context using proper outbox pattern.
  * Now called asynchronously by InboxProcessorJob instead of direct event listening.
  */
-@Component
+@Component("billingUserRegisteredEventHandler")
 public class UserRegisteredEventHandler implements IdempotentIntegrationEventHandler<UserRegisteredIntegrationEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(UserRegisteredEventHandler.class);

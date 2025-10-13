@@ -14,17 +14,17 @@ import java.util.List;
  * Scheduled job to process outbox messages in the billing context.
  * Publishes stored events to the cross-module event bus for reliable delivery.
  */
-@Component
+@Component("billingProcessOutboxJob")
 public class ProcessOutboxJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessOutboxJob.class);
 
-    private final OutboxMessageRepository outboxMessageRepository;
+    private final BillingOutboxMessageRepository outboxMessageRepository;
     private final CrossModuleEventBus eventBus;
     private final ObjectMapper objectMapper;
 
     public ProcessOutboxJob(
-            OutboxMessageRepository outboxMessageRepository,
+            BillingOutboxMessageRepository outboxMessageRepository,
             CrossModuleEventBus eventBus,
             ObjectMapper objectMapper) {
         this.outboxMessageRepository = outboxMessageRepository;

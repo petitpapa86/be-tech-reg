@@ -7,7 +7,7 @@ import java.time.Instant;
  * Entity for storing incoming cross-module events in the inbox pattern.
  * Events are received from other bounded contexts and processed asynchronously.
  */
-@Entity
+@Entity(name = "iamInboxEventEntity")
 @Table(name = "iam_inbox_events")
 public class InboxEventEntity {
 

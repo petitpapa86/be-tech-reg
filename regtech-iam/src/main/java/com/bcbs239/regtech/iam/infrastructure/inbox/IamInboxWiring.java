@@ -69,7 +69,7 @@ public class IamInboxWiring {
                     // Atomically claim by updating status from PENDING to PROCESSING and returning claimed rows.
                     // Use a two-step approach: select ids, then update using id list with optimistic locking via version.
                     var pending = em.createQuery(
-                            "SELECT i FROM InboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxEventEntity.class)
+                            "SELECT i FROM iamInboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxEventEntity.class)
                         .setParameter("status", InboxEventEntity.ProcessingStatus.PENDING)
                         .setMaxResults(batchSize)
                         .getResultList();
@@ -77,7 +77,7 @@ public class IamInboxWiring {
                     var ids = pending.stream().map(InboxEventEntity::getId).toList();
                     if (ids.isEmpty()) return List.of();
 
-                    int updated = em.createQuery("UPDATE InboxEventEntity i SET i.processingStatus = :processing WHERE i.id IN :ids")
+                    int updated = em.createQuery("UPDATE iamInboxEventEntity i SET i.processingStatus = :processing WHERE i.id IN :ids")
                         .setParameter("processing", InboxEventEntity.ProcessingStatus.PROCESSING)
                         .setParameter("ids", ids)
                         .executeUpdate();

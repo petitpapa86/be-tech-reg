@@ -15,22 +15,23 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Inbox event handler that receives cross-module events and stores them for asynchronous processing.
  * This implements the inbox pattern for reliable event processing.
  */
-@Component
-public class InboxEventHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(InboxEventHandler.class);
+@Component("billingInboxEventHandler")
+public class BillingInboxEventHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(BillingInboxEventHandler.class);
 
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
     private final java.util.function.Consumer<InboxEventEntity> inboxSaver;
 
-    public InboxEventHandler(ObjectMapper objectMapper,
-                             TransactionTemplate transactionTemplate,
-                             java.util.function.Consumer<InboxEventEntity> inboxSaver) {
+    public BillingInboxEventHandler(ObjectMapper objectMapper,
+                                    TransactionTemplate transactionTemplate,
+                                    java.util.function.Consumer<InboxEventEntity> inboxSaver) {
         this.objectMapper = objectMapper;
         this.transactionTemplate = transactionTemplate;
         this.inboxSaver = inboxSaver;
-        logger.info("🚀 InboxEventHandler initialized and ready to receive events");
+        logger.info("🚀 BillingInboxEventHandler initialized and ready to receive events");
     }
 
     /**

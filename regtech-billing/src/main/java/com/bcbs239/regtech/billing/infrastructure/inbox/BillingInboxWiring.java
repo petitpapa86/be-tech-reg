@@ -56,7 +56,7 @@ public class BillingInboxWiring {
     @Bean
     public java.util.function.Function<Integer, java.util.List<com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity>> billingInboxLoader() {
         return batchSize -> em.createQuery(
-                "SELECT i FROM InboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity.class)
+                "SELECT i FROM billingInboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity.class)
             .setParameter("status", com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity.ProcessingStatus.PENDING)
             .setMaxResults(batchSize)
             .getResultList();
@@ -66,7 +66,7 @@ public class BillingInboxWiring {
     public java.util.function.Function<String, Boolean> billingMarkProcessed() {
         return id -> {
             try {
-                int updated = em.createQuery("UPDATE InboxEventEntity i SET i.processingStatus = :processed WHERE i.id = :id")
+                int updated = em.createQuery("UPDATE billingInboxEventEntity i SET i.processingStatus = :processed WHERE i.id = :id")
                     .setParameter("processed", com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity.ProcessingStatus.PROCESSED)
                     .setParameter("id", id)
                     .executeUpdate();

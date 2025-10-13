@@ -19,7 +19,6 @@ import java.util.function.Function;
  * deserializes payloads and dispatches to registered handlers keyed by eventType.
  * Uses Spring's async capabilities for concurrent message processing within batches.
  */
-@Component
 public class ProcessInboxJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessInboxJob.class);

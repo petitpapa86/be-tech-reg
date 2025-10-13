@@ -56,6 +56,71 @@ iam:
       strict-mode: true
       audit-enabled: true
 
+# Billing Module Configuration
+billing:
+  stripe:
+    apiKey: sk_test_dummy_key_for_development
+    webhookSecret: whsec_dummy_secret_for_development
+
+  tiers:
+    starter:
+      monthlyPrice: 29.99
+      currency: USD
+      exposureLimit: 1000
+
+  dunning:
+    reminderIntervals:
+      step1: 7
+      step2: 14
+      step3: 21
+    finalActionDelay: 30
+
+  invoices:
+    dueDays: 30
+    currency: USD
+
+  billingCycle:
+    timezone: America/New_York
+    billingDay: 1
+
+  outbox:
+    enabled: true
+    processingInterval: 30000
+    retryInterval: 60000
+    maxRetries: 3
+    cleanupInterval: 86400000
+    cleanupRetentionDays: 30
+
+  scheduling:
+    monthlyBilling:
+      enabled: true
+      cron: "0 0 1 * *"
+      timezone: America/New_York
+    dunningProcess:
+      enabled: true
+      cron: "0 0 2 * *"
+      timezone: America/New_York
+      threadPoolSize: 5
+
+  notifications:
+    email:
+      enabled: true
+      templates:
+        payment_reminder: "payment-reminder.html"
+        payment_failed: "payment-failed.html"
+        subscription_cancelled: "subscription-cancelled.html"
+    sms:
+      enabled: false
+    push:
+      enabled: false
+
+# Stripe Configuration (used by StripeService)
+stripe:
+  api:
+    key: sk_test_dummy_key_for_development
+  webhook:
+    secret: whsec_dummy_secret_for_development
+
 management:
   endpoints:
     web:

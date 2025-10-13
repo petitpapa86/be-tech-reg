@@ -14,7 +14,7 @@ import java.util.UUID;
  * Provides queries for finding unprocessed messages and managing the outbox.
  */
 @Repository
-public interface OutboxMessageRepository extends JpaRepository<OutboxMessage, UUID> {
+public interface BillingOutboxMessageRepository extends JpaRepository<OutboxMessage, UUID> {
 
     /**
      * Find all unprocessed messages ordered by creation time.

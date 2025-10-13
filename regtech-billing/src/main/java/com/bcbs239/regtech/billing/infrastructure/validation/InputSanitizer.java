@@ -9,7 +9,7 @@ import java.util.regex.Pattern;
  * Utility class for sanitizing user input to prevent injection attacks
  * and ensure data integrity in the billing module.
  */
-@Component
+@Component("billingInputSanitizer")
 public class InputSanitizer {
 
     // Patterns for validation
