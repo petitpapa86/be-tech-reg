@@ -4,20 +4,21 @@ import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentComm
 import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommandHandler;
 import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentResponse;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
-import com.bcbs239.regtech.billing.infrastructure.inbox.IdempotentIntegrationEventHandler;
+import com.bcbs239.regtech.core.events.DomainEventHandler;
+import com.bcbs239.regtech.core.events.UserRegisteredEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Event handler for UserRegisteredIntegrationEvent from IAM context.
- * Triggers payment processing in the billing context using proper outbox pattern.
- * Now called asynchronously by BillingInboxProcessor instead of direct event listening.
+ * Event handler for UserRegisteredEvent from IAM context.
+ * Triggers payment processing in the billing context using direct event listening.
+ * Now called synchronously when UserRegisteredEvent is published.
  */
 @Component("billingUserRegisteredEventHandler")
-public class UserRegisteredEventHandler implements IdempotentIntegrationEventHandler<UserRegisteredIntegrationEvent> {
+public class UserRegisteredEventHandler implements DomainEventHandler<UserRegisteredEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(UserRegisteredEventHandler.class);
 
@@ -29,11 +30,11 @@ public class UserRegisteredEventHandler implements IdempotentIntegrationEventHan
     }
 
     /**
-     * Handle user registered event by triggering payment processing with proper outbox pattern.
-     * Called by BillingInboxProcessor for asynchronous processing.
+     * Handle user registered event by triggering payment processing.
+     * Called synchronously when UserRegisteredEvent is published.
      */
     @Transactional
-    public void processTransactional(UserRegisteredIntegrationEvent event) {
+    public void processTransactional(UserRegisteredEvent event) {
         logger.info("Received UserRegisteredEvent for user: {} with correlation: {}", 
             event.getUserId(), event.getCorrelationId());
 
@@ -81,22 +82,23 @@ public class UserRegisteredEventHandler implements IdempotentIntegrationEventHan
 
     @Override
     public String eventType() {
-        return "UserRegisteredIntegrationEvent";
+        return "UserRegisteredEvent";
     }
 
     @Override
-    public Class<UserRegisteredIntegrationEvent> eventClass() {
-        return UserRegisteredIntegrationEvent.class;
+    public Class<UserRegisteredEvent> eventClass() {
+        return UserRegisteredEvent.class;
     }
 
-    // Adapter from idempotent interface to the transactional processing method
+    // Adapter from domain event interface to the transactional processing method
     @Override
-    public boolean handle(UserRegisteredIntegrationEvent event) {
+    @EventListener
+    public boolean handle(UserRegisteredEvent event) {
         try {
             processTransactional(event);
             return true;
         } catch (Exception e) {
-            logger.error("Idempotent handler failed for user {}: {}", event.getUserId(), e.getMessage(), e);
+            logger.error("Domain event handler failed for user {}: {}", event.getUserId(), e.getMessage(), e);
             return false;
         }
     }

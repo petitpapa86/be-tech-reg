@@ -65,7 +65,7 @@ public class ProcessPaymentCommandHandler {
             billingAccountRepository.billingAccountSaver(),
             subscriptionRepository.subscriptionSaver(),
             invoiceRepository.invoiceSaver(),
-            event -> eventPublisher.publishEvent(event),
+                eventPublisher::publishEvent,
             this::extractUserDataFromSaga,
             this::createStripeCustomer,
             this::createStripeSubscription
