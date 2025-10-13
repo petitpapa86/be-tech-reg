@@ -230,4 +230,20 @@ public class BillingInboxWiring {
     public BillingInboxProcessor billingGenericInboxProcessor(ProcessInboxEventPublisher billingInboxEventPublisher) {
         return new BillingInboxProcessor(billingInboxEventPublisher);
     }
+
+    @Bean
+    public java.util.function.BiFunction<String, String, Boolean> billingDuplicateChecker() {
+        return (eventType, aggregateId) -> {
+            try {
+                Long count = em.createQuery("SELECT COUNT(i) FROM billingInboxEventEntity i WHERE i.eventType = :eventType AND i.aggregateId = :aggregateId", Long.class)
+                    .setParameter("eventType", eventType)
+                    .setParameter("aggregateId", aggregateId)
+                    .getSingleResult();
+                return count > 0;
+            } catch (Exception ex) {
+                System.err.println("billingDuplicateChecker: failed to check for duplicates: " + ex.getMessage());
+                return false; // Assume no duplicate on error to avoid blocking processing
+            }
+        };
+    }
 }

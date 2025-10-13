@@ -24,12 +24,15 @@ public class IntegrationEventConsumer {
 
     private final Consumer<InboxEventEntity> inboxSaver;
     private final ObjectMapper objectMapper;
+    private final java.util.function.BiFunction<String, String, Boolean> duplicateChecker;
 
     public IntegrationEventConsumer(
             @Qualifier("billingInboxSaver") Consumer<InboxEventEntity> inboxSaver,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            @Qualifier("billingDuplicateChecker") java.util.function.BiFunction<String, String, Boolean> duplicateChecker) {
         this.inboxSaver = inboxSaver;
         this.objectMapper = objectMapper;
+        this.duplicateChecker = duplicateChecker;
         logger.info("🚀 IntegrationEventConsumer initialized");
     }
 
@@ -43,6 +46,13 @@ public class IntegrationEventConsumer {
         String eventType = event.getClass().getSimpleName();
         logger.info("📨 Consuming BaseEvent: type={}, source={}, correlation={}",
             eventType, event.getSourceModule(), event.getCorrelationId());
+
+        // Check for duplicate events to ensure idempotency
+        boolean isDuplicate = duplicateChecker.apply(eventType, event.getCorrelationId());
+        if (isDuplicate) {
+            logger.info("🔄 Skipping duplicate {} event: correlationId={} (already processed)", eventType, event.getCorrelationId());
+            return;
+        }
 
         try {
             // Serialize event to JSON
