@@ -15,7 +15,7 @@ import java.util.function.Function;
 /**
  * Event handler for payment verification events from the billing context.
  * Activates users when their payment is successfully verified.
- * Now called by InboxProcessorJob instead of being a DomainEventHandler.
+ * Now called by IamInboxProcessor instead of being a DomainEventHandler.
  */
 @Component("iamPaymentVerificationEventHandler")
 public class PaymentVerificationEventHandler {
@@ -30,7 +30,7 @@ public class PaymentVerificationEventHandler {
 
     /**
      * Handles PaymentVerifiedEvent by activating the user account.
-     * Called by InboxProcessorJob for asynchronous processing.
+     * Called by IamInboxProcessor for asynchronous processing.
      */
     @Transactional
     public boolean handle(PaymentVerifiedEvent event) {

@@ -81,7 +81,7 @@ public class BillingInboxWiring {
     public java.util.function.BiFunction<String, String, Boolean> billingMarkFailed() {
         return (id, err) -> {
             try {
-                int updated = em.createQuery("UPDATE InboxEventEntity i SET i.processingStatus = :failed, i.lastError = :err, i.retryCount = i.retryCount + 1 WHERE i.id = :id")
+                int updated = em.createQuery("UPDATE billingInboxEventEntity i SET i.processingStatus = :failed, i.lastError = :err, i.retryCount = i.retryCount + 1 WHERE i.id = :id")
                     .setParameter("failed", com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity.ProcessingStatus.FAILED)
                     .setParameter("err", err)
                     .setParameter("id", id)
@@ -95,7 +95,7 @@ public class BillingInboxWiring {
 
     @Bean
     public java.util.function.Function<String, java.util.List<com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity>> billingFindByEventType() {
-        return type -> em.createQuery("SELECT i FROM InboxEventEntity i WHERE i.eventType = :type ORDER BY i.receivedAt DESC", com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity.class)
+        return type -> em.createQuery("SELECT i FROM billingInboxEventEntity i WHERE i.eventType = :type ORDER BY i.receivedAt DESC", com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity.class)
             .setParameter("type", type)
             .getResultList();
     }
@@ -124,7 +124,7 @@ public class BillingInboxWiring {
             public Function<String, Boolean> markProcessed() {
                 return id -> {
                     try {
-                        int updated = em.createQuery("UPDATE InboxEventEntity i SET i.processingStatus = :processed WHERE i.id = :id")
+                        int updated = em.createQuery("UPDATE billingInboxEventEntity i SET i.processingStatus = :processed WHERE i.id = :id")
                             .setParameter("processed", InboxEventEntity.ProcessingStatus.PROCESSED)
                             .setParameter("id", id)
                             .executeUpdate();
@@ -139,7 +139,7 @@ public class BillingInboxWiring {
             public java.util.function.BiFunction<String, String, Boolean> markFailed() {
                 return (id, err) -> {
                     try {
-                        int updated = em.createQuery("UPDATE InboxEventEntity i SET i.processingStatus = :failed, i.lastError = :err, i.retryCount = i.retryCount + 1 WHERE i.id = :id")
+                        int updated = em.createQuery("UPDATE billingInboxEventEntity i SET i.processingStatus = :failed, i.lastError = :err, i.retryCount = i.retryCount + 1 WHERE i.id = :id")
                             .setParameter("failed", InboxEventEntity.ProcessingStatus.FAILED)
                             .setParameter("err", err)
                             .setParameter("id", id)
@@ -155,7 +155,7 @@ public class BillingInboxWiring {
             public Function<String, Boolean> resetForRetry() {
                 return id -> {
                     try {
-                        int updated = em.createQuery("UPDATE InboxEventEntity i SET i.processingStatus = :pending WHERE i.id = :id AND i.retryCount < 3")
+                        int updated = em.createQuery("UPDATE billingInboxEventEntity i SET i.processingStatus = :pending WHERE i.id = :id AND i.retryCount < 3")
                             .setParameter("pending", InboxEventEntity.ProcessingStatus.PENDING)
                             .setParameter("id", id)
                             .executeUpdate();
@@ -169,7 +169,7 @@ public class BillingInboxWiring {
             @Override
             public Function<Integer, List<InboxMessage>> failedMessageLoader() {
                 return batchSize -> em.createQuery(
-                        "SELECT i FROM InboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxEventEntity.class)
+                        "SELECT i FROM billingInboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxEventEntity.class)
                     .setParameter("status", InboxEventEntity.ProcessingStatus.FAILED)
                     .setMaxResults(batchSize)
                     .getResultList()

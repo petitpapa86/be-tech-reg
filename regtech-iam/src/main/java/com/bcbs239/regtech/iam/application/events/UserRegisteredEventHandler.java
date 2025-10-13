@@ -1,7 +1,9 @@
 package com.bcbs239.regtech.iam.application.events;
 
+import com.bcbs239.regtech.core.events.CrossModuleEventBus;
 import com.bcbs239.regtech.core.events.DomainEventHandler;
 import com.bcbs239.regtech.core.events.UserRegisteredEvent;
+import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -17,7 +19,10 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
 
     private static final Logger logger = LoggerFactory.getLogger(UserRegisteredEventHandler.class);
 
-    public UserRegisteredEventHandler() {
+    private final CrossModuleEventBus eventBus;
+
+    public UserRegisteredEventHandler(CrossModuleEventBus eventBus) {
+        this.eventBus = eventBus;
     }
 
     @Override
@@ -27,9 +32,24 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
 
     @Override
     public boolean handle(UserRegisteredEvent event) {
-        // This handler intentionally does not publish the integration event.
-        // The outbox write is performed by the command handler; keep this handler lightweight.
         logger.info("Handled UserRegisteredEvent locally for user={} correlation={}", event.getUserId(), event.getCorrelationId());
+
+        // Publish integration event for cross-module communication
+        UserRegisteredIntegrationEvent integrationEvent = new UserRegisteredIntegrationEvent(
+            event.getUserId(),
+            event.getEmail(),
+            event.getName(),
+            event.getBankId(),
+            event.getPaymentMethodId(),
+            event.getPhone(),
+            event.getAddress(),
+            event.getCorrelationId(),
+            "IAM"
+        );
+
+        eventBus.publishEvent(integrationEvent);
+        logger.info("Published UserRegisteredIntegrationEvent for user={} correlation={}", event.getUserId(), event.getCorrelationId());
+
         return true;
     }
 

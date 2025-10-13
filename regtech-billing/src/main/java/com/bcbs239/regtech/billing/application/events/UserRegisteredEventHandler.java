@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Event handler for UserRegisteredIntegrationEvent from IAM context.
  * Triggers payment processing in the billing context using proper outbox pattern.
- * Now called asynchronously by InboxProcessorJob instead of direct event listening.
+ * Now called asynchronously by BillingInboxProcessor instead of direct event listening.
  */
 @Component("billingUserRegisteredEventHandler")
 public class UserRegisteredEventHandler implements IdempotentIntegrationEventHandler<UserRegisteredIntegrationEvent> {
@@ -30,7 +30,7 @@ public class UserRegisteredEventHandler implements IdempotentIntegrationEventHan
 
     /**
      * Handle user registered event by triggering payment processing with proper outbox pattern.
-     * Called by InboxProcessorJob for asynchronous processing.
+     * Called by BillingInboxProcessor for asynchronous processing.
      */
     @Transactional
     public void processTransactional(UserRegisteredIntegrationEvent event) {
