@@ -59,7 +59,7 @@ iam:
 # Billing Module Configuration
 billing:
   stripe:
-    apiKey: sk_test_dummy_key_for_development
+    apiKey: pk_test_51SHmgAF6vJewYjaQfxe0EYHZUA8pFRxRu6qR9O3aB9Dv51kch6GFFiyXhcS3vHriDawpdoroYezTNgmMtT81fLnW00FVA3VlLg
     webhookSecret: whsec_dummy_secret_for_development
 
   tiers:
