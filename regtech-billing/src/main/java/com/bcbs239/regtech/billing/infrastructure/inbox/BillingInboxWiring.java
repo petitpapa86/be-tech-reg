@@ -111,7 +111,7 @@ public class BillingInboxWiring {
             @Override
             public Function<Integer, List<InboxMessage>> messageLoader() {
                 return batchSize -> em.createQuery(
-                        "SELECT i FROM InboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxEventEntity.class)
+                        "SELECT i FROM billingInboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxEventEntity.class)
                     .setParameter("status", InboxEventEntity.ProcessingStatus.PENDING)
                     .setMaxResults(batchSize)
                     .getResultList()

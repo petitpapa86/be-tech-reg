@@ -38,7 +38,7 @@ public class IamInboxWiring {
             @Override
             public Function<Integer, List<InboxMessage>> messageLoader() {
                 return batchSize -> em.createQuery(
-                        "SELECT i FROM InboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxEventEntity.class)
+                        "SELECT i FROM iamInboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxEventEntity.class)
                     .setParameter("status", InboxEventEntity.ProcessingStatus.PENDING)
                     .setMaxResults(batchSize)
                     .getResultList()
@@ -51,7 +51,7 @@ public class IamInboxWiring {
             public Function<String, Boolean> markProcessed() {
                 return id -> {
                     try {
-                        int updated = em.createQuery("UPDATE InboxEventEntity i SET i.processingStatus = :status, i.processedAt = :processedAt WHERE i.id = :id")
+                        int updated = em.createQuery("UPDATE iamInboxEventEntity i SET i.processingStatus = :status, i.processedAt = :processedAt WHERE i.id = :id")
                             .setParameter("status", InboxEventEntity.ProcessingStatus.PROCESSED)
                             .setParameter("processedAt", Instant.now())
                             .setParameter("id", id)
@@ -85,7 +85,7 @@ public class IamInboxWiring {
                     if (updated <= 0) return List.of();
 
                     // Reload the claimed entities
-                    return em.createQuery("SELECT i FROM InboxEventEntity i WHERE i.id IN :ids", InboxEventEntity.class)
+                    return em.createQuery("SELECT i FROM iamInboxEventEntity i WHERE i.id IN :ids", InboxEventEntity.class)
                         .setParameter("ids", ids)
                         .getResultList()
                         .stream()
@@ -98,7 +98,7 @@ public class IamInboxWiring {
             public java.util.function.BiFunction<String, String, Boolean> markFailed() {
                 return (id, err) -> {
                     try {
-                        int updated = em.createQuery("UPDATE InboxEventEntity i SET i.processingStatus = :failed, i.lastError = :err, i.retryCount = i.retryCount + 1 WHERE i.id = :id")
+                        int updated = em.createQuery("UPDATE iamInboxEventEntity i SET i.processingStatus = :failed, i.lastError = :err, i.retryCount = i.retryCount + 1 WHERE i.id = :id")
                             .setParameter("failed", InboxEventEntity.ProcessingStatus.FAILED)
                             .setParameter("err", err)
                             .setParameter("id", id)
@@ -114,7 +114,7 @@ public class IamInboxWiring {
             public Function<String, Boolean> resetForRetry() {
                 return id -> {
                     try {
-                        int updated = em.createQuery("UPDATE InboxEventEntity i SET i.processingStatus = :pending WHERE i.id = :id AND i.retryCount < 3")
+                        int updated = em.createQuery("UPDATE iamInboxEventEntity i SET i.processingStatus = :pending WHERE i.id = :id AND i.retryCount < 3")
                             .setParameter("pending", InboxEventEntity.ProcessingStatus.PENDING)
                             .setParameter("id", id)
                             .executeUpdate();
@@ -128,7 +128,7 @@ public class IamInboxWiring {
             @Override
             public Function<Integer, List<InboxMessage>> failedMessageLoader() {
                 return batchSize -> em.createQuery(
-                        "SELECT i FROM InboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxEventEntity.class)
+                        "SELECT i FROM iamInboxEventEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxEventEntity.class)
                     .setParameter("status", InboxEventEntity.ProcessingStatus.FAILED)
                     .setMaxResults(batchSize)
                     .getResultList()
