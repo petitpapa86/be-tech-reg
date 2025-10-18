@@ -33,11 +33,21 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
     public boolean handle(UserRegisteredEvent event) {
         logger.info("Handled UserRegisteredEvent locally for user={} correlation={}", event.getUserId(), event.getCorrelationId());
 
-        // Publish cross-module event directly for billing context to handle
-        eventBus.publishEvent(event);
-        logger.info("Published UserRegisteredEvent for user={} correlation={}", event.getUserId(), event.getCorrelationId());
+        try {
+            // Publish cross-module event asynchronously using virtual threads
+            eventBus.publishEvent(event);
+            logger.info("Initiated async publishing for UserRegisteredEvent user={} correlation={}", event.getUserId(), event.getCorrelationId());
 
-        return true;
+            // Return true immediately - async operation initiated successfully
+            // Errors are handled within the virtual thread with proper logging
+            return true;
+
+        } catch (Exception e) {
+            // This would be very rare - only if async initiation itself fails
+            logger.error("❌ Failed to initiate async publishing for UserRegisteredEvent user={} correlation={}: {}",
+                event.getUserId(), event.getCorrelationId(), e.getMessage(), e);
+            return false; // Return false only for initiation failures
+        }
     }
 
     @Override

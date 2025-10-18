@@ -3,7 +3,6 @@ package com.bcbs239.regtech.core.events;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,10 +16,17 @@ public class CrossModuleEventBus {
         this.eventPublisher = eventPublisher;
     }
 
-    @Async
     public void publishEvent(Object event) {
-        logger.info("📤 ASYNC Publishing cross-module event: {} with data: {}", event.getClass().getSimpleName(), event);
-        eventPublisher.publishEvent(event);
+        // Using Java 21+ virtual threads for efficient async event publishing
+        Thread.ofVirtual().start(() -> {
+            try {
+                logger.info("📤 ASYNC Publishing cross-module event: {} with data: {}", event.getClass().getSimpleName(), event);
+                eventPublisher.publishEvent(event);
+                logger.debug("✅ Successfully published cross-module event: {}", event.getClass().getSimpleName());
+            } catch (Exception e) {
+                logger.error("❌ Failed to publish cross-module event: {} - {}", event.getClass().getSimpleName(), e.getMessage(), e);
+            }
+        });
     }
 
     public void publishEventSynchronously(Object event) {

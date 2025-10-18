@@ -1,5 +1,8 @@
 package com.bcbs239.regtech.iam.domain.users;
 
+import com.bcbs239.regtech.core.events.UserRegisteredEvent;
+import com.bcbs239.regtech.core.shared.Entity;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +14,7 @@ import java.util.Objects;
  * Represents a user in the IAM system with their identity, authentication
  * credentials, and associated bank relationships.
  */
-public class User {
+public class User extends Entity {
     private String id;
     private Email email;
     private Password password;
@@ -53,6 +56,20 @@ public class User {
     public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId) {
         User user = create(email, password, firstName, lastName);
         user.assignToBank(bankId, "USER"); // Default role for new users
+
+        // Raise domain event
+        UserRegisteredEvent event = new UserRegisteredEvent(
+            user.id,
+            email.getValue(),
+            firstName + " " + lastName,
+            bankId,
+            null, // paymentMethodId
+            null, // phone
+            null, // address
+            null  // correlationId
+        );
+        user.addDomainEvent(event);
+
         return user;
     }
 

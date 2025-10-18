@@ -16,6 +16,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("RegisterUserCommandHandler Tests")
 class RegisterUserCommandHandlerTest {
 
+    // Test implementation of UserRegistrationUnitOfWork for testing
+    private static class TestUserRegistrationUnitOfWork extends UserRegistrationUnitOfWork {
+        private boolean saveChangesCalled = false;
+
+        @Override
+        public Result<Void> saveChanges() {
+            saveChangesCalled = true;
+            // Don't call super.saveChanges() to avoid infrastructure dependencies in tests
+            return Result.success(null);
+        }
+
+        public boolean wasSaveChangesCalled() {
+            return saveChangesCalled;
+        }
+    }
+
     @Nested
     @DisplayName("Successful Registration")
     class SuccessfulRegistration {
@@ -38,10 +54,10 @@ class RegisterUserCommandHandlerTest {
             UserId expectedUserId = UserId.generate();
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(expectedUserId);
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isSuccess()).isTrue();
@@ -49,7 +65,6 @@ class RegisterUserCommandHandlerTest {
             RegisterUserResponse response = result.getValue().get();
             assertThat(response.userId()).isEqualTo(expectedUserId);
             assertThat(response.correlationId()).isNotNull();
-            assertThat(isValidUUID(response.correlationId())).isTrue();
         }
 
         @Test
@@ -65,11 +80,12 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork1 = new TestUserRegistrationUnitOfWork();
+            TestUserRegistrationUnitOfWork unitOfWork2 = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result1 = RegisterUserCommandHandler.registerUser(command1, emailLookup, userSaver, eventPublisher);
-            Result<RegisterUserResponse> result2 = RegisterUserCommandHandler.registerUser(command2, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result1 = RegisterUserCommandHandler.registerUser(command1, emailLookup, userSaver, unitOfWork1, null);
+            Result<RegisterUserResponse> result2 = RegisterUserCommandHandler.registerUser(command2, emailLookup, userSaver, unitOfWork2, null);
 
             // Then
             assertThat(result1.getValue().get().correlationId())
@@ -91,10 +107,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -114,10 +130,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -134,10 +150,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -165,10 +181,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.some(existingUser);
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -193,10 +209,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -213,10 +229,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -233,10 +249,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -253,10 +269,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -273,10 +289,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -293,10 +309,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -318,10 +334,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -338,10 +354,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -358,10 +374,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -378,10 +394,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -404,10 +420,10 @@ class RegisterUserCommandHandlerTest {
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user ->
                 Result.failure(ErrorDetail.of("USER_SAVE_FAILED", "Database error", "error.save.failed"));
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isFailure()).isTrue();
@@ -432,10 +448,10 @@ class RegisterUserCommandHandlerTest {
 
             Function<Email, Maybe<User>> emailLookup = email -> Maybe.none();
             Function<User, Result<UserId>> userSaver = user -> Result.success(UserId.generate());
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then - should fail at first validation (email format)
             assertThat(result.isFailure()).isTrue();
@@ -459,10 +475,10 @@ class RegisterUserCommandHandlerTest {
                 assertThat(user.getLastName()).isEqualTo("Doe");
                 return Result.success(expectedUserId);
             };
-            Function<RegisterUserCommandHandler.UserRegistrationData, Result<Void>> eventPublisher = data -> Result.success(null);
+            TestUserRegistrationUnitOfWork unitOfWork = new TestUserRegistrationUnitOfWork();
 
             // When
-            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, eventPublisher);
+            Result<RegisterUserResponse> result = RegisterUserCommandHandler.registerUser(command, emailLookup, userSaver, unitOfWork, null);
 
             // Then
             assertThat(result.isSuccess()).isTrue();

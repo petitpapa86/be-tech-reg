@@ -6,16 +6,11 @@ import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.iam.domain.users.*;
 import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
-import com.bcbs239.regtech.iam.infrastructure.database.repositories.OutboxEventRepository;
-import com.bcbs239.regtech.iam.infrastructure.database.entities.OutboxEventEntity;
-import com.bcbs239.regtech.core.events.UserRegisteredEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -30,16 +25,13 @@ public class RegisterUserCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(RegisterUserCommandHandler.class);
 
     private final JpaUserRepository userRepository;
-    private final OutboxEventRepository outboxEventRepository;
-    private final ObjectMapper objectMapper;
+    private final UserRegistrationUnitOfWork unitOfWork;
 
     public RegisterUserCommandHandler(
             JpaUserRepository userRepository,
-            OutboxEventRepository outboxEventRepository,
-            ObjectMapper objectMapper) {
+            UserRegistrationUnitOfWork unitOfWork) {
         this.userRepository = userRepository;
-        this.outboxEventRepository = outboxEventRepository;
-        this.objectMapper = objectMapper;
+        this.unitOfWork = unitOfWork;
     }
 
     /**
@@ -55,12 +47,12 @@ public class RegisterUserCommandHandler {
                 "bankId", command.bankId()
             )));
 
-            // Call the pure function with repository closures and outbox event saving
+            // Call the pure function with repository closures and unit of work
             Result<RegisterUserResponse> result = registerUser(
                 command,
                 userRepository.emailLookup(),
                 userRepository.userSaver(),
-                this::saveUserRegisteredEventToOutbox,
+                unitOfWork,
                 userRepository.userRoleSaver()
             );
 
@@ -91,13 +83,13 @@ public class RegisterUserCommandHandler {
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
             LoggingConfiguration.logError("user_registration", "UNEXPECTED_ERROR", e.getMessage(), e, Map.of(
-                "email", command.email(),
+                "email", command.email() != null ? command.email() : "null",
                 "duration", duration
             ));
 
             logger.error("Unexpected error during user registration", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_ERROR", Map.of(
-                "email", command.email(),
-                "error", e.getMessage(),
+                "email", command.email() != null ? command.email() : "null",
+                "error", e.getMessage() != null ? e.getMessage() : "null",
                 "duration", duration
             )), e);
 
@@ -111,7 +103,7 @@ public class RegisterUserCommandHandler {
      * @param command The registration command
      * @param emailLookup Function to check if email exists
      * @param userSaver Function to save the user
-     * @param eventSaver Function to save user registered event to outbox
+     * @param unitOfWork Unit of work for transactional operations
      * @return Result of registration attempt
      */
     @Transactional
@@ -119,10 +111,10 @@ public class RegisterUserCommandHandler {
         RegisterUserCommand command,
         Function<Email, Maybe<User>> emailLookup,
         Function<User, Result<UserId>> userSaver,
-        Function<UserRegistrationData, Result<Void>> eventSaver
+        UserRegistrationUnitOfWork unitOfWork
     ) {
     // Fallback to overload that doesn't persist roles (keeps existing tests working)
-    return registerUser(command, emailLookup, userSaver, eventSaver, null);
+    return registerUser(command, emailLookup, userSaver, unitOfWork, null);
     }
 
     @Transactional
@@ -130,7 +122,7 @@ public class RegisterUserCommandHandler {
         RegisterUserCommand command,
         Function<Email, Maybe<User>> emailLookup,
         Function<User, Result<UserId>> userSaver,
-        Function<UserRegistrationData, Result<Void>> eventSaver,
+        UserRegistrationUnitOfWork unitOfWork,
         java.util.function.Function<com.bcbs239.regtech.iam.domain.users.UserRole, Result<String>> userRoleSaver
     ) {
         // Generate correlation ID for saga tracking with user data embedded
@@ -139,21 +131,21 @@ public class RegisterUserCommandHandler {
         logger.info("Generated correlation ID for user registration",
                 LoggingConfiguration.createStructuredLog("USER_REGISTRATION_CORRELATION_ID", Map.of(
                         "correlationId", correlationId,
-                        "email", command.email()
+                        "email", command.email() != null ? command.email() : "null"
                 )));
 
         try {
             // Step 1: Validate and create email
             logger.debug("Validating email address", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_EMAIL_VALIDATION", Map.of(
                 "correlationId", correlationId,
-                "email", command.email()
+                "email", command.email() != null ? command.email() : "null"
             )));
 
             Result<Email> emailResult = Email.create(command.email());
             if (emailResult.isFailure()) {
                 logger.warn("Email validation failed", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_EMAIL_INVALID", Map.of(
                     "correlationId", correlationId,
-                    "email", command.email(),
+                    "email", command.email() != null ? command.email() : "null",
                     "error", emailResult.getError().get().getMessage()
                 )));
                 return Result.failure(emailResult.getError().get());
@@ -175,7 +167,7 @@ public class RegisterUserCommandHandler {
             if (existingUser.isPresent()) {
                 logger.warn("Email already exists", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_EMAIL_EXISTS", Map.of(
                     "correlationId", correlationId,
-                    "email", command.email(),
+                    "email", command.email() != null ? command.email() : "null",
                     "existingUserId", existingUser.getValue().getId().getValue()
                 )));
                 return Result.failure(ErrorDetail.of("EMAIL_ALREADY_EXISTS",
@@ -209,15 +201,15 @@ public class RegisterUserCommandHandler {
             // Step 4: Validate names using Maybe to avoid nulls
             logger.debug("Validating user names", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_NAME_VALIDATION", Map.of(
                 "correlationId", correlationId,
-                "firstName", command.firstName(),
-                "lastName", command.lastName()
+                "firstName", command.firstName() != null ? command.firstName() : "null",
+                "lastName", command.lastName() != null ? command.lastName() : "null"
             )));
 
             com.bcbs239.regtech.core.shared.Maybe<String> maybeFirst = com.bcbs239.regtech.core.shared.ValidationUtils.validateName(command.firstName());
             if (maybeFirst.isEmpty()) {
                 logger.warn("First name validation failed", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_FIRST_NAME_INVALID", Map.of(
                     "correlationId", correlationId,
-                    "firstName", command.firstName()
+                    "firstName", command.firstName() != null ? command.firstName() : "null"
                 )));
                 return Result.failure(ErrorDetail.of("INVALID_FIRST_NAME",
                     "First name is required and cannot be empty", "error.firstName.required"));
@@ -228,7 +220,7 @@ public class RegisterUserCommandHandler {
             if (maybeLast.isEmpty()) {
                 logger.warn("Last name validation failed", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_LAST_NAME_INVALID", Map.of(
                     "correlationId", correlationId,
-                    "lastName", command.lastName()
+                    "lastName", command.lastName() != null ? command.lastName() : "null"
                 )));
                 return Result.failure(ErrorDetail.of("INVALID_LAST_NAME",
                     "Last name is required and cannot be empty", "error.lastName.required"));
@@ -244,8 +236,8 @@ public class RegisterUserCommandHandler {
             // Step 5: Create user aggregate with PENDING_PAYMENT status and bank assignment
             logger.debug("Creating user aggregate", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_USER_CREATION", Map.of(
                 "correlationId", correlationId,
-                "email", command.email(),
-                "bankId", command.bankId(),
+                "email", command.email() != null ? command.email() : "null",
+                "bankId", command.bankId() != null ? command.bankId() : "null",
                 "firstName", firstName,
                 "lastName", lastName
             )));
@@ -255,13 +247,13 @@ public class RegisterUserCommandHandler {
             logger.debug("User aggregate created successfully", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_USER_CREATED", Map.of(
                 "correlationId", correlationId,
                 "userStatus", newUser.getStatus().toString(),
-                "bankId", command.bankId()
+                "bankId", command.bankId() != null ? command.bankId() : "null"
             )));
 
             // Step 6: Save user
             logger.debug("Saving user to database", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_USER_SAVE_START", Map.of(
                 "correlationId", correlationId,
-                "email", command.email()
+                "email", command.email() != null ? command.email() : "null"
             )));
 
             Result<UserId> saveResult = userSaver.apply(newUser);
@@ -279,7 +271,7 @@ public class RegisterUserCommandHandler {
             logger.info("User saved successfully", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_USER_SAVED", Map.of(
                 "correlationId", correlationId,
                 "userId", userId.getValue(),
-                "email", command.email()
+                "email", command.email() != null ? command.email() : "null"
             )));
 
             // Step 7: Persist default ADMIN role for new users if a saver was provided
@@ -311,36 +303,29 @@ public class RegisterUserCommandHandler {
                 )));
             }
 
-            // Step 8: Save user registered event to outbox (transactional outbox pattern)
-            logger.debug("Saving user registration event to outbox", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_OUTBOX_START", Map.of(
+            // Register user so its domain events are collected and published
+            unitOfWork.registerEntity(newUser);
+
+            // Step 8: Save changes (persist events to outbox)
+            logger.debug("Saving changes via unit of work", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_UOW_START", Map.of(
                 "correlationId", correlationId,
                 "userId", userId.getValue()
             )));
 
-            UserRegistrationData registrationData = new UserRegistrationData(
-                userId,
-                command.paymentMethodId(),
-                correlationId,
-                email.value(),
-                firstName + " " + lastName,
-                command.bankId(),
-                command.phone(),
-                command.address()
-            );
-
-            Result<Void> outboxResult = eventSaver.apply(registrationData);
-            if (outboxResult.isFailure()) {
-                logger.error("Outbox event save failed", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_OUTBOX_FAILED", Map.of(
+            Result<Void> uowResult = unitOfWork.saveChanges();
+            if (uowResult.isFailure()) {
+                logger.error("Unit of work save failed", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_UOW_FAILED", Map.of(
                     "correlationId", correlationId,
-                    "userId", userId.getValue(),
-                    "error", outboxResult.getError().get().getMessage()
+                    "email", command.email(),
+                    "error", uowResult.getError().get().getMessage()
                 )));
-                return Result.failure(outboxResult.getError().get());
+                return Result.failure(uowResult.getError().get());
             }
 
-            logger.info("User registration event saved to outbox", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_OUTBOX_SUCCESS", Map.of(
+            logger.info("User registration completed via unit of work", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_UOW_SUCCESS", Map.of(
                 "correlationId", correlationId,
                 "userId", userId.getValue(),
+                "email", command.email(),
                 "eventType", "UserRegisteredEvent"
             )));
 
@@ -349,8 +334,8 @@ public class RegisterUserCommandHandler {
             logger.info("User registration workflow completed successfully", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_WORKFLOW_SUCCESS", Map.of(
                 "correlationId", correlationId,
                 "userId", userId.getValue(),
-                "email", command.email(),
-                "bankId", command.bankId()
+                "email", command.email() != null ? command.email() : "null",
+                "bankId", command.bankId() != null ? command.bankId() : "null"
             )));
 
             return Result.success(response);
@@ -358,8 +343,8 @@ public class RegisterUserCommandHandler {
         } catch (Exception e) {
             logger.error("Unexpected error in user registration workflow", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_WORKFLOW_ERROR", Map.of(
                 "correlationId", correlationId,
-                "email", command.email(),
-                "error", e.getMessage()
+                "email", command.email() != null ? command.email() : "null",
+                "error", e.getMessage() != null ? e.getMessage() : "null"
             )), e);
             throw e;
         } finally {
@@ -367,107 +352,6 @@ public class RegisterUserCommandHandler {
         }
     }
 
-    private static String validateName(String name, String fieldName) {
-        if (name == null || name.trim().isEmpty()) {
-            return null;
-        }
-        return name.trim();
-    }
-
-    /**
-     * Save user registered event to outbox using transactional outbox pattern
-     */
-    private Result<Void> saveUserRegisteredEventToOutbox(UserRegistrationData data) {
-        try {
-            logger.debug("Creating UserRegisteredEvent for outbox", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_EVENT_CREATION", Map.of(
-                "correlationId", data.correlationId(),
-                "userId", data.userId().getValue(),
-                "email", data.email()
-            )));
-
-            UserRegisteredEvent event = new UserRegisteredEvent(
-                data.userId().getValue(),
-                data.email(),
-                data.name(),
-                data.bankId(),
-                data.paymentMethodId(),
-                data.phone(),
-                data.address() != null ? new UserRegisteredEvent.AddressInfo(
-                    data.address().line1(),
-                    data.address().line2(),
-                    data.address().city(),
-                    data.address().state(),
-                    data.address().postalCode(),
-                    data.address().country()
-                ) : null,
-                data.correlationId()
-            );
-
-            logger.debug("Serializing UserRegisteredEvent to JSON", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_EVENT_SERIALIZATION", Map.of(
-                "correlationId", data.correlationId(),
-                "userId", data.userId().getValue(),
-                "eventType", "UserRegisteredEvent"
-            )));
-
-            // Serialize event to JSON
-            String eventData = objectMapper.writeValueAsString(event);
-
-            logger.debug("Creating OutboxEventEntity", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_OUTBOX_ENTITY_CREATION", Map.of(
-                "correlationId", data.correlationId(),
-                "userId", data.userId().getValue(),
-                "eventType", "UserRegisteredEvent",
-                "payloadSize", eventData.length()
-            )));
-
-            // Create outbox event entity
-            OutboxEventEntity outboxEvent = new OutboxEventEntity(
-                "UserRegisteredEvent",
-                "User",
-                data.userId().getValue(),
-                eventData,
-                Instant.now()
-            );
-
-            logger.debug("Saving OutboxEventEntity to database", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_OUTBOX_SAVE_START", Map.of(
-                "correlationId", data.correlationId(),
-                "userId", data.userId().getValue(),
-                "eventType", "UserRegisteredEvent"
-            )));
-
-            // Save to outbox
-            Result<String> saveResult = outboxEventRepository.eventSaver().apply(outboxEvent);
-            if (saveResult.isFailure()) {
-                LoggingConfiguration.logError("user_registration", "OUTBOX_SAVE_FAILED", saveResult.getError().get().getMessage(), null, Map.of(
-                    "userId", data.userId().getValue(),
-                    "correlationId", data.correlationId()
-                ));
-                return Result.failure(saveResult.getError().get());
-            }
-
-            logger.debug("User registration event saved to outbox successfully", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_OUTBOX_SAVED", Map.of(
-                "userId", data.userId().getValue(),
-                "correlationId", data.correlationId(),
-                "eventType", "UserRegisteredEvent",
-                "outboxId", saveResult.getValue().get()
-            )));
-
-            return Result.success(null);
-        } catch (Exception e) {
-            LoggingConfiguration.logError("user_registration", "OUTBOX_SERIALIZATION_FAILED", e.getMessage(), e, Map.of(
-                "userId", data.userId().getValue(),
-                "correlationId", data.correlationId()
-            ));
-
-            logger.error("Failed to save user registration event to outbox", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_OUTBOX_ERROR", Map.of(
-                "userId", data.userId().getValue(),
-                "correlationId", data.correlationId(),
-                "error", e.getMessage()
-            )), e);
-
-            return Result.failure(ErrorDetail.of("OUTBOX_SAVE_FAILED",
-                "Failed to save event to outbox: " + e.getMessage(), "error.outbox.saveFailed"));
-        }
-    }
 
     /**
      * Data class for user registration information
