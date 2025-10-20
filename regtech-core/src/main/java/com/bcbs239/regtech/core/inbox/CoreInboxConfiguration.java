@@ -3,14 +3,14 @@ package com.bcbs239.regtech.core.inbox;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
  * Core inbox configuration providing shared inbox infrastructure.
- * This configuration provides the InboxMessageRepository bean used across bounded contexts.
+ * This configuration provides the InboxMessageRepository bean.
+ * Handler registration is now handled automatically by IntegrationEventDispatcher.
  */
 @Configuration
 public class CoreInboxConfiguration {

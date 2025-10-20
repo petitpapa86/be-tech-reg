@@ -147,40 +147,7 @@ public abstract class GenericInboxEventProcessor {
      * Log inbox statistics every 5 minutes asynchronously.
      * Can be overridden by subclasses to provide different scheduling.
      */
-    @Scheduled(fixedDelay = 300000, initialDelay = 300000)
-    @Async
-    public void logInboxStats() {
-        if (!isProcessingEnabled()) {
-            return;
-        }
 
-        MDC.put("module", contextName);
-        MDC.put("processor", "inbox");
-
-        try {
-            var stats = eventPublisher.getStats();
-            logger.info("Inbox statistics", LoggingConfiguration.createStructuredLog("INBOX_STATS", Map.of(
-                "context", contextName,
-                "pending", stats.pending(),
-                "processing", stats.processing(),
-                "processed", stats.processed(),
-                "failed", stats.failed(),
-                "deadLetter", stats.deadLetter()
-            )));
-        } catch (Exception e) {
-            LoggingConfiguration.logError("inbox_stats", "STATS_FAILED", e.getMessage(), e, Map.of(
-                "context", contextName
-            ));
-
-            logger.error("Error logging inbox statistics", LoggingConfiguration.createStructuredLog("INBOX_STATS_FAILED", Map.of(
-                "context", contextName,
-                "error", e.getMessage()
-            )), e);
-        } finally {
-            MDC.remove("module");
-            MDC.remove("processor");
-        }
-    }
 
     /**
      * Determines if inbox processing is enabled for this context.

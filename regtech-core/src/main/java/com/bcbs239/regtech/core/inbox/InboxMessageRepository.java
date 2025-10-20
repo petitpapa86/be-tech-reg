@@ -2,7 +2,6 @@ package com.bcbs239.regtech.core.inbox;
 
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.function.BiFunction;
 
 /**
@@ -41,9 +40,4 @@ public interface InboxMessageRepository {
      * Reset a failed message to PENDING for retry. Returns true if the reset occurred (e.g., retryCount < max).
      */
     default Function<String, Boolean> resetForRetry() { return id -> false; }
-
-    /**
-     * Supplier for inbox statistics; optional.
-     */
-    default Supplier<InboxStats> statsSupplier() { return () -> new InboxStats(0,0,0,0,0); }
 }

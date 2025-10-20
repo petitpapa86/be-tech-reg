@@ -37,7 +37,7 @@ public class IntegrationEventConsumer {
     @EventListener
     @Transactional
     public void consumeIntegrationEvent(IntegrationEvent event) throws JsonProcessingException {
-        String eventType = event.getClass().getSimpleName();
+        String eventType = event.getClass().getName();
         logger.info("📨 Consuming IntegrationEvent: type={}, id={}",
             eventType, event.getId());
 

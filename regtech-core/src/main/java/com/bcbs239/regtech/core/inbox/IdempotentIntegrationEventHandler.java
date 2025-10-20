@@ -37,16 +37,17 @@ public class IdempotentIntegrationEventHandler<T extends IntegrationEvent> imple
         }
 
         try {
-            // Process the event
+            // Process the event - let exceptions bubble up to inbox processor
             decoratedHandler.handle(event);
 
-            // Mark as processed
+            // Mark as processed only if successful
             consumerRepository.save(new InboxMessageConsumer(messageId, handlerName));
             logger.debug("Event {} successfully processed by handler {}", messageId, handlerName);
 
         } catch (Exception e) {
-            logger.error("Failed to process event {} with handler {}", messageId, handlerName, e);
-            throw e; // Re-throw to let the inbox processor handle the failure
+            logger.error("Failed to process event {} with handler {}: {}", messageId, handlerName, e.getMessage(), e);
+            // Re-throw to let inbox processor handle the failure (retry/dead letter)
+            throw e;
         }
     }
 
