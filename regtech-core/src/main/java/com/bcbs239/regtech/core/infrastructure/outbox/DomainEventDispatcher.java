@@ -12,18 +12,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 /**
- * Dispatcher for domain events using closures.
- * Registers handlers as functions and dispatches events to matching handlers.
+ * Dispatcher for domain events to registered handlers.
  */
 @Component
 public class DomainEventDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(DomainEventDispatcher.class);
 
-    private final Map<Class<? extends DomainEvent>, List<Function<DomainEvent, Boolean>>> handlers = new ConcurrentHashMap<>();
+    private final Map<Class<? extends DomainEvent>, List<com.bcbs239.regtech.core.events.DomainEventHandler<? extends DomainEvent>>> handlers = new ConcurrentHashMap<>();
     private final ApplicationContext applicationContext;
 
     public DomainEventDispatcher(ApplicationContext applicationContext) {
@@ -32,20 +30,15 @@ public class DomainEventDispatcher {
 
     @EventListener
     public void onContextRefreshed(ContextRefreshedEvent event) {
-        // Register handlers from Spring context
-        Map<String, Object> beans = applicationContext.getBeansWithAnnotation(DomainEventHandler.class);
+        // Register all DomainEventHandler beans after the context is fully initialized
+        @SuppressWarnings("unchecked")
+        Map<String, com.bcbs239.regtech.core.events.DomainEventHandler<? extends DomainEvent>> beans = (Map<String, com.bcbs239.regtech.core.events.DomainEventHandler<? extends DomainEvent>>) (Map<String, ?>) applicationContext.getBeansOfType(com.bcbs239.regtech.core.events.DomainEventHandler.class);
         if (beans != null && !beans.isEmpty()) {
-            for (Object bean : beans.values()) {
+            for (com.bcbs239.regtech.core.events.DomainEventHandler<? extends DomainEvent> handler : beans.values()) {
                 try {
-                    if (bean instanceof Function) {
-                        @SuppressWarnings("unchecked")
-                        Function<DomainEvent, Boolean> handlerFunction = (Function<DomainEvent, Boolean>) bean;
-                        // For now, assume all handlers handle all events or use annotation to specify
-                        // This is simplified; in practice, we'd need a way to map handlers to event types
-                        registerHandler(DomainEvent.class, handlerFunction);
-                    }
+                    registerHandler(handler);
                 } catch (Exception e) {
-                    logger.error("Failed to auto-register domain event handler {}", bean.getClass().getName(), e);
+                    logger.error("Failed to auto-register domain event handler {}", handler.getClass().getName(), e);
                 }
             }
         } else {
@@ -53,22 +46,17 @@ public class DomainEventDispatcher {
         }
     }
 
-    /**
-     * Register a handler function for a specific event type.
-     */
-    public void registerHandler(Class<? extends DomainEvent> eventType, Function<DomainEvent, Boolean> handler) {
-        handlers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(handler);
-        logger.info("Registered event handler for event type {}", eventType.getSimpleName());
+    public void registerHandler(com.bcbs239.regtech.core.events.DomainEventHandler<? extends DomainEvent> handler) {
+        Class<? extends DomainEvent> eventType = handler.eventClass();
+        handlers.computeIfAbsent(eventType, key -> new ArrayList<>()).add(handler);
+        logger.info("Registered event handler {} for event type {}", handler.getClass().getSimpleName(), eventType.getSimpleName());
     }
 
-    /**
-     * Dispatch event to all matching handlers.
-     */
     public void dispatch(DomainEvent event) {
-        List<Function<DomainEvent, Boolean>> matchedHandlers = new ArrayList<>();
+        // Support subclasses and proxies by matching registered handler types that are assignable from the event's class
+        List<com.bcbs239.regtech.core.events.DomainEventHandler<? extends DomainEvent>> matchedHandlers = new ArrayList<>();
 
-        // Find handlers for exact type and super types
-        for (Map.Entry<Class<? extends DomainEvent>, List<Function<DomainEvent, Boolean>>> entry : handlers.entrySet()) {
+        for (Map.Entry<Class<? extends DomainEvent>, List<com.bcbs239.regtech.core.events.DomainEventHandler<? extends DomainEvent>>> entry : handlers.entrySet()) {
             Class<? extends DomainEvent> registeredType = entry.getKey();
             if (registeredType.isAssignableFrom(event.getClass())) {
                 matchedHandlers.addAll(entry.getValue());
@@ -76,16 +64,14 @@ public class DomainEventDispatcher {
         }
 
         if (!matchedHandlers.isEmpty()) {
-            for (Function<DomainEvent, Boolean> handler : matchedHandlers) {
+            for (com.bcbs239.regtech.core.events.DomainEventHandler<? extends DomainEvent> handler : matchedHandlers) {
                 try {
-                    boolean success = handler.apply(event);
-                    if (success) {
-                        logger.info("Dispatched event {} successfully", event.getClass().getSimpleName());
-                    } else {
-                        logger.warn("Handler returned false for event {}", event.getClass().getSimpleName());
-                    }
+                    @SuppressWarnings("unchecked")
+                    com.bcbs239.regtech.core.events.DomainEventHandler<DomainEvent> h = (com.bcbs239.regtech.core.events.DomainEventHandler<DomainEvent>) handler;
+                    h.handle(event);
+                    logger.info("Dispatched event {} to handler {}", event.getClass().getSimpleName(), handler.getClass().getSimpleName());
                 } catch (Exception e) {
-                    logger.error("Failed to dispatch event {} to handler", event.getClass().getSimpleName(), e);
+                    logger.error("Failed to handle event {} with handler {}", event.getClass().getSimpleName(), handler.getClass().getSimpleName(), e);
                 }
             }
         } else {
@@ -93,9 +79,7 @@ public class DomainEventDispatcher {
         }
     }
 
-    /**
-     * Annotation for domain event handlers.
-     */
-    @interface DomainEventHandler {
+    public Map<Class<? extends DomainEvent>, List<com.bcbs239.regtech.core.events.DomainEventHandler<? extends DomainEvent>>> getHandlers() {
+        return handlers;
     }
 }

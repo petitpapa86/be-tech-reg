@@ -166,8 +166,9 @@ public class ProcessInboxJob {
                 return 0; // Not counted as processed since no handler was invoked
             }
 
-            // Attempt to deserialize payload into a generic Object, handler is expected to cast
-            Object event = objectMapper.readValue(message.getPayload(), Object.class);
+            // Deserialize payload using the event class
+            Class<?> eventClass = Class.forName(message.getEventType());
+            Object event = objectMapper.readValue(message.getPayload(), eventClass);
 
             // Extract correlation ID from event if it extends BaseEvent
             String correlationId = extractCorrelationId(event);

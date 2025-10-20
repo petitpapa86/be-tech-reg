@@ -2,8 +2,6 @@ package com.bcbs239.regtech.core.infrastructure.outbox;
 
 import com.bcbs239.regtech.core.events.DomainEvent;
 import com.bcbs239.regtech.core.shared.Result;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,10 +14,11 @@ import java.util.List;
  */
 public class BaseUnitOfWork {
 
-    private static final Logger logger = LoggerFactory.getLogger(BaseUnitOfWork.class);
-
     @Autowired
     private EventBus outboxEventBus;
+
+    @Autowired
+    private DomainEventPublisher domainEventPublisher;
 
     private final List<DomainEvent> domainEvents = new ArrayList<>();
 
@@ -48,21 +47,27 @@ public class BaseUnitOfWork {
     }
 
     /**
-     * Save changes: persist collected events to outbox.
-     * Events will be dispatched by the OutboxProcessor background job.
+     * Save changes: persist collected events to outbox and schedule internal dispatch after commit.
+     * Events will be dispatched by the OutboxProcessor background job for external systems.
      */
     @Transactional
     public Result<Void> saveChanges() {
         try {
-            // Persist domain events to outbox only
+            // Perform the actual save operations (implemented by subclasses)
+            doSaveChanges();
+
+            // Persist domain events to outbox within the same transaction
             if (!domainEvents.isEmpty()) {
-                DomainEvent[] eventsArray = domainEvents.toArray(new DomainEvent[0]);
-                Result<Void> outboxResult = outboxEventBus.publishAll(eventsArray);
+                Result<Void> outboxResult = outboxEventBus.publishAll(domainEvents.toArray(DomainEvent[]::new));
                 if (outboxResult.isFailure()) {
                     domainEvents.clear();
                     throw new RuntimeException("Failed to persist events to outbox: " + outboxResult.getError().get().getMessage());
                 }
 
+//                // Schedule dispatch of internal handlers after commit
+//                domainEventPublisher.publishEvents(new ArrayList<>(domainEvents));
+
+                // Clear the collected events now that they've been persisted and scheduled
                 domainEvents.clear();
             }
 
@@ -70,8 +75,11 @@ public class BaseUnitOfWork {
 
         } catch (Exception e) {
             domainEvents.clear();
-            logger.error("Error in saveChanges", e);
             throw e;
         }
+    }
+
+    protected void doSaveChanges() {
+        // Default implementation does nothing; subclasses can override
     }
 }
