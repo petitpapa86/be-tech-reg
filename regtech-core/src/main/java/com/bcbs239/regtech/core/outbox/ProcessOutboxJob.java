@@ -19,7 +19,6 @@ import java.util.function.Function;
  * deserializes payloads and dispatches to registered handlers keyed by eventType.
  * Uses Spring's async capabilities for concurrent message processing within batches.
  */
-@Component
 public class ProcessOutboxJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessOutboxJob.class);
@@ -32,7 +31,7 @@ public class ProcessOutboxJob {
     public ProcessOutboxJob(
             OutboxMessageRepository repository,
             ObjectMapper objectMapper,
-            @Qualifier("iamOutboxHandlers") Map<String, Function<Object, Boolean>> handlersByEventType,
+            Map<String, Function<Object, Boolean>> handlersByEventType,
             OutboxOptions options
     ) {
         this.repository = repository;

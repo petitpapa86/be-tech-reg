@@ -1,105 +1,63 @@
 package com.bcbs239.regtech.billing.application.events;
 
-import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommand;
-import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentCommandHandler;
-import com.bcbs239.regtech.billing.application.processpayment.ProcessPaymentResponse;
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.events.DomainEventHandler;
-import com.bcbs239.regtech.core.events.UserRegisteredEvent;
+import com.bcbs239.regtech.core.application.IIntegrationEventHandler;
+import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredIntegrationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Event handler for UserRegisteredEvent from IAM context.
- * Triggers payment processing in the billing context using direct event listening.
- * Now called synchronously when UserRegisteredEvent is published.
+ * Integration event handler for UserRegisteredIntegrationEvent from IAM context.
+ * Processes user registration events through the shared inbox infrastructure for reliable delivery.
+ * Handles billing-specific logic when new users register in the IAM bounded context.
  */
-@Component("billingUserRegisteredEventHandler")
-public class UserRegisteredEventHandler implements DomainEventHandler<UserRegisteredEvent> {
+@Component("billingUserRegisteredIntegrationEventHandler")
+public class UserRegisteredEventHandler implements IIntegrationEventHandler<UserRegisteredIntegrationEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(UserRegisteredEventHandler.class);
 
-    private final ProcessPaymentCommandHandler processPaymentCommandHandler;
-
-    public UserRegisteredEventHandler(
-            ProcessPaymentCommandHandler processPaymentCommandHandler) {
-        this.processPaymentCommandHandler = processPaymentCommandHandler;
+    public UserRegisteredEventHandler() {
+        // Constructor can be used for dependency injection if needed in the future
     }
 
     /**
-     * Handle user registered event by triggering payment processing.
-     * Called synchronously when UserRegisteredEvent is published.
+     * Handle user registered integration event by processing billing logic.
+     * Processed asynchronously through the inbox pattern for guaranteed delivery.
      */
-    @Transactional
-    public void processTransactional(UserRegisteredEvent event) {
-        logger.info("Received UserRegisteredEvent for user: {} with correlation: {}", 
-            event.getUserId(), event.getCorrelationId());
+    @Override
+    public void handle(UserRegisteredIntegrationEvent event) {
+        logger.info("Processing UserRegisteredIntegrationEvent for user: {} ({} {}), email: {}, bankId: {}",
+            event.getUserId(),
+            event.getFirstName(),
+            event.getLastName(),
+            event.getEmail(),
+            event.getBankId());
 
         try {
-            // Create enhanced correlation ID with user data for payment processing
-            String enhancedCorrelationId = String.format("%s|userId=%s|email=%s|name=%s|bankId=%s|phone=%s|address=%s",
-                event.getCorrelationId(),
-                event.getUserId(),
-                event.getEmail(),
-                event.getName(),
-                event.getBankId(),
-                event.getPhone() != null ? event.getPhone() : "",
-                event.getAddress() != null ? event.getAddress().toString() : ""
-            );
+            // TODO: Implement billing-specific logic for new user registration:
+            // - Create billing account for the user
+            // - Set up default billing preferences based on bankId
+            // - Initialize subscription if needed
+            // - Send welcome billing email
+            // - Create audit trail for compliance
+            // - Set up payment method collection workflow (separate from registration)
 
-            // Create and execute payment processing command
-            Result<ProcessPaymentCommand> commandResult = ProcessPaymentCommand.create(
-                event.getPaymentMethodId(),
-                enhancedCorrelationId
-            );
-
-            if (commandResult.isFailure()) {
-                logger.error("Failed to create ProcessPaymentCommand for user {}: {}", 
-                    event.getUserId(), commandResult.getError().get().getMessage());
-                return;
-            }
-
-            // Execute payment processing - this will automatically publish events via outbox pattern
-            Result<ProcessPaymentResponse> result = 
-                processPaymentCommandHandler.handle(commandResult.getValue().get());
-
-            if (result.isSuccess()) {
-                logger.info("Successfully processed payment for user: {} with correlation: {} - events published via outbox", 
-                    event.getUserId(), event.getCorrelationId());
-            } else {
-                logger.error("Failed to process payment for user {}: {}", 
-                    event.getUserId(), result.getError().get().getMessage());
-            }
+            logger.info("User registration integration event processing completed for billing: userId={}, fullName={} {}",
+                event.getUserId(), event.getFirstName(), event.getLastName());
 
         } catch (Exception e) {
-            logger.error("Unexpected error processing UserRegisteredEvent for user {}: {}", 
+            logger.error("Unexpected error processing UserRegisteredIntegrationEvent for user {}: {}",
                 event.getUserId(), e.getMessage(), e);
         }
     }
 
     @Override
-    public String eventType() {
-        return "UserRegisteredEvent";
+    public Class<UserRegisteredIntegrationEvent> getEventClass() {
+        return UserRegisteredIntegrationEvent.class;
     }
 
     @Override
-    public Class<UserRegisteredEvent> eventClass() {
-        return UserRegisteredEvent.class;
-    }
-
-    // Adapter from domain event interface to the transactional processing method
-    @Override
-    @EventListener
-    public boolean handle(UserRegisteredEvent event) {
-        try {
-            processTransactional(event);
-            return true;
-        } catch (Exception e) {
-            logger.error("Domain event handler failed for user {}: {}", event.getUserId(), e.getMessage(), e);
-            return false;
-        }
+    public String getHandlerName() {
+        return "UserRegisteredEventHandler";
     }
 }

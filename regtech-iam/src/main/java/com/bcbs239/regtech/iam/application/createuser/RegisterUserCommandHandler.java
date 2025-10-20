@@ -347,8 +347,6 @@ public class RegisterUserCommandHandler {
                 "error", e.getMessage() != null ? e.getMessage() : "null"
             )), e);
             throw e;
-        } finally {
-            // No MDC cleanup needed - using explicit structured logging instead
         }
     }
 

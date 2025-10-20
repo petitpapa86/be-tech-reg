@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Base Unit of Work that collects domain events and persists them to outbox.
@@ -18,9 +17,6 @@ import java.util.function.Function;
 public class BaseUnitOfWork {
 
     private static final Logger logger = LoggerFactory.getLogger(BaseUnitOfWork.class);
-
-    @Autowired
-    private DomainEventPublisher domainEventPublisher;
 
     @Autowired
     private EventBus outboxEventBus;
@@ -52,12 +48,13 @@ public class BaseUnitOfWork {
     }
 
     /**
-     * Save changes: persist collected events to outbox and dispatch internal handlers.
+     * Save changes: persist collected events to outbox.
+     * Events will be dispatched by the OutboxProcessor background job.
      */
     @Transactional
     public Result<Void> saveChanges() {
         try {
-            // Persist domain events to outbox
+            // Persist domain events to outbox only
             if (!domainEvents.isEmpty()) {
                 DomainEvent[] eventsArray = domainEvents.toArray(new DomainEvent[0]);
                 Result<Void> outboxResult = outboxEventBus.publishAll(eventsArray);
@@ -65,9 +62,6 @@ public class BaseUnitOfWork {
                     domainEvents.clear();
                     throw new RuntimeException("Failed to persist events to outbox: " + outboxResult.getError().get().getMessage());
                 }
-
-                // Schedule dispatch of internal handlers after commit
-                domainEventPublisher.publishEvents(new ArrayList<>(domainEvents));
 
                 domainEvents.clear();
             }

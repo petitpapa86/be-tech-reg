@@ -13,6 +13,7 @@ import com.bcbs239.regtech.core.events.GenericOutboxEventProcessor;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -37,6 +38,7 @@ public class IamOutboxWiring {
     }
 
     @Bean
+    @Primary
     public OutboxMessageRepository iamOutboxRepository() {
         return new OutboxMessageRepository() {
             @Override

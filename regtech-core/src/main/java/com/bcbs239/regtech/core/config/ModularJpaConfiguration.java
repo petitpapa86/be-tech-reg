@@ -11,13 +11,15 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
     "com.bcbs239.regtech.billing.domain",
     "com.bcbs239.regtech.iam.infrastructure.database.entities",
     "com.bcbs239.regtech.billing.infrastructure.database.entities",
-    "com.bcbs239.regtech.billing.infrastructure.outbox"
+    "com.bcbs239.regtech.billing.infrastructure.outbox",
+    "com.bcbs239.regtech.core.inbox"
 })
 @EnableJpaRepositories(basePackages = {
     // Repository packages used by modules (consolidated JPA repositories)
     "com.bcbs239.regtech.iam.infrastructure.database.repositories",
     "com.bcbs239.regtech.billing.infrastructure.database.repositories",
-    "com.bcbs239.regtech.billing.infrastructure.outbox"
+    "com.bcbs239.regtech.billing.infrastructure.outbox",
+    "com.bcbs239.regtech.core.inbox"
 })
 public class ModularJpaConfiguration {
 }

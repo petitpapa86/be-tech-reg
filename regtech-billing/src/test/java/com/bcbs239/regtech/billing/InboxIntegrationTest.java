@@ -1,18 +1,29 @@
 package com.bcbs239.regtech.billing;
 
-import com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.InboxEventRepository;
-import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
+import com.bcbs239.regtech.core.inbox.CoreInboxConfiguration;
+import com.bcbs239.regtech.core.inbox.InboxMessage;
+import com.bcbs239.regtech.core.inbox.InboxMessageJpaRepository;
+import com.bcbs239.regtech.core.inbox.InboxMessageRepository;
+import com.bcbs239.regtech.core.inbox.IntegrationEventConsumer;
+import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredIntegrationEvent;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.context.annotation.Import;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,52 +43,52 @@ public class InboxIntegrationTest {
 
     @SpringBootConfiguration
     @EnableAutoConfiguration
-    @org.springframework.context.annotation.Import(com.bcbs239.regtech.billing.application.events.BillingInboxEventHandler.class)
+    @ComponentScan(
+        basePackages = {"com.bcbs239.regtech.core.inbox"}
+    )
+    @Import({CoreInboxConfiguration.class, BillingTestJpaConfiguration.class, IntegrationEventConsumer.class})
     static class TestConfig {
         // Minimal Spring Boot configuration to allow @SpringBootTest to bootstrap a context for module tests
+        // IntegrationEventConsumer is now automatically configured as a @Component in core module
+    }
 
-        @org.springframework.context.annotation.Bean
-        public java.util.function.Consumer<com.bcbs239.regtech.billing.infrastructure.database.entities.InboxEventEntity> billingInboxSaver(jakarta.persistence.EntityManager em) {
-            return entity -> {
-                em.persist(entity);
-                em.flush();
-            };
-        }
+    @Configuration
+    @EnableJpaRepositories(basePackages = "com.bcbs239.regtech.core.inbox")
+    @EntityScan(basePackages = "com.bcbs239.regtech.core.inbox")
+    static class BillingTestJpaConfiguration {
     }
 
     @Autowired
     private ApplicationEventPublisher publisher;
 
     @Autowired
-    private InboxEventRepository inboxEventRepository;
-
-    @Autowired
-    private com.bcbs239.regtech.billing.application.events.BillingInboxEventHandler inboxEventHandler;
+    private InboxMessageRepository inboxMessageRepository;
 
     @Test
     public void whenPublishUserRegisteredIntegrationEvent_thenInboxRecordCreated() throws InterruptedException {
-        String correlation = UUID.randomUUID().toString();
+        UUID userId = UUID.fromString("12345678-1234-1234-1234-123456789012");
         UserRegisteredIntegrationEvent event = new UserRegisteredIntegrationEvent(
-            "user-123", "alice@example.com", "Alice", "bank-1", "pm-1", null, null, correlation, "iam"
+            userId, "alice@example.com", "Alice", "Smith", "bank-1"
         );
 
-    // Publish event via ApplicationEventPublisher and also invoke handler directly
-    // to eliminate possible event delivery timing/classloader issues in test.
-    publisher.publishEvent(event);
-    inboxEventHandler.handleExternalIntegrationEvent(event);
+        // Publish event via ApplicationEventPublisher
+        publisher.publishEvent(event);
 
-        // Poll for the listener to persist the inbox record (avoid flaky short sleeps)
-        List<InboxEventEntity> found = List.of();
+        // Poll for the inbox processor to store the message
+        List<InboxMessage> found = List.of();
         int attempts = 0;
         int maxAttempts = 25; // ~5 seconds (25 * 200ms)
         while ((found == null || found.isEmpty()) && attempts < maxAttempts) {
             Thread.sleep(200);
-            found = inboxEventRepository.findByEventType("UserRegisteredIntegrationEvent");
+            found = inboxMessageRepository.messageLoader().apply(10); // Load up to 10 messages
+            found = found.stream()
+                .filter(msg -> "UserRegisteredIntegrationEvent".equals(msg.getEventType()))
+                .toList();
             attempts++;
         }
         assertThat(found).isNotEmpty();
-        InboxEventEntity rec = found.get(0);
-        assertThat(rec.getAggregateId()).isEqualTo("user-123");
-        assertThat(rec.getEventData()).contains("alice@example.com");
+        InboxMessage rec = found.get(0);
+        assertThat(rec.getAggregateId()).isEqualTo(userId.toString());
+        assertThat(rec.getPayload()).contains("alice@example.com");
     }
 }

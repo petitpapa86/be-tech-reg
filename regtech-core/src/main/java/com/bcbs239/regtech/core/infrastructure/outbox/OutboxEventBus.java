@@ -4,10 +4,14 @@ import com.bcbs239.regtech.core.events.DomainEvent;
 import com.bcbs239.regtech.core.shared.Result;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 import java.time.Instant;
 
@@ -19,11 +23,12 @@ public class OutboxEventBus implements EventBus {
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxEventBus.class);
 
-    private final OutboxMessageRepository outboxMessageRepository;
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final ObjectMapper objectMapper;
 
-    public OutboxEventBus(OutboxMessageRepository outboxMessageRepository, ObjectMapper objectMapper) {
-        this.outboxMessageRepository = outboxMessageRepository;
+    public OutboxEventBus(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
     }
 
@@ -35,7 +40,7 @@ public class OutboxEventBus implements EventBus {
             String type = domainEvent.getClass().getName();
 
             OutboxMessageEntity outboxMessage = new OutboxMessageEntity(type, content, Instant.now());
-            outboxMessageRepository.save(outboxMessage);
+            entityManager.persist(outboxMessage);
 
             logger.info("Stored domain event in outbox: {} - {}", type, domainEvent);
             return Result.success(null);
