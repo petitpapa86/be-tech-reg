@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing;
 
 import com.bcbs239.regtech.core.inbox.InboxMessageJpaRepository;
-import com.bcbs239.regtech.core.inbox.IntegrationEventDispatcher;
+import com.bcbs239.regtech.core.inbox.IntegrationEventHandlerRegistry;
 import com.bcbs239.regtech.core.inbox.ProcessInboxJob;
 import com.bcbs239.regtech.core.inbox.InboxMessageEntity;
 import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
@@ -54,8 +54,8 @@ public class InboxIntegrationTest {
         public ProcessInboxJob processInboxJob(
                 InboxMessageJpaRepository inboxRepository,
                 ObjectMapper objectMapper,
-                IntegrationEventDispatcher integrationEventDispatcher) {
-            return new ProcessInboxJob(inboxRepository, objectMapper, integrationEventDispatcher);
+                IntegrationEventHandlerRegistry integrationEventHandlerRegistry) {
+            return new ProcessInboxJob(inboxRepository, objectMapper, integrationEventHandlerRegistry);
         }
     }
 

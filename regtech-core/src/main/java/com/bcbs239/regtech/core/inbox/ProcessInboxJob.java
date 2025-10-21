@@ -24,14 +24,14 @@ public class ProcessInboxJob {
 
     private final InboxMessageJpaRepository inboxMessageRepository;
     private final ObjectMapper objectMapper;
-    private final IntegrationEventDispatcher integrationEventDispatcher;
+    private final IntegrationEventHandlerRegistry integrationEventHandlerRegistry;
 
     public ProcessInboxJob(InboxMessageJpaRepository inboxMessageRepository,
                           ObjectMapper objectMapper,
-                          IntegrationEventDispatcher integrationEventDispatcher) {
+                          IntegrationEventHandlerRegistry integrationEventHandlerRegistry) {
         this.inboxMessageRepository = inboxMessageRepository;
         this.objectMapper = objectMapper;
-        this.integrationEventDispatcher = integrationEventDispatcher;
+        this.integrationEventHandlerRegistry = integrationEventHandlerRegistry;
     }
 
     @Scheduled(fixedDelay = 5000) // Run every 5 seconds
@@ -94,7 +94,7 @@ public class ProcessInboxJob {
 
     private void dispatchToHandlers(IntegrationEvent event, String messageId) {
         Class<? extends IntegrationEvent> eventType = event.getClass();
-        List<DomainEventHandler<? extends DomainEvent>> eventHandlers = integrationEventDispatcher.getHandlers(eventType);
+        List<DomainEventHandler<? extends DomainEvent>> eventHandlers = integrationEventHandlerRegistry.getHandlers(eventType);
 
         if (eventHandlers == null || eventHandlers.isEmpty()) {
             logger.warn("No handlers registered for integration event type: {}", eventType.getName());

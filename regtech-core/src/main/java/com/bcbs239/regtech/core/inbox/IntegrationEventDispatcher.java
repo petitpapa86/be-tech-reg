@@ -4,57 +4,44 @@ import com.bcbs239.regtech.core.events.DomainEvent;
 import com.bcbs239.regtech.core.events.DomainEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Registry for integration event handlers.
- * Provides access to registered handlers for event processing.
+ * Deprecated compatibility wrapper for the new IntegrationEventHandlerRegistry.
+ * Keeps the old type available for modules that still depend on it and delegates
+ * all operations to the registry.
  */
 @Component
+@Deprecated
 public class IntegrationEventDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(IntegrationEventDispatcher.class);
 
-    private final Map<Class<? extends DomainEvent>, List<DomainEventHandler<? extends DomainEvent>>> handlers = new ConcurrentHashMap<>();
-    private final ApplicationContext applicationContext;
+    private final IntegrationEventHandlerRegistry delegate;
 
-    public IntegrationEventDispatcher(ApplicationContext applicationContext) {
-        this.applicationContext = applicationContext;
+    public IntegrationEventDispatcher(IntegrationEventHandlerRegistry delegate) {
+        this.delegate = delegate;
     }
 
     @EventListener
     public void onContextRefreshed(ContextRefreshedEvent event) {
-        // Register all IIntegrationEventHandler beans after the context is fully initialized
-        @SuppressWarnings("unchecked")
-        Map<String, DomainEventHandler<? extends DomainEvent>> beans = (Map<String, DomainEventHandler<? extends DomainEvent>>) (Map<String, ?>) applicationContext.getBeansOfType(DomainEventHandler.class);
-        if (beans != null && !beans.isEmpty()) {
-            for (DomainEventHandler<? extends DomainEvent> handler : beans.values()) {
-                try {
-                    registerHandler(handler);
-                } catch (Exception e) {
-                    logger.error("Failed to auto-register domain event handler {}", handler.getClass().getName(), e);
-                }
-            }
-        } else {
-            logger.debug("No DomainEventHandler beans found during context refresh.");
+        // Delegate to new registry (it already implements registration logic)
+        try {
+            delegate.onContextRefreshed(event);
+        } catch (Exception e) {
+            logger.error("Error delegating context refresh to IntegrationEventHandlerRegistry", e);
         }
     }
 
     public void registerHandler(DomainEventHandler<? extends DomainEvent> handler) {
-        Class<? extends DomainEvent> eventType = handler.eventClass();
-        handlers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(handler);
-        logger.info("Registered integration event handler: {} for event type: {}", handler.getClass().getSimpleName(), eventType.getName());
+        delegate.registerHandler(handler);
     }
 
     public List<DomainEventHandler<? extends DomainEvent>> getHandlers(Class<? extends DomainEvent> eventType) {
-        return handlers.getOrDefault(eventType, new ArrayList<>());
+        return delegate.getHandlers(eventType);
     }
 }
