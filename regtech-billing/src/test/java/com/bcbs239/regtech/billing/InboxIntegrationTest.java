@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing;
 
 import com.bcbs239.regtech.core.inbox.InboxMessageJpaRepository;
-import com.bcbs239.regtech.core.inbox.IntegrationEventHandlerRegistry;
+import com.bcbs239.regtech.core.inbox.MessageProcessor;
 import com.bcbs239.regtech.core.inbox.ProcessInboxJob;
 import com.bcbs239.regtech.core.inbox.InboxMessageEntity;
 import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
@@ -48,14 +48,13 @@ public class InboxIntegrationTest {
     @Import({BillingTestJpaConfiguration.class})
     static class TestConfig {
         // Minimal Spring Boot configuration to allow @SpringBootTest to bootstrap a context for module tests
-        // IdempotentIntegrationEventHandler is now automatically configured as a @Component in core module
+        // Components for fetcher/processor should be available from core module
 
         @Bean
         public ProcessInboxJob processInboxJob(
-                InboxMessageJpaRepository inboxRepository,
-                ObjectMapper objectMapper,
-                IntegrationEventHandlerRegistry integrationEventHandlerRegistry) {
-            return new ProcessInboxJob(inboxRepository, objectMapper, integrationEventHandlerRegistry);
+                InboxMessageJpaRepository repository,
+                MessageProcessor messageProcessor) {
+            return new ProcessInboxJob(repository.findPendingMessagesFn(), messageProcessor);
         }
     }
 

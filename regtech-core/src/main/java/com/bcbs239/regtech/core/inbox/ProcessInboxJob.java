@@ -1,20 +1,16 @@
 package com.bcbs239.regtech.core.inbox;
 
-import com.bcbs239.regtech.core.application.IntegrationEvent;
-import com.bcbs239.regtech.core.events.DomainEvent;
-import com.bcbs239.regtech.core.events.DomainEventHandler;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
- * Scheduled processor for inbox messages.
- * Deserializes and dispatches events to integration event handlers.
+ * Scheduled coordinator for inbox message processing.
+ * Delegates fetching and per-message processing to dedicated components.
  */
 @Component
 public class ProcessInboxJob {
@@ -22,25 +18,20 @@ public class ProcessInboxJob {
     private static final Logger logger = LoggerFactory.getLogger(ProcessInboxJob.class);
     private static final int BATCH_SIZE = 10;
 
-    private final InboxMessageJpaRepository inboxMessageRepository;
-    private final ObjectMapper objectMapper;
-    private final IntegrationEventHandlerRegistry integrationEventHandlerRegistry;
+    private final Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> fetchPendingFn;
+    private final MessageProcessor messageProcessor;
 
-    public ProcessInboxJob(InboxMessageJpaRepository inboxMessageRepository,
-                          ObjectMapper objectMapper,
-                          IntegrationEventHandlerRegistry integrationEventHandlerRegistry) {
-        this.inboxMessageRepository = inboxMessageRepository;
-        this.objectMapper = objectMapper;
-        this.integrationEventHandlerRegistry = integrationEventHandlerRegistry;
+    public ProcessInboxJob(Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> fetchPendingFn,
+                          MessageProcessor messageProcessor) {
+        this.fetchPendingFn = fetchPendingFn;
+        this.messageProcessor = messageProcessor;
     }
 
     @Scheduled(fixedDelay = 5000) // Run every 5 seconds
-    @Transactional
     public void processInboxMessages() {
-        List<InboxMessageEntity> pendingMessages = inboxMessageRepository
-            .findPendingMessages(InboxMessageEntity.ProcessingStatus.PENDING);
+        List<InboxMessageEntity> pendingMessages = fetchPendingFn.apply(InboxMessageEntity.ProcessingStatus.PENDING);
 
-        if (pendingMessages.isEmpty()) {
+        if (pendingMessages == null || pendingMessages.isEmpty()) {
             return;
         }
 
@@ -53,72 +44,14 @@ public class ProcessInboxJob {
             }
 
             try {
-                processMessage(message);
-                inboxMessageRepository.markAsProcessed(message.getId(), java.time.Instant.now());
+                messageProcessor.process(message);
                 processedCount++;
             } catch (Exception e) {
                 logger.error("Failed to process inbox message {}: {}", message.getId(), e.getMessage());
-                inboxMessageRepository.markAsPermanentlyFailed(message.getId(), e.getMessage());
+                // The MessageProcessor is responsible for marking failures; continue with next message
             }
         }
 
         logger.info("Processed {} inbox messages successfully", processedCount);
-    }
-
-    private void processMessage(InboxMessageEntity message) {
-        try {
-            String typeName = message.getEventType();
-            Class<?> eventClass = Class.forName(typeName);
-
-            if (!IntegrationEvent.class.isAssignableFrom(eventClass)) {
-                throw new ClassNotFoundException("Event class does not implement IntegrationEvent: " + typeName);
-            }
-
-            @SuppressWarnings("unchecked")
-            Class<? extends IntegrationEvent> integrationEventClass = (Class<? extends IntegrationEvent>) eventClass;
-
-            IntegrationEvent event = objectMapper.readValue(message.getEventData(), integrationEventClass);
-
-            dispatchToHandlers(event, message.getId());
-
-            logger.info("Dispatched integration event from inbox: type={}, id={}", typeName, message.getId());
-
-        } catch (ClassNotFoundException e) {
-            logger.error("Integration event class not found for inbox message {}: {}", message.getId(), e.getMessage());
-            throw new RuntimeException("Integration event class not found", e);
-        } catch (Exception e) {
-            logger.error("Failed to process message {}: {}", message.getId(), e.getMessage());
-            throw new RuntimeException("Failed to process message", e);
-        }
-    }
-
-    private void dispatchToHandlers(IntegrationEvent event, String messageId) {
-        Class<? extends IntegrationEvent> eventType = event.getClass();
-        List<DomainEventHandler<? extends DomainEvent>> eventHandlers = integrationEventHandlerRegistry.getHandlers(eventType);
-
-        if (eventHandlers == null || eventHandlers.isEmpty()) {
-            logger.warn("No handlers registered for integration event type: {}", eventType.getName());
-            return;
-        }
-
-        for (DomainEventHandler<? extends DomainEvent> handler : eventHandlers) {
-            try {
-                String handlerName = handler.getClass().getSimpleName();
-
-                @SuppressWarnings({"rawtypes", "unchecked"})
-                DomainEventHandler rawHandler = handler;
-                boolean success = rawHandler.handle(event);
-
-                if (success) {
-                    logger.debug("Dispatched integration event {} to handler {}", eventType.getName(), handlerName);
-                } else {
-                    logger.error("Handler {} failed to process event {}", handlerName, eventType.getName());
-                }
-            } catch (Exception e) {
-                logger.error("Error dispatching integration event {} to handler {}: {}",
-                    eventType.getName(), handler.getClass().getSimpleName(), e.getMessage(), e);
-                // Continue with other handlers even if one fails
-            }
-        }
     }
 }
