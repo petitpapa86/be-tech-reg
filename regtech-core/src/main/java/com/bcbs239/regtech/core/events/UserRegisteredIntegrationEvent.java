@@ -1,10 +1,12 @@
 package com.bcbs239.regtech.core.events;
 
+import com.bcbs239.regtech.core.application.IntegrationEvent;
+
 /**
  * Integration event for cross-module communication.
  * Separate from the domain event to avoid cycles and maintain clear boundaries.
  */
-public class UserRegisteredIntegrationEvent extends BaseEvent {
+public class UserRegisteredIntegrationEvent extends IntegrationEvent {
     private final String userId;
     private final String email;
     private final String name;
@@ -20,10 +22,7 @@ public class UserRegisteredIntegrationEvent extends BaseEvent {
             String bankId,
             String paymentMethodId,
             String phone,
-            UserRegisteredEvent.AddressInfo address,
-            String correlationId,
-            String sourceModule) {
-        super(correlationId, sourceModule);
+            UserRegisteredEvent.AddressInfo address) {
         this.userId = userId;
         this.email = email;
         this.name = name;
@@ -40,5 +39,4 @@ public class UserRegisteredIntegrationEvent extends BaseEvent {
     public String getPaymentMethodId() { return paymentMethodId; }
     public String getPhone() { return phone; }
     public UserRegisteredEvent.AddressInfo getAddress() { return address; }
-    public String getCorrelationId() { return super.getCorrelationId(); }
 }

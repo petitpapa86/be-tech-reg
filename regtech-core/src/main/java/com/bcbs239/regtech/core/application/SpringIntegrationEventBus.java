@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 /**
  * Implementation of IIntegrationEventBus that publishes integration events
  * to the Spring ApplicationEventPublisher for cross-module communication.
- * Events are consumed by IntegrationEventConsumer and stored in the shared inbox.
+ * Events are consumed by IdempotentIntegrationEventHandler and stored in the shared inbox.
  */
 @Component
 public class SpringIntegrationEventBus implements IIntegrationEventBus {

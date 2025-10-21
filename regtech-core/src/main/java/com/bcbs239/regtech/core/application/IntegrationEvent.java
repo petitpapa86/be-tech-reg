@@ -3,12 +3,16 @@ package com.bcbs239.regtech.core.application;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.bcbs239.regtech.core.events.DomainEvent;
+import lombok.Getter;
+
 /**
  * Base class for all integration events that are published across bounded contexts.
  * Integration events represent significant business events that other bounded contexts
  * might be interested in.
  */
-public abstract class IntegrationEvent {
+@Getter
+public abstract class IntegrationEvent implements DomainEvent {
 
     private final UUID id;
     private final LocalDateTime occurredOn;
@@ -20,16 +24,9 @@ public abstract class IntegrationEvent {
         this.eventType = this.getClass().getSimpleName();
     }
 
-    public UUID getId() {
-        return id;
-    }
-
-    public LocalDateTime getOccurredOn() {
-        return occurredOn;
-    }
-
-    public String getEventType() {
-        return eventType;
+    @Override
+    public String eventType() {
+        return getEventType();
     }
 
     @Override

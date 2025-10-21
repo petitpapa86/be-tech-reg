@@ -1,6 +1,8 @@
 package com.bcbs239.regtech.core.inbox;
 
 import com.bcbs239.regtech.core.application.IntegrationEvent;
+import com.bcbs239.regtech.core.events.DomainEvent;
+import com.bcbs239.regtech.core.events.DomainEventHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +79,7 @@ public class ProcessInboxJob {
 
             IntegrationEvent event = objectMapper.readValue(message.getEventData(), integrationEventClass);
 
-            integrationEventDispatcher.dispatch(event);
+            dispatchToHandlers(event, message.getId());
 
             logger.info("Dispatched integration event from inbox: type={}, id={}", typeName, message.getId());
 
@@ -87,6 +89,36 @@ public class ProcessInboxJob {
         } catch (Exception e) {
             logger.error("Failed to process message {}: {}", message.getId(), e.getMessage());
             throw new RuntimeException("Failed to process message", e);
+        }
+    }
+
+    private void dispatchToHandlers(IntegrationEvent event, String messageId) {
+        Class<? extends IntegrationEvent> eventType = event.getClass();
+        List<DomainEventHandler<? extends DomainEvent>> eventHandlers = integrationEventDispatcher.getHandlers(eventType);
+
+        if (eventHandlers == null || eventHandlers.isEmpty()) {
+            logger.warn("No handlers registered for integration event type: {}", eventType.getName());
+            return;
+        }
+
+        for (DomainEventHandler<? extends DomainEvent> handler : eventHandlers) {
+            try {
+                String handlerName = handler.getClass().getSimpleName();
+
+                @SuppressWarnings({"rawtypes", "unchecked"})
+                DomainEventHandler rawHandler = handler;
+                boolean success = rawHandler.handle(event);
+
+                if (success) {
+                    logger.debug("Dispatched integration event {} to handler {}", eventType.getName(), handlerName);
+                } else {
+                    logger.error("Handler {} failed to process event {}", handlerName, eventType.getName());
+                }
+            } catch (Exception e) {
+                logger.error("Error dispatching integration event {} to handler {}: {}",
+                    eventType.getName(), handler.getClass().getSimpleName(), e.getMessage(), e);
+                // Continue with other handlers even if one fails
+            }
         }
     }
 }
