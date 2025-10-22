@@ -1,10 +1,9 @@
 package com.bcbs239.regtech.core.inbox;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import java.util.List;
 import java.util.function.Function;
 
@@ -14,13 +13,11 @@ import java.util.function.Function;
 @Configuration
 public class InboxProcessingConfiguration {
 
-    @PersistenceContext
-    private EntityManager em;
+    @Autowired
+    private InboxMessageOperations inboxMessageOperations;
 
     @Bean
     public Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> findPendingMessagesFn() {
-        return status -> em.createQuery(
-            "SELECT i FROM InboxMessageEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxMessageEntity.class
-        ).setParameter("status", status).getResultList();
+        return inboxMessageOperations.findPendingMessagesFn();
     }
 }
