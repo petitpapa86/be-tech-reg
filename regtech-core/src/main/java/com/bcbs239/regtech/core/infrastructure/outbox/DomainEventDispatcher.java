@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * Dispatcher for domain events to registered handlers.
@@ -79,7 +80,7 @@ public class DomainEventDispatcher {
         }
     }
 
-    public Map<Class<? extends DomainEvent>, List<com.bcbs239.regtech.core.events.DomainEventHandler<? extends DomainEvent>>> getHandlers() {
-        return handlers;
+    public Consumer<DomainEvent> dispatchFn() {
+        return this::dispatch;
     }
 }

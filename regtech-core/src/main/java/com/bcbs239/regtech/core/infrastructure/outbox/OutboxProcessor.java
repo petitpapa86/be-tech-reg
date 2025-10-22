@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Scheduled processor for outbox messages.
@@ -20,23 +23,29 @@ public class OutboxProcessor {
     private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
     private static final int BATCH_SIZE = 10;
 
-    private final OutboxMessageRepository outboxMessageRepository;
+    private final Function<OutboxMessageStatus, List<OutboxMessageEntity>> findPendingFn;
+    private final Consumer<String> markAsProcessedFn;
+    private final BiConsumer<String, String> markAsFailedFn;
+    private final Consumer<DomainEvent> dispatchFn;
     private final ObjectMapper objectMapper;
-    private final DomainEventDispatcher domainEventDispatcher;
 
-    public OutboxProcessor(OutboxMessageRepository outboxMessageRepository,
-                          ObjectMapper objectMapper,
-                          DomainEventDispatcher domainEventDispatcher) {
-        this.outboxMessageRepository = outboxMessageRepository;
+    public OutboxProcessor(
+            Function<OutboxMessageStatus, List<OutboxMessageEntity>> findPendingFn,
+            Consumer<String> markAsProcessedFn,
+            BiConsumer<String, String> markAsFailedFn,
+            Consumer<DomainEvent> dispatchFn,
+            ObjectMapper objectMapper) {
+        this.findPendingFn = findPendingFn;
+        this.markAsProcessedFn = markAsProcessedFn;
+        this.markAsFailedFn = markAsFailedFn;
+        this.dispatchFn = dispatchFn;
         this.objectMapper = objectMapper;
-        this.domainEventDispatcher = domainEventDispatcher;
     }
 
     @Scheduled(fixedDelay = 5000) // Run every 5 seconds
     @Transactional
     public void processOutboxMessages() {
-        List<OutboxMessageEntity> pendingMessages = outboxMessageRepository
-            .findByStatusOrderByOccurredOnUtc(OutboxMessageStatus.PENDING);
+        List<OutboxMessageEntity> pendingMessages = findPendingFn.apply(OutboxMessageStatus.PENDING);
 
         if (pendingMessages.isEmpty()) {
             return;
@@ -52,17 +61,14 @@ public class OutboxProcessor {
 
             try {
                 publishMessage(message);
-                message.markAsProcessed();
+                markAsProcessedFn.accept(message.getId());
                 processedCount++;
             } catch (Exception e) {
                 logger.error("Failed to process outbox message {}: {}", message.getId(), e.getMessage());
-                message.markAsFailed(e.getMessage());
+                markAsFailedFn.accept(message.getId(), e.getMessage());
             }
         }
 
-        if (processedCount > 0) {
-            outboxMessageRepository.saveAll(pendingMessages.subList(0, processedCount));
-        }
         logger.info("Processed {} outbox messages successfully", processedCount);
     }
 
@@ -80,7 +86,7 @@ public class OutboxProcessor {
 
             DomainEvent event = objectMapper.readValue(message.getContent(), domainEventClass);
 
-            domainEventDispatcher.dispatch(event);
+            dispatchFn.accept(event);
 
             logger.info("Dispatched domain event from outbox: type={}, id={}", typeName, message.getId());
 

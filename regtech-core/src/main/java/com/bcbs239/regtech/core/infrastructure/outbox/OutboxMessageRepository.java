@@ -1,21 +1,45 @@
 package com.bcbs239.regtech.core.infrastructure.outbox;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 /**
- * JPA Repository for outbox messages.
+ * Repository for outbox messages using EntityManager.
  */
 @Repository
-public interface OutboxMessageRepository extends JpaRepository<OutboxMessageEntity, String> {
+public class OutboxMessageRepository {
 
-    @Query("SELECT om FROM OutboxMessageEntity om WHERE om.status = :status ORDER BY om.occurredOnUtc ASC")
-    List<OutboxMessageEntity> findByStatusOrderByOccurredOnUtc(@Param("status") OutboxMessageStatus status);
+    @PersistenceContext
+    private EntityManager em;
 
-    @Query("SELECT COUNT(om) FROM OutboxMessageEntity om WHERE om.status = :status")
-    long countByStatus(@Param("status") OutboxMessageStatus status);
+    public List<OutboxMessageEntity> findByStatusOrderByOccurredOnUtc(OutboxMessageStatus status) {
+        return em.createQuery(
+            "SELECT om FROM OutboxMessageEntity om WHERE om.status = :status ORDER BY om.occurredOnUtc ASC",
+            OutboxMessageEntity.class
+        ).setParameter("status", status).getResultList();
+    }
+
+    public long countByStatus(OutboxMessageStatus status) {
+        Long count = em.createQuery(
+            "SELECT COUNT(om) FROM OutboxMessageEntity om WHERE om.status = :status",
+            Long.class
+        ).setParameter("status", status).getSingleResult();
+        return count != null ? count : 0L;
+    }
+
+    public OutboxMessageEntity save(OutboxMessageEntity entity) {
+        if (entity.getId() == null || em.find(OutboxMessageEntity.class, entity.getId()) == null) {
+            em.persist(entity);
+            return entity;
+        } else {
+            return em.merge(entity);
+        }
+    }
+
+    public List<OutboxMessageEntity> findAll() {
+        return em.createQuery("SELECT om FROM OutboxMessageEntity om", OutboxMessageEntity.class).getResultList();
+    }
 }

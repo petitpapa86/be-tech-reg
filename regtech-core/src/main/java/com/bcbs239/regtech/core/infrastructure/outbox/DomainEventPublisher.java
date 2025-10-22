@@ -8,6 +8,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Publisher for domain events that dispatches after transaction commit.
@@ -17,10 +18,10 @@ public class DomainEventPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(DomainEventPublisher.class);
 
-    private final DomainEventDispatcher eventDispatcher;
+    private final Consumer<DomainEvent> dispatchFn;
 
-    public DomainEventPublisher(DomainEventDispatcher eventDispatcher) {
-        this.eventDispatcher = eventDispatcher;
+    public DomainEventPublisher(Consumer<DomainEvent> dispatchFn) {
+        this.dispatchFn = dispatchFn;
     }
 
     /**
@@ -50,7 +51,7 @@ public class DomainEventPublisher {
             logger.info("Dispatching {} domain events after transaction commit", domainEvents.size());
 
             for (DomainEvent domainEvent : domainEvents) {
-                eventDispatcher.dispatch(domainEvent);
+                dispatchFn.accept(domainEvent);
             }
         } catch (Exception e) {
             logger.error("Failed to dispatch domain events after transaction commit", e);
