@@ -40,15 +40,10 @@ public class InboxMessageOperations {
     // Read closures (no explicit transaction needed)
 
     @SuppressWarnings("unused")
-    public Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> findByProcessingStatusOrderByReceivedAtAscFn() {
+    public Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> findPendingMessagesFn() {
         return status -> em.createQuery(
             "SELECT i FROM InboxMessageEntity i WHERE i.processingStatus = :status ORDER BY i.receivedAt ASC", InboxMessageEntity.class
         ).setParameter("status", status).getResultList();
-    }
-
-    @SuppressWarnings("unused")
-    public Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> findPendingMessagesFn() {
-        return this.findByProcessingStatusOrderByReceivedAtAscFn();
     }
 
     @SuppressWarnings("unused")
