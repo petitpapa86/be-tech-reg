@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing;
 
-import com.bcbs239.regtech.core.inbox.InboxMessageJpaRepository;
+import com.bcbs239.regtech.core.inbox.InboxMessageOperations;
 import com.bcbs239.regtech.core.inbox.MessageProcessor;
 import com.bcbs239.regtech.core.inbox.ProcessInboxJob;
 import com.bcbs239.regtech.core.inbox.InboxMessageEntity;
@@ -52,7 +52,7 @@ public class InboxIntegrationTest {
 
         @Bean
         public ProcessInboxJob processInboxJob(
-                InboxMessageJpaRepository repository,
+                InboxMessageOperations repository,
                 MessageProcessor messageProcessor) {
             return new ProcessInboxJob(repository.findPendingMessagesFn(), messageProcessor);
         }
@@ -65,7 +65,7 @@ public class InboxIntegrationTest {
     }
 
     @Autowired
-    private InboxMessageJpaRepository inboxMessageJpaRepository;
+    private InboxMessageOperations inboxMessageJpaRepository;
 
     @Autowired
     private ObjectMapper objectMapper;

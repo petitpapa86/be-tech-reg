@@ -11,19 +11,19 @@ import java.time.Instant;
 @Deprecated
 public class DefaultMessageStateUpdater implements MessageStateUpdater {
 
-    private final InboxMessageJpaRepository repository;
+    private final InboxMessageOperations repository;
 
-    public DefaultMessageStateUpdater(InboxMessageJpaRepository repository) {
+    public DefaultMessageStateUpdater(InboxMessageOperations repository) {
         this.repository = repository;
     }
 
     @Override
     public void markAsProcessed(String messageId) {
-        repository.markAsProcessed(messageId, Instant.now());
+        repository.markAsProcessedFn().apply(new InboxMessageOperations.MarkAsProcessedRequest(messageId, Instant.now()));
     }
 
     @Override
     public void markAsPermanentlyFailed(String messageId, String reason) {
-        repository.markAsPermanentlyFailed(messageId, reason);
+        repository.markAsPermanentlyFailedFn().apply(new InboxMessageOperations.MarkAsPermanentlyFailedRequest(messageId, reason));
     }
 }

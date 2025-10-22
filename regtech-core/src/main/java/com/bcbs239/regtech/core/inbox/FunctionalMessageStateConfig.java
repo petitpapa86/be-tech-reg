@@ -11,13 +11,13 @@ import java.util.function.Consumer;
 public class FunctionalMessageStateConfig {
 
     @Bean
-    public Consumer<String> markAsProcessedFn(InboxMessageJpaRepository repository) {
-        return id -> repository.markAsProcessed(id, Instant.now());
+    public Consumer<String> markAsProcessedFn(InboxMessageOperations repository) {
+        return id -> repository.markAsProcessedFn().apply(new InboxMessageOperations.MarkAsProcessedRequest(id, Instant.now()));
     }
 
     @Bean
-    public BiConsumer<String, String> markAsPermanentlyFailedFn(InboxMessageJpaRepository repository) {
-        return (id, reason) -> repository.markAsPermanentlyFailed(id, reason);
+    public BiConsumer<String, String> markAsPermanentlyFailedFn(InboxMessageOperations repository) {
+        return (id, reason) -> repository.markAsPermanentlyFailedFn().apply(new InboxMessageOperations.MarkAsPermanentlyFailedRequest(id, reason));
     }
 }
 

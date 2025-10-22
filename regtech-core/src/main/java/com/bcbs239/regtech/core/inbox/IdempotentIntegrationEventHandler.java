@@ -15,11 +15,12 @@ public class IdempotentIntegrationEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(IdempotentIntegrationEventHandler.class);
 
-    private final InboxMessageJpaRepository inboxRepository;
+    private final InboxMessageOperations inboxRepository;
     private final ObjectMapper objectMapper;
 
     public IdempotentIntegrationEventHandler(
-            InboxMessageJpaRepository inboxRepository,
+            InboxMessageConsumerRepository consumerRepository,
+            InboxMessageOperations inboxRepository,
             ObjectMapper objectMapper) {
         this.inboxRepository = inboxRepository;
         this.objectMapper = objectMapper;
