@@ -6,18 +6,19 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Instant;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 @Configuration
 public class FunctionalMessageStateConfig {
 
     @Bean
-    public Consumer<String> markAsProcessedFn(InboxMessageOperations repository) {
-        return id -> repository.markAsProcessedFn().apply(new InboxMessageOperations.MarkAsProcessedRequest(id, Instant.now()));
+    public Consumer<String> markAsProcessedFn(Function<InboxFunctions.MarkAsProcessedRequest, Integer> markAsProcessedFn) {
+        return id -> markAsProcessedFn.apply(new InboxFunctions.MarkAsProcessedRequest(id, Instant.now()));
     }
 
     @Bean
-    public BiConsumer<String, String> markAsPermanentlyFailedFn(InboxMessageOperations repository) {
-        return (id, reason) -> repository.markAsPermanentlyFailedFn().apply(new InboxMessageOperations.MarkAsPermanentlyFailedRequest(id, reason));
+    public BiConsumer<String, String> markAsPermanentlyFailedFn(Function<InboxFunctions.MarkAsPermanentlyFailedRequest, Integer> markAsPermanentlyFailedFn) {
+        return (id, reason) -> markAsPermanentlyFailedFn.apply(new InboxFunctions.MarkAsPermanentlyFailedRequest(id, reason));
     }
 }
 

@@ -9,6 +9,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.function.Function;
+
 /**
  * Generic integration event consumer that handles any event extending IntegrationEvent.
  * Stores incoming integration events in the shared inbox for reliable processing.
@@ -19,13 +21,13 @@ public class IntegrationEventConsumer {
 
     private static final Logger logger = LoggerFactory.getLogger(IntegrationEventConsumer.class);
 
-    private final InboxMessageOperations inboxRepository;
+    private final Function<InboxMessageEntity, InboxMessageEntity> saveFn;
     private final ObjectMapper objectMapper;
 
     public IntegrationEventConsumer(
-            InboxMessageOperations inboxRepository,
+            Function<InboxMessageEntity, InboxMessageEntity> saveFn,
             ObjectMapper objectMapper) {
-        this.inboxRepository = inboxRepository;
+        this.saveFn = saveFn;
         this.objectMapper = objectMapper;
         logger.info("🚀 IntegrationEventConsumer initialized with shared inbox");
     }
@@ -56,7 +58,7 @@ public class IntegrationEventConsumer {
             );
 
             // Save to shared inbox
-            inboxRepository.save(inboxMessage);
+            saveFn.apply(inboxMessage);
 
             logger.info("✅ Stored {} event in shared inbox: id={}", eventType, event.getId());
 
