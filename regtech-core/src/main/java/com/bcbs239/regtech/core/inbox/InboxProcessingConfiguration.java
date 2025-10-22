@@ -45,7 +45,7 @@ public class InboxProcessingConfiguration {
     }
 
     @Bean
-    public Function<InboxFunctions.MarkAsProcessedRequest, Integer> markAsProcessedFn() {
+    public Function<InboxFunctions.MarkAsProcessedRequest, Integer> markAsProcessedCoreFn() {
         return InboxFunctions.markAsProcessed(em, transactionTemplate);
     }
 
@@ -55,7 +55,7 @@ public class InboxProcessingConfiguration {
     }
 
     @Bean
-    public Function<InboxFunctions.MarkAsPermanentlyFailedRequest, Integer> markAsPermanentlyFailedFn() {
+    public Function<InboxFunctions.MarkAsPermanentlyFailedRequest, Integer> markAsPermanentlyFailedCoreFn() {
         return InboxFunctions.markAsPermanentlyFailed(em, transactionTemplate);
     }
 
