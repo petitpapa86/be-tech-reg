@@ -69,4 +69,9 @@ public class CoreInboxConfiguration {
             }
         };
     }
+
+    @Bean
+    public Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> findPendingMessagesFn(InboxMessageOperations jpaRepository) {
+        return jpaRepository.findPendingMessagesFn();
+    }
 }
