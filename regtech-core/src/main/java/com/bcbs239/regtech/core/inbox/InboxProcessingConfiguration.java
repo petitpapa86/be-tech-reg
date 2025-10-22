@@ -4,15 +4,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
- * Core inbox configuration providing shared inbox infrastructure.
- * Handler registration is now handled automatically by IntegrationEventDispatcher.
+ * Configuration for inbox processing beans.
  */
 @Configuration
-public class CoreInboxConfiguration {
+public class InboxProcessingConfiguration {
 
     @Bean
     public Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> findPendingMessagesFn(InboxMessageOperations jpaRepository) {
