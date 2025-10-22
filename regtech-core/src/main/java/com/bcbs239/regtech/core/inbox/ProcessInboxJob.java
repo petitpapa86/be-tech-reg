@@ -6,7 +6,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Scheduled coordinator for inbox message processing.
@@ -18,18 +17,18 @@ public class ProcessInboxJob {
     private static final Logger logger = LoggerFactory.getLogger(ProcessInboxJob.class);
     private static final int BATCH_SIZE = 10;
 
-    private final Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> fetchPendingFn;
+    private final InboxMessageOperations inboxOperations;
     private final MessageProcessor messageProcessor;
 
-    public ProcessInboxJob(Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> fetchPendingFn,
+    public ProcessInboxJob(InboxMessageOperations inboxOperations,
                           MessageProcessor messageProcessor) {
-        this.fetchPendingFn = fetchPendingFn;
+        this.inboxOperations = inboxOperations;
         this.messageProcessor = messageProcessor;
     }
 
     @Scheduled(fixedDelay = 5000) // Run every 5 seconds
     public void processInboxMessages() {
-        List<InboxMessageEntity> pendingMessages = fetchPendingFn.apply(InboxMessageEntity.ProcessingStatus.PENDING);
+        List<InboxMessageEntity> pendingMessages = inboxOperations.findPendingMessagesFn().apply(InboxMessageEntity.ProcessingStatus.PENDING);
 
         if (pendingMessages == null || pendingMessages.isEmpty()) {
             return;
