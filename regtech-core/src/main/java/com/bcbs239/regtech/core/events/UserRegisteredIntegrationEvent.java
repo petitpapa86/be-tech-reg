@@ -1,19 +1,23 @@
 package com.bcbs239.regtech.core.events;
 
 import com.bcbs239.regtech.core.application.IntegrationEvent;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 /**
  * Integration event for cross-module communication.
  * Separate from the domain event to avoid cycles and maintain clear boundaries.
  */
+@Getter
+@NoArgsConstructor
 public class UserRegisteredIntegrationEvent extends IntegrationEvent {
-    private final String userId;
-    private final String email;
-    private final String name;
-    private final String bankId;
-    private final String paymentMethodId;
-    private final String phone;
-    private final UserRegisteredEvent.AddressInfo address;
+    private String userId;
+    private String email;
+    private String name;
+    private String bankId;
+    private String paymentMethodId;
+    private String phone;
+    private UserRegisteredEvent.AddressInfo address;
 
     public UserRegisteredIntegrationEvent(
             String userId,
@@ -32,11 +36,4 @@ public class UserRegisteredIntegrationEvent extends IntegrationEvent {
         this.address = address;
     }
 
-    public String getUserId() { return userId; }
-    public String getEmail() { return email; }
-    public String getName() { return name; }
-    public String getBankId() { return bankId; }
-    public String getPaymentMethodId() { return paymentMethodId; }
-    public String getPhone() { return phone; }
-    public UserRegisteredEvent.AddressInfo getAddress() { return address; }
 }
