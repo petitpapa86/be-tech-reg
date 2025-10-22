@@ -12,7 +12,7 @@ import java.util.function.Function;
 public class FunctionalOutboxConfig {
 
     @Bean
-    public Consumer<String> markAsProcessedFn(Function<OutboxFunctions.MarkAsProcessedRequest, Integer> markAsProcessedFn) {
+    public Consumer<String> markAsProcessedOutboxFn(Function<OutboxFunctions.MarkAsProcessedRequest, Integer> markAsProcessedFn) {
         return id -> markAsProcessedFn.apply(new OutboxFunctions.MarkAsProcessedRequest(id, Instant.now()));
     }
 

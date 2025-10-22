@@ -6,11 +6,13 @@ import java.util.UUID;
 
 public class UserRegisteredIntegrationEvent extends IntegrationEvent {
 
-    private final UUID userId;
-    private final String email;
-    private final String firstName;
-    private final String lastName;
-    private final String bankId;
+    private  UUID userId;
+    private  String email;
+    private  String firstName;
+    private  String lastName;
+    private  String bankId;
+
+   // public UserRegisteredIntegrationEvent(){}
 
     public UserRegisteredIntegrationEvent(UUID userId, String email, String firstName, String lastName, String bankId) {
         this.userId = userId;

@@ -61,6 +61,11 @@ public class OutboxProcessingConfiguration {
     }
 
     @Bean
+    public Consumer<DomainEvent> dispatchDomainEventFn(DomainEventDispatcher domainEventDispatcher) {
+        return domainEventDispatcher::dispatch;
+    }
+
+    @Bean
     public DomainEventPublisher domainEventPublisher(Consumer<DomainEvent> dispatchDomainEventFn) {
         return new DomainEventPublisher(dispatchDomainEventFn);
     }
@@ -68,12 +73,12 @@ public class OutboxProcessingConfiguration {
     @Bean
     public OutboxProcessor outboxProcessor(
             Function<OutboxMessageStatus, List<OutboxMessageEntity>> findPendingOutboxMessagesFn,
-            Consumer<String> markAsProcessedFn,
+            Consumer<String> markAsProcessedOutboxFn,
             BiConsumer<String, String> markAsFailedFn,
             Consumer<DomainEvent> dispatchDomainEventFn) {
         return new OutboxProcessor(
             findPendingOutboxMessagesFn,
-            markAsProcessedFn,
+            markAsProcessedOutboxFn,
             markAsFailedFn,
             dispatchDomainEventFn,
             objectMapper

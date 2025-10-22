@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 public class DomainToIntegrationEventPublisher {
@@ -19,7 +20,7 @@ public class DomainToIntegrationEventPublisher {
         this.integrationEventBus = integrationEventBus;
     }
 
-    @EventListener
+    @TransactionalEventListener
     public void handleUserRegisteredEvent(UserRegisteredEvent domainEvent) {
         logger.info("Converting domain event to integration event for user: {}", domainEvent.getUserId());
 
@@ -43,7 +44,7 @@ public class DomainToIntegrationEventPublisher {
             logger.info("Published UserRegisteredIntegrationEvent for user: {}", domainEvent.getUserId());
         } catch (Exception e) {
             logger.error("Failed to publish integration event for user: {}", domainEvent.getUserId(), e);
-            // In a production system, you might want to retry or store failed events
+            throw e;
         }
     }
 }
