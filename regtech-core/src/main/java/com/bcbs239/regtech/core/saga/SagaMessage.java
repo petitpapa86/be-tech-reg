@@ -1,15 +1,20 @@
 package com.bcbs239.regtech.core.saga;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.ToString;
+
 import java.time.Instant;
 
 import com.bcbs239.regtech.core.events.DomainEvent;
-import lombok.Getter;
 
 /**
  * Message exchanged between saga participants in different bounded contexts.
  * Supports both commands (requests for action) and events (notifications of state changes).
  */
 @Getter
+@ToString
+@EqualsAndHashCode
 public abstract  class SagaMessage implements DomainEvent {
     protected final SagaId sagaId;
     protected final Instant occurredAt;

@@ -11,6 +11,6 @@ public class CommandDispatcher {
      private final ApplicationEventPublisher eventPublisher;
 
     public void dispatch(SagaCommand command) {
-        eventPublisher.publishEvent(new GenericEvent<>(command, command::commandType));
+        eventPublisher.publishEvent(command);
     }
 }

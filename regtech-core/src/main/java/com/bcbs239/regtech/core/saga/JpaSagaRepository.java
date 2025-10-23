@@ -5,25 +5,17 @@ import java.util.function.Function;
 
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import lombok.AllArgsConstructor;
 
-@AllArgsConstructor
 public class JpaSagaRepository {
-    @PersistenceContext
-    private final EntityManager entityManager;
 
-    private final ObjectMapper objectMapper;
-
-    public <T> Function<AbstractSaga<T>, Result<SagaId>> sagaSaver() {
+    public static Function<AbstractSaga<?>, Result<SagaId>> sagaSaver(EntityManager entityManager, ObjectMapper objectMapper) {
         return saga -> {
             try {
-                SagaEntity entity = toEntity(saga);
+                SagaEntity entity = toEntity(saga, objectMapper);
 
                 if (entityManager.find(SagaEntity.class, entity.getSagaId()) == null) {
                     // Insert new saga
@@ -58,28 +50,28 @@ public class JpaSagaRepository {
         };
     }
 
-    public Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader() {
+    public static Function<SagaId, AbstractSaga<?>> sagaLoader(EntityManager entityManager, ObjectMapper objectMapper) {
         return sagaId -> {
             try {
                 SagaEntity entity = entityManager.find(SagaEntity.class, sagaId.id());
                 if (entity == null) {
-                    return Maybe.none();
+                    return null;
                 }
 
-                AbstractSaga<?> saga = fromEntity(entity);
-                return Maybe.some(saga);
+                AbstractSaga<?> saga = fromEntity(entity, objectMapper);
+                return saga;
 
             } catch (Exception e) {
                 LoggingConfiguration.createStructuredLog("SAGA_LOAD_FAILED", Map.of(
                     "sagaId", sagaId,
                     "error", e.getMessage()
                 ));
-                return Maybe.none();
+                return null;
             }
         };
     }
 
-    private <T> SagaEntity toEntity(AbstractSaga<T> saga) throws Exception {
+    private static SagaEntity toEntity(AbstractSaga<?> saga, ObjectMapper objectMapper) throws Exception {
         return new SagaEntity(
                 saga.getId().id(),
                 saga.getSagaType(),
@@ -96,7 +88,7 @@ public class JpaSagaRepository {
     }
 
     @SuppressWarnings("unchecked")
-    private AbstractSaga<?> fromEntity(SagaEntity entity) {
+    private static AbstractSaga<?> fromEntity(SagaEntity entity, ObjectMapper objectMapper) {
         try {
             // Deserialize saga data
             // In production, use a registry pattern => getSagaDataClassName
@@ -135,7 +127,7 @@ public class JpaSagaRepository {
     }
 
     // TODO: Implement proper saga class registry
-    private String getSagaDataClassName(String sagaType) {
+    private static String getSagaDataClassName(String sagaType) {
         // Simple mapping for now - in production use a registry
         return switch (sagaType) {
             case "TestSaga" -> "java.lang.String";
@@ -143,7 +135,7 @@ public class JpaSagaRepository {
         };
     }
 
-    private String getSagaClassName(String sagaType) {
+    private static String getSagaClassName(String sagaType) {
         // Simple mapping for now - in production use a registry
         return switch (sagaType) {
             case "TestSaga" -> "com.bcbs239.regtech.core.sagav2.TestSaga";

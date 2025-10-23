@@ -3,6 +3,11 @@ package com.bcbs239.regtech.core.saga;
 import java.time.Instant;
 import java.util.function.Supplier;
 
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
+
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
 public class SagaFailedEvent extends SagaMessage {
     private final String sagaType;
 

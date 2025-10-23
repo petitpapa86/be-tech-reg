@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.saga;
 public record SagaId(String id) {
     public SagaId {
-        if (id == null || id.isEmpty()) {
+        if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("SagaId cannot be null or empty");
         }
     }
