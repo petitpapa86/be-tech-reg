@@ -1,51 +1,54 @@
 package com.bcbs239.regtech.core.saga;
 
+import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
+import jakarta.persistence.EntityManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
+import java.time.Instant;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
-/**
- * Configuration class for saga infrastructure components.
- * Wires together the saga orchestrator and supporting services.
- */
 @Configuration
+@EnableAsync
 public class SagaConfiguration {
 
-    private final MessageBus messageBus;
-    private final InMemoryBusinessTimeoutService timeoutService;
-
-    public SagaConfiguration(MessageBus messageBus, InMemoryBusinessTimeoutService timeoutService) {
-        this.messageBus = messageBus;
-        this.timeoutService = timeoutService;
-    }
-
-    /**
-     * Creates the main saga orchestrator bean
-     */
     @Bean
-    public SagaOrchestrator sagaOrchestrator(SagaRepository sagaRepository,
-                                           MessageBus messageBus,
-                                           MonitoringService monitoringService,
-                                           BusinessTimeoutService timeoutService) {
-        return new SagaOrchestrator(sagaRepository, messageBus, monitoringService, timeoutService);
+    @Primary
+    public TaskExecutor sagaTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(50);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("saga-");
+        executor.initialize();
+        return executor;
     }
 
-    /**
-     * Starts the message bus when the application starts
-     */
-    @PostConstruct
-    public void startMessageBus() {
-        messageBus.start();
+    @Bean
+    public Function<AbstractSaga<?>, Result<SagaId>> sagaSaver(EntityManager entityManager) {
+        return saga -> {
+            try {
+                entityManager.persist(saga);
+                return Result.success(saga.getId());
+            } catch (Exception e) {
+                return Result.failure(new ErrorDetail("SAGA_SAVE_ERROR", "Failed to save saga: " + e.getMessage()));
+            }
+        };
     }
 
-    /**
-     * Stops services when the application shuts down
-     */
-    @PreDestroy
-    public void stopServices() {
-        messageBus.stop();
-        timeoutService.shutdown();
+    @Bean
+    public Function<SagaId, AbstractSaga<?>> sagaLoader(EntityManager entityManager) {
+        return sagaId -> entityManager.find(AbstractSaga.class, sagaId);
+    }
+
+    @Bean
+    public Supplier<Instant> currentTimeSupplier() {
+        return Instant::now;
     }
 }
