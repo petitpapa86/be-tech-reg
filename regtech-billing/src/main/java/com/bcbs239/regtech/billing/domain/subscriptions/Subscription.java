@@ -4,6 +4,9 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
@@ -12,8 +15,12 @@ import java.util.Objects;
  * Subscription aggregate root - manages subscription lifecycle, tier management, and billing periods.
  * Represents a customer's subscription to a specific tier with start/end dates and status tracking.
  */
+@Setter
+@Getter
 public class Subscription {
-    
+
+    // Public setters for JPA/persistence layer
+    // Getters
     private SubscriptionId id;
     private BillingAccountId billingAccountId;
     private StripeSubscriptionId stripeSubscriptionId;
@@ -294,31 +301,7 @@ public class Subscription {
     public int getExposureLimit() {
         return tier.getExposureLimit();
     }
-    
-    // Getters
-    public SubscriptionId getId() { return id; }
-    public BillingAccountId getBillingAccountId() { return billingAccountId; }
-    public StripeSubscriptionId getStripeSubscriptionId() { return stripeSubscriptionId; }
-    public SubscriptionTier getTier() { return tier; }
-    public SubscriptionStatus getStatus() { return status; }
-    public LocalDate getStartDate() { return startDate; }
-    public LocalDate getEndDate() { return endDate; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public long getVersion() { return version; }
-    
-    // Public setters for JPA/persistence layer
-    public void setId(SubscriptionId id) { this.id = id; }
-    public void setBillingAccountId(BillingAccountId billingAccountId) { this.billingAccountId = billingAccountId; }
-    public void setStripeSubscriptionId(StripeSubscriptionId stripeSubscriptionId) { this.stripeSubscriptionId = stripeSubscriptionId; }
-    public void setTier(SubscriptionTier tier) { this.tier = tier; }
-    public void setStatus(SubscriptionStatus status) { this.status = status; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    public void setVersion(long version) { this.version = version; }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

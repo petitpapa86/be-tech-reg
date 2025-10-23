@@ -5,6 +5,8 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -17,8 +19,10 @@ import java.util.function.Supplier;
  * Invoice aggregate root representing billing invoices with line items and payment tracking.
  * Handles invoice lifecycle from creation to payment with automatic line item generation.
  */
+@Setter
 public class Invoice {
-    
+
+    // Public setters for JPA/persistence layer
     private InvoiceId id;
     private BillingAccountId billingAccountId;
     private InvoiceNumber invoiceNumber;
@@ -353,25 +357,6 @@ public class Invoice {
     public int hashCode() {
         return Objects.hash(id);
     }
-
-    // Public setters for JPA/persistence layer
-    public void setId(InvoiceId id) { this.id = id; }
-    public void setBillingAccountId(BillingAccountId billingAccountId) { this.billingAccountId = billingAccountId; }
-    public void setInvoiceNumber(InvoiceNumber invoiceNumber) { this.invoiceNumber = invoiceNumber; }
-    public void setStripeInvoiceId(StripeInvoiceId stripeInvoiceId) { this.stripeInvoiceId = stripeInvoiceId; }
-    public void setStatus(InvoiceStatus status) { this.status = status; }
-    public void setSubscriptionAmount(Money subscriptionAmount) { this.subscriptionAmount = subscriptionAmount; }
-    public void setOverageAmount(Money overageAmount) { this.overageAmount = overageAmount; }
-    public void setTotalAmount(Money totalAmount) { this.totalAmount = totalAmount; }
-    public void setBillingPeriod(BillingPeriod billingPeriod) { this.billingPeriod = billingPeriod; }
-    public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
-    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
-    public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
-    public void setSentAt(Instant sentAt) { this.sentAt = sentAt; }
-    public void setLineItems(List<InvoiceLineItem> lineItems) { this.lineItems = lineItems; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    public void setVersion(long version) { this.version = version; }
 
     @Override
     public String toString() {

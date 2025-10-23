@@ -8,6 +8,9 @@ import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.iam.domain.users.UserId;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.Currency;
 import java.util.Objects;
@@ -16,8 +19,12 @@ import java.util.Objects;
  * BillingAccount aggregate root - manages billing account lifecycle and status transitions.
  * Represents a customer's billing account with payment information and status tracking.
  */
+@Setter
+@Getter
 public class BillingAccount {
-    
+
+    // Public setters for JPA/persistence layer
+    // Getters
     private BillingAccountId id;
     private UserId userId;
     private StripeCustomerId stripeCustomerId;
@@ -218,29 +225,7 @@ public class BillingAccount {
         
         return Result.success(null);
     }
-    
-    // Getters
-    public BillingAccountId getId() { return id; }
-    public UserId getUserId() { return userId; }
-    public StripeCustomerId getStripeCustomerId() { return stripeCustomerId; }
-    public BillingAccountStatus getStatus() { return status; }
-    public PaymentMethodId getDefaultPaymentMethodId() { return defaultPaymentMethodId; }
-    public Money getAccountBalance() { return accountBalance; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public long getVersion() { return version; }
-    
-    // Public setters for JPA/persistence layer
-    public void setId(BillingAccountId id) { this.id = id; }
-    public void setUserId(UserId userId) { this.userId = userId; }
-    public void setStripeCustomerId(StripeCustomerId stripeCustomerId) { this.stripeCustomerId = stripeCustomerId; }
-    public void setStatus(BillingAccountStatus status) { this.status = status; }
-    public void setDefaultPaymentMethodId(PaymentMethodId defaultPaymentMethodId) { this.defaultPaymentMethodId = defaultPaymentMethodId; }
-    public void setAccountBalance(Money accountBalance) { this.accountBalance = accountBalance; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    public void setVersion(long version) { this.version = version; }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
