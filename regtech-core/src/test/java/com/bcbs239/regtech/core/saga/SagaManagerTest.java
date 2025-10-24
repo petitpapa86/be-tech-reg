@@ -1,293 +1,184 @@
-package com.bcbs239.regtech.core.saga;package com.bcbs239.regtech.core.saga;package com.bcbs239.regtech.core.saga;
+package com.bcbs239.regtech.core.saga;
 
-
-
+import com.bcbs239.regtech.core.shared.Result;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-
-
-import static org.assertj.core.api.Assertions.assertThat;import com.bcbs239.regtech.core.shared.Result;import com.bcbs239.regtech.core.shared.Result;
-
-
-
-class SagaManagerTest {import org.junit.jupiter.api.BeforeEach;import org.junit.jupiter.api.BeforeEach;
-
-
-
-    @Testimport org.junit.jupiter.api.Test;import org.junit.jupiter.api.Test;
-
-    void sagaManager_canBeInstantiated() {
-
-        // This is a basic test to ensure SagaManager can be createdimport org.junit.jupiter.api.extension.ExtendWith;import org.junit.jupiter.api.extension.ExtendWith;
-
-        // Full testing would require complex mocking of all dependencies
-
-        // For now, we verify the class exists and basic structureimport org.mockito.Mock;import org.mockito.Mock;
-
-        assertThat(SagaManager.class).isNotNull();
-
-    }import org.springframework.context.ApplicationEventPublisher;import org.springframework.context.ApplicationEventPublisher;
-
-}
-import org.springframework.test.context.junit.jupiter.SpringExtension;import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-
-
-import java.time.Instant;import java.time.Instant;
-
-import java.util.function.Function;import java.util.function.Function;
-
-import java.util.function.Supplier;import java.util.function.Supplier;
-
-
-
-import static org.assertj.core.api.Assertions.assertThat;import static org.assertj.core.api.Assertions.assertThat;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import static org.mockito.ArgumentMatchers.any;import static org.mockito.ArgumentMatchers.any;
-
-import static org.mockito.Mockito.*;import static org.mockito.Mockito.*;
-
-
-
-@ExtendWith(SpringExtension.class)@ExtendWith(SpringExtension.class)
-
-class SagaManagerTest {class SagaManagerTest {
-
-
-
-    @Mock    @Mock
-
-    private Function<AbstractSaga<?>, Result<SagaId>> sagaSaver;    private Function<AbstractSaga<?>, Result<SagaId>> sagaSaver;
-
-
-
-    @Mock    @Mock
-
-    private Function<SagaId, AbstractSaga<?>> sagaLoader;    private Function<SagaId, AbstractSaga<?>> sagaLoader;
-
-
-
-    @Mock    @Mock
-
-    private CommandDispatcher commandDispatcher;    private CommandDispatcher commandDispatcher;
-
-
-
-    @Mock    @Mock
-
-    private ApplicationEventPublisher eventPublisher;    private ApplicationEventPublisher eventPublisher;
-
-
-
-    private Supplier<Instant> currentTimeSupplier;    private Supplier<Instant> currentTimeSupplier;
-
-
-
-    private SagaManager sagaManager;    private SagaManager sagaManager;
-
-
-
-    @BeforeEach    @BeforeEach
-
-    void setUp() {    void setUp() {
-
-        currentTimeSupplier = () -> Instant.parse("2023-01-01T10:00:00Z");        currentTimeSupplier = () -> Instant.parse("2023-01-01T10:00:00Z");
-
-        sagaManager = new SagaManager(sagaSaver, sagaLoader, commandDispatcher, eventPublisher, currentTimeSupplier);        sagaManager = new SagaManager(sagaSaver, sagaLoader, commandDispatcher, eventPublisher, currentTimeSupplier);
-
-
-
-        when(sagaSaver.apply(any())).thenReturn(Result.success(null));        when(sagaSaver.apply(any())).thenReturn(Result.success(null));
-
-    }    }
-
-
-
-    @Test    @Test
-
-    void startSaga_shouldCreateAndStartSaga() {    void startSaga_shouldCreateAndStartSaga() {
-
-        // Given        // Given
-
-        TestSagaData data = new TestSagaData("test-value");        TestSagaData data = new TestSagaData("test-value");
-
-
-
-        // When        // When
-
-        SagaId sagaId = sagaManager.startSaga(TestSaga.class, data);        SagaId sagaId = sagaManager.startSaga(TestSaga.class, data);
-
-
-
-        // Then        // Then
-
-        assertThat(sagaId).isNotNull();        assertThat(sagaId).isNotNull();
-
-        verify(sagaSaver).apply(any(TestSaga.class));        verify(sagaSaver).apply(any(TestSaga.class));
-
-        verify(commandDispatcher).dispatch(any(SagaCommand.class));        verify(commandDispatcher).dispatch(any(SagaCommand.class));
-
-        verify(eventPublisher).publishEvent(any(SagaStartedEvent.class));        verify(eventPublisher).publishEvent(any(SagaStartedEvent.class));
-
-    }    }
-
-
-
-    @Test    @Test
-
-    void processEvent_shouldThrowExceptionForNonExistingSaga() {    void processEvent_shouldHandleEventForExistingSaga() {
-
-        // Given        // Given
-
-        SagaId sagaId = SagaId.of("non-existing-saga-id");        SagaId sagaId = SagaId.of("test-saga-id");
-
-        TestEvent event = new TestEvent(sagaId, Instant.now());        TestSaga saga = new TestSaga(sagaId, "TestSaga", new TestSagaData("test"));
-
-        TestEvent event = new TestEvent(sagaId, Instant.now());
-
-        when(sagaLoader.apply(sagaId)).thenReturn(null);
-
-        @SuppressWarnings("unchecked") when(sagaLoader.apply(sagaId)).thenReturn((AbstractSaga<?>) saga);
-
-        // When & Then
-
-        assertThatThrownBy(() -> sagaManager.processEvent(event))        // When
-
-            .isInstanceOf(SagaNotFoundException.class)        sagaManager.processEvent(event);
-
-            .hasMessageContaining(sagaId.id());
-
-    }        // Then
-
-        verify(sagaLoader).apply(sagaId);
-
-    // Test data class        verify(sagaSaver).apply(saga);
-
-    private static class TestSagaData {        verify(commandDispatcher).dispatch(any(SagaCommand.class));
-
-        private final String value;        assertThat(saga.isEventProcessed()).isTrue();
-
-    }
-
-        public TestSagaData(String value) {
-
-            this.value = value;    @Test
-
-        }    void processEvent_shouldThrowExceptionForNonExistingSaga() {
-
-        // Given
-
-        public String getValue() {        SagaId sagaId = SagaId.of("non-existing-saga-id");
-
-            return value;        TestEvent event = new TestEvent(sagaId, Instant.now());
-
-        }
-
-    }        when(sagaLoader.apply(sagaId)).thenReturn(null);
-
-
-
-    // Test saga implementation        // When & Then
-
-    private static class TestSaga extends AbstractSaga<TestSagaData> {        assertThatThrownBy(() -> sagaManager.processEvent(event))
-
-        public TestSaga(SagaId id, String sagaType, TestSagaData data) {            .isInstanceOf(SagaNotFoundException.class)
-
-            super(id, sagaType, data);            .hasMessageContaining(sagaId.toString());
-
-        }    }
-
-
-
-        @Override    @Test
-
-        protected void updateStatus() {    void processEvent_shouldPublishCompletedEventWhenSagaCompletes() {
-
-            // Test implementation - do nothing        // Given
-
-        }        SagaId sagaId = SagaId.of("test-saga-id");
-
-    }        TestSaga saga = new TestSaga(sagaId, "TestSaga", new TestSagaData("test"));
-
-        saga.complete(); // Mark as completed
-
-    // Test event        TestEvent event = new TestEvent(sagaId, Instant.now());
-
-    private static class TestEvent extends SagaMessage {
-
-        public TestEvent(SagaId sagaId, Instant occurredAt) {        when(sagaLoader.apply(sagaId)).thenReturn(saga);
-
-            super("TestEvent", occurredAt, sagaId);
-
-        }        // When
-
-    }        sagaManager.processEvent(event);
-
-}
-        // Then
-        verify(eventPublisher).publishEvent(any(SagaCompletedEvent.class));
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class SagaManagerTest {
+
+    @Mock
+    private Function<AbstractSaga<?>, Result<SagaId>> sagaSaver;
+
+    @Mock
+    private Function<SagaId, AbstractSaga<?>> sagaLoader;
+
+    @Mock
+    private CommandDispatcher commandDispatcher;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
+    private Supplier<Instant> currentTimeSupplier;
+
+    private SagaManager sagaManager;
+
+    @BeforeEach
+    void setUp() {
+        currentTimeSupplier = () -> Instant.now();
+        sagaManager = new SagaManager(sagaSaver, sagaLoader, commandDispatcher, eventPublisher, currentTimeSupplier);
     }
 
     @Test
-    void processEvent_shouldPublishFailedEventWhenSagaFails() {
+    void startSaga_shouldCreateAndSaveSaga() {
         // Given
-        SagaId sagaId = SagaId.of("test-saga-id");
-        TestSaga saga = new TestSaga(sagaId, "TestSaga", new TestSagaData("test"));
-        saga.fail("Test failure"); // Mark as failed
-        TestEvent event = new TestEvent(sagaId, Instant.now());
+        TestSagaData data = new TestSagaData();
 
-        when(sagaLoader.apply(sagaId)).thenReturn(saga);
+        // When
+        SagaId sagaId = sagaManager.startSaga(TestSaga.class, data);
+
+        // Then
+        assertThat(sagaId).isNotNull();
+        verify(sagaSaver).apply(any(TestSaga.class));
+        verify(eventPublisher).publishEvent(any(SagaStartedEvent.class));
+    }
+
+    @Test
+    void startSaga_shouldDispatchCommands() {
+        // Given
+        TestSagaData data = new TestSagaData();
+
+        // When
+        sagaManager.startSaga(TestSaga.class, data);
+
+        // Then
+        verify(commandDispatcher).dispatch(any(SagaCommand.class));
+    }
+
+    @Test
+    void processEvent_shouldLoadAndHandleEvent() {
+        // Given
+        SagaId sagaId = SagaId.generate();
+        TestSaga saga = mock(TestSaga.class);
+        Function<SagaId, AbstractSaga<?>> loader = id -> saga;
+        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier);
+
+        when(saga.getStatus()).thenReturn(SagaStatus.STARTED);
+        when(saga.getCommandsToDispatch()).thenReturn(List.of(mock(SagaCommand.class)));
+
+        SagaMessage event = new TestSagaMessage("test", Instant.now(), sagaId);
+
+        // When
+        sagaManager.processEvent(event);
+
+        // Then
+        verify(saga).handle(event);
+        verify(sagaSaver).apply(saga);
+        verify(commandDispatcher).dispatch(any(SagaCommand.class));
+    }
+
+    @Test
+    void processEvent_shouldPublishCompletedEvent() {
+        // Given
+        SagaId sagaId = SagaId.generate();
+        TestSaga saga = mock(TestSaga.class);
+        Function<SagaId, AbstractSaga<?>> loader = id -> saga;
+        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier);
+
+        when(saga.getId()).thenReturn(sagaId);
+        when(saga.getSagaType()).thenReturn("TestSaga");
+        when(saga.getStatus()).thenReturn(SagaStatus.COMPLETED);
+        when(saga.getCommandsToDispatch()).thenReturn(List.of());
+
+        SagaMessage event = new TestSagaMessage("test", Instant.now(), sagaId);
+
+        // When
+        sagaManager.processEvent(event);
+
+        // Then
+        verify(eventPublisher).publishEvent(any(SagaCompletedEvent.class));
+        verify(eventPublisher, never()).publishEvent(any(SagaFailedEvent.class));
+    }
+
+    @Test
+    void processEvent_shouldPublishFailedEvent() {
+        // Given
+        SagaId sagaId = SagaId.generate();
+        TestSaga saga = mock(TestSaga.class);
+        Function<SagaId, AbstractSaga<?>> loader = id -> saga;
+        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier);
+
+        when(saga.getId()).thenReturn(sagaId);
+        when(saga.getSagaType()).thenReturn("TestSaga");
+        when(saga.getStatus()).thenReturn(SagaStatus.FAILED);
+        when(saga.getCommandsToDispatch()).thenReturn(List.of());
+
+        SagaMessage event = new TestSagaMessage("test", Instant.now(), sagaId);
 
         // When
         sagaManager.processEvent(event);
 
         // Then
         verify(eventPublisher).publishEvent(any(SagaFailedEvent.class));
+        verify(eventPublisher, never()).publishEvent(any(SagaCompletedEvent.class));
     }
 
-    // Test data class
+    @Test
+    void processEvent_shouldThrowWhenSagaNotFound() {
+        // Given
+        SagaId sagaId = SagaId.generate();
+        Function<SagaId, AbstractSaga<?>> loader = id -> null;
+        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier);
+
+        SagaMessage event = new TestSagaMessage("test", Instant.now(), sagaId);
+
+        // When & Then
+        assertThatThrownBy(() -> sagaManager.processEvent(event))
+            .isInstanceOf(SagaNotFoundException.class)
+            .hasMessageContaining(sagaId.id());
+    }
+
+    // Test data classes
     private static class TestSagaData {
-        private final String value;
-
-        public TestSagaData(String value) {
-            this.value = value;
-        }
-
-        public String getValue() {
-            return value;
-        }
     }
 
-    // Test saga implementation
     private static class TestSaga extends AbstractSaga<TestSagaData> {
-        private boolean eventProcessed = false;
-
-        public TestSaga(SagaId id, String sagaType, TestSagaData data) {
-            super(id, sagaType, data);
-            onEvent(TestEvent.class, this::handleTestEvent);
+        TestSaga(SagaId id, TestSagaData data) {
+            super(id, "TestSaga", data);
+            dispatchCommand(new SagaCommand(getId(), "test", Map.of(), Instant.now()));
         }
 
-        private void handleTestEvent(TestEvent event) {
-            eventProcessed = true;
-            complete(); // Complete the saga for testing
-        }
-
-        public boolean isEventProcessed() {
-            return eventProcessed;
+        TestSaga() {
+            super(null, "TestSaga", null);
         }
 
         @Override
         protected void updateStatus() {
-            // Test implementation - do nothing
+            // No-op for testing
         }
     }
 
-    // Test event
-    private static class TestEvent extends SagaMessage {
-        public TestEvent(SagaId sagaId, Instant occurredAt) {
-            super("TestEvent", occurredAt, sagaId);
+    private static class TestSagaMessage extends SagaMessage {
+        TestSagaMessage(String eventType, Instant occurredAt, SagaId sagaId) {
+            super(eventType, occurredAt, sagaId);
         }
     }
 }

@@ -33,9 +33,5 @@ public record SubscriptionId(String value) {
         }
         return Result.success(new SubscriptionId(value));
     }
-    
-    @Override
-    public String toString() {
-        return value;
-    }
+
 }
