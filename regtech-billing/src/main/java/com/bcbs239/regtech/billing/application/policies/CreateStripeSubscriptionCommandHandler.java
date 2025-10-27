@@ -5,15 +5,17 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.events.StripeSubscriptionCreatedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
 import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeSubscription;
 import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
+
+import java.util.function.Function;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -26,18 +28,24 @@ import org.springframework.stereotype.Component;
 public class CreateStripeSubscriptionCommandHandler {
 
     private final StripeService stripeService;
-    private final JpaBillingAccountRepository billingAccountRepository;
-    private final JpaSubscriptionRepository subscriptionRepository;
+    private final Function<UserId, Maybe<BillingAccount>> billingAccountByUserFinder;
+    private final Function<BillingAccount, Result<BillingAccountId>> billingAccountSaver;
+    private final Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder;
+    private final Function<Subscription, Result<SubscriptionId>> subscriptionSaver;
     private final BillingEventPublisher eventPublisher;
 
     public CreateStripeSubscriptionCommandHandler(
             StripeService stripeService,
-            JpaBillingAccountRepository billingAccountRepository,
-            JpaSubscriptionRepository subscriptionRepository,
+            Function<UserId, Maybe<BillingAccount>> billingAccountByUserFinder,
+            Function<BillingAccount, Result<BillingAccountId>> billingAccountSaver,
+            Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder,
+            Function<Subscription, Result<SubscriptionId>> subscriptionSaver,
             BillingEventPublisher eventPublisher) {
         this.stripeService = stripeService;
-        this.billingAccountRepository = billingAccountRepository;
-        this.subscriptionRepository = subscriptionRepository;
+        this.billingAccountByUserFinder = billingAccountByUserFinder;
+        this.billingAccountSaver = billingAccountSaver;
+        this.subscriptionByBillingAccountAndTierFinder = subscriptionByBillingAccountAndTierFinder;
+        this.subscriptionSaver = subscriptionSaver;
         this.eventPublisher = eventPublisher;
     }
 
@@ -47,8 +55,25 @@ public class CreateStripeSubscriptionCommandHandler {
     @EventListener
     @Async("sagaTaskExecutor")
     public void handle(CreateStripeSubscriptionCommand command) {
-        // Create Stripe subscription
+        // Get existing billing account
+        com.bcbs239.regtech.iam.domain.users.UserId iamUserId = com.bcbs239.regtech.iam.domain.users.UserId.fromString(command.getUserId());
+        Maybe<BillingAccount> billingAccountMaybe = billingAccountByUserFinder.apply(iamUserId);
+        if (billingAccountMaybe.isEmpty()) {
+            // TODO: Handle case where billing account doesn't exist
+            return;
+        }
+
+        BillingAccount billingAccount = billingAccountMaybe.getValue();
+
+        // Update billing account with Stripe customer ID
         StripeCustomerId customerId = new StripeCustomerId(command.getStripeCustomerId());
+        Result<Void> updateResult = billingAccount.updateStripeCustomerId(customerId);
+        if (updateResult.isFailure()) {
+            // TODO: Handle failure
+            return;
+        }
+
+        // Create Stripe subscription
         Result<StripeSubscription> subscriptionResult = stripeService.createSubscription(
             customerId,
             command.getSubscriptionTier()
@@ -61,30 +86,32 @@ public class CreateStripeSubscriptionCommandHandler {
         StripeSubscription stripeSubscription = subscriptionResult.getValue().get();
         StripeSubscriptionId stripeSubscriptionId = stripeSubscription.subscriptionId();
 
-        // Create billing account
-        UserId userId = UserId.fromString(command.getUserId());
-        BillingAccount billingAccount = BillingAccount.create(userId, customerId);
+        // Find existing subscription to update
+        BillingAccountId billingAccountId = billingAccount.getId();
+        Maybe<Subscription> subscriptionMaybe = subscriptionByBillingAccountAndTierFinder.apply(billingAccountId).apply(command.getSubscriptionTier());
+        if (subscriptionMaybe.isEmpty()) {
+            // TODO: Handle case where subscription doesn't exist
+            return;
+        }
 
-        // Activate billing account (assuming payment method was set in customer creation)
-        // For now, we'll skip activation as it requires a payment method ID
-        // This might need to be handled differently
+        Subscription subscription = subscriptionMaybe.getValue();
 
-        Result<BillingAccountId> saveAccountResult = billingAccountRepository.billingAccountSaver().apply(billingAccount);
+        // Update subscription with Stripe subscription ID
+        Result<Void> updateSubscriptionResult = subscription.updateStripeSubscriptionId(stripeSubscriptionId);
+        if (updateSubscriptionResult.isFailure()) {
+            // TODO: Handle failure
+            return;
+        }
+
+        // Save updated billing account
+        Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId> saveAccountResult = billingAccountSaver.apply(billingAccount);
         if (saveAccountResult.isFailure()) {
             // TODO: Handle failure
             return;
         }
 
-        BillingAccountId billingAccountId = saveAccountResult.getValue().get();
-
-        // Create subscription domain object
-        Subscription subscription = Subscription.create(
-            billingAccountId,
-            stripeSubscriptionId,
-            command.getSubscriptionTier()
-        );
-
-        Result<SubscriptionId> saveSubscriptionResult = subscriptionRepository.subscriptionSaver().apply(subscription);
+        // Save subscription
+        Result<SubscriptionId> saveSubscriptionResult = subscriptionSaver.apply(subscription);
         if (saveSubscriptionResult.isFailure()) {
             // TODO: Handle failure
             return;

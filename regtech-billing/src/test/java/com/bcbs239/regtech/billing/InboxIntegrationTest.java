@@ -41,8 +41,7 @@ public class InboxIntegrationTest {
     @EnableAutoConfiguration
     @ComponentScan(
         basePackages = {
-            "com.bcbs239.regtech.core.inbox",
-            "com.bcbs239.regtech.billing.application.events"
+            "com.bcbs239.regtech.core.inbox"
         }
     )
     @Import({BillingTestJpaConfiguration.class})

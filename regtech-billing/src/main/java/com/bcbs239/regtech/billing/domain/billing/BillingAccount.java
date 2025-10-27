@@ -1,19 +1,28 @@
 package com.bcbs239.regtech.billing.domain.billing;
 
+import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
+import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
+import com.bcbs239.regtech.billing.domain.invoices.Invoice;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountStatus;
 import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
+import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
+import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.iam.domain.users.UserId;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Currency;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * BillingAccount aggregate root - manages billing account lifecycle and status transitions.
@@ -35,6 +44,12 @@ public class BillingAccount {
     private Instant updatedAt;
     private long version;
     
+    // Subscriptions associated with this billing account
+    private Set<Subscription> subscriptions = new HashSet<>();
+    
+    // Invoices associated with this billing account
+    private Set<Invoice> invoices = new HashSet<>();
+    
     // Public constructor for JPA entity mapping
     public BillingAccount() {}
     
@@ -43,21 +58,77 @@ public class BillingAccount {
      * 
      * @param userId The user this billing account belongs to
      * @param stripeCustomerId The Stripe customer ID for payment processing
+     * @param createdAt The creation timestamp
+     * @param updatedAt The last update timestamp
      * @return New BillingAccount with PENDING_VERIFICATION status
      */
-    public static BillingAccount create(UserId userId, StripeCustomerId stripeCustomerId) {
+    public static BillingAccount create(UserId userId, StripeCustomerId stripeCustomerId, Instant createdAt, Instant updatedAt) {
         Objects.requireNonNull(userId, "UserId cannot be null");
         Objects.requireNonNull(stripeCustomerId, "StripeCustomerId cannot be null");
-        
+        Objects.requireNonNull(createdAt, "CreatedAt cannot be null");
+        Objects.requireNonNull(updatedAt, "UpdatedAt cannot be null");
+
         BillingAccount account = new BillingAccount();
         account.id = BillingAccountId.generate("BA");
         account.userId = userId;
         account.stripeCustomerId = stripeCustomerId;
         account.status = BillingAccountStatus.PENDING_VERIFICATION;
         account.accountBalance = Money.zero(Currency.getInstance("EUR"));
-        account.createdAt = Instant.now();
-        account.updatedAt = Instant.now();
+        account.createdAt = createdAt;
+        account.updatedAt = updatedAt;
         account.version = 0;
+        
+        return account;
+    }
+    
+    /**
+     * Factory method to create a new BillingAccount without Stripe customer ID.
+     * Used when the billing account is created before Stripe customer creation.
+     * The Stripe customer ID should be set later via updateStripeCustomerId().
+     * 
+     * @param userId The user this billing account belongs to
+     * @param createdAt The creation timestamp
+     * @param updatedAt The last update timestamp
+     * @return New BillingAccount with PENDING_VERIFICATION status
+     */
+    public static BillingAccount create(UserId userId, Instant createdAt, Instant updatedAt) {
+        Objects.requireNonNull(userId, "UserId cannot be null");
+        Objects.requireNonNull(createdAt, "CreatedAt cannot be null");
+        Objects.requireNonNull(updatedAt, "UpdatedAt cannot be null");
+
+        BillingAccount account = new BillingAccount();
+        account.id = BillingAccountId.generate("BA");
+        account.userId = userId;
+        account.status = BillingAccountStatus.PENDING_VERIFICATION;
+        account.accountBalance = Money.zero(Currency.getInstance("EUR"));
+        account.createdAt = createdAt;
+        account.updatedAt = updatedAt;
+        account.version = 0;
+        
+        // Create default subscription
+        StripeSubscriptionId defaultStripeId = StripeSubscriptionId.fromString("default").getValue().get();
+        Subscription defaultSubscription = Subscription.create(account.id, defaultStripeId, SubscriptionTier.STARTER);
+        account.subscriptions.add(defaultSubscription);
+        
+        // Create default invoice
+        StripeInvoiceId defaultInvoiceId = StripeInvoiceId.fromString("default").getValue().get();
+        Money subscriptionAmount = defaultSubscription.getMonthlyAmount();
+        Money overageAmount = Money.zero(Currency.getInstance("EUR"));
+        BillingPeriod currentPeriod = BillingPeriod.current();
+        
+        Result<Invoice> invoiceResult = Invoice.create(
+            account.id,
+            defaultInvoiceId,
+            subscriptionAmount,
+            overageAmount,
+            currentPeriod,
+            () -> createdAt,
+            () -> LocalDate.now()
+        );
+        
+        if (invoiceResult.isSuccess()) {
+            account.invoices.add(invoiceResult.getValue().get());
+        }
         
         return account;
     }
@@ -183,20 +254,47 @@ public class BillingAccount {
     }
     
     /**
-     * Update the default payment method for the account.
+     * Create a new subscription for this billing account.
+     * Only ACTIVE accounts can create subscriptions.
      * 
-     * @param paymentMethodId The new default payment method
-     * @return Result indicating success or failure with error details
+     * @param stripeSubscriptionId The Stripe subscription ID
+     * @param tier The subscription tier
+     * @return Result containing the created Subscription or error details
      */
-    public Result<Void> updateDefaultPaymentMethod(PaymentMethodId paymentMethodId) {
-        Objects.requireNonNull(paymentMethodId, "PaymentMethodId cannot be null");
+    public Result<Subscription> createSubscription(StripeSubscriptionId stripeSubscriptionId, SubscriptionTier tier) {
+        Objects.requireNonNull(stripeSubscriptionId, "StripeSubscriptionId cannot be null");
+        Objects.requireNonNull(tier, "SubscriptionTier cannot be null");
         
-        if (this.status == BillingAccountStatus.CANCELLED) {
-            return Result.failure(ErrorDetail.of("ACCOUNT_CANCELLED", 
-                "Cannot update payment method for cancelled account", "billing.account.cancelled"));
+        if (!canCreateSubscription()) {
+            return Result.failure(ErrorDetail.of("ACCOUNT_NOT_ACTIVE", 
+                "Cannot create subscription for non-active account", "billing.account.not.active"));
         }
         
-        this.defaultPaymentMethodId = paymentMethodId;
+        Subscription subscription = Subscription.create(
+            this.id,
+            stripeSubscriptionId,
+            tier
+        );
+        
+        return Result.success(subscription);
+    }
+    
+    /**
+     * Update the Stripe customer ID for the account.
+     * Can only be set once - subsequent calls will fail.
+     * 
+     * @param stripeCustomerId The Stripe customer ID to set
+     * @return Result indicating success or failure with error details
+     */
+    public Result<Void> updateStripeCustomerId(StripeCustomerId stripeCustomerId) {
+        Objects.requireNonNull(stripeCustomerId, "StripeCustomerId cannot be null");
+        
+        if (this.stripeCustomerId != null) {
+            return Result.failure(ErrorDetail.of("CUSTOMER_ID_ALREADY_SET", 
+                "Stripe customer ID is already set for this account", "billing.account.customer.id.already.set"));
+        }
+        
+        this.stripeCustomerId = stripeCustomerId;
         this.updatedAt = Instant.now();
         this.version++;
         
@@ -226,6 +324,26 @@ public class BillingAccount {
         return Result.success(null);
     }
 
+    /**
+     * Configure Stripe customer information after successful customer creation.
+     * Sets the default payment method and Stripe customer ID.
+     * 
+     * @param paymentMethodId The default payment method ID
+     * @param stripeCustomerId The Stripe customer ID
+     * @return Result indicating success or failure
+     */
+    public Result<Void> configureStripeCustomer(PaymentMethodId paymentMethodId, StripeCustomerId stripeCustomerId) {
+        Objects.requireNonNull(paymentMethodId, "PaymentMethodId cannot be null");
+        Objects.requireNonNull(stripeCustomerId, "StripeCustomerId cannot be null");
+        
+        this.defaultPaymentMethodId = paymentMethodId;
+        this.stripeCustomerId = stripeCustomerId;
+        this.updatedAt = Instant.now();
+        this.version++;
+        
+        return Result.success(null);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -241,7 +359,7 @@ public class BillingAccount {
     
     @Override
     public String toString() {
-        return String.format("BillingAccount{id=%s, userId=%s, status=%s, version=%d}", 
-            id, userId, status, version);
+        return String.format("BillingAccount{id=%s, userId=%s, status=%s, subscriptions=%d, invoices=%d, version=%d}", 
+            id, userId, status, subscriptions.size(), invoices.size(), version);
     }
 }

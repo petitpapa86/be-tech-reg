@@ -5,18 +5,19 @@ import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaMessage;
 
 import java.time.Instant;
+import java.util.Optional;
 
 public class StripeSubscriptionCreatedEvent extends SagaMessage {
 
     private final String stripeSubscriptionId;
     private final String stripeInvoiceId;
-    private final SubscriptionId subscriptionId;
+    private final Optional<SubscriptionId> subscriptionId;
 
     public StripeSubscriptionCreatedEvent(SagaId sagaId, String stripeSubscriptionId, String stripeInvoiceId, SubscriptionId subscriptionId) {
         super("StripeSubscriptionCreatedEvent", Instant.now(), sagaId);
         this.stripeSubscriptionId = stripeSubscriptionId;
         this.stripeInvoiceId = stripeInvoiceId;
-        this.subscriptionId = subscriptionId;
+        this.subscriptionId = Optional.ofNullable(subscriptionId);
     }
 
     public String getStripeSubscriptionId() {
@@ -27,7 +28,7 @@ public class StripeSubscriptionCreatedEvent extends SagaMessage {
         return stripeInvoiceId;
     }
 
-    public SubscriptionId getSubscriptionId() {
+    public Optional<SubscriptionId> getSubscriptionId() {
         return subscriptionId;
     }
 }

@@ -1,15 +1,18 @@
 package com.bcbs239.regtech.billing.application.processwebhook;
 
+import com.bcbs239.regtech.billing.domain.events.*;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.ProcessedWebhookEvent;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
+import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.stripe.model.Event;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -25,12 +28,15 @@ public class ProcessWebhookCommandHandler {
 
     private final JpaInvoiceRepository invoiceRepository;
     private final StripeService stripeService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public ProcessWebhookCommandHandler(
             JpaInvoiceRepository invoiceRepository,
-            StripeService stripeService) {
+            StripeService stripeService,
+            ApplicationEventPublisher applicationEventPublisher) {
         this.invoiceRepository = invoiceRepository;
         this.stripeService = stripeService;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     /**
@@ -44,7 +50,8 @@ public class ProcessWebhookCommandHandler {
             invoiceRepository.invoiceByStripeIdFinder(),
             invoiceRepository.invoiceSaver(),
             verificationData -> stripeService.verifyWebhookSignature(verificationData.payload(), verificationData.signatureHeader()),
-            stripeService::synchronizeInvoiceStatus
+            stripeService::synchronizeInvoiceStatus,
+            applicationEventPublisher::publishEvent
         );
     }
 
@@ -59,7 +66,8 @@ public class ProcessWebhookCommandHandler {
             Function<StripeInvoiceId, Maybe<Invoice>> invoiceFinder,
             Function<Invoice, Result<InvoiceId>> invoiceSaver,
             Function<WebhookVerificationData, Result<Event>> webhookVerifier,
-            Function<Event, Result<StripeService.InvoiceStatusUpdate>> invoiceStatusSynchronizer) {
+            Function<Event, Result<StripeService.InvoiceStatusUpdate>> invoiceStatusSynchronizer,
+            Consumer<Object> sagaEventPublisher) {
 
         // Step 1: Check if event was already processed (idempotency)
         Maybe<ProcessedWebhookEvent> existingEvent = eventChecker.apply(command.eventId());
@@ -90,7 +98,7 @@ public class ProcessWebhookCommandHandler {
 
             // Step 3: Route event based on type
             Result<String> processingResult = routeEvent(command, stripeEvent, 
-                invoiceFinder, invoiceSaver, invoiceStatusSynchronizer);
+                invoiceFinder, invoiceSaver, invoiceStatusSynchronizer, sagaEventPublisher);
             
             if (processingResult.isSuccess()) {
                 // Record successful processing
@@ -130,14 +138,15 @@ public class ProcessWebhookCommandHandler {
             Event stripeEvent,
             Function<StripeInvoiceId, Maybe<Invoice>> invoiceFinder,
             Function<Invoice, Result<InvoiceId>> invoiceSaver,
-            Function<Event, Result<StripeService.InvoiceStatusUpdate>> invoiceStatusSynchronizer) {
+            Function<Event, Result<StripeService.InvoiceStatusUpdate>> invoiceStatusSynchronizer,
+            Consumer<Object> sagaEventPublisher) {
 
         if (command.isInvoiceEvent()) {
             return processInvoiceEvent(stripeEvent, invoiceFinder, invoiceSaver, invoiceStatusSynchronizer);
         } else if (command.isSubscriptionEvent()) {
-            return processSubscriptionEvent(stripeEvent);
+            return processSubscriptionEvent(stripeEvent, sagaEventPublisher);
         } else if (command.isPaymentEvent()) {
-            return processPaymentEvent(stripeEvent);
+            return processPaymentEvent(stripeEvent, sagaEventPublisher);
         } else {
             // Ignore unknown event types
             return Result.success("Event type ignored: " + command.eventType());
@@ -189,70 +198,125 @@ public class ProcessWebhookCommandHandler {
     /**
      * Process subscription-related webhook events
      */
-    private static Result<String> processSubscriptionEvent(Event stripeEvent) {
-        // TODO: Implement subscription event processing
-        // For now, just acknowledge the event
+    private static Result<String> processSubscriptionEvent(Event stripeEvent, Consumer<Object> sagaEventPublisher) {
+        // Extract subscription data from the event
+        String eventType = stripeEvent.getType();
+        
+        switch (eventType) {
+            case "customer.subscription.created":
+                // Publish saga event for subscription creation webhook
+                // TODO: Extract saga ID from correlation data
+                SagaId sagaId = findSagaIdForSubscription(stripeEvent);
+                if (sagaId != null) {
+                    sagaEventPublisher.accept(new StripeSubscriptionWebhookReceivedEvent(
+                        sagaId, 
+                        extractSubscriptionId(stripeEvent),
+                        extractInvoiceId(stripeEvent)
+                    ));
+                }
+                break;
+                
+            case "customer.subscription.updated":
+            case "customer.subscription.deleted":
+                // Handle other subscription events if needed
+                break;
+                
+            default:
+                // Unknown subscription event
+                break;
+        }
+        
         return Result.success("Subscription event processed: " + stripeEvent.getType());
     }
 
     /**
      * Process payment-related webhook events
      */
-    private static Result<String> processPaymentEvent(Event stripeEvent) {
-        // TODO: Implement payment event processing
-        // For now, just acknowledge the event
-        return Result.success("Payment event processed: " + stripeEvent.getType());
-    }
-
-    /**
-     * Update invoice status based on Stripe webhook event
-     */
-    private static Result<Void> updateInvoiceFromStripeEvent(
-            Invoice invoice, 
-            StripeService.InvoiceStatusUpdate statusUpdate) {
+    private static Result<String> processPaymentEvent(Event stripeEvent, Consumer<Object> sagaEventPublisher) {
+        // Extract payment data from the event
+        String eventType = stripeEvent.getType();
         
-        switch (statusUpdate.eventType()) {
-            case "invoice.paid":
-            case "payment_intent.succeeded":
-                if (statusUpdate.paid() != null && statusUpdate.paid()) {
-                    return invoice.markAsPaid(Instant.now(), () -> Instant.now());
+        switch (eventType) {
+            case "invoice.payment_succeeded":
+                // Publish saga event for successful payment
+                // TODO: Extract saga ID from correlation data
+                SagaId sagaId = findSagaIdForPayment(stripeEvent);
+                if (sagaId != null) {
+                    sagaEventPublisher.accept(new StripePaymentSucceededEvent(
+                        sagaId, 
+                        extractPaymentIntentId(stripeEvent)
+                    ));
                 }
                 break;
                 
             case "invoice.payment_failed":
-            case "payment_intent.payment_failed":
-                return invoice.markAsFailed(() -> Instant.now());
-                
-            case "invoice.voided":
-                return invoice.voidInvoice(() -> Instant.now());
+                // Publish saga event for failed payment
+                // TODO: Extract saga ID from correlation data
+                SagaId sagaIdFailed = findSagaIdForPayment(stripeEvent);
+                if (sagaIdFailed != null) {
+                    sagaEventPublisher.accept(new StripePaymentFailedEvent(
+                        sagaIdFailed, 
+                        extractFailureReason(stripeEvent)
+                    ));
+                }
+                break;
                 
             default:
-                // For other events, just acknowledge without changing status
-                return Result.success(null);
+                // Unknown payment event
+                break;
         }
         
-        return Result.success(null);
+        return Result.success("Payment event processed: " + stripeEvent.getType());
     }
 
     /**
-     * Check if webhook event was already processed (mock implementation)
+     * Find saga ID for subscription events (placeholder implementation)
+     * TODO: Implement correlation logic based on Stripe IDs stored in saga data
      */
-    private Maybe<ProcessedWebhookEvent> checkIfEventProcessed(String eventId) {
-        // TODO: Implement actual database lookup
-        // For now, return none (event not processed)
-        return Maybe.none();
+    private static SagaId findSagaIdForSubscription(Event stripeEvent) {
+        // TODO: Extract customer ID from event and look up saga ID from correlation data
+        // For now, return null to indicate saga ID not found
+        return null;
     }
 
     /**
-     * Record that webhook event was processed (mock implementation)
+     * Find saga ID for payment events (placeholder implementation)
+     * TODO: Implement correlation logic based on Stripe IDs stored in saga data
      */
-    private void recordEventProcessed(ProcessedWebhookEvent event) {
-        // TODO: Implement actual database storage
-        // For now, just log the event
-        System.out.println("Recording processed webhook event: " + event.eventId() + 
-            " -> " + event.result());
+    private static SagaId findSagaIdForPayment(Event stripeEvent) {
+        // TODO: Extract invoice/customer ID from event and look up saga ID from correlation data
+        // For now, return null to indicate saga ID not found
+        return null;
     }
 
-    // Helper record for function parameters
-    public record WebhookVerificationData(String payload, String signatureHeader) {}
-}
+    /**
+     * Extract subscription ID from Stripe event (placeholder)
+     */
+    private static String extractSubscriptionId(Event stripeEvent) {
+        // TODO: Extract from stripeEvent.getData().getObject()
+        return "placeholder-subscription-id";
+    }
+
+    /**
+     * Extract invoice ID from Stripe event (placeholder)
+     */
+    private static String extractInvoiceId(Event stripeEvent) {
+        // TODO: Extract from stripeEvent.getData().getObject()
+        return "placeholder-invoice-id";
+    }
+
+    /**
+     * Extract payment intent ID from Stripe event (placeholder)
+     */
+    private static String extractPaymentIntentId(Event stripeEvent) {
+        // TODO: Extract from stripeEvent.getData().getObject()
+        return "placeholder-payment-intent-id";
+    }
+
+    /**
+     * Extract failure reason from Stripe event (placeholder)
+     */
+    private static String extractFailureReason(Event stripeEvent) {
+        // TODO: Extract from stripeEvent.getData().getObject()
+        return "placeholder-failure-reason";
+    }

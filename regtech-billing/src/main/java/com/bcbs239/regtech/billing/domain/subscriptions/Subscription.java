@@ -206,6 +206,22 @@ public class Subscription {
         
         return Result.success(null);
     }
+
+    /**
+     * Update the Stripe subscription ID after successful Stripe subscription creation.
+     * 
+     * @param stripeSubscriptionId The Stripe subscription ID
+     * @return Result indicating success or failure
+     */
+    public Result<Void> updateStripeSubscriptionId(StripeSubscriptionId stripeSubscriptionId) {
+        Objects.requireNonNull(stripeSubscriptionId, "StripeSubscriptionId cannot be null");
+        
+        this.stripeSubscriptionId = stripeSubscriptionId;
+        this.updatedAt = Instant.now();
+        this.version++;
+        
+        return Result.success(null);
+    }
     
     /**
      * Get the monthly amount for this subscription based on its tier.

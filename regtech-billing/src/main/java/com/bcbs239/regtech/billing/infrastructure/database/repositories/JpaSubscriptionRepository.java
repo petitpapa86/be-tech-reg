@@ -4,6 +4,7 @@ import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.SubscriptionEntity;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
@@ -55,6 +56,25 @@ public class JpaSubscriptionRepository {
                     SubscriptionEntity.class)
                     .setParameter("billingAccountId", billingAccountId.value())
                     .setParameter("status", SubscriptionStatus.ACTIVE)
+                    .getSingleResult();
+                return Maybe.some(entity.toDomain());
+            } catch (NoResultException e) {
+                return Maybe.none();
+            } catch (Exception e) {
+                // Log error but return none for functional pattern
+                return Maybe.none();
+            }
+        };
+    }
+
+    public Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder() {
+        return billingAccountId -> tier -> {
+            try {
+                SubscriptionEntity entity = entityManager.createQuery(
+                    "SELECT s FROM SubscriptionEntity s WHERE s.billingAccountId = :billingAccountId AND s.tier = :tier AND s.stripeSubscriptionId IS NULL", 
+                    SubscriptionEntity.class)
+                    .setParameter("billingAccountId", billingAccountId.value())
+                    .setParameter("tier", tier)
                     .getSingleResult();
                 return Maybe.some(entity.toDomain());
             } catch (NoResultException e) {

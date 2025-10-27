@@ -4,6 +4,9 @@ import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.*;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -11,10 +14,13 @@ import java.time.LocalDate;
  * JPA Entity for Subscription aggregate persistence.
  * Maps domain aggregate to database table structure.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "subscriptions", schema = "billing")
 public class SubscriptionEntity {
 
+    // Getters and setters for JPA
     @Id
     @Column(name = "id", nullable = false)
     private String id;
@@ -97,34 +103,4 @@ public class SubscriptionEntity {
         return subscription;
     }
 
-    // Getters and setters for JPA
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getBillingAccountId() { return billingAccountId; }
-    public void setBillingAccountId(String billingAccountId) { this.billingAccountId = billingAccountId; }
-
-    public String getStripeSubscriptionId() { return stripeSubscriptionId; }
-    public void setStripeSubscriptionId(String stripeSubscriptionId) { this.stripeSubscriptionId = stripeSubscriptionId; }
-
-    public SubscriptionTier getTier() { return tier; }
-    public void setTier(SubscriptionTier tier) { this.tier = tier; }
-
-    public SubscriptionStatus getStatus() { return status; }
-    public void setStatus(SubscriptionStatus status) { this.status = status; }
-
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-
-    public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-
-    public Long getVersion() { return version; }
-    public void setVersion(Long version) { this.version = version; }
 }
