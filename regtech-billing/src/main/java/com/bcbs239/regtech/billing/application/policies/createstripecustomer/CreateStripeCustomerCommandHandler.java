@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * Command handler for creating Stripe customers.
  * Handles CreateStripeCustomerCommand and publishes StripeCustomerCreatedEvent.
  */
-@Component
+@Component("simpleCreateStripeCustomerCommandHandler")
 public class CreateStripeCustomerCommandHandler {
 
     private final StripeService stripeService;

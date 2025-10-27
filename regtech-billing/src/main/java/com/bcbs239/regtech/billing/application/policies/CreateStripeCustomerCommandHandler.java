@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component;
  * Railway-Oriented handler with specific failure events for compensation.
  * Each failure type publishes a distinct event that the saga can handle.
  */
-@Component
+@Component("railwayCreateStripeCustomerCommandHandler")
 public class CreateStripeCustomerCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(CreateStripeCustomerCommandHandler.class);

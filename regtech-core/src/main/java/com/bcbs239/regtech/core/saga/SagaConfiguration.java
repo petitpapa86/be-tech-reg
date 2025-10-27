@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.task.TaskExecutor;
 
 import java.time.Instant;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -37,5 +39,15 @@ public class SagaConfiguration {
     @Bean
     public Supplier<Instant> currentTimeSupplier() {
         return Instant::now;
+    }
+
+    @Bean
+    public ScheduledExecutorService scheduledExecutorService() {
+        return Executors.newScheduledThreadPool(5);
+    }
+
+    @Bean
+    public SagaClosures.TimeoutScheduler timeoutScheduler(ScheduledExecutorService executor) {
+        return SagaClosures.timeoutScheduler(executor);
     }
 }
