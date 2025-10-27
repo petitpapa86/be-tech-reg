@@ -9,7 +9,8 @@ import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.events.UserRegisteredEvent;
+import com.bcbs239.regtech.core.events.DomainEventHandler;
+import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaManager;
 import com.bcbs239.regtech.core.shared.Result;
@@ -24,28 +25,35 @@ import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBilli
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
 
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * Event handler for UserRegisteredEvent.
+ * Event handler for UserRegisteredIntegrationEvent.
  * Starts the PaymentVerificationSaga when a user registers.
  */
 @Component("billingUserRegisteredEventHandler")
 @Slf4j
 @RequiredArgsConstructor
-public class UserRegisteredEventHandler {
+public class UserRegisteredEventHandler implements DomainEventHandler<UserRegisteredIntegrationEvent> {
     private final SagaManager sagaManager;
     private final JpaBillingAccountRepository billingAccountRepository;
     private final JpaSubscriptionRepository subscriptionRepository;
     private final JpaInvoiceRepository invoiceRepository;
 
-    @EventListener
-    public void handle(UserRegisteredEvent event) {
-        log.info("Received UserRegisteredEvent for user: {}", event.getEmail());
+    @Override
+    public boolean handle(UserRegisteredIntegrationEvent event) {
+        log.info("Received UserRegisteredIntegrationEvent for user: {}", event.getEmail());
+
+        UserId userId = UserId.fromString(event.getUserId());
+
+        // Check if billing account already exists (idempotency)
+        com.bcbs239.regtech.core.shared.Maybe<BillingAccount> existingAccount = billingAccountRepository.billingAccountByUserFinder().apply(userId);
+        if (existingAccount.isPresent()) {
+            log.info("Billing account already exists for user: {}, skipping processing", event.getUserId());
+            return true;
+        }
 
         // Create billing account for the user
-        UserId userId = UserId.fromString(event.getUserId());
         Instant now = Instant.now();
         BillingAccount billingAccount = BillingAccount.create(userId, now, now);
         
@@ -55,7 +63,7 @@ public class UserRegisteredEventHandler {
                 "userId", event.getUserId(),
                 "error", saveResult.getError().get().getMessage()
             ));
-            return;
+            return false;
         }
         
         com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId valueObjectId = saveResult.getValue().get();
@@ -73,7 +81,7 @@ public class UserRegisteredEventHandler {
                     "billingAccountId", billingAccountId.getValue(),
                     "error", subscriptionSaveResult.getError().get().getMessage()
                 ));
-                return;
+                return false;
             }
             LoggingConfiguration.createStructuredLog("SUBSCRIPTION_CREATED", Map.of(
                 "subscriptionId", subscriptionSaveResult.getValue().get().value(),
@@ -89,7 +97,7 @@ public class UserRegisteredEventHandler {
                     "billingAccountId", billingAccountId.getValue(),
                     "error", invoiceSaveResult.getError().get().getMessage()
                 ));
-                return;
+                return false;
             }
             LoggingConfiguration.createStructuredLog("INVOICE_CREATED", Map.of(
                 "invoiceId", invoiceSaveResult.getValue().get().value(),
@@ -99,7 +107,7 @@ public class UserRegisteredEventHandler {
 
         // Create saga data from the integration event
         PaymentVerificationSagaData sagaData = PaymentVerificationSagaData.builder()
-            .correlationId(event.getCorrelationId())
+            .correlationId(event.getId().toString()) // Convert UUID to String
             .userId(userId)
             .billingAccountId(billingAccountId)
             .userEmail(event.getEmail())
@@ -114,5 +122,17 @@ public class UserRegisteredEventHandler {
 
         log.info("User registration integration event processing completed for billing: userId={}, fullName={}",
             event.getUserId(), event.getName());
+        
+        return true;
+    }
+
+    @Override
+    public String eventType() {
+        return UserRegisteredIntegrationEvent.class.getSimpleName();
+    }
+
+    @Override
+    public Class<UserRegisteredIntegrationEvent> eventClass() {
+        return UserRegisteredIntegrationEvent.class;
     }
 }

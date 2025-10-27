@@ -32,24 +32,20 @@ public class DefaultEventDispatcher implements EventDispatcher {
 
         boolean allSuccess = true;
         for (DomainEventHandler<? extends DomainEvent> handler : handlers) {
-            try {
-                String handlerName = handler.getClass().getSimpleName();
 
-                @SuppressWarnings({"rawtypes", "unchecked"})
-                DomainEventHandler rawHandler = handler;
-                boolean success = rawHandler.handle(event);
+            String handlerName = handler.getClass().getSimpleName();
 
-                if (success) {
-                    logger.debug("Dispatched integration event {} to handler {}", eventType.getName(), handlerName);
-                } else {
-                    logger.error("Handler {} failed to process event {}", handlerName, eventType.getName());
-                    allSuccess = false;
-                }
-            } catch (Exception e) {
-                logger.error("Error dispatching integration event {} to handler {}: {}",
-                        eventType.getName(), handler.getClass().getSimpleName(), e.getMessage(), e);
+            @SuppressWarnings({"rawtypes", "unchecked"})
+            DomainEventHandler rawHandler = handler;
+            boolean success = rawHandler.handle(event);
+
+            if (success) {
+                logger.debug("Dispatched integration event {} to handler {}", eventType.getName(), handlerName);
+            } else {
+                logger.error("Handler {} failed to process event {}", handlerName, eventType.getName());
                 allSuccess = false;
             }
+
         }
 
         return allSuccess;
