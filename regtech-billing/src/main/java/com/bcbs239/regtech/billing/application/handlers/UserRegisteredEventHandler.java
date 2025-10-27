@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
  * Event handler for UserRegisteredEvent.
  * Starts the PaymentVerificationSaga when a user registers.
  */
-@Component
+@Component("billingUserRegisteredEventHandler")
 @Slf4j
 @RequiredArgsConstructor
 public class UserRegisteredEventHandler {

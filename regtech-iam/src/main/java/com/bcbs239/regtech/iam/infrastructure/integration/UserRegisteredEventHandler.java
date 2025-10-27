@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 
-@Component
+@Component("iamUserRegisteredEventHandler")
 public class UserRegisteredEventHandler implements DomainEventHandler<UserRegisteredEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(UserRegisteredEventHandler.class);
