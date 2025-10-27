@@ -8,9 +8,8 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
-import com.bcbs239.regtech.core.saga.Saga;
-import com.bcbs239.regtech.core.saga.SagaOrchestrator;
-import com.bcbs239.regtech.core.saga.SagaResult;
+import com.bcbs239.regtech.core.saga.SagaId;
+import com.bcbs239.regtech.core.saga.SagaManager;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.slf4j.Logger;
@@ -23,7 +22,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Scheduled job for triggering monthly billing processes.
@@ -34,18 +32,15 @@ public class MonthlyBillingScheduler {
 
     private static final Logger logger = LoggerFactory.getLogger(MonthlyBillingScheduler.class);
 
-    private final SagaOrchestrator sagaOrchestrator;
-    private final Saga<MonthlyBillingSagaData> monitoredMonthlyBillingSaga;
+    private final SagaManager sagaManager;
     private final JpaSubscriptionRepository subscriptionRepository;
     private final JpaBillingAccountRepository billingAccountRepository;
 
     public MonthlyBillingScheduler(
-            SagaOrchestrator sagaOrchestrator,
-            Saga<MonthlyBillingSagaData> monitoredMonthlyBillingSaga,
+            SagaManager sagaManager,
             JpaSubscriptionRepository subscriptionRepository,
             JpaBillingAccountRepository billingAccountRepository) {
-        this.sagaOrchestrator = sagaOrchestrator;
-        this.monitoredMonthlyBillingSaga = monitoredMonthlyBillingSaga;
+        this.sagaManager = sagaManager;
         this.subscriptionRepository = subscriptionRepository;
         this.billingAccountRepository = billingAccountRepository;
     }
@@ -161,13 +156,13 @@ public class MonthlyBillingScheduler {
                 sagaData.addMetadata("orchestrationTimestamp", java.time.Instant.now().toString());
                 sagaData.addMetadata("scheduledBillingPeriod", billingMonth.toString());
 
-                // Start the saga using the core orchestrator with monitoring
-                CompletableFuture<SagaResult> sagaFuture = sagaOrchestrator.startSaga(monitoredMonthlyBillingSaga, sagaData);
+                // Start the saga using the saga manager
+                SagaId sagaId = sagaManager.startSaga(MonthlyBillingSaga.class, sagaData);
                 
                 // For now, we'll just log the saga start - in production you might want to track these futures
                 successCount++;
                 logger.info("Started monthly billing saga {} with correlation ID {} for subscription {} (user: {})", 
-                    sagaData.getId(), correlationId, subscription.getId(), userId.getValue());
+                    sagaId, correlationId, subscription.getId(), userId.getValue());
                 
             } catch (Exception e) {
                 failureCount++;

@@ -9,6 +9,7 @@ import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
+import com.bcbs239.regtech.billing.domain.events.StripeInvoiceCreatedEvent;
 import com.bcbs239.regtech.core.shared.Result;
 import org.springframework.stereotype.Component;
 

@@ -13,12 +13,13 @@ import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.iam.domain.users.UserId;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.YearMonth;
+// import java.time.YearMonth;
 import java.util.Currency;
 import java.util.HashSet;
 import java.util.Objects;
@@ -45,10 +46,10 @@ public class BillingAccount {
     private long version;
     
     // Subscriptions associated with this billing account
-    private Set<Subscription> subscriptions = new HashSet<>();
+    private final Set<Subscription> subscriptions = new HashSet<>();
     
     // Invoices associated with this billing account
-    private Set<Invoice> invoices = new HashSet<>();
+    private final Set<Invoice> invoices = new HashSet<>();
     
     // Public constructor for JPA entity mapping
     public BillingAccount() {}
@@ -344,14 +345,26 @@ public class BillingAccount {
         return Result.success(null);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        BillingAccount that = (BillingAccount) o;
-        return Objects.equals(id, that.id);
+    /**
+     * Finalize the billing account after successful payment verification.
+     * Transitions from PENDING_VERIFICATION to ACTIVE status.
+     */
+    public void finalizeAccount() {
+        if (this.status == BillingAccountStatus.PENDING_VERIFICATION) {
+            this.status = BillingAccountStatus.ACTIVE;
+            this.updatedAt = Instant.now();
+            this.version++;
+        }
     }
     
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        BillingAccount that = (BillingAccount) obj;
+        return Objects.equals(id, that.id);
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(id);

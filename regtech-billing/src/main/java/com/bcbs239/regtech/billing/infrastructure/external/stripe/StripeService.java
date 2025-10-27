@@ -20,7 +20,7 @@ import com.stripe.param.PaymentMethodAttachParams;
 import com.stripe.param.CustomerUpdateParams;
 import com.stripe.param.SubscriptionCreateParams;
 import com.stripe.param.InvoiceCreateParams;
-import com.stripe.param.InvoiceRetrieveParams;
+// import com.stripe.param.InvoiceRetrieveParams;
 import com.stripe.param.InvoiceFinalizeInvoiceParams;
 import com.stripe.net.Webhook;
 import com.stripe.exception.SignatureVerificationException;
@@ -41,6 +41,7 @@ import java.util.Map;
 @Service
 public class StripeService {
 
+    @SuppressWarnings("unused")
     private final String apiKey;
     private final String webhookSecret;
 

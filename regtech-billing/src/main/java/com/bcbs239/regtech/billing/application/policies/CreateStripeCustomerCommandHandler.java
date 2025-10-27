@@ -62,7 +62,7 @@ public class CreateStripeCustomerCommandHandler {
                 .flatMap(customer -> setDefaultPaymentMethod(customer, paymentMethodId, sagaId))
                 .flatMap(customer -> findBillingAccount(sagaId, customer))
                 .flatMap(data -> configureAndSave(data, paymentMethodId, sagaId))
-                .map(data -> new StripeCustomerCreatedEvent(sagaId, data.customer.customerId().value(), data.billingAccountId.value()));
+                .map(data -> new StripeCustomerCreatedEvent(sagaId, data.customer.customerId().value()));
 
         // Success case
         if (result.isSuccess()) {

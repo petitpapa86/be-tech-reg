@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.EntityManager;
 
+import com.bcbs239.regtech.core.infrastructure.entities.SagaEntity;
+
 public class JpaSagaRepository {
 
     public static Function<AbstractSaga<?>, Result<SagaId>> sagaSaver(EntityManager entityManager, ObjectMapper objectMapper) {
@@ -83,7 +85,8 @@ public class JpaSagaRepository {
                                 .map(e -> e.getClass().getSimpleName())
                                 .toList()
                 ),
-                objectMapper.writeValueAsString(saga.getCommandsToDispatch())
+                objectMapper.writeValueAsString(saga.getCommandsToDispatch()),
+                saga.getCompletedAt()
         );
     }
 

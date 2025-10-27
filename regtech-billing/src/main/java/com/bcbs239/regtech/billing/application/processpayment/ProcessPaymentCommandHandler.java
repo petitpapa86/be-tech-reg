@@ -5,7 +5,6 @@ import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.*;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
@@ -24,6 +23,7 @@ import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.Currency;
@@ -102,7 +102,7 @@ public class ProcessPaymentCommandHandler {
         StripeCustomer stripeCustomer = stripeCustomerResult.getValue().get();
 
         // Step 3: Create billing account
-        BillingAccount billingAccount = BillingAccount.create(userData.userId(), stripeCustomer.customerId());
+        BillingAccount billingAccount = BillingAccount.create(userData.userId(), stripeCustomer.customerId(), Instant.now(), Instant.now());
         
         Result<Void> activationResult = billingAccount.activate(command.getPaymentMethodId());
         if (activationResult.isFailure()) {

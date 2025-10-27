@@ -1,21 +1,18 @@
 package com.bcbs239.regtech.billing.infrastructure.configuration;
 
-import com.bcbs239.regtech.billing.infrastructure.observability.BillingPerformanceMetricsService;
-import com.bcbs239.regtech.billing.infrastructure.observability.BillingSagaAuditService;
-import com.bcbs239.regtech.billing.infrastructure.observability.MonitoredSagaWrapper;
+// import com.bcbs239.regtech.billing.infrastructure.observability.BillingPerformanceMetricsService;
+// import com.bcbs239.regtech.billing.infrastructure.observability.BillingSagaAuditService;
 import com.bcbs239.regtech.billing.infrastructure.jobs.DunningActionExecutor;
 import com.bcbs239.regtech.billing.infrastructure.jobs.DunningNotificationService;
 import com.bcbs239.regtech.billing.infrastructure.jobs.DunningProcessScheduler;
-import com.bcbs239.regtech.billing.infrastructure.jobs.MonthlyBillingScheduler;
-import com.bcbs239.regtech.billing.application.policies.MonthlyBillingSaga;
-import com.bcbs239.regtech.billing.application.policies.MonthlyBillingSagaData;
+// import com.bcbs239.regtech.billing.application.policies.MonthlyBillingSaga;
+// import com.bcbs239.regtech.billing.application.policies.MonthlyBillingSagaData;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaDunningCaseRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
-import com.bcbs239.regtech.core.saga.Saga;
-import com.bcbs239.regtech.core.saga.SagaOrchestrator;
-import com.fasterxml.jackson.databind.ObjectMapper;
+// import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
+// import com.bcbs239.regtech.core.saga.SagaManager;
+// import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,47 +42,9 @@ public class BillingSchedulingConfiguration {
     }
 
     /**
-     * Configure monitored monthly billing saga for scheduler use.
-     * Wraps the saga with monitoring and audit logging capabilities.
-     */
-    @Bean
-    public Saga<MonthlyBillingSagaData> monitoredMonthlyBillingSaga(
-            MonthlyBillingSaga monthlyBillingSaga,
-            BillingSagaAuditService auditService,
-            BillingPerformanceMetricsService metricsService,
-            ObjectMapper objectMapper) {
-        
-        return MonitoredSagaWrapper.wrap(
-            monthlyBillingSaga,
-            auditService,
-            metricsService,
-            objectMapper
-        );
-    }
-
-    /**
      * Configure monthly billing scheduler.
      * Conditionally enabled based on configuration property.
      */
-    @Bean
-    @ConditionalOnProperty(
-        name = "regtech.billing.scheduling.monthly-billing.enabled", 
-        havingValue = "true", 
-        matchIfMissing = true
-    )
-    public MonthlyBillingScheduler monthlyBillingScheduler(
-            SagaOrchestrator sagaOrchestrator,
-            Saga<MonthlyBillingSagaData> monitoredMonthlyBillingSaga,
-            JpaSubscriptionRepository subscriptionRepository,
-            JpaBillingAccountRepository billingAccountRepository) {
-        
-        return new MonthlyBillingScheduler(
-            sagaOrchestrator,
-            monitoredMonthlyBillingSaga,
-            subscriptionRepository,
-            billingAccountRepository
-        );
-    }
 
     /**
      * Configure dunning notification service.

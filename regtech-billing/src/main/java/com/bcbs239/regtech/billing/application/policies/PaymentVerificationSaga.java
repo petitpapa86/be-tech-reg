@@ -55,12 +55,12 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     private void handleStripeCustomerCreated(StripeCustomerCreatedEvent event) {
         data.setStripeCustomerId(event.getStripeCustomerId());
-        data.setBillingAccountId(BillingAccountId.of(event.getBillingAccountId()));
+        data.setBillingAccountId(BillingAccountId.of(data.getUserId().value().toString()));
         dispatchCommand(new CreateStripeSubscriptionCommand(
             getId(), 
             data.getStripeCustomerId(), 
             SubscriptionTier.STARTER,
-            data.getUserId().value()
+            data.getUserId().value().toString()
         ));
         updateStatus();
     }
@@ -85,7 +85,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
                 getId(), 
                 data.getStripeCustomerId(), 
                 SubscriptionTier.STARTER,
-                data.getUserId().value()
+                data.getUserId().value().toString()
             ));
         }
         updateStatus();
@@ -101,7 +101,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
                 getId(), 
                 data.getStripeCustomerId(), 
                 SubscriptionTier.STARTER,
-                data.getUserId().value()
+                data.getUserId().value().toString()
             ));
         } else {
             // We already have a subscription, create invoice

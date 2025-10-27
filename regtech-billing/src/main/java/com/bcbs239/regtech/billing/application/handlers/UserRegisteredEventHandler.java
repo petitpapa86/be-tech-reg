@@ -4,7 +4,6 @@ import com.bcbs239.regtech.billing.application.policies.PaymentVerificationSaga;
 import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.billing.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.billing.PaymentVerificationSagaData;
-import com.bcbs239.regtech.billing.domain.billing.UserId;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
@@ -14,6 +13,7 @@ import com.bcbs239.regtech.core.events.UserRegisteredEvent;
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaManager;
 import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.iam.domain.users.UserId;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ public class UserRegisteredEventHandler {
         log.info("Received UserRegisteredEvent for user: {}", event.getEmail());
 
         // Create billing account for the user
-        UserId userId = new UserId(event.getUserId());
+        UserId userId = UserId.fromString(event.getUserId());
         Instant now = Instant.now();
         BillingAccount billingAccount = BillingAccount.create(userId, now, now);
         

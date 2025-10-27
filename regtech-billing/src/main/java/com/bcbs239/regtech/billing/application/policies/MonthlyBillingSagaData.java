@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.billing.application.sagas;
+package com.bcbs239.regtech.billing.application.policies;
 
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
@@ -40,6 +40,7 @@ public class MonthlyBillingSagaData extends SagaData {
     // Billing step progression
     private BillingStep currentStep = BillingStep.GATHER_METRICS;
     private String lastStepError;
+    private String status;
     
     /**
      * Enumeration of billing steps for saga progression
@@ -53,7 +54,6 @@ public class MonthlyBillingSagaData extends SagaData {
     
     // Constructors
     public MonthlyBillingSagaData() {
-        super();
         // Initialize with zero amounts in EUR
         this.subscriptionCharges = Money.zero(Currency.getInstance("EUR"));
         this.overageCharges = Money.zero(Currency.getInstance("EUR"));
@@ -194,6 +194,12 @@ public class MonthlyBillingSagaData extends SagaData {
     
     public String getLastStepError() { return lastStepError; }
     public void setLastStepError(String lastStepError) { this.lastStepError = lastStepError; }
+    
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+    
+    public String getLastError() { return lastStepError; }
+    public void setLastError(String lastError) { this.lastStepError = lastError; }
     
     @Override
     public String toString() {
