@@ -6,11 +6,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Duration;
+
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class PaymentVerificationSagaData {
+    public static final Duration PAYMENT_TIMEOUT_SLA = Duration.ofMinutes(20);
+
     private String correlationId;
     private UserId userId;
     private String userEmail;

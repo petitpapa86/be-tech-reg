@@ -17,10 +17,12 @@ import com.bcbs239.regtech.core.saga.SagaStatus;
 
 import java.time.Instant;
 
+import com.bcbs239.regtech.core.saga.SagaClosures;
+
 public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSagaData> {
 
-    public PaymentVerificationSaga(SagaId id, PaymentVerificationSagaData data) {
-        super(id, "PaymentVerificationSaga", data);
+    public PaymentVerificationSaga(SagaId id, PaymentVerificationSagaData data, SagaClosures.TimeoutScheduler timeoutScheduler) {
+        super(id, "PaymentVerificationSaga", data, timeoutScheduler);
         registerHandlers();
     }
 
@@ -42,6 +44,13 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             data.getUserName(),
             data.getPaymentMethodId()
         ));
+
+        // Schedule payment timeout using SLA
+        timeoutScheduler.schedule(
+            getId().id() + "-payment-timeout",
+            PaymentVerificationSagaData.PAYMENT_TIMEOUT_SLA.toMillis(),
+            () -> handlePaymentTimeout()
+        );
     }
 
     private void handleStripeCustomerCreated(StripeCustomerCreatedEvent event) {
@@ -113,6 +122,8 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     private void handleStripePaymentSucceeded(StripePaymentSucceededEvent event) {
         data.setStripePaymentIntentId(event.getStripePaymentIntentId());
+        // Cancel the payment timeout since payment succeeded
+        timeoutScheduler.cancel(getId().id() + "-payment-timeout");
         dispatchCommand(new FinalizeBillingAccountCommand(
             getId(),
             data.getStripeCustomerId(),
@@ -142,5 +153,27 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             setStatus(SagaStatus.COMPLETED);
             setCompletedAt(Instant.now());
         }
+    }
+
+    @Override
+    protected void compensate() {
+        // Compensation: Reverse successful operations
+        if (data.getStripeCustomerId() != null) {
+            // Dispatch command to delete Stripe customer
+            // dispatchCommand(new DeleteStripeCustomerCommand(getId(), data.getStripeCustomerId()));
+        }
+        if (data.getStripeInvoiceId() != null) {
+            // Dispatch command to void invoice
+            // dispatchCommand(new VoidStripeInvoiceCommand(getId(), data.getStripeInvoiceId()));
+        }
+        // Dispatch notification to customer
+        // dispatchCommand(new NotifyCustomerCommand(getId(), data.getUserId(), "Order cancelled due to payment timeout"));
+    }
+
+    private void handlePaymentTimeout() {
+        // Handle payment timeout: notify customer and fail the saga
+        // Dispatch a notification command or event
+        // For now, fail the saga
+        fail("Payment timeout after " + PaymentVerificationSagaData.PAYMENT_TIMEOUT_SLA.toMinutes() + " minutes");
     }
 }

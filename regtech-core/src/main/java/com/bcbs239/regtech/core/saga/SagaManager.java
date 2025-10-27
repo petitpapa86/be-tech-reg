@@ -20,6 +20,7 @@ public class SagaManager {
     private final CommandDispatcher commandDispatcher;
     private final ApplicationEventPublisher eventPublisher;
     private final Supplier<Instant> currentTimeSupplier;
+    private final SagaClosures.TimeoutScheduler timeoutScheduler;
 
     public <T> SagaId startSaga(Class<? extends AbstractSaga<T>> sagaClass, T data) {
         SagaId sagaId = SagaId.generate();
@@ -65,8 +66,8 @@ public class SagaManager {
     @SuppressWarnings("unchecked")
     private <T> AbstractSaga<T> createSagaInstance(Class<? extends AbstractSaga<T>> sagaClass, SagaId sagaId, T data) {
         try {
-            Constructor<?> constructor = sagaClass.getDeclaredConstructor(SagaId.class, data.getClass());
-            return (AbstractSaga<T>) constructor.newInstance(sagaId, data);
+            Constructor<?> constructor = sagaClass.getDeclaredConstructor(SagaId.class, data.getClass(), SagaClosures.TimeoutScheduler.class);
+            return (AbstractSaga<T>) constructor.newInstance(sagaId, data, timeoutScheduler);
         } catch (Exception e) {
             throw new SagaCreationException("Failed to create saga instance: " + sagaClass.getSimpleName(), e);
         }

@@ -20,13 +20,17 @@ import org.springframework.stereotype.Component;
  * Starts the PaymentVerificationSaga when a user registers.
  */
 @Component("billingUserRegisteredIntegrationEventHandler")
-@RequiredArgsConstructor
 public class UserRegisteredEventHandler implements DomainEventHandler<UserRegisteredIntegrationEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(UserRegisteredEventHandler.class);
 
     private final InboxMessageOperations inboxOperations;
     private final ObjectMapper objectMapper;
+
+    public UserRegisteredEventHandler(InboxMessageOperations inboxOperations, ObjectMapper objectMapper) {
+        this.inboxOperations = inboxOperations;
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public String eventType() {
