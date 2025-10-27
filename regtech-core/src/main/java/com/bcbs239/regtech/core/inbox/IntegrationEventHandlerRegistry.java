@@ -35,7 +35,7 @@ public class IntegrationEventHandlerRegistry {
         // Register all DomainEventHandler beans after the context is fully initialized
         @SuppressWarnings("unchecked")
         Map<String, DomainEventHandler<? extends DomainEvent>> beans = (Map<String, DomainEventHandler<? extends DomainEvent>>) (Map<String, ?>) applicationContext.getBeansOfType(DomainEventHandler.class);
-        if (beans != null && !beans.isEmpty()) {
+        if (!beans.isEmpty()) {
             for (DomainEventHandler<? extends DomainEvent> handler : beans.values()) {
                 try {
                     registerHandler(handler);

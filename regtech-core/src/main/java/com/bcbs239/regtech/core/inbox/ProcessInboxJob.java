@@ -1,11 +1,14 @@
 package com.bcbs239.regtech.core.inbox;
 
+import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 /**
@@ -20,11 +23,14 @@ public class ProcessInboxJob {
 
     private final Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> fetchPendingFn;
     private final MessageProcessor messageProcessor;
+    private final BiConsumer<String, String> markAsPermanentlyFailedFn;
 
     public ProcessInboxJob(Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> fetchPendingFn,
-                          MessageProcessor messageProcessor) {
+                          MessageProcessor messageProcessor,
+                          BiConsumer<String, String> markAsPermanentlyFailedFn) {
         this.fetchPendingFn = fetchPendingFn;
         this.messageProcessor = messageProcessor;
+        this.markAsPermanentlyFailedFn = markAsPermanentlyFailedFn;
     }
 
     @Scheduled(fixedDelay = 5000) // Run every 5 seconds
@@ -44,11 +50,13 @@ public class ProcessInboxJob {
             }
 
             try {
-                messageProcessor.process(message);
-                processedCount++;
+                Result<Void> result = messageProcessor.process(message);
+                if (result.isSuccess()) {
+                    processedCount++;
+                }
             } catch (Exception e) {
-                logger.error("Failed to process inbox message {}: {}", message.getId(), e.getMessage());
-                // The MessageProcessor is responsible for marking failures; continue with next message
+                logger.error("Exception while processing inbox message {}: {}", message.getId(), e.getMessage());
+                markAsPermanentlyFailedFn.accept(message.getId(), e.getMessage());
             }
         }
 

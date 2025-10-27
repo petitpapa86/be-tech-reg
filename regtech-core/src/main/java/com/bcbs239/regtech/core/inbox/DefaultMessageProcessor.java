@@ -1,6 +1,8 @@
 package com.bcbs239.regtech.core.inbox;
 
 import com.bcbs239.regtech.core.application.IntegrationEvent;
+import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -31,27 +33,19 @@ public class DefaultMessageProcessor implements MessageProcessor {
 
     @Override
     @Transactional
-    public void process(InboxMessageEntity message) {
-        try {
-            IntegrationEvent event = deserializer.deserialize(message.getEventType(), message.getEventData());
+    public Result<Void> process(InboxMessageEntity message) throws Exception {
+        IntegrationEvent event = deserializer.deserialize(message.getEventType(), message.getEventData());
 
-            boolean success = dispatcher.dispatch(event, message.getId());
+        boolean success = dispatcher.dispatch(event, message.getId());
 
-            if (success) {
-                markAsProcessedFn.accept(message.getId());
-                logger.debug("Processed inbox message {} successfully", message.getId());
-            } else {
-                markAsPermanentlyFailedFn.accept(message.getId(), "One or more handlers failed");
-                logger.warn("One or more handlers failed for message {}", message.getId());
-            }
-        } catch (ClassNotFoundException e) {
-            logger.error("Integration event class not found for inbox message {}: {}", message.getId(), e.getMessage());
-            markAsPermanentlyFailedFn.accept(message.getId(), e.getMessage());
-            throw new RuntimeException("Integration event class not found", e);
-        } catch (Exception e) {
-            logger.error("Failed to process message {}: {}", message.getId(), e.getMessage(), e);
-            markAsPermanentlyFailedFn.accept(message.getId(), e.getMessage());
-            throw new RuntimeException("Failed to process message", e);
+        if (success) {
+            markAsProcessedFn.accept(message.getId());
+            logger.debug("Processed inbox message {} successfully", message.getId());
+            return Result.success(null);
+        } else {
+            markAsPermanentlyFailedFn.accept(message.getId(), "One or more handlers failed");
+            logger.warn("One or more handlers failed for message {}", message.getId());
+            return Result.failure(new ErrorDetail("HANDLER_FAILURE", "One or more handlers failed"));
         }
     }
 }
