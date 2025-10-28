@@ -17,7 +17,6 @@ import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.util.Map;
@@ -32,7 +31,6 @@ import org.springframework.stereotype.Component;
  * Starts the PaymentVerificationSaga when a user registers.
  */
 @Component("billingUserRegisteredEventHandler")
-@Slf4j
 @RequiredArgsConstructor
 public class UserRegisteredEventHandler implements DomainEventHandler<UserRegisteredIntegrationEvent> {
     private final SagaManager sagaManager;
@@ -42,14 +40,19 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
 
     @Override
     public boolean handle(UserRegisteredIntegrationEvent event) {
-        log.info("Received UserRegisteredIntegrationEvent for user: {}", event.getEmail());
+        LoggingConfiguration.logStructured("Received UserRegisteredIntegrationEvent", "USER_REGISTERED_EVENT_RECEIVED", Map.of(
+            "userId", event.getUserId(),
+            "email", event.getEmail()
+        ));
 
         UserId userId = UserId.fromString(event.getUserId());
 
         // Check if billing account already exists (idempotency)
         com.bcbs239.regtech.core.shared.Maybe<BillingAccount> existingAccount = billingAccountRepository.billingAccountByUserFinder().apply(userId);
         if (existingAccount.isPresent()) {
-            log.info("Billing account already exists for user: {}, skipping processing", event.getUserId());
+            LoggingConfiguration.logStructured("Billing account already exists, skipping processing", "BILLING_ACCOUNT_EXISTS", Map.of(
+                "userId", event.getUserId()
+            ));
             return true;
         }
 
@@ -59,7 +62,7 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
         
         Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId> saveResult = billingAccountRepository.billingAccountSaver().apply(billingAccount);
         if (saveResult.isFailure()) {
-            LoggingConfiguration.createStructuredLog("BILLING_ACCOUNT_CREATION_FAILED", Map.of(
+            LoggingConfiguration.logStructured("Billing account creation failed", "BILLING_ACCOUNT_CREATION_FAILED", Map.of(
                 "userId", event.getUserId(),
                 "error", saveResult.getError().get().getMessage()
             ));
@@ -68,7 +71,7 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
         
         com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId valueObjectId = saveResult.getValue().get();
         BillingAccountId billingAccountId = BillingAccountId.of(valueObjectId.value());
-        LoggingConfiguration.createStructuredLog("BILLING_ACCOUNT_CREATED", Map.of(
+        LoggingConfiguration.logStructured("Billing account created", "BILLING_ACCOUNT_CREATED", Map.of(
             "billingAccountId", billingAccountId.getValue(),
             "userId", event.getUserId()
         ));
@@ -77,13 +80,13 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
         for (Subscription subscription : billingAccount.getSubscriptions()) {
             Result<SubscriptionId> subscriptionSaveResult = subscriptionRepository.subscriptionSaver().apply(subscription);
             if (subscriptionSaveResult.isFailure()) {
-                LoggingConfiguration.createStructuredLog("SUBSCRIPTION_CREATION_FAILED", Map.of(
+                LoggingConfiguration.logStructured("Subscription creation failed", "SUBSCRIPTION_CREATION_FAILED", Map.of(
                     "billingAccountId", billingAccountId.getValue(),
                     "error", subscriptionSaveResult.getError().get().getMessage()
                 ));
                 return false;
             }
-            LoggingConfiguration.createStructuredLog("SUBSCRIPTION_CREATED", Map.of(
+            LoggingConfiguration.logStructured("Subscription created", "SUBSCRIPTION_CREATED", Map.of(
                 "subscriptionId", subscriptionSaveResult.getValue().get().value(),
                 "billingAccountId", billingAccountId.getValue()
             ));
@@ -93,13 +96,13 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
         for (Invoice invoice : billingAccount.getInvoices()) {
             Result<InvoiceId> invoiceSaveResult = invoiceRepository.invoiceSaver().apply(invoice);
             if (invoiceSaveResult.isFailure()) {
-                LoggingConfiguration.createStructuredLog("INVOICE_CREATION_FAILED", Map.of(
+                LoggingConfiguration.logStructured("Invoice creation failed", "INVOICE_CREATION_FAILED", Map.of(
                     "billingAccountId", billingAccountId.getValue(),
                     "error", invoiceSaveResult.getError().get().getMessage()
                 ));
                 return false;
             }
-            LoggingConfiguration.createStructuredLog("INVOICE_CREATED", Map.of(
+            LoggingConfiguration.logStructured("Invoice created", "INVOICE_CREATED", Map.of(
                 "invoiceId", invoiceSaveResult.getValue().get().value(),
                 "billingAccountId", billingAccountId.getValue()
             ));
@@ -118,10 +121,15 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
         // Start the PaymentVerificationSaga
         SagaId sagaId = sagaManager.startSaga(PaymentVerificationSaga.class, sagaData);
 
-        log.info("Started PaymentVerificationSaga with ID: {} for user: {}", sagaId, event.getUserId());
+        LoggingConfiguration.logStructured("PaymentVerificationSaga started", "SAGA_STARTED", Map.of(
+            "sagaId", sagaId.toString(),
+            "userId", event.getUserId()
+        ));
 
-        log.info("User registration integration event processing completed for billing: userId={}, fullName={}",
-            event.getUserId(), event.getName());
+        LoggingConfiguration.logStructured("User registration integration event processing completed", "USER_REGISTRATION_COMPLETED", Map.of(
+            "userId", event.getUserId(),
+            "fullName", event.getName()
+        ));
         
         return true;
     }

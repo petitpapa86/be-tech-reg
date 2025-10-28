@@ -174,4 +174,13 @@ public class LoggingConfiguration implements WebMvcConfigurer {
         Logger errorLogger = LoggerFactory.getLogger("com.bcbs239.regtech.errors");
         errorLogger.error("Error occurred", createStructuredLog("ERROR_" + operation.toUpperCase(), details), throwable);
     }
+
+    /**
+     * Combined structured logging method that integrates SLF4J logging with structured data.
+     * Logs the message using SLF4J and includes structured details as JSON.
+     */
+    public static void logStructured(String message, String eventType, Map<String, Object> details) {
+        Logger logger = LoggerFactory.getLogger("com.bcbs239.regtech.structured");
+        logger.info(message, createStructuredLog(eventType, details));
+    }
 }
