@@ -136,7 +136,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
 
         // Create Stripe invoice
         InvoiceCreationData invoiceData = new InvoiceCreationData(
-            billingAccount.getStripeCustomerId(),
+            billingAccount.getStripeCustomerId().getValue(),
             data.getTotalCharges(),
             "Monthly billing for " + data.getBillingPeriod().toString()
         );

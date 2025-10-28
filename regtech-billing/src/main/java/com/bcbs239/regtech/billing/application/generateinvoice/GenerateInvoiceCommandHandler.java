@@ -119,7 +119,7 @@ public class GenerateInvoiceCommandHandler {
 
         // Step 8: Create Stripe invoice
         InvoiceCreationData invoiceData = new InvoiceCreationData(
-            billingAccount.getStripeCustomerId(),
+            billingAccount.getStripeCustomerId().getValue(),
             totalAmount,
             "Invoice for " + command.billingPeriod().toString()
         );

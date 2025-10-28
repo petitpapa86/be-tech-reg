@@ -95,7 +95,7 @@ public class CreateSubscriptionCommandHandler {
 
         // Step 5: Create Stripe subscription
         StripeCustomerAndTier subscriptionData = new StripeCustomerAndTier(
-            billingAccount.getStripeCustomerId(), 
+            billingAccount.getStripeCustomerId().getValue(), 
             command.tier()
         );
         Result<StripeSubscription> stripeSubscriptionResult = stripeSubscriptionCreator.apply(subscriptionData);

@@ -13,6 +13,7 @@ import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import lombok.Getter;
 import lombok.Setter;
@@ -37,9 +38,9 @@ public class BillingAccount {
     // Getters
     private BillingAccountId id;
     private UserId userId;
-    private StripeCustomerId stripeCustomerId;
+    private Maybe<StripeCustomerId> stripeCustomerId;
     private BillingAccountStatus status;
-    private PaymentMethodId defaultPaymentMethodId;
+    private Maybe<PaymentMethodId> defaultPaymentMethodId;
     private Money accountBalance;
     private Instant createdAt;
     private Instant updatedAt;
@@ -72,8 +73,9 @@ public class BillingAccount {
         BillingAccount account = new BillingAccount();
         account.id = BillingAccountId.generate("BA");
         account.userId = userId;
-        account.stripeCustomerId = stripeCustomerId;
+        account.stripeCustomerId = Maybe.some(stripeCustomerId);
         account.status = BillingAccountStatus.PENDING_VERIFICATION;
+        account.defaultPaymentMethodId = Maybe.none();
         account.accountBalance = Money.zero(Currency.getInstance("EUR"));
         account.createdAt = createdAt;
         account.updatedAt = updatedAt;
@@ -101,6 +103,8 @@ public class BillingAccount {
         account.id = BillingAccountId.generate("BA");
         account.userId = userId;
         account.status = BillingAccountStatus.PENDING_VERIFICATION;
+        account.stripeCustomerId = Maybe.none();
+        account.defaultPaymentMethodId = Maybe.none();
         account.accountBalance = Money.zero(Currency.getInstance("EUR"));
         account.createdAt = createdAt;
         account.updatedAt = updatedAt;
@@ -165,7 +169,7 @@ public class BillingAccount {
         }
         
         this.status = BillingAccountStatus.ACTIVE;
-        this.defaultPaymentMethodId = paymentMethodId;
+        this.defaultPaymentMethodId = Maybe.some(paymentMethodId);
         this.updatedAt = Instant.now();
         this.version++;
         
@@ -304,12 +308,12 @@ public class BillingAccount {
     public Result<Void> updateStripeCustomerId(StripeCustomerId stripeCustomerId) {
         Objects.requireNonNull(stripeCustomerId, "StripeCustomerId cannot be null");
         
-        if (this.stripeCustomerId != null) {
+        if (this.stripeCustomerId.isPresent()) {
             return Result.failure(ErrorDetail.of("CUSTOMER_ID_ALREADY_SET", 
                 "Stripe customer ID is already set for this account", "billing.account.customer.id.already.set"));
         }
         
-        this.stripeCustomerId = stripeCustomerId;
+        this.stripeCustomerId = Maybe.some(stripeCustomerId);
         this.updatedAt = Instant.now();
         this.version++;
         
@@ -351,8 +355,8 @@ public class BillingAccount {
         Objects.requireNonNull(paymentMethodId, "PaymentMethodId cannot be null");
         Objects.requireNonNull(stripeCustomerId, "StripeCustomerId cannot be null");
         
-        this.defaultPaymentMethodId = paymentMethodId;
-        this.stripeCustomerId = stripeCustomerId;
+        this.defaultPaymentMethodId = Maybe.some(paymentMethodId);
+        this.stripeCustomerId = Maybe.some(stripeCustomerId);
         this.updatedAt = Instant.now();
         this.version++;
         

@@ -7,6 +7,7 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountStatus;
 import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.core.shared.Maybe;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -27,7 +28,7 @@ public class BillingAccountEntity {
     @Column(name = "user_id", nullable = false)
     private String userId;
 
-    @Column(name = "stripe_customer_id", nullable = false)
+    @Column(name = "stripe_customer_id")
     private String stripeCustomerId;
 
     @Enumerated(EnumType.STRING)
@@ -66,12 +67,10 @@ public class BillingAccountEntity {
             entity.id = billingAccount.getId().value();
         }
         entity.userId = billingAccount.getUserId().getValue();
-        entity.stripeCustomerId = billingAccount.getStripeCustomerId().value();
+        entity.stripeCustomerId = billingAccount.getStripeCustomerId().isPresent() ? billingAccount.getStripeCustomerId().getValue().value() : null;
         entity.status = billingAccount.getStatus();
         
-        if (billingAccount.getDefaultPaymentMethodId() != null) {
-            entity.defaultPaymentMethodId = billingAccount.getDefaultPaymentMethodId().value();
-        }
+        entity.defaultPaymentMethodId = billingAccount.getDefaultPaymentMethodId().isPresent() ? billingAccount.getDefaultPaymentMethodId().getValue().value() : null;
         
         if (billingAccount.getAccountBalance() != null) {
             entity.accountBalanceAmount = billingAccount.getAccountBalance().amount();
@@ -96,11 +95,13 @@ public class BillingAccountEntity {
             billingAccount.setId(new BillingAccountId(this.id));
         }
         billingAccount.setUserId(UserId.fromString(this.userId));
-        billingAccount.setStripeCustomerId(new StripeCustomerId(this.stripeCustomerId));
+        billingAccount.setStripeCustomerId(this.stripeCustomerId != null ? Maybe.some(new StripeCustomerId(this.stripeCustomerId)) : Maybe.none());
         billingAccount.setStatus(this.status);
         
         if (this.defaultPaymentMethodId != null) {
-            billingAccount.setDefaultPaymentMethodId(new PaymentMethodId(this.defaultPaymentMethodId));
+            billingAccount.setDefaultPaymentMethodId(Maybe.some(new PaymentMethodId(this.defaultPaymentMethodId)));
+        } else {
+            billingAccount.setDefaultPaymentMethodId(Maybe.none());
         }
         
         if (this.accountBalanceAmount != null && this.accountBalanceCurrency != null) {
