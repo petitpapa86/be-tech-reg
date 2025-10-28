@@ -38,7 +38,7 @@ public class WebhookController extends BaseController {
      * @param signatureHeader The Stripe signature header for verification
      * @return ResponseEntity with ProcessWebhookResponse or error details
      */
-    @PostMapping("/stripe")
+    @PostMapping
     public ResponseEntity<? extends ApiResponse<?>> processStripeWebhook(
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String signatureHeader) {
@@ -63,7 +63,7 @@ public class WebhookController extends BaseController {
             // Check if event type is supported
             if (!BillingValidationUtils.isSupportedWebhookEvent(eventType)) {
                 return ResponseEntity.ok(
-                    ApiResponse.success(null, "Webhook event type not supported: " + eventType)
+                        ApiResponse.success(null, "Webhook event type not supported: " + eventType)
                 );
             }
             

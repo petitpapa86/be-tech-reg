@@ -20,17 +20,20 @@ public record StripeSubscriptionId(String value) {
         if (value == null) {
             return Result.failure(new ErrorDetail("INVALID_STRIPE_SUBSCRIPTION_ID", "StripeSubscriptionId value cannot be null"));
         }
-        if (value.trim().isEmpty()) {
+        // normalize whitespace for subsequent checks
+        String normalized = value.trim();
+        if (normalized.isEmpty()) {
             return Result.failure(new ErrorDetail("INVALID_STRIPE_SUBSCRIPTION_ID", "StripeSubscriptionId value cannot be empty"));
         }
-        if (!value.startsWith("sub_")) {
+        // special allowed literal
+        if (normalized.equalsIgnoreCase("default")) {
+            return Result.success(new StripeSubscriptionId(normalized));
+        }
+        if (!normalized.startsWith("sub_")) {
             return Result.failure(new ErrorDetail("INVALID_STRIPE_SUBSCRIPTION_ID", "StripeSubscriptionId must start with 'sub_'"));
         }
-        return Result.success(new StripeSubscriptionId(value));
+
+        return Result.success(new StripeSubscriptionId(normalized));
     }
-    
-    @Override
-    public String toString() {
-        return value;
-    }
+
 }

@@ -20,13 +20,17 @@ public record StripeInvoiceId(String value) {
         if (value == null) {
             return Result.failure(new ErrorDetail("INVALID_STRIPE_INVOICE_ID", "StripeInvoiceId value cannot be null"));
         }
-        if (value.trim().isEmpty()) {
+        String normalized = value.trim();
+        if (normalized.isEmpty()) {
             return Result.failure(new ErrorDetail("INVALID_STRIPE_INVOICE_ID", "StripeInvoiceId value cannot be empty"));
         }
-        if (!value.startsWith("in_")) {
+        if (normalized.equalsIgnoreCase("default")) {
+            return Result.success(new StripeInvoiceId(normalized));
+        }
+        if (!normalized.startsWith("in_")) {
             return Result.failure(new ErrorDetail("INVALID_STRIPE_INVOICE_ID", "StripeInvoiceId must start with 'in_'"));
         }
-        return Result.success(new StripeInvoiceId(value));
+        return Result.success(new StripeInvoiceId(normalized));
     }
     
     @Override

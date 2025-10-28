@@ -107,12 +107,24 @@ public class BillingAccount {
         account.version = 0;
         
         // Create default subscription
-        StripeSubscriptionId defaultStripeId = StripeSubscriptionId.fromString("default").getValue().get();
+        Result<StripeSubscriptionId> defaultStripeIdResult = StripeSubscriptionId.fromString("default");
+        if (!defaultStripeIdResult.isSuccess()) {
+            throw new IllegalStateException("Failed to create default StripeSubscriptionId: " + defaultStripeIdResult.getError());
+        }
+        StripeSubscriptionId defaultStripeId = defaultStripeIdResult.getValue().orElseThrow(
+            () -> new IllegalStateException("Failed to obtain StripeSubscriptionId value despite success: " + defaultStripeIdResult.getError())
+        );
         Subscription defaultSubscription = Subscription.create(account.id, defaultStripeId, SubscriptionTier.STARTER);
         account.subscriptions.add(defaultSubscription);
         
         // Create default invoice
-        StripeInvoiceId defaultInvoiceId = StripeInvoiceId.fromString("default").getValue().get();
+        Result<StripeInvoiceId> defaultInvoiceIdResult = StripeInvoiceId.fromString("default");
+        if (!defaultInvoiceIdResult.isSuccess()) {
+            throw new IllegalStateException("Failed to create default StripeInvoiceId: " + defaultInvoiceIdResult.getError());
+        }
+        StripeInvoiceId defaultInvoiceId = defaultInvoiceIdResult.getValue().orElseThrow(
+            () -> new IllegalStateException("Failed to obtain StripeInvoiceId value despite success: " + defaultInvoiceIdResult.getError())
+        );
         Money subscriptionAmount = defaultSubscription.getMonthlyAmount();
         Money overageAmount = Money.zero(Currency.getInstance("EUR"));
         BillingPeriod currentPeriod = BillingPeriod.current();
@@ -124,11 +136,13 @@ public class BillingAccount {
             overageAmount,
             currentPeriod,
             () -> createdAt,
-            () -> LocalDate.now()
+            LocalDate::now
         );
         
         if (invoiceResult.isSuccess()) {
-            account.invoices.add(invoiceResult.getValue().get());
+            account.invoices.add(invoiceResult.getValue().orElseThrow(
+                () -> new IllegalStateException("Invoice creation reported success but value missing: " + invoiceResult.getError())
+            ));
         }
         
         return account;

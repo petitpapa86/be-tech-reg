@@ -64,9 +64,9 @@ billing:
 
   tiers:
     starter:
-      monthlyPrice: 29.99
+      monthlyPrice: 299.99
       currency: USD
-      exposureLimit: 1000
+      exposureLimit: 10000
 
   dunning:
     reminderIntervals:
@@ -117,9 +117,9 @@ billing:
 # Stripe Configuration (used by StripeService)
 stripe:
   api:
-    key: sk_test_dummy_key_for_development
+    key: ${STRIPE_API_KEY}
   webhook:
-    secret: whsec_dummy_secret_for_development
+    secret: ${STRIPE_WEBHOOK_SECRET}
 
 management:
   endpoints:

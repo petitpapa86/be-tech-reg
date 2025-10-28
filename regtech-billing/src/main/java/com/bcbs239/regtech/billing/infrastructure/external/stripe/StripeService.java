@@ -6,6 +6,7 @@ import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
+import com.bcbs239.regtech.billing.infrastructure.configuration.BillingConfiguration;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.stripe.Stripe;
@@ -41,16 +42,12 @@ import java.util.Map;
 @Service
 public class StripeService {
 
-    @SuppressWarnings("unused")
-    private final String apiKey;
-    private final String webhookSecret;
+    private final  BillingConfiguration billingConfiguration;
 
-    public StripeService(@Value("${stripe.api.key}") String apiKey,
-                        @Value("${stripe.webhook.secret}") String webhookSecret) {
-        this.apiKey = apiKey;
-        this.webhookSecret = webhookSecret;
-        Stripe.apiKey = apiKey;
+    public StripeService(BillingConfiguration billingConfiguration) {
+        this.billingConfiguration = billingConfiguration;
     }
+
 
     /**
      * Create a new Stripe customer
@@ -184,7 +181,7 @@ public class StripeService {
     public Result<StripeSubscription> createSubscription(StripeCustomerId customerId, SubscriptionTier tier) {
         try {
             // Calculate billing anchor to first day of next month
-            LocalDate nextMonth = LocalDate.now().plusMonths(1).withDayOfMonth(1);
+            LocalDate nextMonth = LocalDate.now().plusMonths(1);
             long billingCycleAnchor = nextMonth.atStartOfDay().toEpochSecond(ZoneOffset.UTC);
             
             // Create price for the subscription tier
@@ -370,7 +367,7 @@ public class StripeService {
      */
     public Result<Event> verifyWebhookSignature(String payload, String sigHeader) {
         try {
-            Event event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
+            Event event = Webhook.constructEvent(payload, sigHeader, billingConfiguration.stripeConfiguration().webhookSecret());
             return Result.success(event);
             
         } catch (SignatureVerificationException e) {
