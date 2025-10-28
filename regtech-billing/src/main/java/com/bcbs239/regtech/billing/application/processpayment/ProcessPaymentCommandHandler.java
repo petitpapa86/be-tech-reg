@@ -102,7 +102,7 @@ public class ProcessPaymentCommandHandler {
         StripeCustomer stripeCustomer = stripeCustomerResult.getValue().get();
 
         // Step 3: Create billing account
-        BillingAccount billingAccount = BillingAccount.create(userData.userId(), stripeCustomer.customerId(), Instant.now(), Instant.now());
+        BillingAccount billingAccount = new BillingAccount.Builder().userId(userData.userId()).stripeCustomerId(stripeCustomer.customerId()).createdAt(Instant.now()).updatedAt(Instant.now()).build();
         
         Result<Void> activationResult = billingAccount.activate(command.getPaymentMethodId());
         if (activationResult.isFailure()) {

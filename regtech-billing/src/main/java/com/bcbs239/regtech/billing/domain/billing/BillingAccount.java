@@ -56,100 +56,100 @@ public class BillingAccount {
     public BillingAccount() {}
     
     /**
-     * Factory method to create a new BillingAccount
-     * 
-     * @param userId The user this billing account belongs to
-     * @param stripeCustomerId The Stripe customer ID for payment processing
-     * @param createdAt The creation timestamp
-     * @param updatedAt The last update timestamp
-     * @return New BillingAccount with PENDING_VERIFICATION status
+     * Builder for creating BillingAccount instances.
+     * Handles complex initialization with optional fields.
      */
-    public static BillingAccount create(UserId userId, StripeCustomerId stripeCustomerId, Instant createdAt, Instant updatedAt) {
-        Objects.requireNonNull(userId, "UserId cannot be null");
-        Objects.requireNonNull(stripeCustomerId, "StripeCustomerId cannot be null");
-        Objects.requireNonNull(createdAt, "CreatedAt cannot be null");
-        Objects.requireNonNull(updatedAt, "UpdatedAt cannot be null");
+    public static class Builder {
+        private UserId userId;
+        private Maybe<StripeCustomerId> stripeCustomerId = Maybe.none();
+        private Instant createdAt;
+        private Instant updatedAt;
+        private boolean createDefaults = false; // Flag to create default subscription and invoice
 
-        BillingAccount account = new BillingAccount();
-        account.id = BillingAccountId.generate("BA");
-        account.userId = userId;
-        account.stripeCustomerId = Maybe.some(stripeCustomerId);
-        account.status = BillingAccountStatus.PENDING_VERIFICATION;
-        account.defaultPaymentMethodId = Maybe.none();
-        account.accountBalance = Money.zero(Currency.getInstance("EUR"));
-        account.createdAt = createdAt;
-        account.updatedAt = updatedAt;
-        account.version = 0;
-        
-        return account;
-    }
-    
-    /**
-     * Factory method to create a new BillingAccount without Stripe customer ID.
-     * Used when the billing account is created before Stripe customer creation.
-     * The Stripe customer ID should be set later via updateStripeCustomerId().
-     * 
-     * @param userId The user this billing account belongs to
-     * @param createdAt The creation timestamp
-     * @param updatedAt The last update timestamp
-     * @return New BillingAccount with PENDING_VERIFICATION status
-     */
-    public static BillingAccount create(UserId userId, Instant createdAt, Instant updatedAt) {
-        Objects.requireNonNull(userId, "UserId cannot be null");
-        Objects.requireNonNull(createdAt, "CreatedAt cannot be null");
-        Objects.requireNonNull(updatedAt, "UpdatedAt cannot be null");
+        public Builder userId(UserId userId) {
+            this.userId = userId;
+            return this;
+        }
 
-        BillingAccount account = new BillingAccount();
-        account.id = BillingAccountId.generate("BA");
-        account.userId = userId;
-        account.status = BillingAccountStatus.PENDING_VERIFICATION;
-        account.stripeCustomerId = Maybe.none();
-        account.defaultPaymentMethodId = Maybe.none();
-        account.accountBalance = Money.zero(Currency.getInstance("EUR"));
-        account.createdAt = createdAt;
-        account.updatedAt = updatedAt;
-        account.version = 0;
-        
-        // Create default subscription
-        Result<StripeSubscriptionId> defaultStripeIdResult = StripeSubscriptionId.fromString("default");
-        if (!defaultStripeIdResult.isSuccess()) {
-            throw new IllegalStateException("Failed to create default StripeSubscriptionId: " + defaultStripeIdResult.getError());
+        public Builder stripeCustomerId(StripeCustomerId stripeCustomerId) {
+            this.stripeCustomerId = Maybe.some(stripeCustomerId);
+            return this;
         }
-        StripeSubscriptionId defaultStripeId = defaultStripeIdResult.getValue().orElseThrow(
-            () -> new IllegalStateException("Failed to obtain StripeSubscriptionId value despite success: " + defaultStripeIdResult.getError())
-        );
-        Subscription defaultSubscription = Subscription.create(account.id, defaultStripeId, SubscriptionTier.STARTER);
-        account.subscriptions.add(defaultSubscription);
-        
-        // Create default invoice
-        Result<StripeInvoiceId> defaultInvoiceIdResult = StripeInvoiceId.fromString("default");
-        if (!defaultInvoiceIdResult.isSuccess()) {
-            throw new IllegalStateException("Failed to create default StripeInvoiceId: " + defaultInvoiceIdResult.getError());
+
+        public Builder createdAt(Instant createdAt) {
+            this.createdAt = createdAt;
+            return this;
         }
-        StripeInvoiceId defaultInvoiceId = defaultInvoiceIdResult.getValue().orElseThrow(
-            () -> new IllegalStateException("Failed to obtain StripeInvoiceId value despite success: " + defaultInvoiceIdResult.getError())
-        );
-        Money subscriptionAmount = defaultSubscription.getMonthlyAmount();
-        Money overageAmount = Money.zero(Currency.getInstance("EUR"));
-        BillingPeriod currentPeriod = BillingPeriod.current();
-        
-        Result<Invoice> invoiceResult = Invoice.create(
-            account.id,
-            defaultInvoiceId,
-            subscriptionAmount,
-            overageAmount,
-            currentPeriod,
-            () -> createdAt,
-            LocalDate::now
-        );
-        
-        if (invoiceResult.isSuccess()) {
-            account.invoices.add(invoiceResult.getValue().orElseThrow(
-                () -> new IllegalStateException("Invoice creation reported success but value missing: " + invoiceResult.getError())
-            ));
+
+        public Builder updatedAt(Instant updatedAt) {
+            this.updatedAt = updatedAt;
+            return this;
         }
-        
-        return account;
+
+        public Builder withDefaults() {
+            this.createDefaults = true;
+            return this;
+        }
+
+        public BillingAccount build() {
+            Objects.requireNonNull(userId, "UserId cannot be null");
+            Objects.requireNonNull(createdAt, "CreatedAt cannot be null");
+            Objects.requireNonNull(updatedAt, "UpdatedAt cannot be null");
+
+            BillingAccount account = new BillingAccount();
+            account.id = BillingAccountId.generate("BA");
+            account.userId = userId;
+            account.stripeCustomerId = stripeCustomerId;
+            account.status = BillingAccountStatus.PENDING_VERIFICATION;
+            account.defaultPaymentMethodId = Maybe.none();
+            account.accountBalance = Money.zero(Currency.getInstance("EUR"));
+            account.createdAt = createdAt;
+            account.updatedAt = updatedAt;
+            account.version = 0;
+
+            if (createDefaults) {
+                // Create default subscription
+                Result<StripeSubscriptionId> defaultStripeIdResult = StripeSubscriptionId.fromString("default");
+                if (!defaultStripeIdResult.isSuccess()) {
+                    throw new IllegalStateException("Failed to create default StripeSubscriptionId: " + defaultStripeIdResult.getError());
+                }
+                StripeSubscriptionId defaultStripeId = defaultStripeIdResult.getValue().orElseThrow(
+                    () -> new IllegalStateException("Failed to obtain StripeSubscriptionId value despite success: " + defaultStripeIdResult.getError())
+                );
+                Subscription defaultSubscription = Subscription.create(account.id, defaultStripeId, SubscriptionTier.STARTER);
+                account.subscriptions.add(defaultSubscription);
+
+                // Create default invoice
+                Result<StripeInvoiceId> defaultInvoiceIdResult = StripeInvoiceId.fromString("default");
+                if (!defaultInvoiceIdResult.isSuccess()) {
+                    throw new IllegalStateException("Failed to create default StripeInvoiceId: " + defaultInvoiceIdResult.getError());
+                }
+                StripeInvoiceId defaultInvoiceId = defaultInvoiceIdResult.getValue().orElseThrow(
+                    () -> new IllegalStateException("Failed to obtain StripeInvoiceId value despite success: " + defaultInvoiceIdResult.getError())
+                );
+                Money subscriptionAmount = defaultSubscription.getMonthlyAmount();
+                Money overageAmount = Money.zero(Currency.getInstance("EUR"));
+                BillingPeriod currentPeriod = BillingPeriod.current();
+
+                Result<Invoice> invoiceResult = Invoice.create(
+                    account.id,
+                    defaultInvoiceId,
+                    subscriptionAmount,
+                    overageAmount,
+                    currentPeriod,
+                    () -> createdAt,
+                    LocalDate::now
+                );
+
+                if (invoiceResult.isSuccess()) {
+                    account.invoices.add(invoiceResult.getValue().orElseThrow(
+                        () -> new IllegalStateException("Invoice creation reported success but value missing: " + invoiceResult.getError())
+                    ));
+                }
+            }
+
+            return account;
+        }
     }
     
     /**

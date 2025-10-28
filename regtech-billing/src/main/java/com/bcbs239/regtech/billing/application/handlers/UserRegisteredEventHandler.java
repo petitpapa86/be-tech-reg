@@ -55,7 +55,7 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
 
         // Create billing account for the user
         Instant now = Instant.now();
-        BillingAccount billingAccount = BillingAccount.create(userId, now, now);
+        BillingAccount billingAccount = new BillingAccount.Builder().userId(userId).createdAt(now).updatedAt(now).withDefaults().build();
         
         Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId> saveResult = billingAccountRepository.billingAccountSaver().apply(billingAccount);
         if (saveResult.isFailure()) {
