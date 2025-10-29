@@ -41,12 +41,13 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     private void handleSagaStarted(SagaStartedEvent event) {
         // Dispatch CreateStripeCustomerCommand to start the process
-        dispatchCommand(new CreateStripeCustomerCommand(
-            event.getSagaId(),
-            data.getUserEmail(),
-            data.getUserName(),
-            data.getPaymentMethodId()
-        ));
+        CreateStripeCustomerCommand createStripeCustomerCommand = new CreateStripeCustomerCommand(
+                event.getSagaId(),
+                data.getUserEmail(),
+                data.getUserName(),
+                data.getPaymentMethodId()
+        );
+        dispatchCommand(createStripeCustomerCommand);
 
         LoggingConfiguration.createStructuredLog("PAYMENT_VERIFICATION_SAGA_DISPATCHED_COMMAND", Map.of(
             "sagaId", event.getSagaId(),

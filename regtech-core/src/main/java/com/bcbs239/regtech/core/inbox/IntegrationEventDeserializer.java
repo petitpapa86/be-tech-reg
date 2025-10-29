@@ -1,8 +1,38 @@
 package com.bcbs239.regtech.core.inbox;
 
 import com.bcbs239.regtech.core.application.IntegrationEvent;
+import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
 
-public interface IntegrationEventDeserializer {
-    IntegrationEvent deserialize(String typeName, String json) throws Exception;
+@Component
+public class IntegrationEventDeserializer {
+
+    private final ObjectMapper objectMapper;
+
+    public IntegrationEventDeserializer(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
+
+    public Result<IntegrationEvent> deserialize(String typeName, String json)  {
+        Class<?> eventClass;
+        try {
+            eventClass = Class.forName(typeName);
+        } catch (ClassNotFoundException e) {
+            return Result.failure(new ErrorDetail("EVENT_CLASS_NOT_FOUND", "Event class not found: " + typeName));
+        }
+        if (!IntegrationEvent.class.isAssignableFrom(eventClass)) {
+            return Result.failure(new ErrorDetail("INVALID_EVENT_TYPE", "Event class does not implement IntegrationEvent: " + typeName));
+        }
+        @SuppressWarnings("unchecked")
+        Class<? extends IntegrationEvent> integrationEventClass = (Class<? extends IntegrationEvent>) eventClass;
+        try {
+            IntegrationEvent event = objectMapper.readValue(json, integrationEventClass);
+            return Result.success(event);
+        } catch (JsonProcessingException e) {
+            return Result.failure(new ErrorDetail("DESERIALIZATION_ERROR", "Failed to deserialize event JSON: " + e.getMessage()));
+        }
+    }
 }
-
