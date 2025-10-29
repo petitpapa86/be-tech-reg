@@ -114,19 +114,24 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
 
          PaymentVerificationSagaData sagaData = PaymentVerificationSagaData.builder()
              .correlationId(event.getId().toString()) // Convert UUID to String
-             .userId(userId)
-             .billingAccountId(billingAccountId)
+             .userId(event.getUserId())
+             .billingAccountId(billingAccountId.getValue())
              .userEmail(event.getEmail())
              .userName(event.getName())
              .paymentMethodId(event.getPaymentMethodId())
              .build();
 
         // Start the PaymentVerificationSaga
-         SagaId sagaId = sagaManager.startSaga(PaymentVerificationSaga.class, sagaData);
-
-        LoggingConfiguration.logStructured("PaymentVerificationSaga temporarily disabled", "SAGA_DISABLED", Map.of(
+        LoggingConfiguration.logStructured("About to start PaymentVerificationSaga", "SAGA_START_ATTEMPT", Map.of(
             "userId", event.getUserId(),
-            "reason", "Saga classes have compilation issues"
+            "sagaData", sagaData.toString()
+        ));
+        
+        SagaId sagaId = sagaManager.startSaga(PaymentVerificationSaga.class, sagaData);
+        
+        LoggingConfiguration.logStructured("PaymentVerificationSaga started successfully", "SAGA_START_SUCCESS", Map.of(
+            "userId", event.getUserId(),
+            "sagaId", sagaId.id()
         ));
 
         LoggingConfiguration.logStructured("User registration integration event processing completed", "USER_REGISTRATION_COMPLETED", Map.of(

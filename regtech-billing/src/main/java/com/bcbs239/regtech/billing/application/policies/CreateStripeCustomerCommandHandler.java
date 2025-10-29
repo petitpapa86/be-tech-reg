@@ -52,6 +52,7 @@ public class CreateStripeCustomerCommandHandler {
     @EventListener
     @Async("sagaTaskExecutor")
     public void handle(CreateStripeCustomerCommand command) {
+        logger.info("CreateStripeCustomerCommandHandler received command for saga: {}", command.getSagaId());
         PaymentMethodId paymentMethodId = new PaymentMethodId(command.getPaymentMethodId());
         SagaId sagaId = command.getSagaId();
 
@@ -134,7 +135,7 @@ public class CreateStripeCustomerCommandHandler {
             return Result.failure(ErrorDetail.of("SAGA_NOT_FOUND", "Saga not found: " + sagaId, "saga.not.found"));
         }
 
-        BillingAccountId billingAccountId = new BillingAccountId(saga.getData().getBillingAccountId().getValue());
+        BillingAccountId billingAccountId = new BillingAccountId(saga.getData().getBillingAccountId());
         Maybe<BillingAccount> accountMaybe = billingAccountRepository.billingAccountFinder().apply(billingAccountId);
 
         if (accountMaybe.isEmpty()) {

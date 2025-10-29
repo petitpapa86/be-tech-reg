@@ -1,11 +1,7 @@
 package com.bcbs239.regtech.billing;
 
-import com.bcbs239.regtech.core.inbox.InboxMessageOperations;
-import com.bcbs239.regtech.core.inbox.MessageProcessor;
-import com.bcbs239.regtech.core.inbox.ProcessInboxJob;
-import com.bcbs239.regtech.core.inbox.InboxMessageEntity;
-import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.bcbs239.regtech.billing.application.handlers.UserRegisteredEventHandler;
+import com.bcbs239.regtech.core.saga.SagaManager;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
@@ -24,6 +20,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 @SpringBootTest(
     classes = InboxIntegrationTest.TestConfig.class,
@@ -52,12 +49,13 @@ public class InboxIntegrationTest {
         // Components for fetcher/processor should be available from core module
 
         @Bean
-        public ProcessInboxJob processInboxJob(
-                InboxMessageOperations repository,
-                MessageProcessor messageProcessor,
-                Consumer<String> markAsProcessingFn,
-                BiConsumer<String, String> markAsPermanentlyFailedFn) {
-            return new ProcessInboxJob(repository.findPendingMessagesFn(), messageProcessor, markAsProcessingFn, markAsPermanentlyFailedFn);
+        public UserRegisteredEventHandler userRegisteredEventHandler(SagaManager sagaManager) {
+            return new UserRegisteredEventHandler(sagaManager);
+        }
+
+        @Bean
+        public SagaManager sagaManager() {
+            return mock(SagaManager.class);
         }
     }
 

@@ -13,9 +13,12 @@ import com.bcbs239.regtech.core.saga.SagaStartedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.core.saga.AbstractSaga;
 import com.bcbs239.regtech.core.saga.SagaId;
+import com.bcbs239.regtech.core.saga.SagaClosures;
 import com.bcbs239.regtech.core.saga.SagaStatus;
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
 
 import java.time.Instant;
+import java.util.Map;
 
 import com.bcbs239.regtech.core.saga.SagaClosures;
 
@@ -45,6 +48,12 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             data.getPaymentMethodId()
         ));
 
+        LoggingConfiguration.createStructuredLog("PAYMENT_VERIFICATION_SAGA_DISPATCHED_COMMAND", Map.of(
+            "sagaId", event.getSagaId(),
+            "commandType", "CreateStripeCustomerCommand",
+            "userEmail", data.getUserEmail()
+        ));
+
         // Schedule payment timeout using SLA
         timeoutScheduler.schedule(
             getId().id() + "-payment-timeout",
@@ -55,12 +64,12 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     private void handleStripeCustomerCreated(StripeCustomerCreatedEvent event) {
         data.setStripeCustomerId(event.getStripeCustomerId());
-        data.setBillingAccountId(BillingAccountId.of(data.getUserId().value().toString()));
+        data.setBillingAccountId(data.getUserId());
         dispatchCommand(new CreateStripeSubscriptionCommand(
             getId(), 
             data.getStripeCustomerId(), 
             SubscriptionTier.STARTER,
-            data.getUserId().value().toString()
+            data.getUserId()
         ));
         updateStatus();
     }
@@ -72,12 +81,12 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         
         if (event.getSubscriptionId().isPresent()) {
             // Subscription already exists (from command handler)
-            data.setSubscriptionId(event.getSubscriptionId().get());
+            data.setSubscriptionId(event.getSubscriptionId().get().value());
             dispatchCommand(new CreateStripeInvoiceCommand(
                 getId(), 
                 data.getStripeInvoiceId(),
-                data.getBillingAccountId().getValue(),
-                data.getSubscriptionId().value()
+                data.getBillingAccountId(),
+                data.getSubscriptionId()
             ));
         } else {
             // Subscription doesn't exist yet (from webhook) - create it first
@@ -85,7 +94,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
                 getId(), 
                 data.getStripeCustomerId(), 
                 SubscriptionTier.STARTER,
-                data.getUserId().value().toString()
+                data.getUserId()
             ));
         }
         updateStatus();
@@ -101,15 +110,15 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
                 getId(), 
                 data.getStripeCustomerId(), 
                 SubscriptionTier.STARTER,
-                data.getUserId().value().toString()
+                data.getUserId()
             ));
         } else {
             // We already have a subscription, create invoice
             dispatchCommand(new CreateStripeInvoiceCommand(
                 getId(), 
                 data.getStripeInvoiceId(),
-                data.getBillingAccountId().getValue(),
-                data.getSubscriptionId().value()
+                data.getBillingAccountId(),
+                data.getSubscriptionId()
             ));
         }
         updateStatus();
@@ -129,7 +138,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             data.getStripeCustomerId(),
             data.getStripeSubscriptionId(),
             data.getStripeInvoiceId(),
-            data.getBillingAccountId().getValue(),
+            data.getBillingAccountId(),
             data.getCorrelationId()
         ));
         updateStatus();

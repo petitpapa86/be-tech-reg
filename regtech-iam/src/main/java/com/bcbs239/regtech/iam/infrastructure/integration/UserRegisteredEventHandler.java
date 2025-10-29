@@ -7,9 +7,8 @@ import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionalEventListener;
 
-@Component("iamUserRegisteredEventHandler")
+@Component("oldIamUserRegisteredEventHandler")
 public class UserRegisteredEventHandler implements DomainEventHandler<UserRegisteredEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(UserRegisteredEventHandler.class);
@@ -20,11 +19,12 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
         this.integrationEventBus = integrationEventBus;
     }
 
-    @TransactionalEventListener
+    @Override
     public boolean handle(UserRegisteredEvent domainEvent) {
-        logger.info("Converting domain event to integration event for user: {}", domainEvent.getUserId());
-
         try {
+            logger.info("IAM UserRegisteredEventHandler called for user: {}", domainEvent.getUserId());
+            logger.info("Converting domain event to integration event for user: {}", domainEvent.getUserId());
+
             UserRegisteredIntegrationEvent integrationEvent = new UserRegisteredIntegrationEvent(
                 domainEvent.getUserId(),
                 domainEvent.getEmail(),
@@ -38,11 +38,11 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
             integrationEventBus.publish(integrationEvent);
 
             logger.info("Published UserRegisteredIntegrationEvent for user: {}", domainEvent.getUserId());
+            return true;
         } catch (Exception e) {
             logger.error("Failed to publish integration event for user: {}", domainEvent.getUserId(), e);
-            throw e;
+            return false;
         }
-        return true;
     }
 
     @Override
