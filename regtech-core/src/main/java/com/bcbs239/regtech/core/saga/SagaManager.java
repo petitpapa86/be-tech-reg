@@ -26,6 +26,10 @@ public class SagaManager {
         SagaId sagaId = SagaId.generate();
         AbstractSaga<T> saga = createSagaInstance(sagaClass, sagaId, data);
 
+        // Handle the start event synchronously to initialize the saga
+        SagaStartedEvent startEvent = new SagaStartedEvent(sagaId, saga.getSagaType(), currentTimeSupplier);
+        saga.handle(startEvent);
+
         sagaSaver.apply(saga);
         LoggingConfiguration.createStructuredLog("SAGA_STARTED", Map.of(
             "sagaId", sagaId,
@@ -33,7 +37,7 @@ public class SagaManager {
         ));
 
         dispatchCommands(saga);
-        eventPublisher.publishEvent(new SagaStartedEvent(sagaId, saga.getSagaType(), currentTimeSupplier));
+        eventPublisher.publishEvent(startEvent);
 
         return sagaId;
     }

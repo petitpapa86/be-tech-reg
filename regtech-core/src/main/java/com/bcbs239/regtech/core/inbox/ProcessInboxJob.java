@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -23,13 +24,16 @@ public class ProcessInboxJob {
 
     private final Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> fetchPendingFn;
     private final MessageProcessor messageProcessor;
+    private final Consumer<String> markAsProcessingFn;
     private final BiConsumer<String, String> markAsPermanentlyFailedFn;
 
     public ProcessInboxJob(Function<InboxMessageEntity.ProcessingStatus, List<InboxMessageEntity>> fetchPendingFn,
                           MessageProcessor messageProcessor,
+                          Consumer<String> markAsProcessingFn,
                           BiConsumer<String, String> markAsPermanentlyFailedFn) {
         this.fetchPendingFn = fetchPendingFn;
         this.messageProcessor = messageProcessor;
+        this.markAsProcessingFn = markAsProcessingFn;
         this.markAsPermanentlyFailedFn = markAsPermanentlyFailedFn;
     }
 
@@ -47,6 +51,14 @@ public class ProcessInboxJob {
         for (InboxMessageEntity message : pendingMessages) {
             if (processedCount >= BATCH_SIZE) {
                 break;
+            }
+
+            // Mark message as processing to prevent concurrent processing
+            try {
+                markAsProcessingFn.accept(message.getId());
+            } catch (Exception e) {
+                logger.debug("Message {} is already being processed by another thread", message.getId());
+                continue; // Skip this message as it's being processed by another thread
             }
 
             try {

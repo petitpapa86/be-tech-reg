@@ -37,6 +37,9 @@ class SagaManagerTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private SagaClosures.TimeoutScheduler timeoutScheduler;
+
     private Supplier<Instant> currentTimeSupplier;
 
     private SagaManager sagaManager;
@@ -44,7 +47,7 @@ class SagaManagerTest {
     @BeforeEach
     void setUp() {
         currentTimeSupplier = () -> Instant.now();
-        sagaManager = new SagaManager(sagaSaver, sagaLoader, commandDispatcher, eventPublisher, currentTimeSupplier);
+        sagaManager = new SagaManager(sagaSaver, sagaLoader, commandDispatcher, eventPublisher, currentTimeSupplier, timeoutScheduler);
     }
 
     @Test
@@ -79,7 +82,7 @@ class SagaManagerTest {
         SagaId sagaId = SagaId.generate();
         TestSaga saga = mock(TestSaga.class);
         Function<SagaId, AbstractSaga<?>> loader = id -> saga;
-        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier);
+        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier, timeoutScheduler);
 
         when(saga.getStatus()).thenReturn(SagaStatus.STARTED);
         when(saga.getCommandsToDispatch()).thenReturn(List.of(mock(SagaCommand.class)));
@@ -101,7 +104,7 @@ class SagaManagerTest {
         SagaId sagaId = SagaId.generate();
         TestSaga saga = mock(TestSaga.class);
         Function<SagaId, AbstractSaga<?>> loader = id -> saga;
-        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier);
+        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier, timeoutScheduler);
 
         when(saga.getId()).thenReturn(sagaId);
         when(saga.getSagaType()).thenReturn("TestSaga");
@@ -124,7 +127,7 @@ class SagaManagerTest {
         SagaId sagaId = SagaId.generate();
         TestSaga saga = mock(TestSaga.class);
         Function<SagaId, AbstractSaga<?>> loader = id -> saga;
-        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier);
+        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier, timeoutScheduler);
 
         when(saga.getId()).thenReturn(sagaId);
         when(saga.getSagaType()).thenReturn("TestSaga");
@@ -146,7 +149,7 @@ class SagaManagerTest {
         // Given
         SagaId sagaId = SagaId.generate();
         Function<SagaId, AbstractSaga<?>> loader = id -> null;
-        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier);
+        sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier, timeoutScheduler);
 
         SagaMessage event = new TestSagaMessage("test", Instant.now(), sagaId);
 
@@ -161,17 +164,22 @@ class SagaManagerTest {
     }
 
     private static class TestSaga extends AbstractSaga<TestSagaData> {
-        TestSaga(SagaId id, TestSagaData data) {
-            super(id, "TestSaga", data);
+        TestSaga(SagaId id, TestSagaData data, SagaClosures.TimeoutScheduler timeoutScheduler) {
+            super(id, "TestSaga", data, timeoutScheduler);
             dispatchCommand(new SagaCommand(getId(), "test", Map.of(), Instant.now()));
         }
 
         TestSaga() {
-            super(null, "TestSaga", null);
+            super(null, "TestSaga", null, null);
         }
 
         @Override
         protected void updateStatus() {
+            // No-op for testing
+        }
+
+        @Override
+        protected void compensate() {
             // No-op for testing
         }
     }

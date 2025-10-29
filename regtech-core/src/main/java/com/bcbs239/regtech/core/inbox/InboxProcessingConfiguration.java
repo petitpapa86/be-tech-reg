@@ -40,7 +40,7 @@ public class InboxProcessingConfiguration {
     }
 
     @Bean
-    public Function<InboxFunctions.MarkAsProcessingRequest, Integer> markAsProcessingFn() {
+    public Function<InboxFunctions.MarkAsProcessingRequest, Integer> markAsProcessingCoreFn() {
         return InboxFunctions.markAsProcessing(em, transactionTemplate);
     }
 

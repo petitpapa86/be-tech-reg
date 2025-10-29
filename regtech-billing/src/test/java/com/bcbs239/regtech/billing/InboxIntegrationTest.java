@@ -7,6 +7,7 @@ import com.bcbs239.regtech.core.inbox.InboxMessageEntity;
 import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -54,8 +55,9 @@ public class InboxIntegrationTest {
         public ProcessInboxJob processInboxJob(
                 InboxMessageOperations repository,
                 MessageProcessor messageProcessor,
+                Consumer<String> markAsProcessingFn,
                 BiConsumer<String, String> markAsPermanentlyFailedFn) {
-            return new ProcessInboxJob(repository.findPendingMessagesFn(), messageProcessor, markAsPermanentlyFailedFn);
+            return new ProcessInboxJob(repository.findPendingMessagesFn(), messageProcessor, markAsProcessingFn, markAsPermanentlyFailedFn);
         }
     }
 

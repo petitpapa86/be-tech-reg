@@ -12,6 +12,11 @@ import java.util.function.Function;
 public class FunctionalMessageStateConfig {
 
     @Bean
+    public Consumer<String> markAsProcessingFn(Function<InboxFunctions.MarkAsProcessingRequest, Integer> markAsProcessingCoreFn) {
+        return id -> markAsProcessingCoreFn.apply(new InboxFunctions.MarkAsProcessingRequest(id));
+    }
+
+    @Bean
     public Consumer<String> markAsProcessedFn(Function<InboxFunctions.MarkAsProcessedRequest, Integer> markAsProcessedCoreFn) {
         return id -> markAsProcessedCoreFn.apply(new InboxFunctions.MarkAsProcessedRequest(id, Instant.now()));
     }

@@ -26,6 +26,7 @@ class SagaIntegrationTest {
     private TestEventPublisher eventPublisher;
     private InMemorySagaRepository sagaRepository;
     private Supplier<Instant> currentTimeSupplier;
+    private SagaClosures.TimeoutScheduler timeoutScheduler;
 
     @BeforeEach
     void setUp() {
@@ -33,13 +34,15 @@ class SagaIntegrationTest {
         eventPublisher = new TestEventPublisher();
         sagaRepository = new InMemorySagaRepository();
         currentTimeSupplier = () -> Instant.now();
+        timeoutScheduler = new TestTimeoutScheduler();
 
         sagaManager = new SagaManager(
             sagaRepository.sagaSaver(),
             sagaRepository.sagaLoader(),
             commandDispatcher,
             eventPublisher,
-            currentTimeSupplier
+            currentTimeSupplier,
+            timeoutScheduler
         );
     }
 
@@ -121,8 +124,8 @@ class SagaIntegrationTest {
 
     // Test saga that simulates a complete workflow
     public static class TestSaga extends AbstractSaga<TestSagaData> {
-        public TestSaga(SagaId id, TestSagaData data) {
-            super(id, "TestSaga", data);
+        public TestSaga(SagaId id, TestSagaData data, SagaClosures.TimeoutScheduler timeoutScheduler) {
+            super(id, "TestSaga", data, timeoutScheduler);
             dispatchCommand(new SagaCommand(getId(), "InitializeTestSaga", Map.of(), Instant.now()));
 
             // Register event handlers
@@ -136,6 +139,11 @@ class SagaIntegrationTest {
         @Override
         protected void updateStatus() {
             // Status is updated in event handlers
+        }
+
+        @Override
+        protected void compensate() {
+            // Test implementation - do nothing
         }
     }
 
@@ -154,6 +162,19 @@ class SagaIntegrationTest {
     private static class TestEvent extends SagaMessage {
         public TestEvent(String eventType, Instant occurredAt, SagaId sagaId) {
             super(eventType, occurredAt, sagaId);
+        }
+    }
+
+    private static class TestTimeoutScheduler implements SagaClosures.TimeoutScheduler {
+        @Override
+        public void schedule(String key, long delayMillis, Runnable task) {
+            // For testing, just run immediately
+            task.run();
+        }
+
+        @Override
+        public void cancel(String key) {
+            // No-op for testing
         }
     }
 }

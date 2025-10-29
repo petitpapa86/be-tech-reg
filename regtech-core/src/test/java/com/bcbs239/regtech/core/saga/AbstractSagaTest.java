@@ -2,6 +2,9 @@ package com.bcbs239.regtech.core.saga;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
@@ -9,7 +12,11 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 class AbstractSagaTest {
+
+    @Mock
+    private SagaClosures.TimeoutScheduler timeoutScheduler;
 
     private TestSaga saga;
     private SagaId sagaId;
@@ -17,7 +24,7 @@ class AbstractSagaTest {
     @BeforeEach
     void setUp() {
         sagaId = SagaId.of("test-saga-id");
-        saga = new TestSaga(sagaId, "TestSaga", "test-data");
+        saga = new TestSaga(sagaId, "TestSaga", "test-data", timeoutScheduler);
     }
 
     @Test
@@ -143,7 +150,7 @@ class AbstractSagaTest {
         assertThat(saga.isCompleted()).isTrue();
 
         // Reset for failed test
-        saga = new TestSaga(sagaId, "TestSaga", "test-data");
+        saga = new TestSaga(sagaId, "TestSaga", "test-data", timeoutScheduler);
         saga.fail("Test failure");
         assertThat(saga.isCompleted()).isTrue();
     }
@@ -152,8 +159,8 @@ class AbstractSagaTest {
     private static class TestSaga extends AbstractSaga<String> {
         private boolean eventProcessed = false;
 
-        public TestSaga(SagaId id, String sagaType, String data) {
-            super(id, sagaType, data);
+        public TestSaga(SagaId id, String sagaType, String data, SagaClosures.TimeoutScheduler timeoutScheduler) {
+            super(id, sagaType, data, timeoutScheduler);
             onEvent(TestEvent.class, this::handleTestEvent);
         }
 
@@ -171,6 +178,11 @@ class AbstractSagaTest {
 
         @Override
         protected void updateStatus() {
+            // Test implementation - do nothing
+        }
+
+        @Override
+        protected void compensate() {
             // Test implementation - do nothing
         }
     }
