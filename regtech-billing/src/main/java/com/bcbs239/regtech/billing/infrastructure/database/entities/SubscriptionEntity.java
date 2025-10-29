@@ -6,6 +6,7 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import com.bcbs239.regtech.core.shared.Maybe;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -22,10 +23,11 @@ public class SubscriptionEntity {
 
     // Getters and setters for JPA
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
     private String id;
 
-    @Column(name = "billing_account_id", nullable = false)
+    @Column(name = "billing_account_id", nullable = true)
     private String billingAccountId;
 
     @Column(name = "stripe_subscription_id", nullable = false)
@@ -67,7 +69,11 @@ public class SubscriptionEntity {
         if (subscription.getId() != null) {
             entity.id = subscription.getId().value();
         }
-        entity.billingAccountId = subscription.getBillingAccountId().value();
+        if (subscription.getBillingAccountId().isPresent() && subscription.getBillingAccountId().getValue() != null) {
+            entity.billingAccountId = subscription.getBillingAccountId().getValue().value();
+        } else {
+            entity.billingAccountId = null;
+        }
         entity.stripeSubscriptionId = subscription.getStripeSubscriptionId().value();
         entity.tier = subscription.getTier();
         entity.status = subscription.getStatus();
@@ -90,7 +96,11 @@ public class SubscriptionEntity {
         if (this.id != null) {
             subscription.setId(new SubscriptionId(this.id));
         }
-        subscription.setBillingAccountId(new BillingAccountId(this.billingAccountId));
+        if (this.billingAccountId != null) {
+            subscription.setBillingAccountId(Maybe.some(new BillingAccountId(this.billingAccountId)));
+        } else {
+            subscription.setBillingAccountId(Maybe.none());
+        }
         subscription.setStripeSubscriptionId(new StripeSubscriptionId(this.stripeSubscriptionId));
         subscription.setTier(this.tier);
         subscription.setStatus(this.status);

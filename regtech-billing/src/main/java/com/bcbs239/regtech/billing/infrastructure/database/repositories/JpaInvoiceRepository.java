@@ -105,21 +105,38 @@ public class JpaInvoiceRepository {
 
     public Function<Invoice, Result<InvoiceId>> invoiceSaver() {
         return invoice -> {
+            if (invoice.getId() != null) {
+                return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED",
+                    "Cannot save invoice with existing ID", "invoice.save.existing.id"));
+            }
             try {
                 InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
-                
-                if (invoice.getId() == null) {
-                    entityManager.persist(entity);
-                } else {
-                    entity = entityManager.merge(entity);
-                }
-                
+                entityManager.persist(entity);
                 entityManager.flush(); // Ensure the entity is persisted
                 
                 return Result.success(InvoiceId.fromString(entity.getId()).getValue().get());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED",
                     "Failed to save invoice: " + e.getMessage(), "invoice.save.failed"));
+            }
+        };
+    }
+
+    public Function<Invoice, Result<InvoiceId>> invoiceUpdater() {
+        return invoice -> {
+            if (invoice.getId() == null) {
+                return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED",
+                    "Cannot update invoice without ID", "invoice.update.missing.id"));
+            }
+            try {
+                InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
+                entity = entityManager.merge(entity);
+                entityManager.flush(); // Ensure the entity is updated
+                
+                return Result.success(InvoiceId.fromString(entity.getId()).getValue().get());
+            } catch (Exception e) {
+                return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED",
+                    "Failed to update invoice: " + e.getMessage(), "invoice.update.failed"));
             }
         };
     }

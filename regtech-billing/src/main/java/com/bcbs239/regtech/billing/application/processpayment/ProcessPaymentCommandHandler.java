@@ -20,6 +20,7 @@ import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublishe
 import com.bcbs239.regtech.billing.application.shared.UserData;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.springframework.stereotype.Component;
 
@@ -124,7 +125,6 @@ public class ProcessPaymentCommandHandler {
 
         // Step 5: Create subscription domain object
         Subscription subscription = Subscription.create(
-            billingAccount.getId(),
             stripeSubscription.subscriptionId(),
             SubscriptionTier.STARTER
         );
@@ -280,7 +280,7 @@ public class ProcessPaymentCommandHandler {
         Money monthlyAmount = tier.getMonthlyPrice();
         
         return Invoice.createProRated(
-            billingAccountId,
+            Maybe.some(billingAccountId),
             stripeInvoiceId,
             monthlyAmount,
             Money.zero(Currency.getInstance("EUR")), // No overage for first invoice

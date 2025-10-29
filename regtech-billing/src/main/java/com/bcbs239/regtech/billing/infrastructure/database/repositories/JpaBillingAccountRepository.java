@@ -61,21 +61,38 @@ public class JpaBillingAccountRepository {
 
     public Function<BillingAccount, Result<BillingAccountId>> billingAccountSaver() {
         return billingAccount -> {
+            if (billingAccount.getId() != null) {
+                return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_SAVE_FAILED",
+                    "Cannot save billing account with existing ID", "billing.account.save.existing.id"));
+            }
             try {
                 BillingAccountEntity entity = BillingAccountEntity.fromDomain(billingAccount);
-                
-                if (billingAccount.getId() == null) {
-                    entityManager.persist(entity);
-                } else {
-                    entity = entityManager.merge(entity);
-                }
-                
+                entityManager.persist(entity);
                 entityManager.flush(); // Ensure the entity is persisted
                 
                 return Result.success(BillingAccountId.fromString(entity.getId()).getValue().get());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_SAVE_FAILED",
                     "Failed to save billing account: " + e.getMessage(), "billing.account.save.failed"));
+            }
+        };
+    }
+
+    public Function<BillingAccount, Result<BillingAccountId>> billingAccountUpdater() {
+        return billingAccount -> {
+            if (billingAccount.getId() == null) {
+                return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_FAILED",
+                    "Cannot update billing account without ID", "billing.account.update.missing.id"));
+            }
+            try {
+                BillingAccountEntity entity = BillingAccountEntity.fromDomain(billingAccount);
+                entity = entityManager.merge(entity);
+                entityManager.flush(); // Ensure the entity is updated
+                
+                return Result.success(BillingAccountId.fromString(entity.getId()).getValue().get());
+            } catch (Exception e) {
+                return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_FAILED",
+                    "Failed to update billing account: " + e.getMessage(), "billing.account.update.failed"));
             }
         };
     }

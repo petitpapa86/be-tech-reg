@@ -12,6 +12,7 @@ import java.time.Instant;
 public class SagaAuditLogEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
     private String id;
 

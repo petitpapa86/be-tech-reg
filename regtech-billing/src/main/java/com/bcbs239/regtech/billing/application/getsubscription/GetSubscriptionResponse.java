@@ -6,6 +6,7 @@ import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import java.time.LocalDate;
+import com.bcbs239.regtech.core.shared.Maybe;
 
 /**
  * Response for subscription details retrieval.
@@ -13,7 +14,7 @@ import java.time.LocalDate;
  */
 public record GetSubscriptionResponse(
     SubscriptionId subscriptionId,
-    BillingAccountId billingAccountId,
+    Maybe<BillingAccountId> billingAccountId,
     SubscriptionTier tier,
     SubscriptionStatus status,
     Money monthlyAmount,

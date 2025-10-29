@@ -106,7 +106,6 @@ public class CreateSubscriptionCommandHandler {
 
         // Step 6: Create subscription domain object
         Subscription subscription = Subscription.create(
-            billingAccountId,
             stripeSubscription.subscriptionId(),
             command.tier()
         );

@@ -13,6 +13,7 @@ import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubsc
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeInvoice;
+import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.billing.application.shared.UsageMetrics;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
@@ -131,7 +132,7 @@ public class GenerateInvoiceCommandHandler {
 
         // Step 9: Create invoice domain object
         Result<Invoice> invoiceResult = Invoice.create(
-            billingAccountId,
+            Maybe.some(billingAccountId),
             stripeInvoice.invoiceId(),
             subscriptionAmount,
             overageAmount,

@@ -151,7 +151,7 @@ public class MonthlyBillingScheduler {
                 
                 // Add metadata for tracking and audit
                 sagaData.addMetadata("subscriptionId", subscription.getId().value());
-                sagaData.addMetadata("billingAccountId", subscription.getBillingAccountId().value());
+                sagaData.addMetadata("billingAccountId", subscription.getBillingAccountId().getValue().value());
                 sagaData.addMetadata("subscriptionTier", subscription.getTier().name());
                 sagaData.addMetadata("orchestrationTimestamp", java.time.Instant.now().toString());
                 sagaData.addMetadata("scheduledBillingPeriod", billingMonth.toString());
@@ -187,11 +187,11 @@ public class MonthlyBillingScheduler {
             // Look up the billing account to get the user ID
             Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository
                 .billingAccountFinder()
-                .apply(subscription.getBillingAccountId());
+                .apply(subscription.getBillingAccountId().getValue());
             
             if (billingAccountMaybe.isEmpty()) {
                 logger.warn("Billing account {} not found for subscription {}", 
-                    subscription.getBillingAccountId(), subscription.getId());
+                    subscription.getBillingAccountId().getValue(), subscription.getId());
                 return Maybe.none();
             }
             

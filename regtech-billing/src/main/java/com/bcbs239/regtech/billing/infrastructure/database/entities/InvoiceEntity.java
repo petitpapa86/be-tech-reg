@@ -8,7 +8,11 @@ import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceStatus;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
+import com.bcbs239.regtech.core.shared.Maybe;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -19,15 +23,19 @@ import java.util.Currency;
  * JPA Entity for Invoice aggregate persistence.
  * Maps domain aggregate to database table structure.
  */
+@Getter
+@Setter
 @Entity
 @Table(name = "invoices", schema = "billing")
 public class InvoiceEntity {
 
+    // Getters and setters for JPA
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
     private String id;
 
-    @Column(name = "billing_account_id", nullable = false)
+    @Column(name = "billing_account_id", nullable = true)
     private String billingAccountId;
 
     @Column(name = "invoice_number", nullable = false, unique = true)
@@ -98,7 +106,11 @@ public class InvoiceEntity {
         if (invoice.getId() != null) {
             entity.id = invoice.getId().value();
         }
-        entity.billingAccountId = invoice.getBillingAccountId().value();
+        if (invoice.getBillingAccountId().isPresent() && invoice.getBillingAccountId().getValue() != null) {
+            entity.billingAccountId = invoice.getBillingAccountId().getValue().value();
+        } else {
+            entity.billingAccountId = null;
+        }
         entity.invoiceNumber = invoice.getInvoiceNumber().value();
         entity.stripeInvoiceId = invoice.getStripeInvoiceId().value();
         entity.status = invoice.getStatus();
@@ -144,7 +156,11 @@ public class InvoiceEntity {
         if (this.id != null) {
             invoice.setId(InvoiceId.fromString(this.id).getValue().get());
         }
-        invoice.setBillingAccountId(BillingAccountId.fromString(this.billingAccountId).getValue().get());
+        if (this.billingAccountId != null) {
+            invoice.setBillingAccountId(Maybe.some(BillingAccountId.fromString(this.billingAccountId).getValue().get()));
+        } else {
+            invoice.setBillingAccountId(Maybe.none());
+        }
         invoice.setInvoiceNumber(InvoiceNumber.fromString(this.invoiceNumber).getValue().get());
         invoice.setStripeInvoiceId(StripeInvoiceId.fromString(this.stripeInvoiceId).getValue().get());
         invoice.setStatus(this.status);
@@ -178,65 +194,4 @@ public class InvoiceEntity {
         
         return invoice;
     }
-
-    // Getters and setters for JPA
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getBillingAccountId() { return billingAccountId; }
-    public void setBillingAccountId(String billingAccountId) { this.billingAccountId = billingAccountId; }
-
-    public String getInvoiceNumber() { return invoiceNumber; }
-    public void setInvoiceNumber(String invoiceNumber) { this.invoiceNumber = invoiceNumber; }
-
-    public String getStripeInvoiceId() { return stripeInvoiceId; }
-    public void setStripeInvoiceId(String stripeInvoiceId) { this.stripeInvoiceId = stripeInvoiceId; }
-
-    public InvoiceStatus getStatus() { return status; }
-    public void setStatus(InvoiceStatus status) { this.status = status; }
-
-    public BigDecimal getSubscriptionAmountValue() { return subscriptionAmountValue; }
-    public void setSubscriptionAmountValue(BigDecimal subscriptionAmountValue) { this.subscriptionAmountValue = subscriptionAmountValue; }
-
-    public String getSubscriptionAmountCurrency() { return subscriptionAmountCurrency; }
-    public void setSubscriptionAmountCurrency(String subscriptionAmountCurrency) { this.subscriptionAmountCurrency = subscriptionAmountCurrency; }
-
-    public BigDecimal getOverageAmountValue() { return overageAmountValue; }
-    public void setOverageAmountValue(BigDecimal overageAmountValue) { this.overageAmountValue = overageAmountValue; }
-
-    public String getOverageAmountCurrency() { return overageAmountCurrency; }
-    public void setOverageAmountCurrency(String overageAmountCurrency) { this.overageAmountCurrency = overageAmountCurrency; }
-
-    public BigDecimal getTotalAmountValue() { return totalAmountValue; }
-    public void setTotalAmountValue(BigDecimal totalAmountValue) { this.totalAmountValue = totalAmountValue; }
-
-    public String getTotalAmountCurrency() { return totalAmountCurrency; }
-    public void setTotalAmountCurrency(String totalAmountCurrency) { this.totalAmountCurrency = totalAmountCurrency; }
-
-    public LocalDate getBillingPeriodStartDate() { return billingPeriodStartDate; }
-    public void setBillingPeriodStartDate(LocalDate billingPeriodStartDate) { this.billingPeriodStartDate = billingPeriodStartDate; }
-
-    public LocalDate getBillingPeriodEndDate() { return billingPeriodEndDate; }
-    public void setBillingPeriodEndDate(LocalDate billingPeriodEndDate) { this.billingPeriodEndDate = billingPeriodEndDate; }
-
-    public LocalDate getIssueDate() { return issueDate; }
-    public void setIssueDate(LocalDate issueDate) { this.issueDate = issueDate; }
-
-    public LocalDate getDueDate() { return dueDate; }
-    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
-
-    public Instant getPaidAt() { return paidAt; }
-    public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
-
-    public Instant getSentAt() { return sentAt; }
-    public void setSentAt(Instant sentAt) { this.sentAt = sentAt; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-
-    public Long getVersion() { return version; }
-    public void setVersion(Long version) { this.version = version; }
 }

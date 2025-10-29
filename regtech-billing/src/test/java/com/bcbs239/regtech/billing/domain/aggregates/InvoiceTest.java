@@ -7,6 +7,7 @@ import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.InvoiceStatus;
 import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.shared.Maybe;
 import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -31,7 +32,7 @@ class InvoiceTest {
         BillingPeriod billingPeriod = BillingPeriod.current();
 
         // When
-        Result<Invoice> result = Invoice.create(billingAccountId, stripeInvoiceId, subscriptionAmount, 
+        Result<Invoice> result = Invoice.create(Maybe.some(billingAccountId), stripeInvoiceId, subscriptionAmount, 
                                               overageAmount, billingPeriod, testClock, testDateSupplier);
 
         // Then
@@ -107,7 +108,7 @@ class InvoiceTest {
         Money overageAmount = Money.zero(Currency.getInstance("EUR"));
         BillingPeriod billingPeriod = BillingPeriod.current();
 
-        return Invoice.create(billingAccountId, stripeInvoiceId, subscriptionAmount, overageAmount, 
+        return Invoice.create(Maybe.some(billingAccountId), stripeInvoiceId, subscriptionAmount, overageAmount, 
                             billingPeriod, testClock, testDateSupplier).getValue().get();
     }
 }

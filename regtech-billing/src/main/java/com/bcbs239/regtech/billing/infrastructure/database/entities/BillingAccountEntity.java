@@ -9,6 +9,10 @@ import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import com.bcbs239.regtech.core.shared.Maybe;
 import jakarta.persistence.*;
+import lombok.Generated;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Currency;
@@ -17,11 +21,15 @@ import java.util.Currency;
  * JPA Entity for BillingAccount aggregate persistence.
  * Maps domain aggregate to database table structure.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "billing_accounts", schema = "billing")
 public class BillingAccountEntity {
 
+    // Getters and setters for JPA
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
     private String id;
 
@@ -116,34 +124,4 @@ public class BillingAccountEntity {
         return billingAccount;
     }
 
-    // Getters and setters for JPA
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
-
-    public String getStripeCustomerId() { return stripeCustomerId; }
-    public void setStripeCustomerId(String stripeCustomerId) { this.stripeCustomerId = stripeCustomerId; }
-
-    public BillingAccountStatus getStatus() { return status; }
-    public void setStatus(BillingAccountStatus status) { this.status = status; }
-
-    public String getDefaultPaymentMethodId() { return defaultPaymentMethodId; }
-    public void setDefaultPaymentMethodId(String defaultPaymentMethodId) { this.defaultPaymentMethodId = defaultPaymentMethodId; }
-
-    public BigDecimal getAccountBalanceAmount() { return accountBalanceAmount; }
-    public void setAccountBalanceAmount(BigDecimal accountBalanceAmount) { this.accountBalanceAmount = accountBalanceAmount; }
-
-    public String getAccountBalanceCurrency() { return accountBalanceCurrency; }
-    public void setAccountBalanceCurrency(String accountBalanceCurrency) { this.accountBalanceCurrency = accountBalanceCurrency; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-
-    public Long getVersion() { return version; }
-    public void setVersion(Long version) { this.version = version; }
 }

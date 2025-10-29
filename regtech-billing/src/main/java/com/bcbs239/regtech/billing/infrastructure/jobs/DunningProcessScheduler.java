@@ -145,7 +145,7 @@ public class DunningProcessScheduler {
                 // Create new dunning case
                 DunningCase dunningCase = DunningCase.create(
                     invoice.getId(),
-                    invoice.getBillingAccountId()
+                    invoice.getBillingAccountId().getValue()
                 );
 
                 Result<DunningCaseId> saveResult = dunningCaseRepository

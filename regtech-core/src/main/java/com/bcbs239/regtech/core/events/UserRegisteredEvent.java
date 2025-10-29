@@ -2,12 +2,14 @@ package com.bcbs239.regtech.core.events;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 
 /**
  * Cross-module event published when a user is registered and needs payment processing.
  * This event is consumed by the billing context to initiate payment processing.
  */
 
+@Getter
 public class UserRegisteredEvent extends BaseEvent {
     private String userId;
     private String email;
@@ -40,14 +42,6 @@ public class UserRegisteredEvent extends BaseEvent {
         this.phone = phone;
         this.address = address;
     }
-
-    public String getUserId() { return userId; }
-    public String getEmail() { return email; }
-    public String getName() { return name; }
-    public String getBankId() { return bankId; }
-    public String getPaymentMethodId() { return paymentMethodId; }
-    public String getPhone() { return phone; }
-    public AddressInfo getAddress() { return address; }
 
     /**
      * Address information for Stripe integration

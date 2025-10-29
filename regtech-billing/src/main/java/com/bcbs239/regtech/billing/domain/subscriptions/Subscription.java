@@ -4,6 +4,7 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Maybe;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -22,7 +23,7 @@ public class Subscription {
     // Public setters for JPA/persistence layer
     // Getters
     private SubscriptionId id;
-    private BillingAccountId billingAccountId;
+    private Maybe<BillingAccountId> billingAccountId;
     private StripeSubscriptionId stripeSubscriptionId;
     private SubscriptionTier tier;
     private SubscriptionStatus status;
@@ -33,26 +34,25 @@ public class Subscription {
     private long version;
     
     // Public constructor for JPA entity mapping
-    public Subscription() {}
+    public Subscription() {
+        this.billingAccountId = Maybe.none();
+    }
     
     /**
      * Factory method to create a new Subscription
      * 
-     * @param billingAccountId The billing account this subscription belongs to
      * @param stripeSubscriptionId The Stripe subscription ID for payment processing
      * @param tier The subscription tier with pricing and limits
      * @return New Subscription with ACTIVE status
      */
-    public static Subscription create(BillingAccountId billingAccountId, 
+    public static Subscription create(
                                     StripeSubscriptionId stripeSubscriptionId,
                                     SubscriptionTier tier) {
-        Objects.requireNonNull(billingAccountId, "BillingAccountId cannot be null");
         Objects.requireNonNull(stripeSubscriptionId, "StripeSubscriptionId cannot be null");
         Objects.requireNonNull(tier, "SubscriptionTier cannot be null");
         
         Subscription subscription = new Subscription();
-        subscription.id = SubscriptionId.generate();
-        subscription.billingAccountId = billingAccountId;
+        subscription.id = null;
         subscription.stripeSubscriptionId = stripeSubscriptionId;
         subscription.tier = tier;
         subscription.status = SubscriptionStatus.ACTIVE;
@@ -73,14 +73,18 @@ public class Subscription {
      * @param startDate The start date for the subscription
      * @return New Subscription with ACTIVE status
      */
-    public static Subscription create(BillingAccountId billingAccountId, 
+    public static Subscription create(Maybe<BillingAccountId> billingAccountId, 
                                     StripeSubscriptionId stripeSubscriptionId,
                                     SubscriptionTier tier,
                                     LocalDate startDate) {
+        if (billingAccountId == null || billingAccountId.isEmpty()) {
+            throw new IllegalArgumentException("BillingAccountId cannot be null or empty");
+        }
         Objects.requireNonNull(startDate, "Start date cannot be null");
         
-        Subscription subscription = create(billingAccountId, stripeSubscriptionId, tier);
+        Subscription subscription = create( stripeSubscriptionId, tier);
         subscription.startDate = startDate;
+        subscription.billingAccountId = billingAccountId;
         
         return subscription;
     }
@@ -318,22 +322,5 @@ public class Subscription {
         return tier.getExposureLimit();
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Subscription that = (Subscription) o;
-        return Objects.equals(id, that.id);
-    }
-    
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-    
-    @Override
-    public String toString() {
-        return String.format("Subscription{id=%s, billingAccountId=%s, tier=%s, status=%s, version=%d}", 
-            id, billingAccountId, tier, status, version);
-    }
+
 }

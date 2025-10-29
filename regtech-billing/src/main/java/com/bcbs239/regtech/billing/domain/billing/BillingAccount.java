@@ -14,6 +14,7 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import lombok.Getter;
 import lombok.Setter;
@@ -97,7 +98,7 @@ public class BillingAccount {
             Objects.requireNonNull(updatedAt, "UpdatedAt cannot be null");
 
             BillingAccount account = new BillingAccount();
-            account.id = BillingAccountId.generate("BA");
+            account.id = null;
             account.userId = userId;
             account.stripeCustomerId = stripeCustomerId;
             account.status = BillingAccountStatus.PENDING_VERIFICATION;
@@ -116,7 +117,7 @@ public class BillingAccount {
                 StripeSubscriptionId defaultStripeId = defaultStripeIdResult.getValue().orElseThrow(
                     () -> new IllegalStateException("Failed to obtain StripeSubscriptionId value despite success: " + defaultStripeIdResult.getError())
                 );
-                Subscription defaultSubscription = Subscription.create(account.id, defaultStripeId, SubscriptionTier.STARTER);
+                Subscription defaultSubscription = Subscription.create( defaultStripeId, SubscriptionTier.STARTER);
                 account.subscriptions.add(defaultSubscription);
 
                 // Create default invoice
@@ -132,7 +133,7 @@ public class BillingAccount {
                 BillingPeriod currentPeriod = BillingPeriod.current();
 
                 Result<Invoice> invoiceResult = Invoice.create(
-                    account.id,
+                    Maybe.some(account.id),
                     defaultInvoiceId,
                     subscriptionAmount,
                     overageAmount,
@@ -290,7 +291,6 @@ public class BillingAccount {
         }
         
         Subscription subscription = Subscription.create(
-            this.id,
             stripeSubscriptionId,
             tier
         );
@@ -373,24 +373,5 @@ public class BillingAccount {
             this.updatedAt = Instant.now();
             this.version++;
         }
-    }
-    
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        BillingAccount that = (BillingAccount) obj;
-        return Objects.equals(id, that.id);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id);
-    }
-    
-    @Override
-    public String toString() {
-        return String.format("BillingAccount{id=%s, userId=%s, status=%s, subscriptions=%d, invoices=%d, version=%d}", 
-            id, userId, status, subscriptions.size(), invoices.size(), version);
     }
 }

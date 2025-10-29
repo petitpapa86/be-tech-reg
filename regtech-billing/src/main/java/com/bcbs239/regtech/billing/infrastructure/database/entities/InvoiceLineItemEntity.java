@@ -17,6 +17,7 @@ import java.util.Currency;
 public class InvoiceLineItemEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
     private String id;
 

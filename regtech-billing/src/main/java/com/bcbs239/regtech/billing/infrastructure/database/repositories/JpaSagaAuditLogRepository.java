@@ -27,10 +27,12 @@ public class JpaSagaAuditLogRepository {
 
     public Function<SagaAuditLogEntity, Result<String>> sagaAuditLogSaver() {
         return auditLog -> {
+            if (auditLog.getId() != null) {
+                return Result.failure(ErrorDetail.of("SAGA_AUDIT_LOG_SAVE_FAILED",
+                    "Cannot save saga audit log with existing ID", "saga.audit.log.save.existing.id"));
+            }
             try {
-                if (auditLog.getId() == null) {
-                    auditLog.setId(UUID.randomUUID().toString());
-                }
+                auditLog.setId(UUID.randomUUID().toString());
                 entityManager.persist(auditLog);
                 entityManager.flush(); // Ensure the entity is persisted
                 

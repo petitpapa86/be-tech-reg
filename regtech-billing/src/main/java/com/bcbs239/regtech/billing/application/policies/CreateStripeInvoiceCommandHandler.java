@@ -11,6 +11,7 @@ import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.billing.domain.events.StripeInvoiceCreatedEvent;
 import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.shared.Maybe;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -105,7 +106,7 @@ public class CreateStripeInvoiceCommandHandler {
         Money monthlyAmount = data.tier.getMonthlyPrice();
 
         return Invoice.createProRated(
-            data.billingAccountId,
+            Maybe.some(data.billingAccountId),
             data.stripeInvoiceId,
             monthlyAmount,
             Money.zero(monthlyAmount.currency()), // No overage for first invoice

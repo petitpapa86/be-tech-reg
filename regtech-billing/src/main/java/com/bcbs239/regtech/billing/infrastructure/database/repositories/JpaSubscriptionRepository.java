@@ -88,21 +88,38 @@ public class JpaSubscriptionRepository {
 
     public Function<Subscription, Result<SubscriptionId>> subscriptionSaver() {
         return subscription -> {
+            if (subscription.getId() != null) {
+                return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
+                    "Cannot save subscription with existing ID", "subscription.save.existing.id"));
+            }
             try {
                 SubscriptionEntity entity = SubscriptionEntity.fromDomain(subscription);
-                
-                if (subscription.getId() == null) {
-                    entityManager.persist(entity);
-                } else {
-                    entity = entityManager.merge(entity);
-                }
-                
+                entityManager.persist(entity);
                 entityManager.flush(); // Ensure the entity is persisted
                 
                 return Result.success(SubscriptionId.fromString(entity.getId()).getValue().get());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
                     "Failed to save subscription: " + e.getMessage(), "subscription.save.failed"));
+            }
+        };
+    }
+
+    public Function<Subscription, Result<SubscriptionId>> subscriptionUpdater() {
+        return subscription -> {
+            if (subscription.getId() == null) {
+                return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
+                    "Cannot update subscription without ID", "subscription.update.missing.id"));
+            }
+            try {
+                SubscriptionEntity entity = SubscriptionEntity.fromDomain(subscription);
+                entity = entityManager.merge(entity);
+                entityManager.flush(); // Ensure the entity is updated
+                
+                return Result.success(SubscriptionId.fromString(entity.getId()).getValue().get());
+            } catch (Exception e) {
+                return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
+                    "Failed to update subscription: " + e.getMessage(), "subscription.update.failed"));
             }
         };
     }

@@ -5,6 +5,8 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Maybe;
+import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
@@ -20,11 +22,12 @@ import java.util.function.Supplier;
  * Handles invoice lifecycle from creation to payment with automatic line item generation.
  */
 @Setter
+@Getter
 public class Invoice {
 
     // Public setters for JPA/persistence layer
     private InvoiceId id;
-    private BillingAccountId billingAccountId;
+    private Maybe<BillingAccountId> billingAccountId;
     private InvoiceNumber invoiceNumber;
     private StripeInvoiceId stripeInvoiceId;
     private InvoiceStatus status;
@@ -44,6 +47,7 @@ public class Invoice {
     // Public constructor for JPA entity mapping
     public Invoice() {
         this.lineItems = new ArrayList<>();
+        billingAccountId = Maybe.none();
     }
 
     // Private constructor for factory methods
@@ -59,7 +63,7 @@ public class Invoice {
     /**
      * Factory method to create a new invoice with automatic line item generation
      */
-    public static Result<Invoice> create(BillingAccountId billingAccountId,
+    public static Result<Invoice> create(Maybe<BillingAccountId> billingAccountId,
                                        StripeInvoiceId stripeInvoiceId,
                                        Money subscriptionAmount,
                                        Money overageAmount,
@@ -68,8 +72,8 @@ public class Invoice {
                                        Supplier<LocalDate> dateSupplier) {
         
         // Validate inputs
-        if (billingAccountId == null) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE", "BillingAccountId cannot be null"));
+        if (billingAccountId == null || billingAccountId.isEmpty()) {
+            return Result.failure(new ErrorDetail("INVALID_INVOICE", "BillingAccountId cannot be null or empty"));
         }
         if (stripeInvoiceId == null) {
             return Result.failure(new ErrorDetail("INVALID_INVOICE", "StripeInvoiceId cannot be null"));
@@ -97,7 +101,7 @@ public class Invoice {
         }
 
         Invoice invoice = new Invoice(clock, dateSupplier);
-        invoice.id = InvoiceId.generate();
+        invoice.id = null;
         invoice.billingAccountId = billingAccountId;
         invoice.invoiceNumber = InvoiceNumber.generate();
         invoice.stripeInvoiceId = stripeInvoiceId;
@@ -125,7 +129,7 @@ public class Invoice {
     /**
      * Factory method to create a pro-rated invoice for partial billing periods
      */
-    public static Result<Invoice> createProRated(BillingAccountId billingAccountId,
+    public static Result<Invoice> createProRated(Maybe<BillingAccountId> billingAccountId,
                                                StripeInvoiceId stripeInvoiceId,
                                                Money monthlySubscriptionAmount,
                                                Money overageAmount,
@@ -326,24 +330,6 @@ public class Invoice {
         return Result.success(null);
     }
 
-    // Getters
-    public InvoiceId getId() { return id; }
-    public BillingAccountId getBillingAccountId() { return billingAccountId; }
-    public InvoiceNumber getInvoiceNumber() { return invoiceNumber; }
-    public StripeInvoiceId getStripeInvoiceId() { return stripeInvoiceId; }
-    public InvoiceStatus getStatus() { return status; }
-    public Money getSubscriptionAmount() { return subscriptionAmount; }
-    public Money getOverageAmount() { return overageAmount; }
-    public Money getTotalAmount() { return totalAmount; }
-    public BillingPeriod getBillingPeriod() { return billingPeriod; }
-    public LocalDate getIssueDate() { return issueDate; }
-    public LocalDate getDueDate() { return dueDate; }
-    public Instant getPaidAt() { return paidAt; }
-    public Instant getSentAt() { return sentAt; }
-    public List<InvoiceLineItem> getLineItems() { return Collections.unmodifiableList(lineItems); }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public long getVersion() { return version; }
 
     @Override
     public boolean equals(Object o) {

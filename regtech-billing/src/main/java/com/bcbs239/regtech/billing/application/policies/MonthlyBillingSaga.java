@@ -19,6 +19,7 @@ import com.bcbs239.regtech.core.saga.SagaStartedEvent;
 import com.bcbs239.regtech.core.saga.SagaClosures;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 
@@ -153,7 +154,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
 
         // Create domain invoice
         Result<Invoice> invoiceResult = Invoice.create(
-            billingAccount.getId(),
+            Maybe.some(billingAccount.getId()),
             stripeInvoice.invoiceId(),
             data.getSubscriptionCharges(),
             data.getOverageCharges(),
