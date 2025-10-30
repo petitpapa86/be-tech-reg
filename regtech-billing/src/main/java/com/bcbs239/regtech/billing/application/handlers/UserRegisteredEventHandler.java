@@ -47,7 +47,8 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
     @Override
     @Transactional
     public void handle(UserRegisteredIntegrationEvent event) {
-        LoggingConfiguration.logStructured("Received UserRegisteredIntegrationEvent", "USER_REGISTERED_EVENT_RECEIVED", Map.of(
+        LoggingConfiguration.logStructured("Received UserRegisteredIntegrationEvent", Map.of(
+            "eventType", "USER_REGISTERED_EVENT_RECEIVED",
             "userId", event.getUserId(),
             "email", event.getEmail()
         ));
@@ -57,7 +58,8 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
         // Check if billing account already exists (idempotency)
         com.bcbs239.regtech.core.shared.Maybe<BillingAccount> existingAccount = billingAccountRepository.billingAccountByUserFinder().apply(userId);
         if (existingAccount.isPresent()) {
-            LoggingConfiguration.logStructured("Billing account already exists, skipping processing", "BILLING_ACCOUNT_EXISTS", Map.of(
+            LoggingConfiguration.logStructured("Billing account already exists, skipping processing", Map.of(
+                "eventType", "BILLING_ACCOUNT_EXISTS",
                 "userId", event.getUserId()
             ));
             return;
@@ -69,7 +71,8 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
         
         Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId> saveResult = billingAccountRepository.billingAccountSaver().apply(billingAccount);
         if (saveResult.isFailure()) {
-            LoggingConfiguration.logStructured("Failed to create billing account", "BILLING_ACCOUNT_CREATION_FAILED", Map.of(
+            LoggingConfiguration.logStructured("Failed to create billing account", Map.of(
+                "eventType", "BILLING_ACCOUNT_CREATION_FAILED",
                 "userId", event.getUserId(),
                 "error", saveResult.getError().get().getMessage()
             ));
@@ -78,7 +81,8 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
         
         com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId valueObjectId = saveResult.getValue().get();
         BillingAccountId billingAccountId = BillingAccountId.of(valueObjectId.value());
-        LoggingConfiguration.logStructured("Billing account created", "BILLING_ACCOUNT_CREATED", Map.of(
+        LoggingConfiguration.logStructured("Billing account created", Map.of(
+            "eventType", "BILLING_ACCOUNT_CREATED",
             "billingAccountId", billingAccountId.getValue(),
             "userId", event.getUserId()
         ));
@@ -87,13 +91,15 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
         for (Subscription subscription : billingAccount.getSubscriptions()) {
             Result<SubscriptionId> subscriptionSaveResult = subscriptionRepository.subscriptionSaver().apply(subscription);
             if (subscriptionSaveResult.isFailure()) {
-                LoggingConfiguration.logStructured("Subscription creation failed", "SUBSCRIPTION_CREATION_FAILED", Map.of(
+                LoggingConfiguration.logStructured("Subscription creation failed", Map.of(
+                    "eventType", "SUBSCRIPTION_CREATION_FAILED",
                     "billingAccountId", billingAccountId.getValue(),
                     "error", subscriptionSaveResult.getError().get().getMessage()
                 ));
                 return;
             }
-            LoggingConfiguration.logStructured("Subscription created", "SUBSCRIPTION_CREATED", Map.of(
+            LoggingConfiguration.logStructured("Subscription created", Map.of(
+                "eventType", "SUBSCRIPTION_CREATED",
                 "subscriptionId", subscriptionSaveResult.getValue().get().value(),
                 "billingAccountId", billingAccountId.getValue()
             ));
@@ -103,13 +109,15 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
         for (Invoice invoice : billingAccount.getInvoices()) {
             Result<InvoiceId> invoiceSaveResult = invoiceRepository.invoiceSaver().apply(invoice);
             if (invoiceSaveResult.isFailure()) {
-                LoggingConfiguration.logStructured("Invoice creation failed", "INVOICE_CREATION_FAILED", Map.of(
+                LoggingConfiguration.logStructured("Invoice creation failed", Map.of(
+                    "eventType", "INVOICE_CREATION_FAILED",
                     "billingAccountId", billingAccountId.getValue(),
                     "error", invoiceSaveResult.getError().get().getMessage()
                 ));
                 return;
             }
-            LoggingConfiguration.logStructured("Invoice created", "INVOICE_CREATED", Map.of(
+            LoggingConfiguration.logStructured("Invoice created", Map.of(
+                "eventType", "INVOICE_CREATED",
                 "invoiceId", invoiceSaveResult.getValue().get().value(),
                 "billingAccountId", billingAccountId.getValue()
             ));
@@ -126,19 +134,22 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
              .build();
 
         // Start the PaymentVerificationSaga
-        LoggingConfiguration.logStructured("About to start PaymentVerificationSaga", "SAGA_START_ATTEMPT", Map.of(
+        LoggingConfiguration.logStructured("About to start PaymentVerificationSaga", Map.of(
+            "eventType", "SAGA_START_ATTEMPT",
             "userId", event.getUserId(),
             "sagaData", sagaData.toString()
         ));
         
         SagaId sagaId = sagaManager.startSaga(PaymentVerificationSaga.class, sagaData);
         
-        LoggingConfiguration.logStructured("PaymentVerificationSaga started successfully", "SAGA_START_SUCCESS", Map.of(
+        LoggingConfiguration.logStructured("PaymentVerificationSaga started successfully", Map.of(
+            "eventType", "SAGA_START_SUCCESS",
             "userId", event.getUserId(),
             "sagaId", sagaId.id()
         ));
 
-        LoggingConfiguration.logStructured("User registration integration event processing completed", "USER_REGISTRATION_COMPLETED", Map.of(
+        LoggingConfiguration.logStructured("User registration integration event processing completed", Map.of(
+            "eventType", "USER_REGISTRATION_COMPLETED",
             "userId", event.getUserId(),
             "fullName", event.getName()
         ));

@@ -116,6 +116,20 @@ public class LoggingConfiguration implements WebMvcConfigurer {
         logEntry.put("service", "regtech");
         logEntry.put("version", "1.0.0");
 
+        // Capture line number
+        StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+        int lineNumber = 0;
+        for (StackTraceElement element : stack) {
+            String className = element.getClassName();
+            if (!className.startsWith("com.bcbs239.regtech.core.config.LoggingConfiguration") &&
+                !className.startsWith("java.") &&
+                !className.startsWith("jdk.")) {
+                lineNumber = element.getLineNumber();
+                break;
+            }
+        }
+        logEntry.put("lineNumber", lineNumber);
+
         if (details != null) {
             logEntry.putAll(details);
         }
@@ -196,8 +210,8 @@ public class LoggingConfiguration implements WebMvcConfigurer {
      * Includes thread information and supports exception logging for async contexts.
      * Uses virtual threads for non-blocking async logging.
      */
-    public static void logStructured(String message, String eventType, Map<String, Object> details) {
-        logStructured(message, eventType, details, null);
+    public static void logStructured(String message, Map<String, Object> details) {
+        logStructured(message, details, null);
     }
 
     /**
@@ -206,13 +220,17 @@ public class LoggingConfiguration implements WebMvcConfigurer {
      * Includes thread information and supports exception logging for async contexts.
      * Uses virtual threads for non-blocking async logging.
      */
-    public static void logStructured(String message, String eventType, Map<String, Object> details, Throwable throwable) {
-        // Capture calling class and service before async execution
+    public static void logStructured(String message, Map<String, Object> details, Throwable throwable) {
+        // Capture calling class, service, and line number before async execution
         final String loggerName;
         final String service;
+        final String lineNumber;
+        final String eventType;
         {
             String tempLoggerName = "com.bcbs239.regtech.structured";
             String tempService = "regtech";
+            String tempLineNumber = "0";
+            String tempEventType = details != null && details.containsKey("eventType") ? String.valueOf(details.get("eventType")) : "LOG";
             StackTraceElement[] stack = Thread.currentThread().getStackTrace();
             for (StackTraceElement element : stack) {
                 String className = element.getClassName();
@@ -220,6 +238,7 @@ public class LoggingConfiguration implements WebMvcConfigurer {
                     !className.startsWith("java.") &&
                     !className.startsWith("jdk.")) {
                     tempLoggerName = className;
+                    tempLineNumber = String.valueOf(element.getLineNumber());
                     String[] parts = className.split("\\.");
                     if (parts.length >= 4 && "com.bcbs239.regtech".equals(parts[0] + "." + parts[1] + "." + parts[2])) {
                         tempService = "regtech-" + parts[3];
@@ -229,6 +248,8 @@ public class LoggingConfiguration implements WebMvcConfigurer {
             }
             loggerName = tempLoggerName;
             service = tempService;
+            lineNumber = tempLineNumber;
+            eventType = tempEventType;
         }
 
         // Capture MDC context for async execution
@@ -242,6 +263,7 @@ public class LoggingConfiguration implements WebMvcConfigurer {
                 // Add structured fields to MDC
                 MDC.put("service", service);
                 MDC.put("eventType", eventType);
+                MDC.put("lineNumber", lineNumber);
                 MDC.put("version", "1.0.0");
                 if (details != null) {
                     details.forEach((key, value) -> MDC.put(key, String.valueOf(value)));
@@ -259,6 +281,7 @@ public class LoggingConfiguration implements WebMvcConfigurer {
                 // Clear added MDC fields
                 MDC.remove("service");
                 MDC.remove("eventType");
+                MDC.remove("lineNumber");
                 MDC.remove("version");
                 if (details != null) {
                     details.keySet().forEach(MDC::remove);

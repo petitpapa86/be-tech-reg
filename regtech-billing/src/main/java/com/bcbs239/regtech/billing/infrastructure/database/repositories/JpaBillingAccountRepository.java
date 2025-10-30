@@ -74,8 +74,8 @@ public class JpaBillingAccountRepository {
                 
                 return Result.success(BillingAccountId.fromString(entity.getId()).getValue().get());
             } catch (Exception e) {
-                LoggingConfiguration.logStructured("Error saving billing account", "BILLING_ACCOUNT_SAVE_ERROR",
-                    Map.of(), e);
+                LoggingConfiguration.logStructured("Error saving billing account",
+                    Map.of("eventType", "BILLING_ACCOUNT_SAVE_ERROR"), e);
                 return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_SAVE_FAILED",
                     "Failed to save billing account: " + e.getMessage(), "billing.account.save.failed"));
             }
