@@ -53,7 +53,7 @@ public class User extends Entity {
     /**
      * Factory method to create a new user with bank assignment
      */
-    public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId) {
+    public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId, String paymentMethodId) {
         User user = create(email, password, firstName, lastName);
         user.assignToBank(bankId, "USER"); // Default role for new users
 
@@ -63,7 +63,7 @@ public class User extends Entity {
             email.getValue(),
             firstName + " " + lastName,
             bankId,
-            null, // paymentMethodId
+            paymentMethodId, // paymentMethodId
             null, // phone
             null, // address
             null  // correlationId

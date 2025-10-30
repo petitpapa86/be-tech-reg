@@ -30,9 +30,9 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
                 domainEvent.getEmail(),
                 domainEvent.getName(), // Use full name for the core event
                 domainEvent.getBankId(),
-                null, // paymentMethodId - not available in domain event
-                null, // phone - not available in domain event
-                null  // address - not available in domain event
+                domainEvent.getPaymentMethodId(),
+                domainEvent.getPhone(),
+                domainEvent.getAddress()
             );
 
             integrationEventBus.publish(integrationEvent);

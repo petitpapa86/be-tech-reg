@@ -7,6 +7,7 @@ import com.bcbs239.regtech.core.shared.Result;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 
 public class CreateStripeCustomerCommand extends SagaCommand {
 

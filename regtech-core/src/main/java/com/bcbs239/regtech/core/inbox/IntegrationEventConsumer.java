@@ -40,6 +40,7 @@ public class IntegrationEventConsumer {
     @Transactional
     public void consumeIntegrationEvent(IntegrationEvent event) throws JsonProcessingException {
         String eventType = event.getClass().getName();
+        String eventId = event.getId().toString();
         logger.info("📨 Consuming IntegrationEvent: type={}, id={}",
             eventType, event.getId());
 
@@ -50,17 +51,22 @@ public class IntegrationEventConsumer {
             // Determine aggregateId based on event type
             String aggregateId = determineAggregateId(event);
 
-            // Create inbox message entity
+            // Create inbox message entity including eventId for idempotency
             InboxMessageEntity inboxMessage = new InboxMessageEntity(
+                eventId,
                 eventType,
                 eventData,
                 aggregateId
             );
 
-            // Save to shared inbox
-            saveFn.apply(inboxMessage);
+            // Save to shared inbox (saveFn now enforces idempotency by eventId)
+            InboxMessageEntity saved = saveFn.apply(inboxMessage);
 
-            logger.info("✅ Stored {} event in shared inbox: id={}", eventType, event.getId());
+            if (saved != null && saved.getId() != null && !saved.getId().equals(inboxMessage.getId())) {
+                logger.info("ℹ️ Event already exists in inbox, skipping duplicate: eventId={}", eventId);
+            } else {
+                logger.info("✅ Stored {} event in shared inbox: id={}", eventType, event.getId());
+            }
 
         } catch (Exception e) {
             logger.error("❌ Failed to store {} event in shared inbox: {}", eventType, e.getMessage(), e);

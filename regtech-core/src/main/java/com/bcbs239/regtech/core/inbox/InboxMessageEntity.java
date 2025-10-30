@@ -11,7 +11,8 @@ import java.time.Instant;
 @Table(name = "inbox_messages", indexes = {
     @Index(name = "idx_inbox_messages_status_received", columnList = "processing_status, received_at"),
     @Index(name = "idx_inbox_messages_event_type", columnList = "event_type"),
-    @Index(name = "idx_inbox_messages_aggregate_id", columnList = "aggregate_id")
+    @Index(name = "idx_inbox_messages_aggregate_id", columnList = "aggregate_id"),
+    @Index(name = "idx_inbox_messages_event_id", columnList = "event_id")
 })
 public class InboxMessageEntity {
 
@@ -25,6 +26,9 @@ public class InboxMessageEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    @Column(name = "event_id", length = 100, unique = true)
+    private String eventId; // new: original integration event id for idempotency
 
     @Column(name = "event_type", nullable = false, length = 100)
     private String eventType;
@@ -57,8 +61,17 @@ public class InboxMessageEntity {
     // Default constructor
     public InboxMessageEntity() {}
 
-    // Constructor for creating new inbox messages
+    // Constructor for creating new inbox messages (backwards compatible)
     public InboxMessageEntity(String eventType, String eventData, String aggregateId) {
+        this.eventType = eventType;
+        this.eventData = eventData;
+        this.aggregateId = aggregateId;
+        this.receivedAt = Instant.now();
+    }
+
+    // New constructor including eventId for idempotency
+    public InboxMessageEntity(String eventId, String eventType, String eventData, String aggregateId) {
+        this.eventId = eventId;
         this.eventType = eventType;
         this.eventData = eventData;
         this.aggregateId = aggregateId;
@@ -72,6 +85,14 @@ public class InboxMessageEntity {
 
     public void setId(String id) {
         this.id = id;
+    }
+
+    public String getEventId() {
+        return eventId;
+    }
+
+    public void setEventId(String eventId) {
+        this.eventId = eventId;
     }
 
     public String getEventType() {

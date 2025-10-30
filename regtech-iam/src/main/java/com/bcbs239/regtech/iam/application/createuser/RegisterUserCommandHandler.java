@@ -242,7 +242,7 @@ public class RegisterUserCommandHandler {
                 "lastName", lastName
             )));
 
-            User newUser = User.createWithBank(email, password, firstName, lastName, command.bankId());
+            User newUser = User.createWithBank(email, password, firstName, lastName, command.bankId(),command.paymentMethodId());
 
             logger.debug("User aggregate created successfully", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_USER_CREATED", Map.of(
                 "correlationId", correlationId,

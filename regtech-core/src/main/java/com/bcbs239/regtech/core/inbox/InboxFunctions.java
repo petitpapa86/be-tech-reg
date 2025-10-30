@@ -94,6 +94,18 @@ public class InboxFunctions {
     public static Function<InboxMessageEntity, InboxMessageEntity> save(EntityManager em, TransactionTemplate tt) {
         return entity -> tt.execute(status -> {
             status.isNewTransaction();
+            // Idempotency: if eventId is present, check for existing message with same eventId
+            if (entity.getEventId() != null && !entity.getEventId().isBlank()) {
+                var existing = em.createQuery(
+                    "SELECT i FROM InboxMessageEntity i WHERE i.eventId = :eventId", InboxMessageEntity.class
+                ).setParameter("eventId", entity.getEventId()).getResultList();
+
+                if (existing != null && !existing.isEmpty()) {
+                    // Return existing record (do not create duplicate)
+                    return existing.get(0);
+                }
+            }
+
             if (entity.getId() == null || em.find(InboxMessageEntity.class, entity.getId()) == null) {
                 em.persist(entity);
                 return entity;

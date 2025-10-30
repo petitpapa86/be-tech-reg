@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.app.config;
 
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -31,7 +32,11 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGlobalException(Exception ex, WebRequest request) {
-        logger.error("Unhandled exception occurred: ", ex);
+        LoggingConfiguration.logStructured("UNHANDLED_EXCEPTION", Map.of(
+            "exception", ex.getClass().getSimpleName(),
+            "message", ex.getMessage(),
+            "path", request.getDescription(false).replace("uri=", "")
+        ));
 
         Map<String, Object> errorDetails = new HashMap<>();
         errorDetails.put("message", "An unexpected error occurred.");
