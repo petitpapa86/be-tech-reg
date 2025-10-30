@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.billing.application.policies;
 
 import com.bcbs239.regtech.billing.domain.billing.PaymentVerificationSagaData;
-import com.bcbs239.regtech.billing.domain.billing.BillingAccountId;
 import com.bcbs239.regtech.billing.application.policies.createstripecustomer.CreateStripeCustomerCommand;
 import com.bcbs239.regtech.billing.domain.events.StripeCustomerCreatedEvent;
 import com.bcbs239.regtech.billing.domain.events.StripeSubscriptionCreatedEvent;
@@ -16,11 +15,10 @@ import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaClosures;
 import com.bcbs239.regtech.core.saga.SagaStatus;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import com.bcbs239.regtech.core.shared.ErrorDetail;
 
 import java.time.Instant;
 import java.util.Map;
-
-import com.bcbs239.regtech.core.saga.SagaClosures;
 
 public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSagaData> {
 
@@ -41,13 +39,20 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     private void handleSagaStarted(SagaStartedEvent event) {
         // Dispatch CreateStripeCustomerCommand to start the process
-        CreateStripeCustomerCommand createStripeCustomerCommand = new CreateStripeCustomerCommand(
+        var createResult = CreateStripeCustomerCommand.create(
                 event.getSagaId(),
                 data.getUserEmail(),
                 data.getUserName(),
                 data.getPaymentMethodId()
         );
-        dispatchCommand(createStripeCustomerCommand);
+        if (createResult.isSuccess()) {
+            dispatchCommand(createResult.getValue().orElseThrow());
+        } else {
+            // Fail the saga due to validation error
+            String reason = createResult.getError().map(ErrorDetail::getMessage).orElse("Invalid CreateStripeCustomerCommand");
+            fail(reason);
+            return;
+        }
 
         LoggingConfiguration.createStructuredLog("PAYMENT_VERIFICATION_SAGA_DISPATCHED_COMMAND", Map.of(
             "sagaId", event.getSagaId(),
@@ -59,7 +64,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         timeoutScheduler.schedule(
             getId().id() + "-payment-timeout",
             PaymentVerificationSagaData.PAYMENT_TIMEOUT_SLA.toMillis(),
-            () -> handlePaymentTimeout()
+            this::handlePaymentTimeout
         );
     }
 
