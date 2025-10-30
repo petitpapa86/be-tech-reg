@@ -12,6 +12,8 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.HashMap;
@@ -25,6 +27,8 @@ import java.util.Map;
 public class LoggingConfiguration implements WebMvcConfigurer {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggingConfiguration.class);
+
+    private static final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
 
     @Bean
     public ObjectMapper loggingObjectMapper() {
@@ -176,11 +180,91 @@ public class LoggingConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * Get stack trace as string for logging
+     */
+    private static String getStackTraceAsString(Throwable throwable) {
+        StringBuilder sb = new StringBuilder();
+        for (StackTraceElement element : throwable.getStackTrace()) {
+            sb.append(element.toString()).append("\n");
+        }
+        return sb.toString();
+    }
+
+    /**
      * Combined structured logging method that integrates SLF4J logging with structured data.
      * Logs the message using SLF4J and includes structured details as JSON.
+     * Includes thread information and supports exception logging for async contexts.
+     * Uses virtual threads for non-blocking async logging.
      */
     public static void logStructured(String message, String eventType, Map<String, Object> details) {
-        Logger logger = LoggerFactory.getLogger("com.bcbs239.regtech.structured");
-        logger.info(message, createStructuredLog(eventType, details));
+        logStructured(message, eventType, details, null);
+    }
+
+    /**
+     * Combined structured logging method that integrates SLF4J logging with structured data.
+     * Logs the message using SLF4J and includes structured details as JSON.
+     * Includes thread information and supports exception logging for async contexts.
+     * Uses virtual threads for non-blocking async logging.
+     */
+    public static void logStructured(String message, String eventType, Map<String, Object> details, Throwable throwable) {
+        // Capture calling class and service before async execution
+        final String loggerName;
+        final String service;
+        {
+            String tempLoggerName = "com.bcbs239.regtech.structured";
+            String tempService = "regtech";
+            StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+            for (StackTraceElement element : stack) {
+                String className = element.getClassName();
+                if (!className.startsWith("com.bcbs239.regtech.core.config.LoggingConfiguration") &&
+                    !className.startsWith("java.") &&
+                    !className.startsWith("jdk.")) {
+                    tempLoggerName = className;
+                    String[] parts = className.split("\\.");
+                    if (parts.length >= 4 && "com.bcbs239.regtech".equals(parts[0] + "." + parts[1] + "." + parts[2])) {
+                        tempService = "regtech-" + parts[3];
+                    }
+                    break;
+                }
+            }
+            loggerName = tempLoggerName;
+            service = tempService;
+        }
+
+        // Capture MDC context for async execution
+        Map<String, String> mdcContext = MDC.getCopyOfContextMap();
+
+        virtualThreadExecutor.submit(() -> {
+            MDC.setContextMap(mdcContext);
+            try {
+                Logger structuredLogger = LoggerFactory.getLogger(loggerName);
+
+                // Add structured fields to MDC
+                MDC.put("service", service);
+                MDC.put("eventType", eventType);
+                MDC.put("version", "1.0.0");
+                if (details != null) {
+                    details.forEach((key, value) -> MDC.put(key, String.valueOf(value)));
+                }
+
+                if (throwable != null) {
+                    MDC.put("error", throwable.getMessage());
+                    MDC.put("exceptionClass", throwable.getClass().getName());
+                    MDC.put("stackTrace", getStackTraceAsString(throwable));
+                    structuredLogger.error(message, throwable);
+                } else {
+                    structuredLogger.info(message);
+                }
+            } finally {
+                // Clear added MDC fields
+                MDC.remove("service");
+                MDC.remove("eventType");
+                MDC.remove("version");
+                if (details != null) {
+                    details.keySet().forEach(MDC::remove);
+                }
+                MDC.clear(); // Clear all to be safe
+            }
+        });
     }
 }

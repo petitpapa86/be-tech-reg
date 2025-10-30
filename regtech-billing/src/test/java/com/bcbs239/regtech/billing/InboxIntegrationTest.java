@@ -1,9 +1,19 @@
 package com.bcbs239.regtech.billing;
 
 import com.bcbs239.regtech.billing.application.handlers.UserRegisteredEventHandler;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
+import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
+import com.bcbs239.regtech.core.saga.SagaManager;
+import com.bcbs239.regtech.core.inbox.InboxMessageEntity;
+import com.bcbs239.regtech.core.inbox.InboxMessageOperations;
+import com.bcbs239.regtech.core.inbox.ProcessInboxJob;
 import com.bcbs239.regtech.core.saga.SagaManager;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -30,7 +40,8 @@ import static org.mockito.Mockito.mock;
         "spring.datasource.driverClassName=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "spring.main.allow-bean-definition-overriding=true"
     }
 )
 @DirtiesContext
@@ -40,7 +51,7 @@ public class InboxIntegrationTest {
     @EnableAutoConfiguration
     @ComponentScan(
         basePackages = {
-            "com.bcbs239.regtech.core.inbox"
+            "com.bcbs239.regtech.core"
         }
     )
     @Import({BillingTestJpaConfiguration.class})
@@ -49,13 +60,32 @@ public class InboxIntegrationTest {
         // Components for fetcher/processor should be available from core module
 
         @Bean
-        public UserRegisteredEventHandler userRegisteredEventHandler(SagaManager sagaManager) {
-            return new UserRegisteredEventHandler(sagaManager);
+        public UserRegisteredEventHandler userRegisteredEventHandler(
+                SagaManager sagaManager,
+                JpaBillingAccountRepository billingAccountRepository,
+                JpaSubscriptionRepository subscriptionRepository,
+                JpaInvoiceRepository invoiceRepository) {
+            return new UserRegisteredEventHandler(sagaManager, billingAccountRepository, subscriptionRepository, invoiceRepository);
         }
 
         @Bean
         public SagaManager sagaManager() {
             return mock(SagaManager.class);
+        }
+
+        @Bean
+        public JpaBillingAccountRepository billingAccountRepository() {
+            return mock(JpaBillingAccountRepository.class);
+        }
+
+        @Bean
+        public JpaSubscriptionRepository subscriptionRepository() {
+            return mock(JpaSubscriptionRepository.class);
+        }
+
+        @Bean
+        public JpaInvoiceRepository invoiceRepository() {
+            return mock(JpaInvoiceRepository.class);
         }
     }
 

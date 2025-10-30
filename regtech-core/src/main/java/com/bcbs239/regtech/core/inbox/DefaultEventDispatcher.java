@@ -1,8 +1,7 @@
 package com.bcbs239.regtech.core.inbox;
 
+import com.bcbs239.regtech.core.application.IIntegrationEventHandler;
 import com.bcbs239.regtech.core.application.IntegrationEvent;
-import com.bcbs239.regtech.core.events.DomainEvent;
-import com.bcbs239.regtech.core.events.DomainEventHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -23,7 +22,7 @@ public class DefaultEventDispatcher implements EventDispatcher {
     @Override
     public boolean dispatch(IntegrationEvent event, String messageId) {
         Class<? extends IntegrationEvent> eventType = event.getClass();
-        List<DomainEventHandler<? extends DomainEvent>> handlers = registry.getHandlers(eventType);
+        List<IIntegrationEventHandler<? extends IntegrationEvent>> handlers = registry.getHandlers(eventType);
 
         if (handlers == null || handlers.isEmpty()) {
             logger.warn("No handlers registered for integration event type: {}", eventType.getName());
@@ -31,18 +30,17 @@ public class DefaultEventDispatcher implements EventDispatcher {
         }
 
         boolean allSuccess = true;
-        for (DomainEventHandler<? extends DomainEvent> handler : handlers) {
+        for (IIntegrationEventHandler<? extends IntegrationEvent> handler : handlers) {
 
             String handlerName = handler.getClass().getSimpleName();
 
-            @SuppressWarnings({"rawtypes", "unchecked"})
-            DomainEventHandler rawHandler = handler;
-            boolean success = rawHandler.handle(event);
-
-            if (success) {
+            try {
+                @SuppressWarnings({"rawtypes"})
+                IIntegrationEventHandler rawHandler = handler;
+                rawHandler.handle(event);
                 logger.debug("Dispatched integration event {} to handler {}", eventType.getName(), handlerName);
-            } else {
-                logger.error("Handler {} failed to process event {}", handlerName, eventType.getName());
+            } catch (Exception e) {
+                logger.error("Handler {} failed to process event {}", handlerName, eventType.getName(), e);
                 allSuccess = false;
             }
 

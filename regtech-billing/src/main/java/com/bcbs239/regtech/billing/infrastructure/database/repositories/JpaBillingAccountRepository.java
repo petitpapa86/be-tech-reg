@@ -3,6 +3,7 @@ package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.BillingAccountEntity;
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
@@ -13,6 +14,7 @@ import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -72,6 +74,8 @@ public class JpaBillingAccountRepository {
                 
                 return Result.success(BillingAccountId.fromString(entity.getId()).getValue().get());
             } catch (Exception e) {
+                LoggingConfiguration.logStructured("Error saving billing account", "BILLING_ACCOUNT_SAVE_ERROR",
+                    Map.of(), e);
                 return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_SAVE_FAILED",
                     "Failed to save billing account: " + e.getMessage(), "billing.account.save.failed"));
             }

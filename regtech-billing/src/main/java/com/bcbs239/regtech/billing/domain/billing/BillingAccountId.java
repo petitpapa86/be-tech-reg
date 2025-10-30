@@ -10,4 +10,8 @@ public class BillingAccountId {
     public static BillingAccountId generate() {
         return BillingAccountId.of(UUID.randomUUID().toString());
     }
+    
+    public String getValue() {
+        return value;
+    }
 }

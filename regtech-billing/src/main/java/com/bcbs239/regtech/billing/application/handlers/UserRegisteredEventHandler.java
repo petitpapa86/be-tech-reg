@@ -9,8 +9,11 @@ import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.events.DomainEventHandler;
+import com.bcbs239.regtech.core.application.IIntegrationEventHandler;
 import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 // import com.bcbs239.regtech.core.saga.SagaId;
 // import com.bcbs239.regtech.core.saga.SagaManager;
@@ -23,11 +26,9 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
 import java.util.Map;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Event handler for UserRegisteredIntegrationEvent.
@@ -35,14 +36,17 @@ import org.springframework.stereotype.Component;
  */
 @Component("billingUserRegisteredEventHandler")
 @RequiredArgsConstructor
-public class UserRegisteredEventHandler implements DomainEventHandler<UserRegisteredIntegrationEvent> {
+public class UserRegisteredEventHandler implements IIntegrationEventHandler<UserRegisteredIntegrationEvent> {
      private final SagaManager sagaManager;
     private final JpaBillingAccountRepository billingAccountRepository;
     private final JpaSubscriptionRepository subscriptionRepository;
     private final JpaInvoiceRepository invoiceRepository;
 
+
+
     @Override
-    public boolean handle(UserRegisteredIntegrationEvent event) {
+    @Transactional
+    public void handle(UserRegisteredIntegrationEvent event) {
         LoggingConfiguration.logStructured("Received UserRegisteredIntegrationEvent", "USER_REGISTERED_EVENT_RECEIVED", Map.of(
             "userId", event.getUserId(),
             "email", event.getEmail()
@@ -56,7 +60,7 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
             LoggingConfiguration.logStructured("Billing account already exists, skipping processing", "BILLING_ACCOUNT_EXISTS", Map.of(
                 "userId", event.getUserId()
             ));
-            return true;
+            return;
         }
 
         // Create billing account for the user
@@ -65,11 +69,11 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
         
         Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId> saveResult = billingAccountRepository.billingAccountSaver().apply(billingAccount);
         if (saveResult.isFailure()) {
-            LoggingConfiguration.logStructured("Billing account creation failed", "BILLING_ACCOUNT_CREATION_FAILED", Map.of(
+            LoggingConfiguration.logStructured("Failed to create billing account", "BILLING_ACCOUNT_CREATION_FAILED", Map.of(
                 "userId", event.getUserId(),
                 "error", saveResult.getError().get().getMessage()
             ));
-            return false;
+            return;
         }
         
         com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId valueObjectId = saveResult.getValue().get();
@@ -87,7 +91,7 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
                     "billingAccountId", billingAccountId.getValue(),
                     "error", subscriptionSaveResult.getError().get().getMessage()
                 ));
-                return false;
+                return;
             }
             LoggingConfiguration.logStructured("Subscription created", "SUBSCRIPTION_CREATED", Map.of(
                 "subscriptionId", subscriptionSaveResult.getValue().get().value(),
@@ -103,7 +107,7 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
                     "billingAccountId", billingAccountId.getValue(),
                     "error", invoiceSaveResult.getError().get().getMessage()
                 ));
-                return false;
+                return;
             }
             LoggingConfiguration.logStructured("Invoice created", "INVOICE_CREATED", Map.of(
                 "invoiceId", invoiceSaveResult.getValue().get().value(),
@@ -138,17 +142,15 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
             "userId", event.getUserId(),
             "fullName", event.getName()
         ));
-        
-        return true;
     }
 
     @Override
-    public String eventType() {
-        return UserRegisteredIntegrationEvent.class.getSimpleName();
-    }
-
-    @Override
-    public Class<UserRegisteredIntegrationEvent> eventClass() {
+    public Class<UserRegisteredIntegrationEvent> getEventClass() {
         return UserRegisteredIntegrationEvent.class;
+    }
+
+    @Override
+    public String getHandlerName() {
+        return "billingUserRegisteredEventHandler";
     }
 }

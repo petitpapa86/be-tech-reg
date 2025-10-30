@@ -50,6 +50,10 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         } else {
             // Fail the saga due to validation error
             String reason = createResult.getError().map(ErrorDetail::getMessage).orElse("Invalid CreateStripeCustomerCommand");
+            LoggingConfiguration.logStructured("Failed to create CreateStripeCustomerCommand", "CREATE_STRIPE_CUSTOMER_COMMAND_FAILED", Map.of(
+                "sagaId", event.getSagaId(),
+                "reason", reason
+            ));
             fail(reason);
             return;
         }
