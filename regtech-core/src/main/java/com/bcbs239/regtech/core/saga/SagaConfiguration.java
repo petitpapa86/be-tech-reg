@@ -34,8 +34,8 @@ public class SagaConfiguration {
     }
 
     @Bean
-    public Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader(EntityManager entityManager, ObjectMapper objectMapper) {
-        return JpaSagaRepository.sagaLoader(entityManager, objectMapper);
+    public Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader(EntityManager entityManager, ObjectMapper objectMapper, SagaClosures.TimeoutScheduler timeoutScheduler) {
+        return JpaSagaRepository.sagaLoader(entityManager, objectMapper, timeoutScheduler);
     }
 
     @Bean

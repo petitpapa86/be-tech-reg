@@ -1,0 +1,110 @@
+package com.bcbs239.regtech.billing.integration;
+
+import com.bcbs239.regtech.billing.application.policies.CreateStripeCustomerCommandHandler;
+import com.bcbs239.regtech.billing.application.policies.PaymentVerificationSaga;
+import com.bcbs239.regtech.billing.domain.billing.PaymentVerificationSagaData;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
+import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
+import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
+import com.bcbs239.regtech.billing.application.policies.createstripecustomer.CreateStripeCustomerCommand;
+import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
+import com.bcbs239.regtech.core.saga.*;
+import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.shared.Result;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+import org.springframework.context.ApplicationEventPublisher;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+public class PaymentVerificationSagaManualE2ETest {
+
+    @Test
+    public void manual_e2e_flow() throws Exception {
+        // In-memory saga store
+        ConcurrentHashMap<SagaId, AbstractSaga<?>> store = new ConcurrentHashMap<>();
+
+        Function<AbstractSaga<?>, Result<SagaId>> sagaSaver = saga -> {
+            store.put(saga.getId(), saga);
+            return Result.success(saga.getId());
+        };
+
+        Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader = id -> {
+            var v = store.get(id);
+            return v == null ? Maybe.none() : Maybe.some(v);
+        };
+
+        SagaClosures.TimeoutScheduler timeoutScheduler = SagaClosures.timeoutScheduler(java.util.concurrent.Executors.newSingleThreadScheduledExecutor());
+
+        // Mocks for external dependencies
+        StripeService stripeService = Mockito.mock(StripeService.class);
+        when(stripeService.createCustomer(any(), any())).thenReturn(Result.success(new StripeCustomer(new StripeCustomerId("cust_test"), "test@example.com", "Test User")));
+        when(stripeService.attachPaymentMethod(any(), any())).thenReturn(Result.success(null));
+        when(stripeService.setDefaultPaymentMethod(any(), any())).thenReturn(Result.success(null));
+
+        BillingEventPublisher billingEventPublisher = Mockito.mock(BillingEventPublisher.class);
+
+        JpaBillingAccountRepository billingAccountRepository = Mockito.mock(JpaBillingAccountRepository.class);
+        when(billingAccountRepository.billingAccountFinder()).thenReturn(id -> Maybe.none());
+        when(billingAccountRepository.billingAccountSaver()).thenReturn(acc -> Result.success(null));
+
+        // We'll create the CreateStripeCustomerCommandHandler and wire it to a simple ApplicationEventPublisher
+        var handler = new CreateStripeCustomerCommandHandler(stripeService, billingEventPublisher, sagaLoader, billingAccountRepository);
+
+        // Simple ApplicationEventPublisher that routes SagaCommand events to the handler
+        ApplicationEventPublisher simplePublisher = new ApplicationEventPublisher() {
+            @Override
+            public void publishEvent(Object event) {
+                if (event instanceof CreateStripeCustomerCommand c) {
+                    handler.handle(c);
+                } else if (event instanceof com.bcbs239.regtech.core.saga.SagaMessage) {
+                    // ignore for this test
+                } else if (event instanceof com.bcbs239.regtech.core.saga.SagaCommand) {
+                    // ignore other commands
+                }
+            }
+        };
+
+        // CommandDispatcher uses the simplePublisher
+        CommandDispatcher commandDispatcher = new CommandDispatcher(simplePublisher);
+
+        // Create saga data and instantiate the saga directly (simulate startSaga behavior)
+        PaymentVerificationSagaData data = new PaymentVerificationSagaData();
+        data.setUserEmail("test@example.com");
+        data.setUserName("Test User");
+        data.setPaymentMethodId("pm_123");
+        data.setUserId("user-1");
+
+        SagaId sagaId = SagaId.generate();
+        PaymentVerificationSaga saga = new PaymentVerificationSaga(sagaId, data, timeoutScheduler);
+
+        // Simulate the SagaStartedEvent being handled to produce commands
+        SagaStartedEvent startEvent = new SagaStartedEvent(sagaId, saga.getSagaType(), Instant::now);
+        saga.handle(startEvent);
+
+        // Persist saga to in-memory store
+        sagaSaver.apply(saga);
+
+        // Dispatch commands produced by the saga to the handler
+        for (var cmd : saga.getCommandsToDispatch()) {
+            if (cmd instanceof CreateStripeCustomerCommand c) {
+                handler.handle(c);
+            }
+        }
+
+        Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
+        assertThat(maybeSaga.isPresent()).isTrue();
+
+        PaymentVerificationSaga loadedSaga = (PaymentVerificationSaga) maybeSaga.getValue();
+        assertThat(loadedSaga.getData()).isNotNull();
+        assertThat(loadedSaga.getId()).isEqualTo(sagaId);
+    }
+}

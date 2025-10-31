@@ -52,7 +52,8 @@ public class JpaSagaRepository {
         };
     }
 
-    public static Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader(EntityManager entityManager, ObjectMapper objectMapper) {
+    // Modified to accept a TimeoutScheduler provided by the Spring context
+    public static Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader(EntityManager entityManager, ObjectMapper objectMapper, SagaClosures.TimeoutScheduler timeoutScheduler) {
         return sagaId -> {
             try {
                 SagaEntity entity = entityManager.find(SagaEntity.class, sagaId.id());
@@ -63,7 +64,7 @@ public class JpaSagaRepository {
                     return Maybe.none();
                 }
 
-                return Maybe.some(fromEntity(entity, objectMapper));
+                return Maybe.some(fromEntity(entity, objectMapper, timeoutScheduler));
 
             } catch (Exception e) {
                 LoggingConfiguration.createStructuredLog("SAGA_LOAD_FAILED", Map.of(
@@ -73,6 +74,17 @@ public class JpaSagaRepository {
                 return Maybe.none();
             }
         };
+    }
+
+    /**
+     * Backwards-compatible overload kept for tests/older callers. Prefer the variant that accepts
+     * a shared `SagaClosures.TimeoutScheduler` from the Spring context.
+     */
+    @Deprecated
+    public static Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader(EntityManager entityManager, ObjectMapper objectMapper) {
+        // Create a reasonable fallback scheduler for legacy callers; prefer injection of the real scheduler.
+        SagaClosures.TimeoutScheduler fallback = SagaClosures.timeoutScheduler(Executors.newSingleThreadScheduledExecutor());
+        return sagaLoader(entityManager, objectMapper, fallback);
     }
 
     private static SagaEntity toEntity(AbstractSaga<?> saga, ObjectMapper objectMapper) throws Exception {
@@ -106,7 +118,7 @@ public class JpaSagaRepository {
     }
 
     @SuppressWarnings("unchecked")
-    private static AbstractSaga<?> fromEntity(SagaEntity entity, ObjectMapper objectMapper) {
+    private static AbstractSaga<?> fromEntity(SagaEntity entity, ObjectMapper objectMapper, SagaClosures.TimeoutScheduler timeoutScheduler) {
         try {
             // Deserialize saga data
             Class<?> dataClass = Class.forName(getSagaDataClassName(entity.getSagaType()));
@@ -116,22 +128,58 @@ public class JpaSagaRepository {
             Class<? extends AbstractSaga<?>> sagaClass =
                     (Class<? extends AbstractSaga<?>>) Class.forName(getSagaClassName(entity.getSagaType()));
 
-            // Create saga instance using reflection
-            var constructor = sagaClass.getDeclaredConstructor(
-                    SagaId.class,
-                    dataClass
-            );
+            // Try to find constructor with (SagaId, data, TimeoutScheduler)
+            try {
+                var ctor3 = sagaClass.getDeclaredConstructor(SagaId.class, dataClass, SagaClosures.TimeoutScheduler.class);
+                ctor3.setAccessible(true);
+                AbstractSaga<?> saga = (AbstractSaga<?>) ctor3.newInstance(
+                        SagaId.of(entity.getSagaId()),
+                        sagaData,
+                        // use the provided timeout scheduler from the Spring context
+                        timeoutScheduler
+                );
+                saga.setStatus(entity.getStatus());
+                saga.setCompletedAt(entity.getCompletedAt());
+                return saga;
+            } catch (NoSuchMethodException ignore) {
+                // fall back
+            }
 
-            AbstractSaga<?> saga = constructor.newInstance(
-                    SagaId.of(entity.getSagaId()),
-                    sagaData
-            );
+            // Try constructor with (SagaId, data)
+            try {
+                var ctor2 = sagaClass.getDeclaredConstructor(SagaId.class, dataClass);
+                ctor2.setAccessible(true);
+                AbstractSaga<?> saga = (AbstractSaga<?>) ctor2.newInstance(
+                        SagaId.of(entity.getSagaId()),
+                        sagaData
+                );
+                saga.setStatus(entity.getStatus());
+                saga.setCompletedAt(entity.getCompletedAt());
+                return saga;
+            } catch (NoSuchMethodException ex2) {
+                // Last resort: try to instantiate using any available constructor
+                for (var ctor : sagaClass.getDeclaredConstructors()) {
+                    ctor.setAccessible(true);
+                    var params = ctor.getParameterTypes();
+                    if (params.length == 2 && params[0] == SagaId.class) {
+                        AbstractSaga<?> saga = (AbstractSaga<?>) ctor.newInstance(SagaId.of(entity.getSagaId()), sagaData);
+                        saga.setStatus(entity.getStatus());
+                        saga.setCompletedAt(entity.getCompletedAt());
+                        return saga;
+                    } else if (params.length == 3 && params[0] == SagaId.class) {
+                        AbstractSaga<?> saga = (AbstractSaga<?>) ctor.newInstance(
+                                SagaId.of(entity.getSagaId()),
+                                sagaData,
+                                timeoutScheduler
+                        );
+                        saga.setStatus(entity.getStatus());
+                        saga.setCompletedAt(entity.getCompletedAt());
+                        return saga;
+                    }
+                }
+            }
 
-            // Restore saga state
-            saga.setStatus(entity.getStatus());
-            saga.setCompletedAt(entity.getCompletedAt());
-
-            return saga;
+            throw new IllegalStateException("No suitable constructor found for saga class: " + sagaClass.getName());
 
         } catch (Exception e) {
             LoggingConfiguration.createStructuredLog("SAGA_DESERIALIZE_FAILED", Map.of(

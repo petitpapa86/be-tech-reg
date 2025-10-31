@@ -61,7 +61,7 @@ public class CreateStripeCustomerCommandHandler {
                 "sagaId", sagaId,
                 "userEmail", command.getUserEmail(),
                 "paymentMethodId", command.getPaymentMethodId()
-        ));
+        ), null);
         PaymentMethodId paymentMethodId = new PaymentMethodId(command.getPaymentMethodId());
 
         // Railway chain with specific failure handling
@@ -80,13 +80,13 @@ public class CreateStripeCustomerCommandHandler {
                 LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATED", Map.of(
                         "sagaId", sagaId,
                         "stripeCustomerId", ev.getStripeCustomerId()
-                ));
+                ), null);
             });
         } else {
             LoggingConfiguration.logStructured("CREATE_STRIPE_CUSTOMER_COMMAND_FAILED", Map.of(
                     "sagaId", sagaId,
                     "error", result.getError().map(ErrorDetail::getMessage).orElse("Unknown error")
-            ));
+            ), null);
         }
         // Note: Failures already published specific events in each step
     }
@@ -99,7 +99,7 @@ public class CreateStripeCustomerCommandHandler {
             LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATION_FAILED", Map.of(
                     "sagaId", sagaId,
                     "error", errorMsg
-            ));
+            ), null);
             // Publish specific failure event - no compensation needed (nothing created yet)
             eventPublisher.publishEvent(new StripeCustomerCreationFailedEvent(
                     sagaId,
@@ -119,7 +119,7 @@ public class CreateStripeCustomerCommandHandler {
                     "sagaId", sagaId,
                     "stripeCustomerId", customer.customerId().value(),
                     "error", errorMsg
-            ));
+            ), null);
             // Publish event to trigger compensation: delete the Stripe customer we just created
             eventPublisher.publishEvent(new PaymentMethodAttachmentFailedEvent(
                     sagaId,
@@ -142,7 +142,7 @@ public class CreateStripeCustomerCommandHandler {
                     "stripeCustomerId", customer.customerId().value(),
                     "paymentMethodId", paymentMethodId.value(),
                     "error", errorMsg
-            ));
+            ), null);
             // Publish event to trigger compensation: detach payment method and delete customer
             eventPublisher.publishEvent(new PaymentMethodDefaultFailedEvent(
                     sagaId,
@@ -192,7 +192,12 @@ public class CreateStripeCustomerCommandHandler {
 
          PaymentVerificationSaga saga = (PaymentVerificationSaga) maybeSaga.getValue();
 
-         BillingAccountId billingAccountId = new BillingAccountId(saga.getData().getBillingAccountId());
+         // Use billingAccountId from saga data if present, otherwise fall back to userId
+         String billingAccountIdValue = saga.getData().getBillingAccountId();
+         if (billingAccountIdValue == null) {
+             billingAccountIdValue = saga.getData().getUserId();
+         }
+         BillingAccountId billingAccountId = new BillingAccountId(billingAccountIdValue);
         Maybe<BillingAccount> accountMaybe = billingAccountRepository.billingAccountFinder().apply(billingAccountId);
 
         if (accountMaybe.isEmpty()) {
@@ -200,7 +205,7 @@ public class CreateStripeCustomerCommandHandler {
                     "sagaId", sagaId,
                     "billingAccountId", billingAccountId.value(),
                     "stripeCustomerId", customer.customerId().value()
-            ));
+            ), null);
             // Publish event to trigger compensation: cleanup Stripe customer
             eventPublisher.publishEvent(new BillingAccountNotFoundEvent(
                     sagaId,
@@ -224,7 +229,7 @@ public class CreateStripeCustomerCommandHandler {
                     "billingAccountId", data.billingAccountId.value(),
                     "stripeCustomerId", data.customer.customerId().value(),
                     "error", errorMsg
-            ));
+            ), null);
             // Publish event to trigger compensation: cleanup Stripe customer
             eventPublisher.publishEvent(new BillingAccountConfigurationFailedEvent(
                     sagaId,
@@ -243,7 +248,7 @@ public class CreateStripeCustomerCommandHandler {
                     "billingAccountId", data.billingAccountId.value(),
                     "stripeCustomerId", data.customer.customerId().value(),
                     "error", errorMsg
-            ));
+            ), null);
             // Publish event to trigger compensation: cleanup Stripe customer
             eventPublisher.publishEvent(new BillingAccountSaveFailedEvent(
                     sagaId,
