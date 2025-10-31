@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.saga;
 
 import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.shared.Maybe;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.springframework.context.annotation.Bean;
@@ -35,7 +36,7 @@ public class SagaConfiguration {
     }
 
     @Bean
-    public Function<SagaId, AbstractSaga<?>> sagaLoader(EntityManager entityManager, ObjectMapper objectMapper) {
+    public Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader(EntityManager entityManager, ObjectMapper objectMapper) {
         return JpaSagaRepository.sagaLoader(entityManager, objectMapper);
     }
 

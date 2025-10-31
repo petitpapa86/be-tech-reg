@@ -4,8 +4,8 @@ import java.util.Map;
 import java.util.function.Function;
 
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.shared.Maybe;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.persistence.EntityManager;
@@ -50,23 +50,22 @@ public class JpaSagaRepository {
         };
     }
 
-    public static Function<SagaId, AbstractSaga<?>> sagaLoader(EntityManager entityManager, ObjectMapper objectMapper) {
+    public static Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader(EntityManager entityManager, ObjectMapper objectMapper) {
         return sagaId -> {
             try {
                 SagaEntity entity = entityManager.find(SagaEntity.class, sagaId.id());
                 if (entity == null) {
-                    return null;
+                    return Maybe.none();
                 }
 
-                AbstractSaga<?> saga = fromEntity(entity, objectMapper);
-                return saga;
+                return Maybe.some(fromEntity(entity, objectMapper));
 
             } catch (Exception e) {
                 LoggingConfiguration.createStructuredLog("SAGA_LOAD_FAILED", Map.of(
                     "sagaId", sagaId,
                     "error", e.getMessage()
                 ));
-                return null;
+                return Maybe.none();
             }
         };
     }
@@ -131,17 +130,17 @@ public class JpaSagaRepository {
     // TODO: Implement proper saga class registry
     private static String getSagaDataClassName(String sagaType) {
         // Simple mapping for now - in production use a registry
-        return switch (sagaType) {
-            case "TestSaga" -> "java.lang.String";
-            default -> "java.lang.Object";
-        };
+        if ("TestSaga".equals(sagaType)) {
+            return "java.lang.String";
+        }
+        return "java.lang.Object";
     }
 
     private static String getSagaClassName(String sagaType) {
         // Simple mapping for now - in production use a registry
-        return switch (sagaType) {
-            case "TestSaga" -> "com.bcbs239.regtech.core.sagav2.TestSaga";
-            default -> "com.bcbs239.regtech.core.sagav2.AbstractSaga";
-        };
+        if ("TestSaga".equals(sagaType)) {
+            return "com.bcbs239.regtech.core.sagav2.TestSaga";
+        }
+        return "com.bcbs239.regtech.core.sagav2.AbstractSaga";
     }
 }

@@ -38,14 +38,14 @@ public class CreateStripeCustomerCommandHandler {
 
     private final StripeService stripeService;
     private final BillingEventPublisher eventPublisher;
-    private final Function<SagaId, AbstractSaga<?>> sagaLoader;
+    private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
     private final JpaBillingAccountRepository billingAccountRepository;
 
     @SuppressWarnings("unused")
     public CreateStripeCustomerCommandHandler(
             StripeService stripeService,
             BillingEventPublisher eventPublisher,
-            Function<SagaId, AbstractSaga<?>> sagaLoader,
+            Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
             JpaBillingAccountRepository billingAccountRepository) {
         this.stripeService = stripeService;
         this.eventPublisher = eventPublisher;
@@ -157,8 +157,8 @@ public class CreateStripeCustomerCommandHandler {
     }
 
     private Result<CustomerAccountData> findBillingAccount(SagaId sagaId, StripeCustomer customer) {
-        PaymentVerificationSaga saga = (PaymentVerificationSaga) sagaLoader.apply(sagaId);
-        if (saga == null) {
+        Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
+        if (maybeSaga.isEmpty()) {
             logger.error("Saga not found: {}", sagaId);
             // Publish event to trigger compensation: cleanup Stripe customer
             eventPublisher.publishEvent(new SagaNotFoundEvent(
@@ -167,6 +167,8 @@ public class CreateStripeCustomerCommandHandler {
             ));
             return Result.failure(ErrorDetail.of("SAGA_NOT_FOUND", "Saga not found: " + sagaId, "saga.not.found"));
         }
+
+        PaymentVerificationSaga saga = (PaymentVerificationSaga) maybeSaga.getValue();
 
         BillingAccountId billingAccountId = new BillingAccountId(saga.getData().getBillingAccountId());
         Maybe<BillingAccount> accountMaybe = billingAccountRepository.billingAccountFinder().apply(billingAccountId);
@@ -239,4 +241,5 @@ public class CreateStripeCustomerCommandHandler {
             BillingAccountId billingAccountId
     ) {
     }
+
 }

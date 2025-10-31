@@ -117,8 +117,8 @@ class SagaIntegrationTest {
             };
         }
 
-        public Function<SagaId, AbstractSaga<?>> sagaLoader() {
-            return sagaId -> sagas.get(sagaId.id());
+        public Function<SagaId, com.bcbs239.regtech.core.shared.Maybe<AbstractSaga<?>>> sagaLoader() {
+            return sagaId -> com.bcbs239.regtech.core.shared.Maybe.some(sagas.get(sagaId.id()));
         }
     }
 

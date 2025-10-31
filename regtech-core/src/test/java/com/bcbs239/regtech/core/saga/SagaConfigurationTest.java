@@ -62,8 +62,8 @@ class SagaConfigurationTest {
         }
 
         @Bean
-        public Function<SagaId, AbstractSaga<?>> sagaLoader() {
-            return _ -> null;
+        public Function<SagaId, com.bcbs239.regtech.core.shared.Maybe<AbstractSaga<?>>> sagaLoader() {
+            return _ -> com.bcbs239.regtech.core.shared.Maybe.none();
         }
     }
 }

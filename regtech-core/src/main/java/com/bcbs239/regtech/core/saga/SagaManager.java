@@ -2,6 +2,7 @@ package com.bcbs239.regtech.core.saga;
 
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.shared.Maybe;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -20,7 +21,7 @@ import java.util.function.Supplier;
 @RequiredArgsConstructor
 public class SagaManager {
     private final Function<AbstractSaga<?>, Result<SagaId>> sagaSaver;
-    private final Function<SagaId, AbstractSaga<?>> sagaLoader;
+    private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
     private final CommandDispatcher commandDispatcher;
     private final ApplicationEventPublisher eventPublisher;
     private final Supplier<Instant> currentTimeSupplier;
@@ -64,10 +65,12 @@ public class SagaManager {
     }
 
     public void processEvent(SagaMessage event) {
-        AbstractSaga<?> saga = sagaLoader.apply(event.getSagaId());
-        if (saga == null) {
+        Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(event.getSagaId());
+        if (maybeSaga.isEmpty()) {
             throw new SagaNotFoundException(event.getSagaId());
         }
+
+        AbstractSaga<?> saga = maybeSaga.getValue();
 
         saga.handle(event);
         sagaSaver.apply(saga);

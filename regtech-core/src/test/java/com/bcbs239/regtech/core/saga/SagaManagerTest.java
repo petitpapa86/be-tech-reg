@@ -29,7 +29,7 @@ class SagaManagerTest {
     private Function<AbstractSaga<?>, Result<SagaId>> sagaSaver;
 
     @Mock
-    private Function<SagaId, AbstractSaga<?>> sagaLoader;
+    private Function<SagaId, com.bcbs239.regtech.core.shared.Maybe<AbstractSaga<?>>> sagaLoader;
 
     @Mock
     private CommandDispatcher commandDispatcher;
@@ -81,7 +81,7 @@ class SagaManagerTest {
         // Given
         SagaId sagaId = SagaId.generate();
         TestSaga saga = mock(TestSaga.class);
-        Function<SagaId, AbstractSaga<?>> loader = id -> saga;
+        Function<SagaId, com.bcbs239.regtech.core.shared.Maybe<AbstractSaga<?>>> loader = id -> com.bcbs239.regtech.core.shared.Maybe.some(saga);
         sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier, timeoutScheduler);
 
         when(saga.getStatus()).thenReturn(SagaStatus.STARTED);
@@ -103,7 +103,7 @@ class SagaManagerTest {
         // Given
         SagaId sagaId = SagaId.generate();
         TestSaga saga = mock(TestSaga.class);
-        Function<SagaId, AbstractSaga<?>> loader = id -> saga;
+        Function<SagaId, com.bcbs239.regtech.core.shared.Maybe<AbstractSaga<?>>> loader = id -> com.bcbs239.regtech.core.shared.Maybe.some(saga);
         sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier, timeoutScheduler);
 
         when(saga.getId()).thenReturn(sagaId);
@@ -126,7 +126,7 @@ class SagaManagerTest {
         // Given
         SagaId sagaId = SagaId.generate();
         TestSaga saga = mock(TestSaga.class);
-        Function<SagaId, AbstractSaga<?>> loader = id -> saga;
+        Function<SagaId, com.bcbs239.regtech.core.shared.Maybe<AbstractSaga<?>>> loader = id -> com.bcbs239.regtech.core.shared.Maybe.some(saga);
         sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier, timeoutScheduler);
 
         when(saga.getId()).thenReturn(sagaId);
@@ -148,7 +148,7 @@ class SagaManagerTest {
     void processEvent_shouldThrowWhenSagaNotFound() {
         // Given
         SagaId sagaId = SagaId.generate();
-        Function<SagaId, AbstractSaga<?>> loader = id -> null;
+        Function<SagaId, com.bcbs239.regtech.core.shared.Maybe<AbstractSaga<?>>> loader = id -> com.bcbs239.regtech.core.shared.Maybe.none();
         sagaManager = new SagaManager(sagaSaver, loader, commandDispatcher, eventPublisher, currentTimeSupplier, timeoutScheduler);
 
         SagaMessage event = new TestSagaMessage("test", Instant.now(), sagaId);
