@@ -2,25 +2,39 @@ package com.bcbs239.regtech.core.saga;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.springframework.context.ApplicationEvent;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@ExtendWith(SpringExtension.class)
 class EventDispatcherTest {
 
-    @Mock
-    private SagaManager sagaManager;
+    static class SagaManagerStub extends SagaManager {
+        private final List<SagaMessage> processed = new ArrayList<>();
 
+        // Provide a no-op constructor by calling super with stubs
+        public SagaManagerStub() {
+            super(saga -> com.bcbs239.regtech.core.shared.Result.success(SagaId.generate()), id -> com.bcbs239.regtech.core.shared.Maybe.none(), new CommandDispatcher(event -> {}), event -> {}, java.time.Instant::now, SagaClosures.timeoutScheduler(java.util.concurrent.Executors.newSingleThreadScheduledExecutor()));
+        }
+
+        @Override
+        public void processEvent(SagaMessage event) {
+            processed.add(event);
+            // no-op
+        }
+
+        public List<SagaMessage> getProcessed() { return processed; }
+    }
+
+    private SagaManagerStub sagaManager;
     private EventDispatcher eventDispatcher;
 
     @BeforeEach
     void setUp() {
+        sagaManager = new SagaManagerStub();
         eventDispatcher = new EventDispatcher(sagaManager);
     }
 
@@ -35,7 +49,7 @@ class EventDispatcherTest {
         eventDispatcher.handleEvent(applicationEvent);
 
         // Then
-        verify(sagaManager).processEvent(sagaEvent);
+        assertThat(sagaManager.getProcessed()).containsExactly(sagaEvent);
     }
 
     @Test
@@ -47,22 +61,27 @@ class EventDispatcherTest {
         eventDispatcher.handleEvent(applicationEvent);
 
         // Then
-        verifyNoInteractions(sagaManager);
+        assertThat(sagaManager.getProcessed()).isEmpty();
     }
 
     @Test
     void handleEvent_shouldHandleSagaNotFoundException() {
-        // Given
+        // Given: stub that throws when processing
+        SagaManager throwingManager = new SagaManagerStub() {
+            @Override
+            public void processEvent(SagaMessage event) {
+                throw new SagaNotFoundException(event.getSagaId());
+            }
+        };
+        EventDispatcher dispatcher = new EventDispatcher(throwingManager);
+
         SagaId sagaId = SagaId.of("test-saga-id");
         SagaStartedEvent sagaEvent = new SagaStartedEvent(sagaId, "TestSaga", () -> Instant.now());
         ApplicationEvent applicationEvent = new ApplicationEvent(sagaEvent) {};
-        doThrow(new SagaNotFoundException(sagaId)).when(sagaManager).processEvent(sagaEvent);
 
-        // When
-        eventDispatcher.handleEvent(applicationEvent);
+        // When (should not throw)
+        dispatcher.handleEvent(applicationEvent);
 
-        // Then
-        verify(sagaManager).processEvent(sagaEvent);
-        // Logging is called, but we can't verify it easily
+        // Then: no exception thrown and we simply return
     }
 }

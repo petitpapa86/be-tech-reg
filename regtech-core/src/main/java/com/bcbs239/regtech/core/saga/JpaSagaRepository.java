@@ -7,6 +7,7 @@ import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 
 import jakarta.persistence.EntityManager;
 
@@ -76,16 +77,28 @@ public class JpaSagaRepository {
                 saga.getSagaType(),
                 saga.getStatus(),
                 saga.getStartedAt(),
-                objectMapper.writeValueAsString(saga.getData()),
-                objectMapper.writeValueAsString(
+                safeSerialize(objectMapper, saga.getData()),
+                safeSerialize(objectMapper,
                         saga.getProcessedEvents().stream()
                                 .map(e -> e.getClass().getSimpleName())
                                 .toList()
                 ),
                 // Use a snapshot so persistence does not consume commands (getCommandsToDispatch clears the list)
-                objectMapper.writeValueAsString(saga.peekCommandsToDispatch()),
+                safeSerialize(objectMapper, saga.peekCommandsToDispatch()),
                 saga.getCompletedAt()
         );
+    }
+
+    private static String safeSerialize(ObjectMapper mapper, Object value) throws Exception {
+        try {
+            return mapper.writeValueAsString(value);
+        } catch (InvalidDefinitionException e) {
+            // likely Java 8 time types not supported by this mapper - create a temporary mapper with JavaTimeModule
+            ObjectMapper tmp = mapper.copy();
+            tmp.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+            tmp.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            return tmp.writeValueAsString(value);
+        }
     }
 
     @SuppressWarnings("unchecked")

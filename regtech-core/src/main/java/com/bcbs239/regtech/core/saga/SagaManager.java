@@ -43,23 +43,36 @@ public class SagaManager {
             "sagaType", sagaClass.getSimpleName()
         ));
 
-        // Publish the start event and dispatch commands AFTER the transaction commits
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                try {
-                    // Dispatch commands (this will clear the saga's in-memory command list)
-                    dispatchCommands(saga);
-                    // Publish lifecycle event for saga started
-                    eventPublisher.publishEvent(startEvent);
-                } catch (Exception e) {
-                    LoggingConfiguration.createStructuredLog("SAGA_POST_COMMIT_ACTION_FAILED", Map.of(
-                        "sagaId", sagaId,
-                        "error", e.getMessage()
-                    ));
+        // Publish the start event and dispatch commands AFTER the transaction commits when available
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    try {
+                        // Dispatch commands (this will clear the saga's in-memory command list)
+                        dispatchCommands(saga);
+                        // Publish lifecycle event for saga started
+                        eventPublisher.publishEvent(startEvent);
+                    } catch (Exception e) {
+                        LoggingConfiguration.createStructuredLog("SAGA_POST_COMMIT_ACTION_FAILED", Map.of(
+                            "sagaId", sagaId,
+                            "error", e.getMessage()
+                        ));
+                    }
                 }
+            });
+        } else {
+            // No transaction synchronization (e.g. in unit tests) - perform post-save actions immediately
+            try {
+                dispatchCommands(saga);
+                eventPublisher.publishEvent(startEvent);
+            } catch (Exception e) {
+                LoggingConfiguration.createStructuredLog("SAGA_POST_COMMIT_ACTION_FAILED", Map.of(
+                    "sagaId", sagaId,
+                    "error", e.getMessage()
+                ));
             }
-        });
+        }
 
         return sagaId;
     }

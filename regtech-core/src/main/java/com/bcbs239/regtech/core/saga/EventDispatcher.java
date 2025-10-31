@@ -30,6 +30,12 @@ public class EventDispatcher {
                     if (payload instanceof SagaMessage sm2) {
                         sagaEvent = sm2;
                     }
+                } else {
+                    // Also support plain ApplicationEvent where the source is the SagaMessage
+                    Object source = ae.getSource();
+                    if (source instanceof SagaMessage sm3) {
+                        sagaEvent = sm3;
+                    }
                 }
             }
 
