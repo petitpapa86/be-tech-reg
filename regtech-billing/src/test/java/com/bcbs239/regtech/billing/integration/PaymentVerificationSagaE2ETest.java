@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
@@ -29,9 +29,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(SpringExtension.class)
-@Import({CommandDispatcher.class, CreateStripeCustomerCommandHandler.class, PaymentVerificationSaga.class})
 public class PaymentVerificationSagaE2ETest {
+
+    // Static mocks created before Spring context starts to avoid PersistenceAnnotation processing
+    private static final JpaBillingAccountRepository BILLING_ACCOUNT_REPO_MOCK = Mockito.mock(JpaBillingAccountRepository.class);
+    private static final BillingEventPublisher BILLING_EVENT_PUBLISHER_MOCK = Mockito.mock(BillingEventPublisher.class);
+    private static final StripeService STRIPE_SERVICE_MOCK = Mockito.mock(StripeService.class);
 
     @TestConfiguration
     static class TestConfig {
@@ -61,70 +64,126 @@ public class PaymentVerificationSagaE2ETest {
         }
 
         @Bean
-        public StripeService stripeService() {
-            StripeService mock = Mockito.mock(StripeService.class);
-            when(mock.createCustomer(any(), any())).thenReturn(Result.success(new com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer(
-                    new com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId("cust_test"),
-                    "test@example.com",
-                    "Test User"
-            )));
-            when(mock.attachPaymentMethod(any(), any())).thenReturn(Result.success(null));
-            when(mock.setDefaultPaymentMethod(any(), any())).thenReturn(Result.success(null));
-            return mock;
+        public java.util.function.Supplier<java.time.Instant> currentTimeSupplier() {
+            return java.time.Instant::now;
         }
 
         @Bean
-        public JpaBillingAccountRepository billingAccountRepository() {
-            JpaBillingAccountRepository mock = Mockito.mock(JpaBillingAccountRepository.class);
-            when(mock.billingAccountFinder()).thenReturn(id -> Maybe.none());
-            when(mock.billingAccountSaver()).thenReturn(acc -> Result.success(null));
-            return mock;
-        }
-
-        @Bean
-        public BillingEventPublisher billingEventPublisher() {
-            // stubbed publisher: no-op
-            return Mockito.mock(BillingEventPublisher.class);
+        public SagaManager sagaManager(Function<AbstractSaga<?>, Result<SagaId>> sagaSaver,
+                                      Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
+                                      CommandDispatcher commandDispatcher,
+                                      org.springframework.context.ApplicationEventPublisher eventPublisher,
+                                      java.util.function.Supplier<java.time.Instant> currentTimeSupplier,
+                                      SagaClosures.TimeoutScheduler timeoutScheduler) {
+            return new SagaManager(sagaSaver, sagaLoader, commandDispatcher, eventPublisher, currentTimeSupplier, timeoutScheduler);
         }
 
         @Bean
         public org.springframework.core.task.TaskExecutor sagaTaskExecutor() {
             return new SyncTaskExecutor();
         }
+
+        @Bean
+        public CommandDispatcher commandDispatcher(org.springframework.context.ApplicationEventPublisher applicationEventPublisher) {
+            return new CommandDispatcher(applicationEventPublisher);
+        }
+
+        // Expose static mocks as beans so the Spring context uses them
+        @Bean
+        public StripeService stripeService() {
+            return Mockito.mock(StripeService.class);
+        }
+
+        @Bean
+        public JpaBillingAccountRepository billingAccountRepository() {
+            return Mockito.mock(JpaBillingAccountRepository.class);
+        }
+
+        @Bean
+        public BillingEventPublisher billingEventPublisher() {
+            return Mockito.mock(BillingEventPublisher.class);
+        }
+
+        // Provide mocked EntityManagerFactory and EntityManager so @PersistenceContext injection won't fail during test
+        @Bean
+        public jakarta.persistence.EntityManagerFactory entityManagerFactory() {
+            jakarta.persistence.EntityManagerFactory emf = Mockito.mock(jakarta.persistence.EntityManagerFactory.class);
+            jakarta.persistence.EntityManager em = Mockito.mock(jakarta.persistence.EntityManager.class);
+            try {
+                org.mockito.Mockito.when(emf.createEntityManager()).thenReturn(em);
+            } catch (Exception ignored) {
+            }
+            return emf;
+        }
+
+        @Bean
+        public jakarta.persistence.EntityManager entityManager() {
+            return Mockito.mock(jakarta.persistence.EntityManager.class);
+        }
+
+        @Bean
+        public org.springframework.transaction.PlatformTransactionManager transactionManager() {
+            return Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class);
+        }
+
+        @Bean
+        public org.springframework.transaction.support.TransactionTemplate transactionTemplate(org.springframework.transaction.PlatformTransactionManager tm) {
+            return new org.springframework.transaction.support.TransactionTemplate(tm);
+        }
+
+        @Bean
+        public CreateStripeCustomerCommandHandler createStripeCustomerCommandHandler(StripeService stripeService,
+                                                                                     BillingEventPublisher billingEventPublisher,
+                                                                                     Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
+                                                                                     JpaBillingAccountRepository billingAccountRepository) {
+            return new CreateStripeCustomerCommandHandler(stripeService, billingEventPublisher, sagaLoader, billingAccountRepository);
+        }
     }
-
-    @Autowired
-    private SagaManager sagaManager;
-
-    @Autowired
-    private Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
-
-    @Autowired
-    private StripeService stripeService;
 
     @Test
     void e2e_paymentVerificationSaga_dispatches_createStripeCustomer_and_updates_saga() throws Exception {
-        // Arrange
-        PaymentVerificationSagaData data = new PaymentVerificationSagaData();
-        data.setUserEmail("test@example.com");
-        data.setUserName("Test User");
-        data.setPaymentMethodId("pm_123");
-        data.setUserId("user-1");
+        try (org.springframework.context.annotation.AnnotationConfigApplicationContext ctx = new org.springframework.context.annotation.AnnotationConfigApplicationContext()) {
+            // Register only required configuration (TestConfig defines the beans we need)
+            ctx.register(TestConfig.class);
+            ctx.refresh();
 
-        // Act
-        SagaId sagaId = sagaManager.startSaga(PaymentVerificationSaga.class, data);
+            SagaManager sagaManager = ctx.getBean(SagaManager.class);
+            @SuppressWarnings("unchecked")
+            Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader = (Function<SagaId, Maybe<AbstractSaga<?>>>) ctx.getBean("sagaLoader");
 
-        // Wait briefly to allow synchronous dispatch to complete
-        Thread.sleep(200);
+            StripeService stripeService = ctx.getBean(StripeService.class);
+            JpaBillingAccountRepository billingAccountRepository = ctx.getBean(JpaBillingAccountRepository.class);
 
-        // Assert: saga exists in the in-memory store and has dispatched commands cleared
-        Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
-        assertThat(maybeSaga.isPresent()).isTrue();
+            // Arrange
+            PaymentVerificationSagaData data = new PaymentVerificationSagaData();
+            data.setUserEmail("test@example.com");
+            data.setUserName("Test User");
+            data.setPaymentMethodId("pm_123");
+            data.setUserId("user-1");
 
-        PaymentVerificationSaga saga = (PaymentVerificationSaga) maybeSaga.getValue();
-        // After handler runs it should have set stripeCustomerId (handler publishes event which our stubbed publisher does not feed back)
-        // But at minimum we assert that the saga has been persisted and processed events list is non-null
-        assertThat(saga.getData()).isNotNull();
-        assertThat(saga.getId()).isEqualTo(sagaId);
+            // Configure mocks
+            when(stripeService.createCustomer(any(), any())).thenReturn(Result.success(new com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer(
+                    new com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId("cust_test"),
+                    "test@example.com",
+                    "Test User"
+            )));
+            when(stripeService.attachPaymentMethod(any(), any())).thenReturn(Result.success(null));
+            when(stripeService.setDefaultPaymentMethod(any(), any())).thenReturn(Result.success(null));
+            when(billingAccountRepository.billingAccountFinder()).thenReturn(id -> Maybe.none());
+            when(billingAccountRepository.billingAccountSaver()).thenReturn(acc -> Result.success(null));
+
+            // Act
+            SagaId sagaId = sagaManager.startSaga(PaymentVerificationSaga.class, data);
+
+            // Wait briefly for async tasks (sagaTaskExecutor is sync in TestConfig)
+            Thread.sleep(200);
+
+            Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
+            assertThat(maybeSaga.isPresent()).isTrue();
+
+            PaymentVerificationSaga saga = (PaymentVerificationSaga) maybeSaga.getValue();
+            assertThat(saga.getData()).isNotNull();
+            assertThat(saga.getId()).isEqualTo(sagaId);
+        }
     }
 }

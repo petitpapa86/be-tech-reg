@@ -42,7 +42,9 @@ public class PaymentVerificationSagaManualE2ETest {
             return v == null ? Maybe.none() : Maybe.some(v);
         };
 
-        SagaClosures.TimeoutScheduler timeoutScheduler = SagaClosures.timeoutScheduler(java.util.concurrent.Executors.newSingleThreadScheduledExecutor());
+        // Use a dedicated executor so we can shut it down at the end of the test
+        java.util.concurrent.ScheduledExecutorService scheduler = java.util.concurrent.Executors.newSingleThreadScheduledExecutor();
+        SagaClosures.TimeoutScheduler timeoutScheduler = SagaClosures.timeoutScheduler(scheduler);
 
         // Mocks for external dependencies
         StripeService stripeService = Mockito.mock(StripeService.class);
@@ -100,13 +102,21 @@ public class PaymentVerificationSagaManualE2ETest {
             }
         }
 
-        // Verify that external Stripe calls were attempted and compensation event was published
+        // Verify that external Stripe calls were attempted
         Mockito.verify(stripeService).createCustomer(any(), any());
         Mockito.verify(stripeService).attachPaymentMethod(any(), any());
         Mockito.verify(stripeService).setDefaultPaymentMethod(any(), any());
 
-        // BillingEventPublisher should have received a BillingAccountNotFoundEvent (compensation path)
-        Mockito.verify(billingEventPublisher).publishEvent(Mockito.argThat(ev -> ev instanceof com.bcbs239.regtech.billing.domain.events.BillingAccountNotFoundEvent));
+        // Capture published events and assert the expected compensation event was published
+        org.mockito.ArgumentCaptor<Object> eventCaptor = org.mockito.ArgumentCaptor.forClass(Object.class);
+        Mockito.verify(billingEventPublisher, org.mockito.Mockito.atLeastOnce()).publishEvent(eventCaptor.capture());
+
+        boolean sawBillingAccountNotFound = eventCaptor.getAllValues().stream().anyMatch(ev -> ev instanceof com.bcbs239.regtech.billing.domain.events.BillingAccountNotFoundEvent);
+        boolean sawStripeCustomerCreated = eventCaptor.getAllValues().stream().anyMatch(ev -> ev instanceof com.bcbs239.regtech.billing.domain.events.StripeCustomerCreatedEvent);
+
+        // In this scenario billing account lookup fails so we expect BillingAccountNotFoundEvent and NOT a StripeCustomerCreatedEvent
+        assertThat(sawBillingAccountNotFound).isTrue();
+        assertThat(sawStripeCustomerCreated).isFalse();
 
         Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
         assertThat(maybeSaga.isPresent()).isTrue();
@@ -114,5 +124,8 @@ public class PaymentVerificationSagaManualE2ETest {
         PaymentVerificationSaga loadedSaga = (PaymentVerificationSaga) maybeSaga.getValue();
         assertThat(loadedSaga.getData()).isNotNull();
         assertThat(loadedSaga.getId()).isEqualTo(sagaId);
+
+        // Clean up background scheduler created for the test
+        scheduler.shutdownNow();
     }
 }
