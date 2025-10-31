@@ -77,23 +77,30 @@ public abstract class AbstractSaga<T> {
             return;
         }
         
-        Consumer<SagaMessage> handler = eventHandlers.get(event.getClass());
-        if (handler != null) {
-            LoggingConfiguration.createStructuredLog("SAGA_EVENT_PROCESSED", Map.of(
-                "sagaId", id,
-                "sagaType", sagaType,
-                "eventType", event.eventType()
-            ));
-            handler.accept(event);
-            processedEvents.add(event);
-            updateStatus();
-        } else {
-            LoggingConfiguration.createStructuredLog("SAGA_EVENT_IGNORED", Map.of(
-                "sagaId", id,
-                "sagaType", sagaType,
-                "eventType", event.eventType()
-            ));
+        // Find a handler registered for the exact event class or a superclass/interface compatible with it
+        Consumer<SagaMessage> handler = null;
+        for (Class<? extends SagaMessage> registered : eventHandlers.keySet()) {
+            if (registered.isInstance(event)) {
+                handler = eventHandlers.get(registered);
+                break;
+            }
         }
+         if (handler != null) {
+             LoggingConfiguration.createStructuredLog("SAGA_EVENT_PROCESSED", Map.of(
+                 "sagaId", id,
+                 "sagaType", sagaType,
+                 "eventType", event.eventType()
+             ));
+             handler.accept(event);
+             processedEvents.add(event);
+             updateStatus();
+         } else {
+             LoggingConfiguration.createStructuredLog("SAGA_EVENT_IGNORED", Map.of(
+                 "sagaId", id,
+                 "sagaType", sagaType,
+                 "eventType", event.eventType()
+             ));
+         }
     }
 
     protected abstract void updateStatus();
