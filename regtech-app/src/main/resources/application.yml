@@ -59,8 +59,9 @@ iam:
 # Billing Module Configuration
 billing:
   stripe:
-    apiKey: pk_test_51SHmgAF6vJewYjaQfxe0EYHZUA8pFRxRu6qR9O3aB9Dv51kch6GFFiyXhcS3vHriDawpdoroYezTNgmMtT81fLnW00FVA3VlLg
-    webhookSecret: whsec_dummy_secret_for_development
+    # Read Stripe credentials from environment in development. Do NOT commit secret keys to source control.
+    apiKey: ${STRIPE_API_KEY:}
+    webhookSecret: ${STRIPE_WEBHOOK_SECRET:}
 
   tiers:
     starter:

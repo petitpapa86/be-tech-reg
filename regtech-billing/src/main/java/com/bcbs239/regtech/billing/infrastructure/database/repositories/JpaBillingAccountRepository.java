@@ -13,6 +13,8 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Map;
 import java.util.function.Function;
@@ -23,10 +25,14 @@ import java.util.function.Function;
  */
 @Repository
 @Transactional
+@SuppressWarnings("unused")
 public class JpaBillingAccountRepository {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     public Function<BillingAccountId, Maybe<BillingAccount>> billingAccountFinder() {
         return id -> {
@@ -67,18 +73,20 @@ public class JpaBillingAccountRepository {
                 return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_SAVE_FAILED",
                     "Cannot save billing account with existing ID", "billing.account.save.existing.id"));
             }
-            try {
-                BillingAccountEntity entity = BillingAccountEntity.fromDomain(billingAccount);
-                entityManager.persist(entity);
-                entityManager.flush(); // Ensure the entity is persisted
-                
-                return Result.success(BillingAccountId.fromString(entity.getId()).getValue().get());
-            } catch (Exception e) {
-                LoggingConfiguration.logStructured("Error saving billing account",
-                    Map.of("eventType", "BILLING_ACCOUNT_SAVE_ERROR"), e);
-                return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_SAVE_FAILED",
-                    "Failed to save billing account: " + e.getMessage(), "billing.account.save.failed"));
-            }
+            // Execute persistence inside a new transaction to ensure EntityManager has an active transaction
+            return transactionTemplate.execute(status -> {
+                try {
+                    BillingAccountEntity entity = BillingAccountEntity.fromDomain(billingAccount);
+                    entityManager.persist(entity);
+                    entityManager.flush(); // Ensure the entity is persisted
+                    return Result.success(BillingAccountId.fromString(entity.getId()).getValue().orElseThrow());
+                } catch (Exception e) {
+                    LoggingConfiguration.logStructured("Error saving billing account",
+                        Map.of("eventType", "BILLING_ACCOUNT_SAVE_ERROR"), e);
+                    // Propagate as runtime to ensure caller sees the failure and transaction is rolled back
+                    throw new RuntimeException("Failed to save billing account: " + e.getMessage(), e);
+                }
+            });
         };
     }
 
@@ -88,16 +96,17 @@ public class JpaBillingAccountRepository {
                 return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_FAILED",
                     "Cannot update billing account without ID", "billing.account.update.missing.id"));
             }
-            try {
-                BillingAccountEntity entity = BillingAccountEntity.fromDomain(billingAccount);
-                entity = entityManager.merge(entity);
-                entityManager.flush(); // Ensure the entity is updated
-                
-                return Result.success(BillingAccountId.fromString(entity.getId()).getValue().get());
-            } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_FAILED",
-                    "Failed to update billing account: " + e.getMessage(), "billing.account.update.failed"));
-            }
+            return transactionTemplate.execute(status -> {
+                try {
+                    BillingAccountEntity entity = BillingAccountEntity.fromDomain(billingAccount);
+                    entity = entityManager.merge(entity);
+                    entityManager.flush(); // Ensure the entity is updated
+                    return Result.success(BillingAccountId.fromString(entity.getId()).getValue().orElseThrow());
+                } catch (Exception e) {
+                    // Propagate to ensure transaction rollback
+                    throw new RuntimeException("Failed to update billing account: " + e.getMessage(), e);
+                }
+            });
         };
     }
 }

@@ -15,6 +15,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.core.task.VirtualThreadTaskExecutor;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Configuration
 @EnableAsync
@@ -27,8 +28,10 @@ public class SagaConfiguration {
     }
 
     @Bean
-    public Function<AbstractSaga<?>, Result<SagaId>> sagaSaver(EntityManager entityManager, ObjectMapper objectMapper) {
-        return JpaSagaRepository.sagaSaver(entityManager, objectMapper);
+    public Function<AbstractSaga<?>, Result<SagaId>> sagaSaver(EntityManager entityManager, ObjectMapper objectMapper, TransactionTemplate transactionTemplate) {
+        Function<AbstractSaga<?>, Result<SagaId>> underlying = JpaSagaRepository.sagaSaver(entityManager, objectMapper);
+        // Return a wrapper that executes the underlying saver inside a transaction
+        return saga -> transactionTemplate.execute(status -> underlying.apply(saga));
     }
 
     @Bean

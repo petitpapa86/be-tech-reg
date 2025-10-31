@@ -44,10 +44,8 @@ public class JpaSagaRepository {
                     "sagaType", saga.getClass().getSimpleName(),
                     "error", e.getMessage()
                 ));
-                return Result.failure(ErrorDetail.of(
-                        "SAGA_SAVE_FAILED",
-                        "Failed to save saga: " + e.getMessage(),
-                        "error.saga.saveFailed"));
+                // Rethrow to surface the failure to transaction manager (avoid silent rollback-only state)
+                throw new RuntimeException("Failed to save saga: " + e.getMessage(), e);
             }
         };
     }
@@ -85,7 +83,8 @@ public class JpaSagaRepository {
                                 .map(e -> e.getClass().getSimpleName())
                                 .toList()
                 ),
-                objectMapper.writeValueAsString(saga.getCommandsToDispatch()),
+                // Use a snapshot so persistence does not consume commands (getCommandsToDispatch clears the list)
+                objectMapper.writeValueAsString(saga.peekCommandsToDispatch()),
                 saga.getCompletedAt()
         );
     }

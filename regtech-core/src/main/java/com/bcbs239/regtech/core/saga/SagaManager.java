@@ -5,6 +5,10 @@ import com.bcbs239.regtech.core.shared.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.lang.reflect.Constructor;
 import java.time.Instant;
@@ -22,6 +26,7 @@ public class SagaManager {
     private final Supplier<Instant> currentTimeSupplier;
     private final SagaClosures.TimeoutScheduler timeoutScheduler;
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public <T> SagaId startSaga(Class<? extends AbstractSaga<T>> sagaClass, T data) {
         SagaId sagaId = SagaId.generate();
         AbstractSaga<T> saga = createSagaInstance(sagaClass, sagaId, data);
@@ -31,13 +36,29 @@ public class SagaManager {
         saga.handle(startEvent);
 
         sagaSaver.apply(saga);
+
         LoggingConfiguration.createStructuredLog("SAGA_STARTED", Map.of(
             "sagaId", sagaId,
             "sagaType", sagaClass.getSimpleName()
         ));
 
-        dispatchCommands(saga);
-        eventPublisher.publishEvent(startEvent);
+        // Publish the start event and dispatch commands AFTER the transaction commits
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    // Dispatch commands (this will clear the saga's in-memory command list)
+                    dispatchCommands(saga);
+                    // Publish lifecycle event for saga started
+                    eventPublisher.publishEvent(startEvent);
+                } catch (Exception e) {
+                    LoggingConfiguration.createStructuredLog("SAGA_POST_COMMIT_ACTION_FAILED", Map.of(
+                        "sagaId", sagaId,
+                        "error", e.getMessage()
+                    ));
+                }
+            }
+        });
 
         return sagaId;
     }
@@ -56,6 +77,7 @@ public class SagaManager {
     }
 
     private void dispatchCommands(AbstractSaga<?> saga) {
+        // Dispatch pending saga commands
         saga.getCommandsToDispatch().forEach(commandDispatcher::dispatch);
     }
 

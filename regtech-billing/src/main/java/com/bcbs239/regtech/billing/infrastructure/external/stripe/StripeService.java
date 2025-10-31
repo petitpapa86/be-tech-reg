@@ -25,10 +25,10 @@ import com.stripe.param.InvoiceCreateParams;
 import com.stripe.param.InvoiceFinalizeInvoiceParams;
 import com.stripe.net.Webhook;
 import com.stripe.exception.SignatureVerificationException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Currency;
@@ -46,6 +46,21 @@ public class StripeService {
 
     public StripeService(BillingConfiguration billingConfiguration) {
         this.billingConfiguration = billingConfiguration;
+        // Initialize Stripe SDK with API key from billing configuration (development/test key provided in application.yml)
+        try {
+            // Prefer explicit configuration from billingConfiguration; fall back to environment variable
+            String apiKey = billingConfiguration.stripeConfiguration().apiKey();
+            if (apiKey == null || apiKey.isBlank()) {
+                apiKey = System.getenv("STRIPE_API_KEY");
+            }
+            if (apiKey != null && !apiKey.isBlank()) {
+                Stripe.apiKey = apiKey;
+            }
+        } catch (Exception e) {
+            // Best effort: if stripe SDK initialization fails, log and continue; createCustomer will fail with a meaningful error
+            // Use System.err to avoid dependency on logging configuration during early startup
+            System.err.println("Failed to initialize Stripe SDK with configured API key: " + e.getMessage());
+        }
     }
 
 
@@ -76,6 +91,7 @@ public class StripeService {
     /**
      * Create a new Stripe customer with additional information
      */
+    @SuppressWarnings("unused")
     public Result<StripeCustomer> createCustomer(String email, String name, String phone, StripeAddress address) {
         try {
             CustomerCreateParams.Builder paramsBuilder = CustomerCreateParams.builder()
@@ -243,6 +259,7 @@ public class StripeService {
     /**
      * Cancel a subscription at period end
      */
+    @SuppressWarnings("unused")
     public Result<Void> cancelSubscriptionAtPeriodEnd(StripeSubscriptionId subscriptionId) {
         try {
             Subscription subscription = Subscription.retrieve(subscriptionId.value());
@@ -305,7 +322,7 @@ public class StripeService {
             return StripeCustomerId.fromString(invoice.getCustomer())
                 .flatMap(customerId -> {
                     Money amount = Money.of(
-                        BigDecimal.valueOf(invoice.getAmountDue()).divide(BigDecimal.valueOf(100)),
+                        BigDecimal.valueOf(invoice.getAmountDue()).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP),
                         Currency.getInstance(invoice.getCurrency().toUpperCase())
                     );
                     
@@ -327,40 +344,42 @@ public class StripeService {
         }
     }
 
+    @SuppressWarnings("unused")
     public Result<StripeInvoice> finalizeInvoice(StripeInvoiceId invoiceId) {
-        try {
-            final Invoice invoice = Invoice.retrieve(invoiceId.value());
-            
-            InvoiceFinalizeInvoiceParams params = InvoiceFinalizeInvoiceParams.builder()
-                .setAutoAdvance(true)
-                .build();
-                
-            final Invoice finalizedInvoice = invoice.finalizeInvoice(params);
-            
-            return StripeCustomerId.fromString(finalizedInvoice.getCustomer())
-                .flatMap(customerId -> {
-                    Money amount = Money.of(
-                        BigDecimal.valueOf(finalizedInvoice.getAmountDue()).divide(BigDecimal.valueOf(100)),
-                        Currency.getInstance(finalizedInvoice.getCurrency().toUpperCase())
-                    );
-                    
-                    return Result.success(new StripeInvoice(
-                        invoiceId,
-                        customerId,
-                        amount,
-                        finalizedInvoice.getStatus(),
-                        finalizedInvoice.getHostedInvoiceUrl()
-                    ));
-                });
-                
-        } catch (StripeException e) {
-            return Result.failure(new ErrorDetail(
-                "STRIPE_INVOICE_FINALIZATION_FAILED",
-                "Failed to finalize Stripe invoice: " + e.getMessage(),
-                "stripe.invoice.finalization.failed"
-            ));
-        }
-    }
+         // This method may be invoked by external code or webhook processing. Suppress unused-warning if static
+         try {
+             final Invoice invoice = Invoice.retrieve(invoiceId.value());
+
+             InvoiceFinalizeInvoiceParams params = InvoiceFinalizeInvoiceParams.builder()
+                 .setAutoAdvance(true)
+                 .build();
+
+             final Invoice finalizedInvoice = invoice.finalizeInvoice(params);
+
+             return StripeCustomerId.fromString(finalizedInvoice.getCustomer())
+                 .flatMap(customerId -> {
+                     Money amount = Money.of(
+                         BigDecimal.valueOf(finalizedInvoice.getAmountDue()).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP),
+                         Currency.getInstance(finalizedInvoice.getCurrency().toUpperCase())
+                     );
+
+                     return Result.success(new StripeInvoice(
+                         invoiceId,
+                         customerId,
+                         amount,
+                         finalizedInvoice.getStatus(),
+                         finalizedInvoice.getHostedInvoiceUrl()
+                     ));
+                 });
+
+         } catch (StripeException e) {
+             return Result.failure(new ErrorDetail(
+                 "STRIPE_INVOICE_FINALIZATION_FAILED",
+                 "Failed to finalize Stripe invoice: " + e.getMessage(),
+                 "stripe.invoice.finalization.failed"
+             ));
+         }
+     }
 
     /**
      * Verify webhook signature and construct event
@@ -415,7 +434,7 @@ public class StripeService {
                     stripeInvoice.getPaid(),
                     stripeInvoice.getAmountPaid() != null ? 
                         Money.of(
-                            BigDecimal.valueOf(stripeInvoice.getAmountPaid()).divide(BigDecimal.valueOf(100)),
+                            BigDecimal.valueOf(stripeInvoice.getAmountPaid()).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP),
                             Currency.getInstance(stripeInvoice.getCurrency().toUpperCase())
                         ) : null
                 ));

@@ -115,6 +115,14 @@ public abstract class AbstractSaga<T> {
         return commands;
     }
 
+    /**
+     * Return a snapshot of commands that are pending dispatch without clearing them.
+     * Used by persistence logic to inspect pending commands without consuming them.
+     */
+    public List<SagaCommand> peekCommandsToDispatch() {
+        return new ArrayList<>(commandsToDispatch);
+    }
+
     protected boolean isCompleted() {
         return status == SagaStatus.COMPLETED || status == SagaStatus.FAILED;
     }

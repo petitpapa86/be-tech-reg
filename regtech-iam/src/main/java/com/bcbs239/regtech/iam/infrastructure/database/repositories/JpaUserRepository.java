@@ -15,6 +15,8 @@ import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -31,6 +33,9 @@ public class JpaUserRepository {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     /**
      * Closure to find user by email
@@ -82,24 +87,27 @@ public class JpaUserRepository {
      */
     public Function<User, Result<UserId>> userSaver() {
         return user -> {
-            try {
-                UserEntity entity = UserEntity.fromDomain(user);
-                entity.setId(null);
-                entityManager.persist(entity);
-                for (UserBankAssignmentEntity assignment : entity.getBankAssignments()) {
-                    assignment.setUserId(entity.getId());
-                    assignment.setVersion(null);
-                    entityManager.persist(assignment);
+            // Ensure persistence happens inside a real transaction
+            return transactionTemplate.execute(status -> {
+                try {
+                    UserEntity entity = UserEntity.fromDomain(user);
+                    entity.setId(null);
+                    entityManager.persist(entity);
+                    for (UserBankAssignmentEntity assignment : entity.getBankAssignments()) {
+                        assignment.setUserId(entity.getId());
+                        assignment.setVersion(null);
+                        entityManager.persist(assignment);
+                    }
+                    entityManager.flush();
+                    return Result.success(user.getId());
+                } catch (Exception e) {
+                    logger.error("Failed to save user", LoggingConfiguration.createStructuredLog("REPO_USER_SAVE_FAILED", Map.of(
+                        "email", user.getEmail().getValue(),
+                        "error", e.getMessage()
+                    )), e);
+                    throw new RuntimeException("USER_SAVE_FAILED: Failed to save user: " + e.getMessage(), e);
                 }
-                entityManager.flush();
-                return Result.success(user.getId());
-            } catch (Exception e) {
-                logger.error("Failed to save user", LoggingConfiguration.createStructuredLog("REPO_USER_SAVE_FAILED", Map.of(
-                    "email", user.getEmail().getValue(),
-                    "error", e.getMessage()
-                )), e);
-                throw new RuntimeException("USER_SAVE_FAILED: Failed to save user: " + e.getMessage(), e);
-            }
+            });
         };
     }
 
@@ -151,29 +159,31 @@ public class JpaUserRepository {
      */
     public Function<UserRole, Result<String>> userRoleSaver() {
         return userRole -> {
-            try {
-                UserRoleEntity entity = UserRoleEntity.fromDomain(userRole);
-                
-                if (entity.getId() == null) {
-                    entityManager.persist(entity);
-                } else {
-                    entity = entityManager.merge(entity);
+            return transactionTemplate.execute(status -> {
+                try {
+                    UserRoleEntity entity = UserRoleEntity.fromDomain(userRole);
+
+                    if (entity.getId() == null) {
+                        entityManager.persist(entity);
+                    } else {
+                        entity = entityManager.merge(entity);
+                    }
+
+                    entityManager.flush();
+                    return Result.success(entity.getId());
+                } catch (Exception e) {
+                    logger.error("Failed to save user role", LoggingConfiguration.createStructuredLog("REPO_USER_ROLE_SAVE_FAILED", Map.of(
+                        "userId", userRole.getUserId(),
+                        "role", userRole.getRole().name(),
+                        "organizationId", userRole.getOrganizationId(),
+                        "error", e.getMessage()
+                    )), e);
+                    return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED",
+                        "Failed to save user role: " + e.getMessage(), "error.user.role.saveFailed"));
                 }
-                
-                entityManager.flush();
-                return Result.success(entity.getId());
-            } catch (Exception e) {
-                logger.error("Failed to save user role", LoggingConfiguration.createStructuredLog("REPO_USER_ROLE_SAVE_FAILED", Map.of(
-                    "userId", userRole.getUserId(),
-                    "role", userRole.getRole().name(),
-                    "organizationId", userRole.getOrganizationId(),
-                    "error", e.getMessage()
-                )), e);
-                return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED",
-                    "Failed to save user role: " + e.getMessage(), "error.user.role.saveFailed"));
-            }
-        };
-    }
+            });
+         };
+     }
 
     /**
      * Closure to check if user has a specific role

@@ -17,6 +17,7 @@ import org.springframework.core.env.Environment;
  */
 @Configuration
 @EnableConfigurationProperties(BillingConfigurationProperties.class)
+@SuppressWarnings("unused")
 public class BillingConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(BillingConfiguration.class);
@@ -38,6 +39,7 @@ public class BillingConfiguration {
     }
 
     @EventListener(ApplicationReadyEvent.class)
+    @SuppressWarnings("unused")
     public void logConfigurationOnStartup() {
         String[] activeProfiles = environment.getActiveProfiles();
         String profileInfo = activeProfiles.length > 0 ? String.join(", ", activeProfiles) : "default";
@@ -49,22 +51,24 @@ public class BillingConfiguration {
         logger.info("Dunning process schedule: {}", properties.scheduling().dunningProcess().enabled() ? "ENABLED" : "DISABLED");
     }
 
-    /**
-     * Provides access to Stripe configuration
-     */
-    @Bean
-    public StripeConfiguration stripeConfiguration() {
-        return new StripeConfiguration(
-            properties.stripe().apiKey(),
-            properties.stripe().webhookSecret()
-        );
-    }
+     /**
+      * Provides access to Stripe configuration
+      */
+     @SuppressWarnings("unused")
+     @Bean
+     public StripeConfiguration stripeConfiguration() {
+         return new StripeConfiguration(
+             properties.stripe().apiKey(),
+             properties.stripe().webhookSecret()
+         );
+     }
 
-    /**
-     * Provides access to subscription tier configuration
-     */
-    @Bean
-    public TierConfiguration tierConfiguration() {
+     /**
+      * Provides access to subscription tier configuration
+      */
+     @SuppressWarnings("unused")
+     @Bean
+     public TierConfiguration tierConfiguration() {
         var starter = properties.tiers().starter();
         return new TierConfiguration(
             starter.monthlyPrice(),
@@ -76,8 +80,9 @@ public class BillingConfiguration {
     /**
      * Provides access to dunning process configuration
      */
-    @Bean
-    public DunningConfiguration dunningConfiguration() {
+     @SuppressWarnings("unused")
+     @Bean
+     public DunningConfiguration dunningConfiguration() {
         var intervals = properties.dunning().reminderIntervals();
         return new DunningConfiguration(
             intervals.step1(),
@@ -90,8 +95,9 @@ public class BillingConfiguration {
     /**
      * Provides access to invoice configuration
      */
-    @Bean
-    public InvoiceConfiguration invoiceConfiguration() {
+     @SuppressWarnings("unused")
+     @Bean
+     public InvoiceConfiguration invoiceConfiguration() {
         return new InvoiceConfiguration(
             properties.invoices().dueDays(),
             properties.invoices().currency()
@@ -101,8 +107,9 @@ public class BillingConfiguration {
     /**
      * Provides access to billing cycle configuration
      */
-    @Bean
-    public BillingCycleConfiguration billingCycleConfiguration() {
+     @SuppressWarnings("unused")
+     @Bean
+     public BillingCycleConfiguration billingCycleConfiguration() {
         return new BillingCycleConfiguration(
             properties.billingCycle().timezone(),
             properties.billingCycle().billingDay()
@@ -112,8 +119,9 @@ public class BillingConfiguration {
     /**
      * Provides access to outbox configuration
      */
-    @Bean
-    public OutboxConfiguration outboxConfiguration() {
+     @SuppressWarnings("unused")
+     @Bean
+     public OutboxConfiguration outboxConfiguration() {
         return new OutboxConfiguration(
             properties.outbox().enabled(),
             properties.outbox().processingInterval(),
@@ -127,8 +135,9 @@ public class BillingConfiguration {
     /**
      * Provides access to scheduling configuration
      */
-    @Bean
-    public SchedulingConfiguration schedulingConfiguration() {
+     @SuppressWarnings("unused")
+     @Bean
+     public SchedulingConfiguration schedulingConfiguration() {
         var monthlyBilling = properties.scheduling().monthlyBilling();
         var dunningProcess = properties.scheduling().dunningProcess();
         
@@ -150,8 +159,9 @@ public class BillingConfiguration {
     /**
      * Provides access to notifications configuration
      */
-    @Bean
-    public NotificationsConfiguration notificationsConfiguration() {
+     @SuppressWarnings("unused")
+     @Bean
+     public NotificationsConfiguration notificationsConfiguration() {
         var email = properties.notifications().email();
         var sms = properties.notifications().sms();
         var push = properties.notifications().push();
@@ -169,32 +179,36 @@ public class BillingConfiguration {
     /**
      * Billing account finder function
      */
-    @Bean
-    public java.util.function.Function<com.bcbs239.regtech.iam.domain.users.UserId, com.bcbs239.regtech.core.shared.Maybe<com.bcbs239.regtech.billing.domain.billing.BillingAccount>> billingAccountByUserFinder() {
-        return billingAccountRepository.billingAccountByUserFinder();
-    }
+     @SuppressWarnings("unused")
+     @Bean
+     public java.util.function.Function<com.bcbs239.regtech.iam.domain.users.UserId, com.bcbs239.regtech.core.shared.Maybe<com.bcbs239.regtech.billing.domain.billing.BillingAccount>> billingAccountByUserFinder() {
+         return billingAccountRepository.billingAccountByUserFinder();
+     }
 
-    /**
-     * Billing account saver function
-     */
-    @Bean
-    public java.util.function.Function<com.bcbs239.regtech.billing.domain.billing.BillingAccount, com.bcbs239.regtech.core.shared.Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId>> billingAccountSaver() {
-        return billingAccountRepository.billingAccountSaver();
-    }
+     /**
+      * Billing account saver function
+      */
+     @SuppressWarnings("unused")
+     @Bean
+     public java.util.function.Function<com.bcbs239.regtech.billing.domain.billing.BillingAccount, com.bcbs239.regtech.core.shared.Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId>> billingAccountSaver() {
+         return billingAccountRepository.billingAccountSaver();
+     }
 
-    /**
-     * Subscription finder by billing account and tier function
-     */
-    @Bean
-    public java.util.function.Function<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId, java.util.function.Function<com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier, com.bcbs239.regtech.core.shared.Maybe<com.bcbs239.regtech.billing.domain.subscriptions.Subscription>>> subscriptionByBillingAccountAndTierFinder() {
-        return subscriptionRepository.subscriptionByBillingAccountAndTierFinder();
-    }
+     /**
+      * Subscription finder by billing account and tier function
+      */
+     @SuppressWarnings("unused")
+     @Bean
+     public java.util.function.Function<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId, java.util.function.Function<com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier, com.bcbs239.regtech.core.shared.Maybe<com.bcbs239.regtech.billing.domain.subscriptions.Subscription>>> subscriptionByBillingAccountAndTierFinder() {
+         return subscriptionRepository.subscriptionByBillingAccountAndTierFinder();
+     }
 
-    /**
-     * Subscription saver function
-     */
-    @Bean
-    public java.util.function.Function<com.bcbs239.regtech.billing.domain.subscriptions.Subscription, com.bcbs239.regtech.core.shared.Result<com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId>> subscriptionSaver() {
-        return subscriptionRepository.subscriptionSaver();
-    }
+     /**
+      * Subscription saver function
+      */
+     @SuppressWarnings("unused")
+     @Bean
+     public java.util.function.Function<com.bcbs239.regtech.billing.domain.subscriptions.Subscription, com.bcbs239.regtech.core.shared.Result<com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId>> subscriptionSaver() {
+         return subscriptionRepository.subscriptionSaver();
+     }
 }

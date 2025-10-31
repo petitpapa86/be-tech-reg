@@ -17,9 +17,11 @@ import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Maybe;
 
 import java.util.function.Function;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Component;
  * Each failure type publishes a distinct event that the saga can handle.
  */
 @Component("railwayCreateStripeCustomerCommandHandler")
+@SuppressWarnings("unused")
 public class CreateStripeCustomerCommandHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(CreateStripeCustomerCommandHandler.class);
@@ -38,6 +41,7 @@ public class CreateStripeCustomerCommandHandler {
     private final Function<SagaId, AbstractSaga<?>> sagaLoader;
     private final JpaBillingAccountRepository billingAccountRepository;
 
+    @SuppressWarnings("unused")
     public CreateStripeCustomerCommandHandler(
             StripeService stripeService,
             BillingEventPublisher eventPublisher,
@@ -52,23 +56,37 @@ public class CreateStripeCustomerCommandHandler {
     @EventListener
     @Async("sagaTaskExecutor")
     public void handle(CreateStripeCustomerCommand command) {
-        logger.info("CreateStripeCustomerCommandHandler received command for saga: {}", command.getSagaId());
-        PaymentMethodId paymentMethodId = new PaymentMethodId(command.getPaymentMethodId());
         SagaId sagaId = command.getSagaId();
+        LoggingConfiguration.logStructured("CREATE_STRIPE_CUSTOMER_COMMAND_RECEIVED", Map.of(
+                "sagaId", sagaId,
+                "userEmail", command.getUserEmail(),
+                "paymentMethodId", command.getPaymentMethodId()
+        ));
+        PaymentMethodId paymentMethodId = new PaymentMethodId(command.getPaymentMethodId());
 
         // Railway chain with specific failure handling
         Result<StripeCustomerCreatedEvent> result =
-            createStripeCustomer(command, sagaId)
-                .flatMap(customer -> attachPaymentMethod(customer, paymentMethodId, sagaId))
-                .flatMap(customer -> setDefaultPaymentMethod(customer, paymentMethodId, sagaId))
-                .flatMap(customer -> findBillingAccount(sagaId, customer))
-                .flatMap(data -> configureAndSave(data, paymentMethodId, sagaId))
-                .map(data -> new StripeCustomerCreatedEvent(sagaId, data.customer.customerId().value()));
+                createStripeCustomer(command, sagaId)
+                        .flatMap(customer -> attachPaymentMethod(customer, paymentMethodId, sagaId))
+                        .flatMap(customer -> setDefaultPaymentMethod(customer, paymentMethodId, sagaId))
+                        .flatMap(customer -> findBillingAccount(sagaId, customer))
+                        .flatMap(data -> configureAndSave(data, paymentMethodId, sagaId))
+                        .map(data -> new StripeCustomerCreatedEvent(sagaId, data.customer.customerId().value()));
 
         // Success case
         if (result.isSuccess()) {
-            eventPublisher.publishEvent(result.getValue().get());
-            logger.info("Successfully created Stripe customer for saga: {}", sagaId);
+            result.getValue().ifPresent(ev -> {
+                eventPublisher.publishEvent(ev);
+                LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATED", Map.of(
+                        "sagaId", sagaId,
+                        "stripeCustomerId", ev.getStripeCustomerId()
+                ));
+            });
+        } else {
+            LoggingConfiguration.logStructured("CREATE_STRIPE_CUSTOMER_COMMAND_FAILED", Map.of(
+                    "sagaId", sagaId,
+                    "error", result.getError().map(ErrorDetail::getMessage).orElse("Unknown error")
+            ));
         }
         // Note: Failures already published specific events in each step
     }
@@ -77,11 +95,15 @@ public class CreateStripeCustomerCommandHandler {
         Result<StripeCustomer> result = stripeService.createCustomer(command.getUserEmail(), command.getUserName());
 
         if (result.isFailure()) {
-            logger.error("Failed to create Stripe customer for saga {}: {}", sagaId, result.getError().get().getMessage());
+            String errorMsg = result.getError().map(ErrorDetail::getMessage).orElse("Unknown error");
+            LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATION_FAILED", Map.of(
+                    "sagaId", sagaId,
+                    "error", errorMsg
+            ));
             // Publish specific failure event - no compensation needed (nothing created yet)
             eventPublisher.publishEvent(new StripeCustomerCreationFailedEvent(
-                sagaId,
-                result.getError().get().getMessage()
+                    sagaId,
+                    errorMsg
             ));
         }
 
@@ -92,14 +114,19 @@ public class CreateStripeCustomerCommandHandler {
         Result<Void> result = stripeService.attachPaymentMethod(customer.customerId(), paymentMethodId);
 
         if (result.isFailure()) {
-            logger.error("Failed to attach payment method for saga {}: {}", sagaId, result.getError().get().getMessage());
+            String errorMsg = result.getError().map(ErrorDetail::getMessage).orElse("Unknown error");
+            LoggingConfiguration.logStructured("PAYMENT_METHOD_ATTACHMENT_FAILED", Map.of(
+                    "sagaId", sagaId,
+                    "stripeCustomerId", customer.customerId().value(),
+                    "error", errorMsg
+            ));
             // Publish event to trigger compensation: delete the Stripe customer we just created
             eventPublisher.publishEvent(new PaymentMethodAttachmentFailedEvent(
-                sagaId,
-                customer.customerId().value(),
-                result.getError().get().getMessage()
+                    sagaId,
+                    customer.customerId().value(),
+                    errorMsg
             ));
-            return Result.failure(result.getError().get());
+            return Result.failure(result.getError().orElseThrow());
         }
 
         return Result.success(customer);
@@ -109,15 +136,21 @@ public class CreateStripeCustomerCommandHandler {
         Result<Void> result = stripeService.setDefaultPaymentMethod(customer.customerId(), paymentMethodId);
 
         if (result.isFailure()) {
-            logger.error("Failed to set default payment method for saga {}: {}", sagaId, result.getError().get().getMessage());
+            String errorMsg = result.getError().map(ErrorDetail::getMessage).orElse("Unknown error");
+            LoggingConfiguration.logStructured("PAYMENT_METHOD_DEFAULT_FAILED", Map.of(
+                    "sagaId", sagaId,
+                    "stripeCustomerId", customer.customerId().value(),
+                    "paymentMethodId", paymentMethodId.value(),
+                    "error", errorMsg
+            ));
             // Publish event to trigger compensation: detach payment method and delete customer
             eventPublisher.publishEvent(new PaymentMethodDefaultFailedEvent(
-                sagaId,
-                customer.customerId().value(),
-                paymentMethodId.value(),
-                result.getError().get().getMessage()
+                    sagaId,
+                    customer.customerId().value(),
+                    paymentMethodId.value(),
+                    errorMsg
             ));
-            return Result.failure(result.getError().get());
+            return Result.failure(result.getError().orElseThrow());
         }
 
         return Result.success(customer);
@@ -129,8 +162,8 @@ public class CreateStripeCustomerCommandHandler {
             logger.error("Saga not found: {}", sagaId);
             // Publish event to trigger compensation: cleanup Stripe customer
             eventPublisher.publishEvent(new SagaNotFoundEvent(
-                sagaId,
-                customer.customerId().value()
+                    sagaId,
+                    customer.customerId().value()
             ));
             return Result.failure(ErrorDetail.of("SAGA_NOT_FOUND", "Saga not found: " + sagaId, "saga.not.found"));
         }
@@ -139,12 +172,16 @@ public class CreateStripeCustomerCommandHandler {
         Maybe<BillingAccount> accountMaybe = billingAccountRepository.billingAccountFinder().apply(billingAccountId);
 
         if (accountMaybe.isEmpty()) {
-            logger.error("Billing account not found: {}", billingAccountId);
+            LoggingConfiguration.logStructured("BILLING_ACCOUNT_NOT_FOUND", Map.of(
+                    "sagaId", sagaId,
+                    "billingAccountId", billingAccountId.value(),
+                    "stripeCustomerId", customer.customerId().value()
+            ));
             // Publish event to trigger compensation: cleanup Stripe customer
             eventPublisher.publishEvent(new BillingAccountNotFoundEvent(
-                sagaId,
-                billingAccountId.value(),
-                customer.customerId().value()
+                    sagaId,
+                    billingAccountId.value(),
+                    customer.customerId().value()
             ));
             return Result.failure(ErrorDetail.of("ACCOUNT_NOT_FOUND", "Account not found: " + billingAccountId, "account.not.found"));
         }
@@ -157,26 +194,38 @@ public class CreateStripeCustomerCommandHandler {
 
         Result<Void> configureResult = data.account.configureStripeCustomer(paymentMethodId, stripeCustomerId);
         if (configureResult.isFailure()) {
-            logger.error("Failed to configure billing account for saga {}: {}", sagaId, configureResult.getError().get().getMessage());
+            String errorMsg = configureResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error");
+            LoggingConfiguration.logStructured("BILLING_ACCOUNT_CONFIGURATION_FAILED", Map.of(
+                    "sagaId", sagaId,
+                    "billingAccountId", data.billingAccountId.value(),
+                    "stripeCustomerId", data.customer.customerId().value(),
+                    "error", errorMsg
+            ));
             // Publish event to trigger compensation: cleanup Stripe customer
             eventPublisher.publishEvent(new BillingAccountConfigurationFailedEvent(
-                sagaId,
-                data.billingAccountId.value(),
-                data.customer.customerId().value(),
-                configureResult.getError().get().getMessage()
+                    sagaId,
+                    data.billingAccountId.value(),
+                    data.customer.customerId().value(),
+                    errorMsg
             ));
             return Result.failure(configureResult.getError().get());
         }
 
         Result<BillingAccountId> saveResult = billingAccountRepository.billingAccountSaver().apply(data.account);
         if (saveResult.isFailure()) {
-            logger.error("Failed to save billing account for saga {}: {}", sagaId, saveResult.getError().get().getMessage());
+            String errorMsg = saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error");
+            LoggingConfiguration.logStructured("BILLING_ACCOUNT_SAVE_FAILED", Map.of(
+                    "sagaId", sagaId,
+                    "billingAccountId", data.billingAccountId.value(),
+                    "stripeCustomerId", data.customer.customerId().value(),
+                    "error", errorMsg
+            ));
             // Publish event to trigger compensation: cleanup Stripe customer
             eventPublisher.publishEvent(new BillingAccountSaveFailedEvent(
-                sagaId,
-                data.billingAccountId.value(),
-                data.customer.customerId().value(),
-                saveResult.getError().get().getMessage()
+                    sagaId,
+                    data.billingAccountId.value(),
+                    data.customer.customerId().value(),
+                    errorMsg
             ));
             return Result.failure(saveResult.getError().get());
         }
@@ -185,8 +234,9 @@ public class CreateStripeCustomerCommandHandler {
     }
 
     private record CustomerAccountData(
-        StripeCustomer customer,
-        BillingAccount account,
-        BillingAccountId billingAccountId
-    ) {}
+            StripeCustomer customer,
+            BillingAccount account,
+            BillingAccountId billingAccountId
+    ) {
+    }
 }

@@ -14,6 +14,8 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,6 +32,9 @@ public class JpaInvoiceRepository {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     public Function<InvoiceId, Maybe<Invoice>> invoiceFinder() {
         return id -> {
@@ -109,16 +114,17 @@ public class JpaInvoiceRepository {
                 return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED",
                     "Cannot save invoice with existing ID", "invoice.save.existing.id"));
             }
-            try {
-                InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
-                entityManager.persist(entity);
-                entityManager.flush(); // Ensure the entity is persisted
-                
-                return Result.success(InvoiceId.fromString(entity.getId()).getValue().get());
-            } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED",
-                    "Failed to save invoice: " + e.getMessage(), "invoice.save.failed"));
-            }
+            return transactionTemplate.execute(status -> {
+                try {
+                    InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
+                    entityManager.persist(entity);
+                    entityManager.flush(); // Ensure the entity is persisted
+                    return Result.success(InvoiceId.fromString(entity.getId()).getValue().orElseThrow());
+                } catch (Exception e) {
+                    return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED",
+                        "Failed to save invoice: " + e.getMessage(), "invoice.save.failed"));
+                }
+            });
         };
     }
 
@@ -128,16 +134,17 @@ public class JpaInvoiceRepository {
                 return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED",
                     "Cannot update invoice without ID", "invoice.update.missing.id"));
             }
-            try {
-                InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
-                entity = entityManager.merge(entity);
-                entityManager.flush(); // Ensure the entity is updated
-                
-                return Result.success(InvoiceId.fromString(entity.getId()).getValue().get());
-            } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED",
-                    "Failed to update invoice: " + e.getMessage(), "invoice.update.failed"));
-            }
+            return transactionTemplate.execute(status -> {
+                try {
+                    InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
+                    entity = entityManager.merge(entity);
+                    entityManager.flush(); // Ensure the entity is updated
+                    return Result.success(InvoiceId.fromString(entity.getId()).getValue().orElseThrow());
+                } catch (Exception e) {
+                    return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED",
+                        "Failed to update invoice: " + e.getMessage(), "invoice.update.failed"));
+                }
+            });
         };
     }
 

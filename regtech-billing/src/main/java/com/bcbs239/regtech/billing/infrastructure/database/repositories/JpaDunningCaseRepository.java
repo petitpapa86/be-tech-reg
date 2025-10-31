@@ -15,6 +15,8 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.function.Function;
@@ -30,6 +32,9 @@ public class JpaDunningCaseRepository {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     public Function<DunningCaseId, Maybe<DunningCase>> dunningCaseFinder() {
         return id -> {
@@ -124,24 +129,26 @@ public class JpaDunningCaseRepository {
 
     public Function<DunningCase, Result<DunningCaseId>> dunningCaseSaver() {
         return dunningCase -> {
-            try {
-                DunningCaseEntity entity = DunningCaseEntity.fromDomain(dunningCase);
-                
-                if (dunningCase.getId() == null) {
-                    entityManager.persist(entity);
-                } else {
-                    entity = entityManager.merge(entity);
+            return transactionTemplate.execute(status -> {
+                try {
+                    DunningCaseEntity entity = DunningCaseEntity.fromDomain(dunningCase);
+
+                    if (dunningCase.getId() == null) {
+                        entityManager.persist(entity);
+                    } else {
+                        entity = entityManager.merge(entity);
+                    }
+
+                    entityManager.flush(); // Ensure the entity is persisted
+
+                    return Result.success(DunningCaseId.fromString(entity.getId()).getValue().orElseThrow());
+                } catch (Exception e) {
+                    return Result.failure(ErrorDetail.of("DUNNING_CASE_SAVE_FAILED",
+                        "Failed to save dunning case: " + e.getMessage(), "dunning.case.save.failed"));
                 }
-                
-                entityManager.flush(); // Ensure the entity is persisted
-                
-                return Result.success(DunningCaseId.fromString(entity.getId()).getValue().get());
-            } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("DUNNING_CASE_SAVE_FAILED",
-                    "Failed to save dunning case: " + e.getMessage(), "dunning.case.save.failed"));
-            }
-        };
-    }
+            });
+         };
+     }
 
     /**
      * Find active dunning cases that need processing (for scheduled jobs)

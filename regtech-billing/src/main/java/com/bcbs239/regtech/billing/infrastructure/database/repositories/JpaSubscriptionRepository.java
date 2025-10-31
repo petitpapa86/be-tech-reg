@@ -14,6 +14,8 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.function.Function;
@@ -29,6 +31,9 @@ public class JpaSubscriptionRepository {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     public Function<SubscriptionId, Maybe<Subscription>> subscriptionFinder() {
         return subscriptionId -> {
@@ -92,16 +97,17 @@ public class JpaSubscriptionRepository {
                 return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
                     "Cannot save subscription with existing ID", "subscription.save.existing.id"));
             }
-            try {
-                SubscriptionEntity entity = SubscriptionEntity.fromDomain(subscription);
-                entityManager.persist(entity);
-                entityManager.flush(); // Ensure the entity is persisted
-                
-                return Result.success(SubscriptionId.fromString(entity.getId()).getValue().get());
-            } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
-                    "Failed to save subscription: " + e.getMessage(), "subscription.save.failed"));
-            }
+            return transactionTemplate.execute(status -> {
+                try {
+                    SubscriptionEntity entity = SubscriptionEntity.fromDomain(subscription);
+                    entityManager.persist(entity);
+                    entityManager.flush(); // Ensure the entity is persisted
+                    return Result.success(SubscriptionId.fromString(entity.getId()).getValue().orElseThrow());
+                } catch (Exception e) {
+                    return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
+                        "Failed to save subscription: " + e.getMessage(), "subscription.save.failed"));
+                }
+            });
         };
     }
 
@@ -111,16 +117,17 @@ public class JpaSubscriptionRepository {
                 return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
                     "Cannot update subscription without ID", "subscription.update.missing.id"));
             }
-            try {
-                SubscriptionEntity entity = SubscriptionEntity.fromDomain(subscription);
-                entity = entityManager.merge(entity);
-                entityManager.flush(); // Ensure the entity is updated
-                
-                return Result.success(SubscriptionId.fromString(entity.getId()).getValue().get());
-            } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
-                    "Failed to update subscription: " + e.getMessage(), "subscription.update.failed"));
-            }
+            return transactionTemplate.execute(status -> {
+                try {
+                    SubscriptionEntity entity = SubscriptionEntity.fromDomain(subscription);
+                    entity = entityManager.merge(entity);
+                    entityManager.flush(); // Ensure the entity is updated
+                    return Result.success(SubscriptionId.fromString(entity.getId()).getValue().orElseThrow());
+                } catch (Exception e) {
+                    return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
+                        "Failed to update subscription: " + e.getMessage(), "subscription.update.failed"));
+                }
+            });
         };
     }
 

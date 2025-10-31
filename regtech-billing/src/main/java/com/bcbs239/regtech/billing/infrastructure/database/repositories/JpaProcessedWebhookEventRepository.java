@@ -10,6 +10,8 @@ import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -27,6 +29,9 @@ public class JpaProcessedWebhookEventRepository {
 
     @PersistenceContext
     private EntityManager entityManager;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
 
     public Function<String, Maybe<ProcessedWebhookEvent>> processedWebhookEventFinder() {
         return stripeEventId -> {
@@ -48,18 +53,19 @@ public class JpaProcessedWebhookEventRepository {
 
     public Function<ProcessedWebhookEvent, Result<String>> processedWebhookEventSaver() {
         return event -> {
-            try {
-                ProcessedWebhookEventEntity entity = ProcessedWebhookEventEntity.fromDomain(event);
-                entityManager.persist(entity);
-                entityManager.flush(); // Ensure the entity is persisted
-                
-                return Result.success(entity.getId());
-            } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("PROCESSED_WEBHOOK_EVENT_SAVE_FAILED",
-                    "Failed to save processed webhook event: " + e.getMessage(), "webhook.event.save.failed"));
-            }
-        };
-    }
+            return transactionTemplate.execute(status -> {
+                try {
+                    ProcessedWebhookEventEntity entity = ProcessedWebhookEventEntity.fromDomain(event);
+                    entityManager.persist(entity);
+                    entityManager.flush(); // Ensure the entity is persisted
+                    return Result.success(entity.getId());
+                } catch (Exception e) {
+                    return Result.failure(ErrorDetail.of("PROCESSED_WEBHOOK_EVENT_SAVE_FAILED",
+                        "Failed to save processed webhook event: " + e.getMessage(), "webhook.event.save.failed"));
+                }
+            });
+         };
+     }
 
     public Function<String, List<ProcessedWebhookEvent>> processedWebhookEventsByTypeFinder() {
         return eventType -> {

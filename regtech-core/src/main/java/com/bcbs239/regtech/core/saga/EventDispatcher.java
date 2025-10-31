@@ -3,6 +3,7 @@ package com.bcbs239.regtech.core.saga;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEvent;
+import org.springframework.context.PayloadApplicationEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -16,9 +17,29 @@ public class EventDispatcher {
 
     @EventListener
     @Async("sagaTaskExecutor")
-    public void handleEvent(ApplicationEvent applicationEvent) {
-        if (applicationEvent.getSource() instanceof SagaMessage sagaEvent) {
-            dispatchToSaga(sagaEvent);
+    public void handleEvent(Object event) {
+        try {
+            // Support both direct payload publishing and PayloadApplicationEvent wrapping
+            SagaMessage sagaEvent = null;
+            if (event instanceof SagaMessage sm) {
+                sagaEvent = sm;
+            } else if (event instanceof ApplicationEvent ae) {
+                // If Spring wrapped the payload (e.g. PayloadApplicationEvent), extract payload
+                if (ae instanceof PayloadApplicationEvent<?> pae) {
+                    Object payload = pae.getPayload();
+                    if (payload instanceof SagaMessage sm2) {
+                        sagaEvent = sm2;
+                    }
+                }
+            }
+
+            if (sagaEvent != null) {
+                dispatchToSaga(sagaEvent);
+            }
+        } catch (Exception e) {
+            LoggingConfiguration.createStructuredLog("EVENT_DISPATCHER_ERROR", Map.of(
+                "error", e.getMessage()
+            ));
         }
     }
 
