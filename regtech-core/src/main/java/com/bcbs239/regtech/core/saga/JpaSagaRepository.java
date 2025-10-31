@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.saga;
 
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.function.Function;
 
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
@@ -56,6 +57,9 @@ public class JpaSagaRepository {
             try {
                 SagaEntity entity = entityManager.find(SagaEntity.class, sagaId.id());
                 if (entity == null) {
+                    LoggingConfiguration.createStructuredLog("SAGA_NOT_FOUND_BY_ID", Map.of(
+                        "sagaId", sagaId
+                    ));
                     return Maybe.none();
                 }
 
@@ -105,7 +109,6 @@ public class JpaSagaRepository {
     private static AbstractSaga<?> fromEntity(SagaEntity entity, ObjectMapper objectMapper) {
         try {
             // Deserialize saga data
-            // In production, use a registry pattern => getSagaDataClassName
             Class<?> dataClass = Class.forName(getSagaDataClassName(entity.getSagaType()));
             Object sagaData = objectMapper.readValue(entity.getSagaData(), dataClass);
 
@@ -146,6 +149,9 @@ public class JpaSagaRepository {
         if ("TestSaga".equals(sagaType)) {
             return "java.lang.String";
         }
+        if ("PaymentVerificationSaga".equals(sagaType)) {
+            return "com.bcbs239.regtech.billing.domain.billing.PaymentVerificationSagaData";
+        }
         return "java.lang.Object";
     }
 
@@ -153,6 +159,9 @@ public class JpaSagaRepository {
         // Simple mapping for now - in production use a registry
         if ("TestSaga".equals(sagaType)) {
             return "com.bcbs239.regtech.core.sagav2.TestSaga";
+        }
+        if ("PaymentVerificationSaga".equals(sagaType)) {
+            return "com.bcbs239.regtech.billing.application.policies.PaymentVerificationSaga";
         }
         return "com.bcbs239.regtech.core.sagav2.AbstractSaga";
     }

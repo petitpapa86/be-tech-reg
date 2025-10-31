@@ -48,12 +48,18 @@ public class BillingEventPublisher implements OutboxEventPublisher {
      * Publish a domain event using the outbox pattern with closure-based dependencies.
      */
     public Result<Void> publishEvent(Object event) {
+        // Persist the event to the outbox and defer cross-module delivery to the outbox processor.
+        // This avoids immediate in-process publication which can cause duplicate storage in the
+        // inbox and race conditions where consumers read before the originating transaction commits.
         return publishEventWithClosures(
             event,
             eventSerializer::serialize,
             eventSaver(),
             this::convertToCrossModuleEvent,
-            crossModuleEventBus::publishEvent,
+            // Pass a no-op publisher for immediate publish; actual publication happens via processPendingEvents()
+            obj -> {
+                logger.info("Deferring immediate cross-module publish for outbox event; will be processed later: {}", obj == null ? "<null>" : obj.getClass().getSimpleName());
+            },
             () -> UUID.randomUUID().toString(),
             this::determineTargetModule
         );

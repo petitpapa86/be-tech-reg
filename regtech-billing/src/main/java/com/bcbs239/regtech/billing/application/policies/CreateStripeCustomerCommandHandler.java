@@ -158,19 +158,41 @@ public class CreateStripeCustomerCommandHandler {
 
     private Result<CustomerAccountData> findBillingAccount(SagaId sagaId, StripeCustomer customer) {
         Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
+        // If not found, retry a few times to handle possible race between commit and async handlers
         if (maybeSaga.isEmpty()) {
-            logger.error("Saga not found: {}", sagaId);
-            // Publish event to trigger compensation: cleanup Stripe customer
-            eventPublisher.publishEvent(new SagaNotFoundEvent(
-                    sagaId,
-                    customer.customerId().value()
+            LoggingConfiguration.createStructuredLog("SAGA_LOADER_MISS", Map.of(
+                "sagaId", sagaId,
+                "attempts", 0
             ));
-            return Result.failure(ErrorDetail.of("SAGA_NOT_FOUND", "Saga not found: " + sagaId, "saga.not.found"));
+            int maxAttempts = 5;
+            for (int attempt = 1; attempt <= maxAttempts && maybeSaga.isEmpty(); attempt++) {
+                try {
+                    Thread.sleep(50L); // small backoff
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                maybeSaga = sagaLoader.apply(sagaId);
+                LoggingConfiguration.createStructuredLog("SAGA_LOADER_RETRY", Map.of(
+                    "sagaId", sagaId,
+                    "attempt", attempt,
+                    "found", maybeSaga.isPresent()
+                ));
+            }
+
+            if (maybeSaga.isEmpty()) {
+                logger.error("Saga not found after retries: {}", sagaId);
+                // Publish event to trigger compensation: cleanup Stripe customer
+                eventPublisher.publishEvent(new SagaNotFoundEvent(
+                        sagaId,
+                        customer.customerId().value()
+                ));
+                return Result.failure(ErrorDetail.of("SAGA_NOT_FOUND", "Saga not found: " + sagaId, "saga.not.found"));
+            }
         }
 
-        PaymentVerificationSaga saga = (PaymentVerificationSaga) maybeSaga.getValue();
+         PaymentVerificationSaga saga = (PaymentVerificationSaga) maybeSaga.getValue();
 
-        BillingAccountId billingAccountId = new BillingAccountId(saga.getData().getBillingAccountId());
+         BillingAccountId billingAccountId = new BillingAccountId(saga.getData().getBillingAccountId());
         Maybe<BillingAccount> accountMaybe = billingAccountRepository.billingAccountFinder().apply(billingAccountId);
 
         if (accountMaybe.isEmpty()) {

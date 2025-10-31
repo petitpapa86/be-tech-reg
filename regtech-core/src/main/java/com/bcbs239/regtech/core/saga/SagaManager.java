@@ -50,7 +50,8 @@ public class SagaManager {
                 public void afterCommit() {
                     try {
                         // Dispatch commands (this will clear the saga's in-memory command list)
-                        dispatchCommands(saga);
+                        // Use dispatchNow to publish immediately because we're already in afterCommit
+                        saga.getCommandsToDispatch().forEach(commandDispatcher::dispatchNow);
                         // Publish lifecycle event for saga started
                         eventPublisher.publishEvent(startEvent);
                     } catch (Exception e) {
@@ -64,7 +65,7 @@ public class SagaManager {
         } else {
             // No transaction synchronization (e.g. in unit tests) - perform post-save actions immediately
             try {
-                dispatchCommands(saga);
+                saga.getCommandsToDispatch().forEach(commandDispatcher::dispatch);
                 eventPublisher.publishEvent(startEvent);
             } catch (Exception e) {
                 LoggingConfiguration.createStructuredLog("SAGA_POST_COMMIT_ACTION_FAILED", Map.of(

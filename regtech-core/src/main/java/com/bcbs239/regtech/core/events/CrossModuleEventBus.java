@@ -1,12 +1,14 @@
 package com.bcbs239.regtech.core.events;
 
+import com.bcbs239.regtech.core.application.IIntegrationEventBus;
+import com.bcbs239.regtech.core.application.IntegrationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CrossModuleEventBus {
+public class CrossModuleEventBus implements IIntegrationEventBus {
 
     private static final Logger logger = LoggerFactory.getLogger(CrossModuleEventBus.class);
 
@@ -32,5 +34,11 @@ public class CrossModuleEventBus {
     public void publishEventSynchronously(Object event) {
         logger.info("📤 SYNC Publishing cross-module event: {} with data: {}", event.getClass().getSimpleName(), event);
         eventPublisher.publishEvent(event);
+    }
+
+    @Override
+    public void publish(IntegrationEvent event) {
+        // Default integration event publishing delegates to synchronous publish so consumers (Inbox) see them reliably
+        publishEventSynchronously(event);
     }
 }
