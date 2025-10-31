@@ -100,6 +100,14 @@ public class PaymentVerificationSagaManualE2ETest {
             }
         }
 
+        // Verify that external Stripe calls were attempted and compensation event was published
+        Mockito.verify(stripeService).createCustomer(any(), any());
+        Mockito.verify(stripeService).attachPaymentMethod(any(), any());
+        Mockito.verify(stripeService).setDefaultPaymentMethod(any(), any());
+
+        // BillingEventPublisher should have received a BillingAccountNotFoundEvent (compensation path)
+        Mockito.verify(billingEventPublisher).publishEvent(Mockito.argThat(ev -> ev instanceof com.bcbs239.regtech.billing.domain.events.BillingAccountNotFoundEvent));
+
         Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
         assertThat(maybeSaga.isPresent()).isTrue();
 
