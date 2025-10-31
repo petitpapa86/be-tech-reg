@@ -70,7 +70,7 @@ public class CreateStripeCustomerCommandHandler {
                         .flatMap(customer -> attachPaymentMethod(customer, paymentMethodId, sagaId))
                         .flatMap(customer -> setDefaultPaymentMethod(customer, paymentMethodId, sagaId))
                         .flatMap(customer -> findBillingAccount(sagaId, customer))
-                        .flatMap(data -> configureAndSave(data, paymentMethodId, sagaId))
+                        .flatMap(data -> configureAndUpdate(data, paymentMethodId, sagaId))
                         .map(data -> new StripeCustomerCreatedEvent(sagaId, data.customer.customerId().value()));
 
         // Success case
@@ -218,7 +218,7 @@ public class CreateStripeCustomerCommandHandler {
         return Result.success(new CustomerAccountData(customer, accountMaybe.getValue(), billingAccountId));
     }
 
-    private Result<CustomerAccountData> configureAndSave(CustomerAccountData data, PaymentMethodId paymentMethodId, SagaId sagaId) {
+    private Result<CustomerAccountData> configureAndUpdate(CustomerAccountData data, PaymentMethodId paymentMethodId, SagaId sagaId) {
         StripeCustomerId stripeCustomerId = new StripeCustomerId(data.customer.customerId().value());
 
         Result<Void> configureResult = data.account.configureStripeCustomer(paymentMethodId, stripeCustomerId);
@@ -240,23 +240,25 @@ public class CreateStripeCustomerCommandHandler {
             return Result.failure(configureResult.getError().get());
         }
 
-        Result<BillingAccountId> saveResult = billingAccountRepository.billingAccountSaver().apply(data.account);
-        if (saveResult.isFailure()) {
-            String errorMsg = saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error");
-            LoggingConfiguration.logStructured("BILLING_ACCOUNT_SAVE_FAILED", Map.of(
+        // Use updater since this account should already exist
+        Result<BillingAccountId> updateResult = billingAccountRepository.billingAccountUpdater().apply(data.account);
+        if (updateResult.isFailure()) {
+            String errorMsg = updateResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error");
+            LoggingConfiguration.logStructured("BILLING_ACCOUNT_UPDATE_FAILED", Map.of(
                     "sagaId", sagaId,
                     "billingAccountId", data.billingAccountId.value(),
                     "stripeCustomerId", data.customer.customerId().value(),
                     "error", errorMsg
             ), null);
             // Publish event to trigger compensation: cleanup Stripe customer
+            // Reuse existing save-failed event class to avoid adding new event types
             eventPublisher.publishEvent(new BillingAccountSaveFailedEvent(
                     sagaId,
                     data.billingAccountId.value(),
                     data.customer.customerId().value(),
                     errorMsg
             ));
-            return Result.failure(saveResult.getError().get());
+            return Result.failure(updateResult.getError().get());
         }
 
         return Result.success(data);

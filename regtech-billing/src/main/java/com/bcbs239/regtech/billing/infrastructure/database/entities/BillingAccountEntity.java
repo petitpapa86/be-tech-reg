@@ -9,7 +9,6 @@ import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import com.bcbs239.regtech.core.shared.Maybe;
 import jakarta.persistence.*;
-import lombok.Generated;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -87,8 +86,10 @@ public class BillingAccountEntity {
         
         entity.createdAt = billingAccount.getCreatedAt();
         entity.updatedAt = billingAccount.getUpdatedAt();
-        entity.version = billingAccount.getVersion();
-        
+        // Do NOT copy version from domain into entity. Version is managed by JPA and copying a stale
+        // version can cause OptimisticLockException on merge. Leave it null here and let the persistence
+        // context manage it when performing updates through a managed entity.
+
         return entity;
     }
 
