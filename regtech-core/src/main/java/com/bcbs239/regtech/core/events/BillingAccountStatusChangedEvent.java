@@ -1,9 +1,12 @@
 package com.bcbs239.regtech.core.events;
 
+import lombok.Getter;
+
 /**
  * Cross-module event published when a billing account status changes.
  * This event can be consumed by other contexts for status tracking and business logic.
  */
+@Getter
 public class BillingAccountStatusChangedEvent extends BaseEvent {
     
     private final String billingAccountId;
@@ -25,27 +28,7 @@ public class BillingAccountStatusChangedEvent extends BaseEvent {
         this.newStatus = newStatus;
         this.reason = reason;
     }
-    
-    public String getBillingAccountId() {
-        return billingAccountId;
-    }
-    
-    public String getUserId() {
-        return userId;
-    }
-    
-    public String getPreviousStatus() {
-        return previousStatus;
-    }
-    
-    public String getNewStatus() {
-        return newStatus;
-    }
-    
-    public String getReason() {
-        return reason;
-    }
-    
+
     @Override
     public String toString() {
         return String.format("BillingAccountStatusChangedEvent{billingAccountId=%s, userId=%s, previousStatus=%s, newStatus=%s, reason=%s, correlationId=%s}", 
