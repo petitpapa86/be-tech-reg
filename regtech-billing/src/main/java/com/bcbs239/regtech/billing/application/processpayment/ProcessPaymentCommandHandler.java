@@ -41,19 +41,16 @@ public class ProcessPaymentCommandHandler {
     private final JpaSubscriptionRepository subscriptionRepository;
     private final JpaInvoiceRepository invoiceRepository;
     private final StripeService stripeService;
-    private final BillingEventPublisher eventPublisher;
 
     public ProcessPaymentCommandHandler(
             JpaBillingAccountRepository billingAccountRepository,
             JpaSubscriptionRepository subscriptionRepository,
             JpaInvoiceRepository invoiceRepository,
-            StripeService stripeService,
-            BillingEventPublisher eventPublisher) {
+            StripeService stripeService) {
         this.billingAccountRepository = billingAccountRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.invoiceRepository = invoiceRepository;
         this.stripeService = stripeService;
-        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -65,7 +62,6 @@ public class ProcessPaymentCommandHandler {
             billingAccountRepository.billingAccountSaver(),
             subscriptionRepository.subscriptionSaver(),
             invoiceRepository.invoiceSaver(),
-                eventPublisher::publishEvent,
             this::extractUserDataFromSaga,
             this::createStripeCustomer,
             this::createStripeSubscription
@@ -81,7 +77,6 @@ public class ProcessPaymentCommandHandler {
             Function<BillingAccount, Result<BillingAccountId>> billingAccountSaver,
             Function<Subscription, Result<SubscriptionId>> subscriptionSaver,
             Function<Invoice, Result<InvoiceId>> invoiceSaver,
-            Consumer<Object> eventPublisher,
             Function<String, Result<UserData>> userDataExtractor,
             Function<UserDataAndPaymentMethod, Result<StripeCustomer>> stripeCustomerCreator,
             Function<StripeCustomerAndTier, Result<StripeSubscription>> stripeSubscriptionCreator) {
@@ -150,18 +145,18 @@ public class ProcessPaymentCommandHandler {
         }
 
         // Step 7: Publish domain events
-        eventPublisher.accept(new PaymentVerifiedEvent(
-            userData.userId(),
-            billingAccount.getId(),
-            command.correlationId()
-        ));
-
-        eventPublisher.accept(new InvoiceGeneratedEvent(
-            invoice.getId(),
-            billingAccount.getId(),
-            invoice.getTotalAmount(),
-            command.correlationId()
-        ));
+//        eventPublisher.accept(new PaymentVerifiedEvent(
+//            userData.userId(),
+//            billingAccount.getId(),
+//            command.correlationId()
+//        ));
+//
+//        eventPublisher.accept(new InvoiceGeneratedEvent(
+//            invoice.getId(),
+//            billingAccount.getId(),
+//            invoice.getTotalAmount(),
+//            command.correlationId()
+//        ));
 
         // Step 8: Return success response
         return Result.success(ProcessPaymentResponse.of(

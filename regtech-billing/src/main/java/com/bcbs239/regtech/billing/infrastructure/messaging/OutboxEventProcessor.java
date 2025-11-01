@@ -11,19 +11,19 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(name = "billing.outbox.enabled", havingValue = "true", matchIfMissing = true)
-public class OutboxEventProcessor extends GenericOutboxEventProcessor {
+public class OutboxEventProcessor  {
 
-    private final boolean processingEnabled;
+    //private final boolean processingEnabled;
 
-    public OutboxEventProcessor(BillingEventPublisher eventPublisher,
-                               @Value("${billing.outbox.enabled:true}") boolean processingEnabled,
-                               @Value("${billing.outbox.max-retries:3}") int maxRetries) {
-        super(eventPublisher, "Billing", maxRetries);
-        this.processingEnabled = processingEnabled;
-    }
-
-    @Override
-    protected boolean isProcessingEnabled() {
-        return processingEnabled;
-    }
+//    public OutboxEventProcessor(BillingEventPublisher eventPublisher,
+//                               @Value("${billing.outbox.enabled:true}") boolean processingEnabled,
+//                               @Value("${billing.outbox.max-retries:3}") int maxRetries) {
+//        super(eventPublisher, "Billing", maxRetries);
+//        this.processingEnabled = processingEnabled;
+//    }
+//
+//    @Override
+//    protected boolean isProcessingEnabled() {
+//        return processingEnabled;
+//    }
 }

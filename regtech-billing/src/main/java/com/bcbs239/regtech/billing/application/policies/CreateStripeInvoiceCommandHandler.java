@@ -15,6 +15,12 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import com.bcbs239.regtech.core.saga.AbstractSaga;
+import com.bcbs239.regtech.core.saga.SagaId;
+import com.bcbs239.regtech.core.events.CrossModuleEventBus;
+import java.util.function.Function;
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import java.util.Map;
 
 /**
  * Command handler for creating Stripe invoices in the saga pattern.
@@ -25,26 +31,60 @@ public class CreateStripeInvoiceCommandHandler {
 
     private final JpaInvoiceRepository invoiceRepository;
     private final StripeService stripeService;
-    private final BillingEventPublisher eventPublisher;
+    private final CrossModuleEventBus crossModuleEventBus;
+    private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
 
     public CreateStripeInvoiceCommandHandler(
             JpaInvoiceRepository invoiceRepository,
             StripeService stripeService,
-            BillingEventPublisher eventPublisher) {
+            CrossModuleEventBus crossModuleEventBus,
+            Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader) {
         this.invoiceRepository = invoiceRepository;
         this.stripeService = stripeService;
-        this.eventPublisher = eventPublisher;
+        this.crossModuleEventBus = crossModuleEventBus;
+        this.sagaLoader = sagaLoader;
     }
 
  
     public Result<Void> handle(CreateStripeInvoiceCommand command) {
-        return processInvoiceCreation(
+        Result<Void> res = processInvoiceCreation(
             command,
             invoiceRepository.invoiceSaver(),
-            eventPublisher::publishEvent,
             this::retrieveStripeInvoice,
             this::createDomainInvoice
         );
+
+        if (res.isSuccess()) {
+            // Notify saga of invoice creation: try to load saga and invoke directly
+            StripeInvoiceCreatedEvent ev = new StripeInvoiceCreatedEvent(command.getSagaId(), command.getStripeInvoiceId());
+            Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(command.getSagaId());
+            if (maybeSaga.isPresent()) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    AbstractSaga<Object> rawSaga = (AbstractSaga<Object>) maybeSaga.getValue();
+                    rawSaga.handle(ev);
+                    LoggingConfiguration.logStructured("STRIPE_INVOICE_CREATED_HANDLED_BY_SAGA", Map.of(
+                        "sagaId", command.getSagaId(),
+                        "stripeInvoiceId", command.getStripeInvoiceId()
+                    ), null);
+                } catch (Exception e) {
+                    LoggingConfiguration.logStructured("SAGA_HANDLE_FAILED", Map.of(
+                        "sagaId", command.getSagaId(),
+                        "error", e.getMessage()
+                    ), null);
+                    crossModuleEventBus.publishEventSynchronously(ev);
+                }
+            } else {
+                // fallback publish for async handlers
+                crossModuleEventBus.publishEventSynchronously(ev);
+                LoggingConfiguration.logStructured("STRIPE_INVOICE_CREATED_PUBLISHED_FALLBACK", Map.of(
+                    "sagaId", command.getSagaId(),
+                    "stripeInvoiceId", command.getStripeInvoiceId()
+                ), null);
+            }
+        }
+
+        return res;
     }
 
     /**
@@ -53,7 +93,6 @@ public class CreateStripeInvoiceCommandHandler {
     static Result<Void> processInvoiceCreation(
             CreateStripeInvoiceCommand command,
             java.util.function.Function<Invoice, Result<com.bcbs239.regtech.billing.domain.invoices.InvoiceId>> invoiceSaver,
-            java.util.function.Consumer<Object> eventPublisher,
             java.util.function.Function<String, Result<com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeInvoice>> stripeInvoiceRetriever,
             java.util.function.Function<InvoiceCreationData, Result<Invoice>> domainInvoiceCreator) {
 
@@ -83,8 +122,8 @@ public class CreateStripeInvoiceCommandHandler {
             return Result.failure(saveResult.getError().get());
         }
 
-        // Step 4: Publish domain event
-        eventPublisher.accept(new StripeInvoiceCreatedEvent(command.getSagaId(), command.getStripeInvoiceId()));
+        // Step 4: saga should be notified of invoice creation
+       // eventPublisher.accept(new StripeInvoiceCreatedEvent(command.getSagaId(), command.getStripeInvoiceId()));
 
         return Result.success(null);
     }

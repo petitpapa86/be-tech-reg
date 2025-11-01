@@ -37,7 +37,6 @@ public class CreateStripeCustomerCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(CreateStripeCustomerCommandHandler.class);
 
     private final StripeService stripeService;
-    private final BillingEventPublisher eventPublisher;
     private final CrossModuleEventBus crossModuleEventBus;
     private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
     private final JpaBillingAccountRepository billingAccountRepository;
@@ -45,12 +44,10 @@ public class CreateStripeCustomerCommandHandler {
     @SuppressWarnings("unused")
     public CreateStripeCustomerCommandHandler(
             StripeService stripeService,
-            BillingEventPublisher eventPublisher,
             CrossModuleEventBus crossModuleEventBus,
             Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
             JpaBillingAccountRepository billingAccountRepository) {
         this.stripeService = stripeService;
-        this.eventPublisher = eventPublisher;
         this.crossModuleEventBus = crossModuleEventBus;
         this.sagaLoader = sagaLoader;
         this.billingAccountRepository = billingAccountRepository;
@@ -79,12 +76,34 @@ public class CreateStripeCustomerCommandHandler {
         // Success case
         if (result.isSuccess()) {
             result.getValue().ifPresent(ev -> {
-                // Publish the saga message directly so saga handlers receive it immediately
-                crossModuleEventBus.publishEventSynchronously(ev);
-                LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATED", Map.of(
-                        "sagaId", sagaId,
-                        "stripeCustomerId", ev.getStripeCustomerId()
-                ), null);
+                // Try to load the saga and invoke its handler directly instead of publishing the event
+                Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
+                if (maybeSaga.isPresent()) {
+                    AbstractSaga<?> saga = maybeSaga.getValue();
+                    try {
+                        @SuppressWarnings("unchecked")
+                        AbstractSaga<Object> rawSaga = (AbstractSaga<Object>) saga;
+                        rawSaga.handle(ev); // invoke saga's handler directly
+                        LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATED_HANDLED_BY_SAGA", Map.of(
+                                "sagaId", sagaId,
+                                "stripeCustomerId", ev.getStripeCustomerId()
+                        ), null);
+                    } catch (Exception e) {
+                        LoggingConfiguration.logStructured("SAGA_HANDLE_FAILED", Map.of(
+                                "sagaId", sagaId,
+                                "error", e.getMessage()
+                        ), null);
+                        // Fallback to publishing the event if direct handling failed
+                        crossModuleEventBus.publishEventSynchronously(ev);
+                    }
+                } else {
+                    // Fallback if saga not found: publish event so async handlers can pick it up
+                    crossModuleEventBus.publishEventSynchronously(ev);
+                    LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATED_PUBLISHED_FALLBACK", Map.of(
+                            "sagaId", sagaId,
+                            "stripeCustomerId", ev.getStripeCustomerId()
+                    ), null);
+                }
             });
         } else {
             LoggingConfiguration.logStructured("CREATE_STRIPE_CUSTOMER_COMMAND_FAILED", Map.of(

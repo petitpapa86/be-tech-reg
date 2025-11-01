@@ -18,6 +18,11 @@ import java.util.function.Function;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import com.bcbs239.regtech.core.saga.AbstractSaga;
+import com.bcbs239.regtech.core.saga.SagaId;
+import com.bcbs239.regtech.core.events.CrossModuleEventBus;
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import java.util.Map;
 
 /**
  * Command handler for creating Stripe subscriptions.
@@ -31,7 +36,8 @@ public class CreateStripeSubscriptionCommandHandler {
     private final Function<BillingAccount, Result<BillingAccountId>> billingAccountSaver;
     private final Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder;
     private final Function<Subscription, Result<SubscriptionId>> subscriptionSaver;
-    private final BillingEventPublisher eventPublisher;
+    private final CrossModuleEventBus crossModuleEventBus;
+    private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
 
     public CreateStripeSubscriptionCommandHandler(
             StripeService stripeService,
@@ -39,13 +45,16 @@ public class CreateStripeSubscriptionCommandHandler {
             Function<BillingAccount, Result<BillingAccountId>> billingAccountSaver,
             Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder,
             Function<Subscription, Result<SubscriptionId>> subscriptionSaver,
-            BillingEventPublisher eventPublisher) {
+            CrossModuleEventBus crossModuleEventBus,
+            Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader
+            ) {
         this.stripeService = stripeService;
         this.billingAccountByUserFinder = billingAccountByUserFinder;
         this.billingAccountSaver = billingAccountSaver;
         this.subscriptionByBillingAccountAndTierFinder = subscriptionByBillingAccountAndTierFinder;
         this.subscriptionSaver = subscriptionSaver;
-        this.eventPublisher = eventPublisher;
+        this.crossModuleEventBus = crossModuleEventBus;
+        this.sagaLoader = sagaLoader;
     }
 
     /**
@@ -118,12 +127,37 @@ public class CreateStripeSubscriptionCommandHandler {
 
         SubscriptionId subscriptionId = saveSubscriptionResult.getValue().get();
 
-        // Publish StripeSubscriptionCreatedEvent
-        eventPublisher.publishEvent(new StripeSubscriptionCreatedEvent(
+        // Notify saga of subscription creation: try to load saga and invoke directly
+        StripeSubscriptionCreatedEvent ev = new StripeSubscriptionCreatedEvent(
             command.getSagaId(),
             stripeSubscriptionId.value(),
             stripeSubscription.latestInvoiceId().value(),
             subscriptionId
-        ));
+        );
+
+        Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(command.getSagaId());
+        if (maybeSaga.isPresent()) {
+            try {
+                @SuppressWarnings("unchecked")
+                AbstractSaga<Object> rawSaga = (AbstractSaga<Object>) maybeSaga.getValue();
+                rawSaga.handle(ev);
+                LoggingConfiguration.logStructured("STRIPE_SUBSCRIPTION_CREATED_HANDLED_BY_SAGA", Map.of(
+                    "sagaId", command.getSagaId(),
+                    "stripeSubscriptionId", stripeSubscriptionId.value()
+                ), null);
+            } catch (Exception e) {
+                LoggingConfiguration.logStructured("SAGA_HANDLE_FAILED", Map.of(
+                    "sagaId", command.getSagaId(),
+                    "error", e.getMessage()
+                ), null);
+                crossModuleEventBus.publishEventSynchronously(ev);
+            }
+        } else {
+            crossModuleEventBus.publishEventSynchronously(ev);
+            LoggingConfiguration.logStructured("STRIPE_SUBSCRIPTION_CREATED_PUBLISHED_FALLBACK", Map.of(
+                "sagaId", command.getSagaId(),
+                "stripeSubscriptionId", stripeSubscriptionId.value()
+            ), null);
+        }
     }
 }
