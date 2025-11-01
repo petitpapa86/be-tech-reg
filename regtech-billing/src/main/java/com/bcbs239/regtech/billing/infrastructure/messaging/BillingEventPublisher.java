@@ -7,6 +7,7 @@ import com.bcbs239.regtech.core.events.CrossModuleEventBus;
 import com.bcbs239.regtech.core.events.OutboxEventPublisher;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.saga.SagaMessage;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.TypedQuery;
@@ -56,9 +57,15 @@ public class BillingEventPublisher implements OutboxEventPublisher {
             eventSerializer::serialize,
             eventSaver(),
             this::convertToCrossModuleEvent,
-            // Pass a no-op publisher for immediate publish; actual publication happens via processPendingEvents()
+            // Use synchronous publish for immediate delivery so saga handlers see internal events without waiting for outbox processor
             obj -> {
-                logger.info("Deferring immediate cross-module publish for outbox event; will be processed later: {}", obj == null ? "<null>" : obj.getClass().getSimpleName());
+                try {
+                    // Publish synchronously to Spring event bus (ensures EventDispatcher receives it)
+                    crossModuleEventBus.publishEventSynchronously(obj);
+                    logger.debug("Immediately published event via CrossModuleEventBus: {}", obj == null ? "<null>" : obj.getClass().getSimpleName());
+                } catch (Exception e) {
+                    logger.warn("Immediate publication failed, will be retried by outbox processor: {}", e.getMessage());
+                }
             },
             () -> UUID.randomUUID().toString(),
             this::determineTargetModule
@@ -77,15 +84,24 @@ public class BillingEventPublisher implements OutboxEventPublisher {
             Supplier<String> eventIdGenerator,
             Function<Object, String> targetModuleDeterminer) {
 
-        if (!(event instanceof BaseEvent)) {
+        // Accept both BaseEvent (core events) and SagaMessage (saga cross-module messages)
+        String correlationId;
+        String sourceModule;
+        if (event instanceof BaseEvent be) {
+            correlationId = be.getCorrelationId();
+            sourceModule = be.getSourceModule();
+        } else if (event instanceof SagaMessage sm) {
+            // Use saga id as correlation id and default to 'billing' as the source module for billing-originated saga messages
+            correlationId = sm.getSagaId() == null ? null : sm.getSagaId().id();
+            sourceModule = "billing";
+        } else {
             return Result.failure(ErrorDetail.of(
                 "INVALID_EVENT_TYPE",
-                "Event must extend BaseEvent: " + event.getClass().getName(),
+                "Event must extend BaseEvent or be a SagaMessage: " + event.getClass().getName(),
                 "event.invalid.type"
             ));
         }
 
-        BaseEvent baseEvent = (BaseEvent) event;
         String eventId = eventIdGenerator.get();
         String eventType = event.getClass().getName();
         String targetModule = targetModuleDeterminer.apply(event);
@@ -100,8 +116,8 @@ public class BillingEventPublisher implements OutboxEventPublisher {
         BillingDomainEventEntity eventEntity = new BillingDomainEventEntity(
             eventId,
             eventType,
-            baseEvent.getCorrelationId(),
-            baseEvent.getSourceModule(),
+            correlationId,
+            sourceModule,
             targetModule,
             serializationResult.getValue().get()
         );
@@ -312,8 +328,7 @@ public class BillingEventPublisher implements OutboxEventPublisher {
                 event.getReason(),
                 event.getCorrelationId()
             );
-        } else if (billingEvent instanceof com.bcbs239.regtech.billing.domain.events.SubscriptionCancelledEvent) {
-            var event = (com.bcbs239.regtech.billing.domain.events.SubscriptionCancelledEvent) billingEvent;
+        } else if (billingEvent instanceof SubscriptionCancelledEvent event) {
             return new com.bcbs239.regtech.core.events.SubscriptionCancelledEvent(
                 event.getSubscriptionId().toString(),
                 event.getBillingAccountId().toString(),

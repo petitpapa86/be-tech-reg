@@ -15,6 +15,7 @@ import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.events.CrossModuleEventBus;
 
 import java.util.function.Function;
 import java.util.Map;
@@ -38,6 +39,7 @@ public class CreateStripeCustomerCommandHandler {
 
     private final StripeService stripeService;
     private final BillingEventPublisher eventPublisher;
+    private final CrossModuleEventBus crossModuleEventBus;
     private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
     private final JpaBillingAccountRepository billingAccountRepository;
 
@@ -45,10 +47,12 @@ public class CreateStripeCustomerCommandHandler {
     public CreateStripeCustomerCommandHandler(
             StripeService stripeService,
             BillingEventPublisher eventPublisher,
+            CrossModuleEventBus crossModuleEventBus,
             Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
             JpaBillingAccountRepository billingAccountRepository) {
         this.stripeService = stripeService;
         this.eventPublisher = eventPublisher;
+        this.crossModuleEventBus = crossModuleEventBus;
         this.sagaLoader = sagaLoader;
         this.billingAccountRepository = billingAccountRepository;
     }
@@ -76,7 +80,8 @@ public class CreateStripeCustomerCommandHandler {
         // Success case
         if (result.isSuccess()) {
             result.getValue().ifPresent(ev -> {
-                eventPublisher.publishEvent(ev);
+                // Publish the saga message directly so saga handlers receive it immediately
+                crossModuleEventBus.publishEventSynchronously(ev);
                 LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATED", Map.of(
                         "sagaId", sagaId,
                         "stripeCustomerId", ev.getStripeCustomerId()
