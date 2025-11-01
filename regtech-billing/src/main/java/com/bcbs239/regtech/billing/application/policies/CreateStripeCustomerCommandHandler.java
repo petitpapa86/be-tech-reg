@@ -9,7 +9,6 @@ import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
-import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.core.saga.AbstractSaga;
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
@@ -106,10 +105,10 @@ public class CreateStripeCustomerCommandHandler {
                     "error", errorMsg
             ), null);
             // Publish specific failure event - no compensation needed (nothing created yet)
-            eventPublisher.publishEvent(new StripeCustomerCreationFailedEvent(
-                    sagaId,
-                    errorMsg
-            ));
+//            eventPublisher.publishEvent(new StripeCustomerCreationFailedEvent(
+//                    sagaId,
+//                    errorMsg
+//            ));
         }
 
         return result;
@@ -126,11 +125,11 @@ public class CreateStripeCustomerCommandHandler {
                     "error", errorMsg
             ), null);
             // Publish event to trigger compensation: delete the Stripe customer we just created
-            eventPublisher.publishEvent(new PaymentMethodAttachmentFailedEvent(
-                    sagaId,
-                    customer.customerId().value(),
-                    errorMsg
-            ));
+//            eventPublisher.publishEvent(new PaymentMethodAttachmentFailedEvent(
+//                    sagaId,
+//                    customer.customerId().value(),
+//                    errorMsg
+//            ));
             return Result.failure(result.getError().orElseThrow());
         }
 
@@ -149,12 +148,12 @@ public class CreateStripeCustomerCommandHandler {
                     "error", errorMsg
             ), null);
             // Publish event to trigger compensation: detach payment method and delete customer
-            eventPublisher.publishEvent(new PaymentMethodDefaultFailedEvent(
-                    sagaId,
-                    customer.customerId().value(),
-                    paymentMethodId.value(),
-                    errorMsg
-            ));
+//            eventPublisher.publishEvent(new PaymentMethodDefaultFailedEvent(
+//                    sagaId,
+//                    customer.customerId().value(),
+//                    paymentMethodId.value(),
+//                    errorMsg
+//            ));
             return Result.failure(result.getError().orElseThrow());
         }
 
@@ -186,11 +185,11 @@ public class CreateStripeCustomerCommandHandler {
 
             if (maybeSaga.isEmpty()) {
                 logger.error("Saga not found after retries: {}", sagaId);
-                // Publish event to trigger compensation: cleanup Stripe customer
-                eventPublisher.publishEvent(new SagaNotFoundEvent(
-                        sagaId,
-                        customer.customerId().value()
-                ));
+//                // Publish event to trigger compensation: cleanup Stripe customer
+//                eventPublisher.publishEvent(new SagaNotFoundEvent(
+//                        sagaId,
+//                        customer.customerId().value()
+//                ));
                 return Result.failure(ErrorDetail.of("SAGA_NOT_FOUND", "Saga not found: " + sagaId, "saga.not.found"));
             }
         }
@@ -212,11 +211,11 @@ public class CreateStripeCustomerCommandHandler {
                     "stripeCustomerId", customer.customerId().value()
             ), null);
             // Publish event to trigger compensation: cleanup Stripe customer
-            eventPublisher.publishEvent(new BillingAccountNotFoundEvent(
-                    sagaId,
-                    billingAccountId.value(),
-                    customer.customerId().value()
-            ));
+//            eventPublisher.publishEvent(new BillingAccountNotFoundEvent(
+//                    sagaId,
+//                    billingAccountId.value(),
+//                    customer.customerId().value()
+//            ));
             return Result.failure(ErrorDetail.of("ACCOUNT_NOT_FOUND", "Account not found: " + billingAccountId, "account.not.found"));
         }
 
@@ -236,12 +235,12 @@ public class CreateStripeCustomerCommandHandler {
                     "error", errorMsg
             ), null);
             // Publish event to trigger compensation: cleanup Stripe customer
-            eventPublisher.publishEvent(new BillingAccountConfigurationFailedEvent(
-                    sagaId,
-                    data.billingAccountId.value(),
-                    data.customer.customerId().value(),
-                    errorMsg
-            ));
+//            eventPublisher.publishEvent(new BillingAccountConfigurationFailedEvent(
+//                    sagaId,
+//                    data.billingAccountId.value(),
+//                    data.customer.customerId().value(),
+//                    errorMsg
+//            ));
             return Result.failure(configureResult.getError().get());
         }
 
@@ -257,12 +256,12 @@ public class CreateStripeCustomerCommandHandler {
             ), null);
             // Publish event to trigger compensation: cleanup Stripe customer
             // Reuse existing save-failed event class to avoid adding new event types
-            eventPublisher.publishEvent(new BillingAccountSaveFailedEvent(
-                    sagaId,
-                    data.billingAccountId.value(),
-                    data.customer.customerId().value(),
-                    errorMsg
-            ));
+//            eventPublisher.publishEvent(new BillingAccountSaveFailedEvent(
+//                    sagaId,
+//                    data.billingAccountId.value(),
+//                    data.customer.customerId().value(),
+//                    errorMsg
+//            ));
             return Result.failure(updateResult.getError().get());
         }
 

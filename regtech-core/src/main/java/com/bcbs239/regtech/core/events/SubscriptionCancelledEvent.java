@@ -1,11 +1,14 @@
 package com.bcbs239.regtech.core.events;
 
+import lombok.Getter;
+
 import java.time.LocalDate;
 
 /**
  * Cross-module event published when a subscription is cancelled.
  * This event can be consumed by other contexts for cleanup processes and business logic.
  */
+@Getter
 public class SubscriptionCancelledEvent extends BaseEvent {
     
     private final String subscriptionId;
@@ -30,31 +33,7 @@ public class SubscriptionCancelledEvent extends BaseEvent {
         this.cancellationDate = cancellationDate;
         this.cancellationReason = cancellationReason;
     }
-    
-    public String getSubscriptionId() {
-        return subscriptionId;
-    }
-    
-    public String getBillingAccountId() {
-        return billingAccountId;
-    }
-    
-    public String getUserId() {
-        return userId;
-    }
-    
-    public String getTier() {
-        return tier;
-    }
-    
-    public LocalDate getCancellationDate() {
-        return cancellationDate;
-    }
-    
-    public String getCancellationReason() {
-        return cancellationReason;
-    }
-    
+
     @Override
     public String toString() {
         return String.format("SubscriptionCancelledEvent{subscriptionId=%s, billingAccountId=%s, userId=%s, tier=%s, cancellationDate=%s, reason=%s, correlationId=%s}", 

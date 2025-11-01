@@ -2,9 +2,11 @@ package com.bcbs239.regtech.billing.domain.events;
 
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaMessage;
+import lombok.Getter;
 
 import java.time.Instant;
 
+@Getter
 public class StripeCustomerCreatedEvent extends SagaMessage {
 
     private final String stripeCustomerId;
@@ -14,7 +16,4 @@ public class StripeCustomerCreatedEvent extends SagaMessage {
         this.stripeCustomerId = stripeCustomerId;
     }
 
-    public String getStripeCustomerId() {
-        return stripeCustomerId;
-    }
 }

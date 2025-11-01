@@ -10,7 +10,6 @@ import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
 import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeSubscription;
-import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;

@@ -16,7 +16,6 @@ import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoi
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeSubscription;
-import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.billing.application.shared.UserData;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;

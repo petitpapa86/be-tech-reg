@@ -1,12 +1,15 @@
 package com.bcbs239.regtech.core.inbox;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+
 import java.time.LocalDateTime;
 
 /**
  * Entity representing a consumer that has processed an inbox message.
  * Used to ensure idempotent processing of integration events.
  */
+@Getter
 @Entity
 @Table(name = "inbox_message_consumers",
        uniqueConstraints = @UniqueConstraint(columnNames = {"inbox_message_id", "name"}))
@@ -35,19 +38,4 @@ public class InboxMessageConsumer {
         this.processedAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getInboxMessageId() {
-        return inboxMessageId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public LocalDateTime getProcessedAt() {
-        return processedAt;
-    }
 }

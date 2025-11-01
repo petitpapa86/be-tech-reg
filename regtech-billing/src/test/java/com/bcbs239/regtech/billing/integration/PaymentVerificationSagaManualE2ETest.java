@@ -6,7 +6,6 @@ import com.bcbs239.regtech.billing.domain.billing.PaymentVerificationSagaData;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.billing.application.policies.createstripecustomer.CreateStripeCustomerCommand;
 import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
 import com.bcbs239.regtech.core.saga.*;
@@ -17,7 +16,6 @@ import org.mockito.Mockito;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 

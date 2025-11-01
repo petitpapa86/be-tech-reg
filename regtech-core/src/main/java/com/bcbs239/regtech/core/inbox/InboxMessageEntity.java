@@ -1,12 +1,15 @@
 package com.bcbs239.regtech.core.inbox;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+
 import java.time.Instant;
 
 /**
  * Shared inbox message entity for reliable event processing across bounded contexts.
  * This entity stores integration events that need to be processed by event handlers.
  */
+@Getter
 @Entity
 @Table(name = "inbox_messages", indexes = {
     @Index(name = "idx_inbox_messages_status_received", columnList = "processing_status, received_at"),
@@ -23,6 +26,7 @@ public class InboxMessageEntity {
         FAILED
     }
 
+    // Getters and setters
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
@@ -78,89 +82,44 @@ public class InboxMessageEntity {
         this.receivedAt = Instant.now();
     }
 
-    // Getters and setters
-    public String getId() {
-        return id;
-    }
-
     public void setId(String id) {
         this.id = id;
-    }
-
-    public String getEventId() {
-        return eventId;
     }
 
     public void setEventId(String eventId) {
         this.eventId = eventId;
     }
 
-    public String getEventType() {
-        return eventType;
-    }
-
     public void setEventType(String eventType) {
         this.eventType = eventType;
-    }
-
-    public String getEventData() {
-        return eventData;
     }
 
     public void setEventData(String eventData) {
         this.eventData = eventData;
     }
 
-    public Instant getReceivedAt() {
-        return receivedAt;
-    }
-
     public void setReceivedAt(Instant receivedAt) {
         this.receivedAt = receivedAt;
-    }
-
-    public Instant getProcessedAt() {
-        return processedAt;
     }
 
     public void setProcessedAt(Instant processedAt) {
         this.processedAt = processedAt;
     }
 
-    public ProcessingStatus getProcessingStatus() {
-        return processingStatus;
-    }
-
     public void setProcessingStatus(ProcessingStatus processingStatus) {
         this.processingStatus = processingStatus;
-    }
-
-    public String getAggregateId() {
-        return aggregateId;
     }
 
     public void setAggregateId(String aggregateId) {
         this.aggregateId = aggregateId;
     }
 
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }
 
-    public int getRetryCount() {
-        return retryCount;
-    }
-
     public void setRetryCount(int retryCount) {
         this.retryCount = retryCount;
-    }
-
-    public Instant getNextRetryAt() {
-        return nextRetryAt;
     }
 
     public void setNextRetryAt(Instant nextRetryAt) {

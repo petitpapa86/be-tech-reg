@@ -3,26 +3,18 @@ package com.bcbs239.regtech.billing.integration;
 import com.bcbs239.regtech.billing.application.policies.CreateStripeCustomerCommandHandler;
 import com.bcbs239.regtech.billing.application.policies.PaymentVerificationSaga;
 import com.bcbs239.regtech.billing.domain.billing.PaymentVerificationSagaData;
-import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.messaging.BillingEventPublisher;
 import com.bcbs239.regtech.core.saga.*;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.events.CrossModuleEventBus;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.task.SyncTaskExecutor;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.time.Instant;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 

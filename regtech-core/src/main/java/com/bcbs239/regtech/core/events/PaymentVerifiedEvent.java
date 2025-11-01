@@ -1,9 +1,12 @@
 package com.bcbs239.regtech.core.events;
 
+import lombok.Getter;
+
 /**
  * Cross-module event published when payment is successfully verified.
  * This event is consumed by the IAM context to activate the user account.
  */
+@Getter
 public class PaymentVerifiedEvent extends BaseEvent {
     
     private final String userId;
@@ -14,15 +17,7 @@ public class PaymentVerifiedEvent extends BaseEvent {
         this.userId = userId;
         this.billingAccountId = billingAccountId;
     }
-    
-    public String getUserId() {
-        return userId;
-    }
-    
-    public String getBillingAccountId() {
-        return billingAccountId;
-    }
-    
+
     @Override
     public String toString() {
         return String.format("PaymentVerifiedEvent{userId=%s, billingAccountId=%s, correlationId=%s}", 
