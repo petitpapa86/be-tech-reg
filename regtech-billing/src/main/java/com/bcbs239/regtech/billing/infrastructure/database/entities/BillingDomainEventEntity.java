@@ -1,16 +1,20 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+
 import java.time.Instant;
 
 /**
  * Entity for storing domain events in the outbox pattern.
  * Ensures reliable event delivery by persisting events in the same transaction as business data.
  */
+@Getter
 @Entity
 @Table(name = "billing_domain_events", schema = "billing")
 public class BillingDomainEventEntity {
 
+    // Getters and setters
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -76,101 +80,48 @@ public class BillingDomainEventEntity {
         this.retryCount = 0;
     }
 
-    // Getters and setters
-    public Long getId() {
-        return id;
-    }
-
-    public String getEventId() {
-        return eventId;
-    }
-
     public void setEventId(String eventId) {
         this.eventId = eventId;
-    }
-
-    public String getEventType() {
-        return eventType;
     }
 
     public void setEventType(String eventType) {
         this.eventType = eventType;
     }
 
-    public String getCorrelationId() {
-        return correlationId;
-    }
-
     public void setCorrelationId(String correlationId) {
         this.correlationId = correlationId;
-    }
-
-    public String getSourceModule() {
-        return sourceModule;
     }
 
     public void setSourceModule(String sourceModule) {
         this.sourceModule = sourceModule;
     }
 
-    public String getTargetModule() {
-        return targetModule;
-    }
-
     public void setTargetModule(String targetModule) {
         this.targetModule = targetModule;
-    }
-
-    public String getEventData() {
-        return eventData;
     }
 
     public void setEventData(String eventData) {
         this.eventData = eventData;
     }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public Instant getProcessedAt() {
-        return processedAt;
     }
 
     public void setProcessedAt(Instant processedAt) {
         this.processedAt = processedAt;
     }
 
-    public ProcessingStatus getProcessingStatus() {
-        return processingStatus;
-    }
-
     public void setProcessingStatus(ProcessingStatus processingStatus) {
         this.processingStatus = processingStatus;
-    }
-
-    public Integer getRetryCount() {
-        return retryCount;
     }
 
     public void setRetryCount(Integer retryCount) {
         this.retryCount = retryCount;
     }
 
-    public String getLastError() {
-        return lastError;
-    }
-
     public void setLastError(String lastError) {
         this.lastError = lastError;
-    }
-
-    public Long getVersion() {
-        return version;
     }
 
     public void setVersion(Long version) {
