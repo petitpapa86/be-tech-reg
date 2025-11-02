@@ -51,14 +51,16 @@ public class IngestionSecurityService {
             
             // Validate token using existing infrastructure
             if (!permissionService.isValidToken(authToken)) {
-                logAccessAttempt("TOKEN_VALIDATION", authToken, clientIp, "failed", "Invalid token");
+                long duration = System.currentTimeMillis() - startTime;
+                logAccessAttempt("TOKEN_VALIDATION", authToken, clientIp, "failed", "Invalid token", duration, null);
                 return Result.failure(new ErrorDetail("AUTHENTICATION_ERROR", "Invalid or expired JWT token"));
             }
             
             // Extract bank ID
             String bankIdValue = permissionService.getBankId(authToken);
             if (bankIdValue == null || bankIdValue.trim().isEmpty()) {
-                logAccessAttempt("TOKEN_VALIDATION", authToken, clientIp, "failed", "Missing bank ID in token");
+                long duration = System.currentTimeMillis() - startTime;
+                logAccessAttempt("TOKEN_VALIDATION", authToken, clientIp, "failed", "Missing bank ID in token", duration, null);
                 return Result.failure(new ErrorDetail("AUTHENTICATION_ERROR", "Bank ID not found in JWT token"));
             }
             

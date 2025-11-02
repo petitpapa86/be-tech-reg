@@ -9,7 +9,7 @@ import com.bcbs239.regtech.core.shared.ResponseUtils;
 import com.bcbs239.regtech.modules.ingestion.application.batch.upload.UploadFileCommand;
 import com.bcbs239.regtech.modules.ingestion.application.batch.upload.UploadFileCommandHandler;
 import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BankId;
+import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.modules.ingestion.infrastructure.security.IngestionSecurityService;
 import com.bcbs239.regtech.modules.ingestion.presentation.common.IEndpoint;
 import org.springframework.http.ResponseEntity;

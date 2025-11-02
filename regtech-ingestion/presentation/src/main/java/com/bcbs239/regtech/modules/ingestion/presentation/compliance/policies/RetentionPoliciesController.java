@@ -3,10 +3,11 @@ package com.bcbs239.regtech.modules.ingestion.presentation.compliance.policies;
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ResponseUtils;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.DataRetentionPolicy;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.DataRetentionService;
+// import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.DataRetentionPolicy;
+// import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.DataRetentionService;
 import com.bcbs239.regtech.modules.ingestion.presentation.common.IEndpoint;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
@@ -22,15 +23,19 @@ import static org.springframework.web.servlet.function.RouterFunctions.route;
 /**
  * Functional endpoint for retention policy management operations.
  * Handles CRUD operations for data retention policies.
+ * 
+ * Note: Disabled until compliance services are implemented.
  */
 @Component
 @Slf4j
+@ConditionalOnProperty(name = "regtech.ingestion.compliance.enabled", havingValue = "true", matchIfMissing = false)
 public class RetentionPoliciesController extends BaseController implements IEndpoint {
     
-    private final DataRetentionService dataRetentionService;
+    // TODO: Implement when compliance services are available
+    // private final DataRetentionService dataRetentionService;
     
-    public RetentionPoliciesController(DataRetentionService dataRetentionService) {
-        this.dataRetentionService = dataRetentionService;
+    public RetentionPoliciesController() {
+        // Empty constructor for now
     }
     
     @Override

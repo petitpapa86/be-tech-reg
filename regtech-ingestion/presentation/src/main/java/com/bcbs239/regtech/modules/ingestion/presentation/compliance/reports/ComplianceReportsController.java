@@ -3,10 +3,11 @@ package com.bcbs239.regtech.modules.ingestion.presentation.compliance.reports;
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ResponseUtils;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.ComplianceReportData;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.DataRetentionService;
+// import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.ComplianceReportData;
+// import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.DataRetentionService;
 import com.bcbs239.regtech.modules.ingestion.presentation.common.IEndpoint;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
@@ -23,15 +24,19 @@ import static org.springframework.web.servlet.function.RouterFunctions.route;
 /**
  * Functional endpoint for compliance reporting operations.
  * Handles generation and retrieval of compliance reports.
+ * 
+ * Note: Disabled until compliance services are implemented.
  */
 @Component
 @Slf4j
+@ConditionalOnProperty(name = "regtech.ingestion.compliance.enabled", havingValue = "true", matchIfMissing = false)
 public class ComplianceReportsController extends BaseController implements IEndpoint {
     
-    private final DataRetentionService dataRetentionService;
+    // TODO: Implement when compliance services are available
+    // private final DataRetentionService dataRetentionService;
     
-    public ComplianceReportsController(DataRetentionService dataRetentionService) {
-        this.dataRetentionService = dataRetentionService;
+    public ComplianceReportsController() {
+        // Empty constructor for now
     }
     
     @Override

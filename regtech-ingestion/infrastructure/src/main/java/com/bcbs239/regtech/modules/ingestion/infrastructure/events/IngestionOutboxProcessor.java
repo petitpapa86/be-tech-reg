@@ -34,10 +34,6 @@ public class IngestionOutboxProcessor extends GenericOutboxEventProcessor {
     }
     
     @Override
-    protected boolean isProcessingEnabled() {
-        return processingEnabled;
-    }
-    
     public boolean isProcessingEnabled() {
         return processingEnabled;
     }
