@@ -503,12 +503,16 @@
 
 - [-] 15. Refactor to modular monolith architecture
 
-  - [-] 15.1 Create modular structure with separate layers
+  - [x] 15.1 Create modular structure with separate layers
+
 
     - Create application, domain, infrastructure, and presentation modules
     - Set up proper Maven module structure with parent/child pom.xml files
     - Define clear module dependencies and boundaries
     - _Requirements: All requirements (architectural improvement)_
+
+
+
   - [ ] 15.2 Migrate domain layer
     - Move domain models, repositories interfaces, and domain events
     - Organize by business entities (batch, bankinfo, performance)
