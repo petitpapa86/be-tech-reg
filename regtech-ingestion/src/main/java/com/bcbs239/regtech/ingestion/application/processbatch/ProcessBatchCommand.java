@@ -1,0 +1,24 @@
+package com.bcbs239.regtech.ingestion.application.command.processbatch;
+
+import com.bcbs239.regtech.ingestion.domain.model.BatchId;
+
+import java.io.InputStream;
+
+/**
+ * Command for processing a batch asynchronously.
+ * Contains batch ID and file stream for processing.
+ */
+public record ProcessBatchCommand(
+    BatchId batchId,
+    InputStream fileStream
+) {
+    
+    public ProcessBatchCommand {
+        if (batchId == null) {
+            throw new IllegalArgumentException("Batch ID cannot be null");
+        }
+        if (fileStream == null) {
+            throw new IllegalArgumentException("File stream cannot be null");
+        }
+    }
+}
