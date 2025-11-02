@@ -42,6 +42,7 @@
 		<module>regtech-iam</module>
 		<module>regtech-billing</module>
 		<module>regtech-ingestion</module>
+		<module>regtech-data-quality</module>
 		<module>regtech-app</module>
 	</modules>
 	

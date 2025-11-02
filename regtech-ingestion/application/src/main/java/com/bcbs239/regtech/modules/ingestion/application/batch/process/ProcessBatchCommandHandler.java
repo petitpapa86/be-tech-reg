@@ -2,6 +2,7 @@ package com.bcbs239.regtech.modules.ingestion.application.batch.process;
 
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.modules.ingestion.application.model.ParsedFileData;
 import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.modules.ingestion.domain.batch.IngestionBatch;
 import com.bcbs239.regtech.modules.ingestion.domain.batch.IIngestionBatchRepository;
@@ -221,8 +222,8 @@ public class ProcessBatchCommandHandler {
     // These services will be migrated to infrastructure layer
     // For now, creating placeholder interfaces
     public interface FileParsingService {
-        Result<ParsedFileData> parseJsonFile(InputStream fileStream, String fileName);
-        Result<ParsedFileData> parseExcelFile(InputStream fileStream, String fileName);
+        Result<com.bcbs239.regtech.modules.ingestion.application.model.ParsedFileData> parseJsonFile(InputStream fileStream, String fileName);
+        Result<com.bcbs239.regtech.modules.ingestion.application.model.ParsedFileData> parseExcelFile(InputStream fileStream, String fileName);
     }
     
     public interface FileValidationService {
@@ -243,10 +244,6 @@ public class ProcessBatchCommandHandler {
     
     public interface IngestionOutboxEventPublisher {
         void publishBatchIngestedEvent(BatchIngestedEvent event);
-    }
-    
-    public static class ParsedFileData {
-        // Placeholder for parsed file data
     }
     
     public static class ValidationResult {

@@ -2,9 +2,9 @@
 
 ## Introduction
 
-The Data Quality Module is a critical component of the BCBS 239 regulatory compliance system that validates exposure data against Basel Committee principles for risk data aggregation. This module ensures data accuracy, completeness, and regulatory compliance by implementing automated validation rules, quality scoring, and real-time alerting capabilities.
+The Data Quality Module is a critical component of the BCBS 239 regulatory compliance system that validates exposure data against Basel Committee principles for risk data aggregation. This module ensures comprehensive data quality assessment across six key dimensions: Completeness, Accuracy, Consistency, Timeliness, Uniqueness, and Validity.
 
-The module operates as an event-driven service that processes batches of exposure data, validates them against BCBS 239 Principle 3 (Accuracy & Integrity) and Principle 4 (Completeness), calculates quality scores, and publishes results for downstream consumption by reporting and alerting services.
+The module operates as an event-driven service within the modular monolith architecture, processing batches of exposure data, validating them using the Specification pattern for business rules, calculating multi-dimensional quality scores, and publishing results through the CrossModuleEventBus for downstream consumption by reporting and alerting services.
 
 ## Requirements
 
@@ -14,7 +14,7 @@ The module operates as an event-driven service that processes batches of exposur
 
 #### Acceptance Criteria
 
-1. WHEN a BatchIngested event is received from Kafka THEN the system SHALL initiate quality validation processing
+1. WHEN a BatchIngested event is received through CrossModuleEventBus THEN the system SHALL initiate quality validation processing
 2. WHEN processing a batch THEN the system SHALL ensure idempotency by checking if the batch has already been validated
 3. WHEN multiple batches arrive simultaneously THEN the system SHALL process up to 3 batches in parallel
 4. WHEN a batch validation fails THEN the system SHALL update the batch status to FAILED with error details
@@ -32,36 +32,38 @@ The module operates as an event-driven service that processes batches of exposur
 4. WHEN S3 download fails THEN the system SHALL retry up to 3 times with exponential backoff
 5. WHEN JSON parsing fails THEN the system SHALL log detailed error information and mark batch as FAILED
 
-### Requirement 3: BCBS 239 Compliance Validation
+### Requirement 3: Six-Dimensional Data Quality Validation
 
-**User Story:** As a regulatory compliance officer, I want exposure data validated against BCBS 239 principles, so that our risk reporting meets Basel Committee standards.
-
-#### Acceptance Criteria
-
-1. WHEN validating exposures THEN the system SHALL apply all 11 BCBS 239 validation rules (6 for Principle 3, 5 for Principle 4)
-2. WHEN an exposure fails Principle 3 accuracy rules THEN the system SHALL mark it as ERROR severity
-3. WHEN an exposure fails Principle 4 completeness rules THEN the system SHALL mark it as WARNING severity
-4. WHEN validating amounts THEN the system SHALL ensure they are positive and within reasonable bounds (< 10B EUR)
-5. WHEN validating currency codes THEN the system SHALL verify against ISO 4217 standard
-6. WHEN validating country codes THEN the system SHALL verify against ISO 3166 standard
-7. WHEN validating LEI codes THEN the system SHALL check for 20 alphanumeric character format
-8. WHEN checking for duplicates THEN the system SHALL ensure exposure IDs are unique within the batch
-9. WHEN validating corporate exposures THEN the system SHALL require LEI codes for CORPORATE and BANKING sectors
-10. WHEN validating required fields THEN the system SHALL ensure exposure_id, amount, currency, country, and sector are present
-
-### Requirement 4: Quality Scoring and Compliance Assessment
-
-**User Story:** As a risk manager, I want automated quality scoring and compliance status determination, so that I can quickly assess data quality and take corrective actions.
+**User Story:** As a regulatory compliance officer, I want exposure data validated across all six data quality dimensions using business rule specifications, so that our risk reporting meets comprehensive quality standards.
 
 #### Acceptance Criteria
 
-1. WHEN calculating quality scores THEN the system SHALL compute Principle 3 score as percentage of passed accuracy rules
-2. WHEN calculating quality scores THEN the system SHALL compute Principle 4 score as percentage of passed completeness rules
-3. WHEN determining overall score THEN the system SHALL calculate as (Principle 3 + Principle 4) / 2
-4. WHEN overall score >= 95% AND both principles >= 80% THEN the system SHALL mark as FULLY_COMPLIANT
-5. WHEN overall score >= 80% AND both principles >= 75% THEN the system SHALL mark as COMPLIANT_WITH_WARNINGS
-6. WHEN overall score < 80% OR any principle < 75% THEN the system SHALL mark as NON_COMPLIANT
-7. WHEN calculating validation counts THEN the system SHALL track total, passed, and failed validations
+1. WHEN validating exposures THEN the system SHALL implement Specification pattern for all business rules
+2. WHEN applying Completeness validation THEN the system SHALL ensure all required fields are present and non-empty
+3. WHEN applying Accuracy validation THEN the system SHALL verify data formats, ranges, and business logic correctness
+4. WHEN applying Consistency validation THEN the system SHALL check cross-field relationships and referential integrity
+5. WHEN applying Timeliness validation THEN the system SHALL verify data freshness and processing deadlines
+6. WHEN applying Uniqueness validation THEN the system SHALL ensure no duplicate records or identifiers exist
+7. WHEN applying Validity validation THEN the system SHALL confirm data conforms to business rules and constraints
+8. WHEN validation rules fail THEN the system SHALL use Result pattern to propagate domain-safe errors
+9. WHEN combining multiple rules THEN the system SHALL support AND/OR composition of specifications
+10. WHEN new validation rules are needed THEN the system SHALL allow pluggable specification implementations
+
+### Requirement 4: Multi-Dimensional Quality Scoring
+
+**User Story:** As a risk manager, I want automated quality scoring across all six dimensions with weighted assessment, so that I can quickly assess overall data quality and prioritize corrective actions.
+
+#### Acceptance Criteria
+
+1. WHEN calculating dimension scores THEN the system SHALL compute individual scores for Completeness, Accuracy, Consistency, Timeliness, Uniqueness, and Validity
+2. WHEN determining overall score THEN the system SHALL apply weighted average: Completeness(25%) + Accuracy(25%) + Consistency(20%) + Timeliness(15%) + Uniqueness(10%) + Validity(5%)
+3. WHEN overall score >= 95% THEN the system SHALL mark as EXCELLENT (A+)
+4. WHEN overall score >= 90% AND < 95% THEN the system SHALL mark as VERY_GOOD (A)
+5. WHEN overall score >= 80% AND < 90% THEN the system SHALL mark as GOOD (B)
+6. WHEN overall score >= 70% AND < 80% THEN the system SHALL mark as ACCEPTABLE (C)
+7. WHEN overall score < 70% THEN the system SHALL mark as POOR (F)
+8. WHEN calculating scores THEN the system SHALL track individual rule pass/fail counts per dimension
+9. WHEN scores decline over time THEN the system SHALL identify trending quality issues
 
 ### Requirement 5: Database Storage and Performance
 
@@ -89,18 +91,18 @@ The module operates as an event-driven service that processes batches of exposur
 5. WHEN storing results THEN the system SHALL include metadata headers with batch-id, overall-score, and compliant status
 6. WHEN S3 storage is complete THEN the system SHALL return the S3 URI for database reference
 
-### Requirement 7: Event Publishing and Integration
+### Requirement 7: Cross-Module Event Publishing
 
 **User Story:** As a downstream service (reporting/alerting), I want to be notified when batch quality validation is complete, so that I can process the results for my specific use case.
 
 #### Acceptance Criteria
 
-1. WHEN quality validation completes THEN the system SHALL publish BatchQualityCompleted event to Kafka
-2. WHEN publishing events THEN the system SHALL include batch metadata, quality scores, and S3 URI
-3. WHEN batch is non-compliant THEN the system SHALL trigger immediate alerting service notification
+1. WHEN quality validation completes THEN the system SHALL publish BatchQualityCompleted event through CrossModuleEventBus
+2. WHEN publishing events THEN the system SHALL include batch metadata, all six dimension scores, and S3 URI
+3. WHEN batch quality is poor THEN the system SHALL trigger immediate alerting service notification
 4. WHEN event publishing fails THEN the system SHALL retry up to 5 times with exponential backoff
-5. WHEN publishing to Kafka THEN the system SHALL use batch_id as the message key for proper partitioning
-6. WHEN including issue summaries THEN the system SHALL group errors by rule code and limit affected IDs to 5 examples
+5. WHEN publishing events THEN the system SHALL use structured event format compatible with other modules
+6. WHEN including issue summaries THEN the system SHALL group errors by dimension and rule type
 
 ### Requirement 8: Error Handling and Resilience
 
@@ -111,7 +113,7 @@ The module operates as an event-driven service that processes batches of exposur
 1. WHEN any processing step fails THEN the system SHALL log detailed error information with correlation IDs
 2. WHEN S3 operations fail THEN the system SHALL implement exponential backoff retry strategy
 3. WHEN database operations fail THEN the system SHALL rollback transactions and retry with backoff
-4. WHEN Kafka publishing fails THEN the system SHALL use dead letter queue for failed messages
+4. WHEN CrossModuleEventBus publishing fails THEN the system SHALL use retry mechanism with dead letter handling
 5. WHEN processing times exceed thresholds THEN the system SHALL log performance warnings
 6. WHEN system resources are low THEN the system SHALL implement circuit breaker pattern to prevent cascade failures
 
@@ -128,14 +130,27 @@ The module operates as an event-driven service that processes batches of exposur
 5. WHEN validation rules fail frequently THEN the system SHALL track failure patterns for analysis
 6. WHEN system health checks run THEN the system SHALL verify connectivity to S3, database, and Kafka
 
-### Requirement 10: Configuration and Flexibility
+### Requirement 10: Specification Pattern Implementation
+
+**User Story:** As a domain expert, I want business rules implemented using the Specification pattern, so that validation logic is explicit, testable, and composable.
+
+#### Acceptance Criteria
+
+1. WHEN implementing validation rules THEN the system SHALL use Specification<ExposureRecord> interface
+2. WHEN combining rules THEN the system SHALL support AND, OR, and NOT composition operators
+3. WHEN validation fails THEN the system SHALL return Result<Void> with domain-safe error details
+4. WHEN creating rule specifications THEN the system SHALL group them by quality dimension (e.g., CompletenessSpecifications, AccuracySpecifications)
+5. WHEN rules need to be reused THEN the system SHALL implement them as composable, stateless specifications
+6. WHEN new business rules are added THEN the system SHALL follow the same specification pattern for consistency
+
+### Requirement 11: Configuration and Flexibility
 
 **User Story:** As a system administrator, I want configurable validation rules and thresholds, so that the system can adapt to changing regulatory requirements without code changes.
 
 #### Acceptance Criteria
 
 1. WHEN validation rules change THEN the system SHALL support configuration updates without service restart
-2. WHEN compliance thresholds change THEN the system SHALL allow runtime configuration of score thresholds
-3. WHEN new validation rules are added THEN the system SHALL support pluggable rule architecture
+2. WHEN quality score thresholds change THEN the system SHALL allow runtime configuration of dimension weights and grade boundaries
+3. WHEN new validation rules are added THEN the system SHALL support pluggable specification architecture
 4. WHEN processing different file types THEN the system SHALL support configurable parsing strategies
 5. WHEN retry policies need adjustment THEN the system SHALL allow configuration of retry counts and backoff strategies

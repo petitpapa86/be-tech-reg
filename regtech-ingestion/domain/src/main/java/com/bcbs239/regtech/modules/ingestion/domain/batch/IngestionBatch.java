@@ -5,6 +5,8 @@ import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankInfo;
+import com.bcbs239.regtech.modules.ingestion.domain.batch.rules.BatchSpecifications;
+import com.bcbs239.regtech.modules.ingestion.domain.batch.rules.BatchTransitions;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -75,14 +77,18 @@ public class IngestionBatch extends Entity {
      * Start processing the batch by transitioning to PARSING status.
      */
     public Result<Void> startProcessing() {
-        if (!canTransitionTo(BatchStatus.PARSING)) {
-            return Result.failure(new ErrorDetail("INVALID_STATE_TRANSITION", 
-                String.format("Cannot transition from %s to PARSING", status)));
-        }
-        
-        this.status = BatchStatus.PARSING;
+        // Business rules: cannot start if batch is terminal
+        Result<Void> spec = BatchSpecifications.mustNotBeTerminal().isSatisfiedBy(this);
+        if (spec.isFailure()) return spec;
+
+        // Validate transition
+        Result<Void> vt = BatchTransitions.validateTransition(this, BatchStatus.PARSING);
+        if (vt.isFailure()) return vt;
+
+        // Apply transition
+        BatchTransitions.applyTransition(this, BatchStatus.PARSING);
         addDomainEvent(new BatchProcessingStartedEvent(batchId, bankId, Instant.now()));
-        
+
         return Result.success(null);
     }
     
@@ -90,20 +96,20 @@ public class IngestionBatch extends Entity {
      * Mark the batch as validated with the exposure count.
      */
     public Result<Void> markAsValidated(int exposureCount) {
-        if (!canTransitionTo(BatchStatus.VALIDATED)) {
-            return Result.failure(new ErrorDetail("INVALID_STATE_TRANSITION", 
-                String.format("Cannot transition from %s to VALIDATED", status)));
-        }
-        
+        // Validate exposure count
         if (exposureCount < 0) {
-            return Result.failure(new ErrorDetail("INVALID_EXPOSURE_COUNT", 
-                "Exposure count cannot be negative"));
+            return Result.failure(new ErrorDetail("INVALID_EXPOSURE_COUNT", "Exposure count cannot be negative"));
         }
-        
-        this.status = BatchStatus.VALIDATED;
+
+        // Transition validation
+        Result<Void> vt = BatchTransitions.validateTransition(this, BatchStatus.VALIDATED);
+        if (vt.isFailure()) return vt;
+
+        // Apply
+        BatchTransitions.applyTransition(this, BatchStatus.VALIDATED);
         this.totalExposures = exposureCount;
         addDomainEvent(new BatchValidatedEvent(batchId, bankId, exposureCount, Instant.now()));
-        
+
         return Result.success(null);
     }
     
@@ -133,15 +139,18 @@ public class IngestionBatch extends Entity {
     public Result<Void> recordS3Storage(S3Reference s3Reference) {
         Objects.requireNonNull(s3Reference, "S3 reference cannot be null");
         
-        if (!canTransitionTo(BatchStatus.STORING)) {
-            return Result.failure(new ErrorDetail("INVALID_STATE_TRANSITION", 
-                String.format("Cannot transition from %s to STORING", status)));
-        }
-        
-        this.status = BatchStatus.STORING;
+        // Apply business rule: batch must not be terminal and must be validated
+        Result<Void> spec = BatchSpecifications.mustNotBeTerminal().and(BatchSpecifications.mustHaveExposureCount()).isSatisfiedBy(this);
+        if (spec.isFailure()) return spec;
+
+        // Transition validation
+        Result<Void> vt = BatchTransitions.validateTransition(this, BatchStatus.STORING);
+        if (vt.isFailure()) return vt;
+
+        BatchTransitions.applyTransition(this, BatchStatus.STORING);
         this.s3Reference = s3Reference;
         addDomainEvent(new BatchStoredEvent(batchId, bankId, s3Reference, Instant.now()));
-        
+
         return Result.success(null);
     }
     
@@ -149,28 +158,20 @@ public class IngestionBatch extends Entity {
      * Complete the ingestion process.
      */
     public Result<Void> completeIngestion() {
-        if (!canTransitionTo(BatchStatus.COMPLETED)) {
-            return Result.failure(new ErrorDetail("INVALID_STATE_TRANSITION", 
-                String.format("Cannot transition from %s to COMPLETED", status)));
-        }
-        
-        if (s3Reference == null) {
-            return Result.failure(new ErrorDetail("MISSING_S3_REFERENCE", 
-                "Cannot complete ingestion without S3 reference"));
-        }
-        
-        if (totalExposures == null) {
-            return Result.failure(new ErrorDetail("MISSING_EXPOSURE_COUNT", 
-                "Cannot complete ingestion without exposure count"));
-        }
-        
-        this.status = BatchStatus.COMPLETED;
+        // Validate specs: must have s3 and exposure count
+        Result<Void> spec = BatchSpecifications.mustHaveS3Reference().and(BatchSpecifications.mustHaveExposureCount()).isSatisfiedBy(this);
+        if (spec.isFailure()) return spec;
+
+        // Validate transition
+        Result<Void> vt = BatchTransitions.validateTransition(this, BatchStatus.COMPLETED);
+        if (vt.isFailure()) return vt;
+
+        BatchTransitions.applyTransition(this, BatchStatus.COMPLETED);
         this.completedAt = Instant.now();
         this.processingDurationMs = completedAt.toEpochMilli() - uploadedAt.toEpochMilli();
-        
-        addDomainEvent(new BatchCompletedEvent(batchId, bankId, s3Reference, 
-            totalExposures, fileMetadata.fileSizeBytes(), completedAt));
-        
+
+        addDomainEvent(new BatchCompletedEvent(batchId, bankId, s3Reference, totalExposures, fileMetadata.fileSizeBytes(), completedAt));
+
         return Result.success(null);
     }
     
@@ -180,16 +181,15 @@ public class IngestionBatch extends Entity {
     public Result<Void> markAsFailed(String errorMessage) {
         Objects.requireNonNull(errorMessage, "Error message cannot be null");
         
-        if (!canTransitionTo(BatchStatus.FAILED)) {
-            return Result.failure(new ErrorDetail("INVALID_STATE_TRANSITION", 
-                String.format("Cannot transition from %s to FAILED", status)));
-        }
-        
-        this.status = BatchStatus.FAILED;
+        // Allow failing from non-terminal states
+        Result<Void> vt = BatchTransitions.validateTransition(this, BatchStatus.FAILED);
+        if (vt.isFailure()) return vt;
+
+        BatchTransitions.applyTransition(this, BatchStatus.FAILED);
         this.errorMessage = errorMessage;
         this.completedAt = Instant.now();
         this.processingDurationMs = completedAt.toEpochMilli() - uploadedAt.toEpochMilli();
-        
+
         return Result.success(null);
     }
     
@@ -275,3 +275,4 @@ public class IngestionBatch extends Entity {
         this.updatedAt = Instant.now();
     }
 }
+
