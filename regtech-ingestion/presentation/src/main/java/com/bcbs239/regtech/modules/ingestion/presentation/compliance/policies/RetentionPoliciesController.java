@@ -47,53 +47,16 @@ public class RetentionPoliciesController extends BaseController implements IEndp
     }
     
     private ServerResponse getRetentionPolicies(ServerRequest request) {
-        try {
-            log.info("Retrieving current retention policies");
-            
-            Map<String, DataRetentionPolicy> policies = dataRetentionService.getRetentionPolicies();
-            return ServerResponse.ok()
-                .body(ResponseUtils.success(policies, "Retention policies retrieved successfully"));
-        } catch (Exception e) {
-            log.error("Error retrieving retention policies: {}", e.getMessage(), e);
-            return ServerResponse.status(500)
-                .body(ResponseUtils.systemError("Failed to retrieve retention policies: " + e.getMessage()));
-        }
+        // TODO: Implement when compliance services are available
+        log.info("Retention policies retrieval not yet implemented");
+        return ServerResponse.status(501)
+            .body(ResponseUtils.systemError("Compliance features not yet implemented"));
     }
     
     private ServerResponse updateRetentionPolicy(ServerRequest request) {
-        try {
-            String policyId = request.pathVariable("policyId");
-            log.info("Updating retention policy: {}", policyId);
-            
-            // Parse request body
-            DataRetentionPolicy policy = request.body(DataRetentionPolicy.class);
-            
-            // Ensure the policy ID in the path matches the policy object
-            if (!policyId.equals(policy.getPolicyId())) {
-                return ServerResponse.badRequest()
-                    .body(ResponseUtils.validationError(
-                        java.util.List.of(),
-                        "Policy ID in path does not match policy object"
-                    ));
-            }
-            
-            Result<Void> result = dataRetentionService.updateRetentionPolicy(policy);
-            
-            if (result.isSuccess()) {
-                log.info("Successfully updated retention policy: {}", policyId);
-                return ServerResponse.ok()
-                    .body(ResponseUtils.success(null, "Retention policy updated successfully"));
-            } else {
-                log.error("Failed to update retention policy {}: {}", policyId, result.getError().orElse(null));
-                ResponseEntity<?> responseEntity = handleResult(result, 
-                    "Retention policy updated", "compliance.policy.success");
-                return ServerResponse.status(responseEntity.getStatusCode())
-                    .body(responseEntity.getBody());
-            }
-        } catch (Exception e) {
-            log.error("Error updating retention policy: {}", e.getMessage(), e);
-            return ServerResponse.status(500)
-                .body(ResponseUtils.systemError("Failed to update retention policy: " + e.getMessage()));
-        }
+        // TODO: Implement when compliance services are available
+        log.info("Retention policy update not yet implemented");
+        return ServerResponse.status(501)
+            .body(ResponseUtils.systemError("Compliance features not yet implemented"));
     }
 }

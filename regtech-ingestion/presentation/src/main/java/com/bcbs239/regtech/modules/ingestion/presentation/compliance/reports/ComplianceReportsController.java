@@ -48,86 +48,16 @@ public class ComplianceReportsController extends BaseController implements IEndp
     }
     
     private ServerResponse generateComplianceReport(ServerRequest request) {
-        try {
-            // Extract query parameters
-            String startDateStr = request.queryParam("startDate").orElse(null);
-            String endDateStr = request.queryParam("endDate").orElse(null);
-            
-            if (startDateStr == null || endDateStr == null) {
-                return ServerResponse.badRequest()
-                    .body(ResponseUtils.validationError(
-                        java.util.List.of(),
-                        "Both startDate and endDate query parameters are required (format: YYYY-MM-DD)"
-                    ));
-            }
-            
-            LocalDate startDate = LocalDate.parse(startDateStr);
-            LocalDate endDate = LocalDate.parse(endDateStr);
-            
-            log.info("Generating compliance report for period {} to {}", startDate, endDate);
-            
-            Instant startInstant = startDate.atStartOfDay().toInstant(ZoneOffset.UTC);
-            Instant endInstant = endDate.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
-            
-            Result<ComplianceReportData> result = dataRetentionService.generateComplianceReport(
-                    startInstant, endInstant);
-            
-            if (result.isSuccess()) {
-                ComplianceReportData report = result.getValue();
-                log.info("Generated compliance report: {}", report.getComplianceSummary());
-                return ServerResponse.ok()
-                    .body(ResponseUtils.success(report, "Compliance report generated successfully"));
-            } else {
-                log.error("Failed to generate compliance report: {}", result.getError().orElse(null));
-                ResponseEntity<?> responseEntity = handleResult(result, 
-                    "Compliance report generated", "compliance.report.success");
-                return ServerResponse.status(responseEntity.getStatusCode())
-                    .body(responseEntity.getBody());
-            }
-        } catch (Exception e) {
-            log.error("Error generating compliance report: {}", e.getMessage(), e);
-            return ServerResponse.status(500)
-                .body(ResponseUtils.systemError("Failed to generate compliance report: " + e.getMessage()));
-        }
+        // TODO: Implement when compliance services are available
+        log.info("Compliance report generation not yet implemented");
+        return ServerResponse.status(501)
+            .body(ResponseUtils.systemError("Compliance features not yet implemented"));
     }
     
     private ServerResponse getComplianceStatus(ServerRequest request) {
-        try {
-            log.info("Retrieving compliance status summary");
-            
-            // Generate a quick report for the last 30 days
-            Instant endDate = Instant.now();
-            Instant startDate = endDate.minus(30, java.time.temporal.ChronoUnit.DAYS);
-            
-            Result<ComplianceReportData> result = dataRetentionService.generateComplianceReport(
-                    startDate, endDate);
-            
-            if (result.isSuccess()) {
-                ComplianceReportData report = result.getValue();
-                ComplianceStatusSummary summary = ComplianceStatusSummary.builder()
-                        .isCompliant(report.isCompliant())
-                        .complianceScore(report.calculateComplianceScore())
-                        .totalFilesUnderRetention(report.getTotalFilesUnderRetention())
-                        .totalViolations(report.getComplianceViolations().size())
-                        .filesApproachingExpiry(report.getFilesApproachingExpiry().size())
-                        .filesEligibleForDeletion(report.getFilesEligibleForDeletion().size())
-                        .lastReportGenerated(report.getReportGeneratedAt())
-                        .summary(report.getComplianceSummary())
-                        .build();
-                
-                return ServerResponse.ok()
-                    .body(ResponseUtils.success(summary, "Compliance status retrieved successfully"));
-            } else {
-                log.error("Failed to get compliance status: {}", result.getError().orElse(null));
-                ResponseEntity<?> responseEntity = handleResult(result, 
-                    "Compliance status retrieved", "compliance.status.success");
-                return ServerResponse.status(responseEntity.getStatusCode())
-                    .body(responseEntity.getBody());
-            }
-        } catch (Exception e) {
-            log.error("Error retrieving compliance status: {}", e.getMessage(), e);
-            return ServerResponse.status(500)
-                .body(ResponseUtils.systemError("Failed to retrieve compliance status: " + e.getMessage()));
-        }
+        // TODO: Implement when compliance services are available
+        log.info("Compliance status retrieval not yet implemented");
+        return ServerResponse.status(501)
+            .body(ResponseUtils.systemError("Compliance features not yet implemented"));
     }
 }

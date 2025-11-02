@@ -10,6 +10,7 @@ import com.bcbs239.regtech.modules.ingestion.application.batch.process.ProcessBa
 import com.bcbs239.regtech.modules.ingestion.application.batch.process.ProcessBatchCommandHandler;
 import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.modules.ingestion.presentation.common.IEndpoint;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
@@ -26,6 +27,7 @@ import static org.springframework.web.servlet.function.RouterFunctions.route;
  * Handles asynchronous processing of uploaded batches.
  */
 @Component
+@Slf4j
 public class ProcessBatchController extends BaseController implements IEndpoint {
     
     private final ProcessBatchCommandHandler processBatchCommandHandler;
@@ -42,49 +44,55 @@ public class ProcessBatchController extends BaseController implements IEndpoint 
     }
     
     private ServerResponse handle(ServerRequest request) {
-        // Extract batch ID from path variable
-        String batchIdStr = request.pathVariable("batchId");
-        
-        // Extract multipart file
-        var multipartData = request.multipartData();
-        var filePart = multipartData.get("file");
-        
-        // Validate request parameters
-        Result<Void> validationResult = validateProcessRequest(batchIdStr, filePart);
-        if (validationResult.isFailure()) {
-            ErrorDetail error = validationResult.getError().orElseThrow();
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
-            return ServerResponse.status(responseEntity.getStatusCode())
-                .body(responseEntity.getBody());
-        }
-        
-        var file = filePart.get(0);
-        
-        // Create command - IOException and IllegalArgumentException will be caught by IngestionExceptionHandler
-        ProcessBatchCommand command = new ProcessBatchCommand(
-            BatchId.of(batchIdStr),
-            file.getInputStream()
-        );
-        
-        // Execute command
-        Result<Void> result = processBatchCommandHandler.handle(command);
-        
-        if (result.isSuccess()) {
-            ProcessBatchResponse response = ProcessBatchResponse.from(batchIdStr);
-            return ServerResponse.ok()
-                .body(ResponseUtils.success(response, "Batch processing completed successfully"));
-        } else {
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(result, 
-                "Batch processing completed", "ingestion.process.success");
-            return ServerResponse.status(responseEntity.getStatusCode())
-                .body(responseEntity.getBody());
+        try {
+            // Extract batch ID from path variable
+            String batchIdStr = request.pathVariable("batchId");
+            
+            // Extract multipart file
+            var multipartData = request.multipartData();
+            var filePart = multipartData.get("file");
+            
+            // Validate request parameters
+            Result<Void> validationResult = validateProcessRequest(batchIdStr, filePart);
+            if (validationResult.isFailure()) {
+                ErrorDetail error = validationResult.getError().orElseThrow();
+                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
+                return ServerResponse.status(responseEntity.getStatusCode())
+                    .body(responseEntity.getBody());
+            }
+            
+            var file = filePart.get(0);
+            
+            // Create command - IOException and IllegalArgumentException will be caught by IngestionExceptionHandler
+            ProcessBatchCommand command = new ProcessBatchCommand(
+                BatchId.of(batchIdStr),
+                file.getInputStream()
+            );
+            
+            // Execute command
+            Result<Void> result = processBatchCommandHandler.handle(command);
+            
+            if (result.isSuccess()) {
+                ProcessBatchResponse response = ProcessBatchResponse.from(batchIdStr);
+                return ServerResponse.ok()
+                    .body(ResponseUtils.success(response, "Batch processing completed successfully"));
+            } else {
+                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(result, 
+                    "Batch processing completed", "ingestion.process.success");
+                return ServerResponse.status(responseEntity.getStatusCode())
+                    .body(responseEntity.getBody());
+            }
+        } catch (java.io.IOException | jakarta.servlet.ServletException e) {
+            log.error("Error processing uploaded file: {}", e.getMessage(), e);
+            return ServerResponse.status(500)
+                .body(ResponseUtils.systemError("Failed to process uploaded file: " + e.getMessage()));
         }
     }
 
     /**
      * Validates process request parameters.
      */
-    private Result<Void> validateProcessRequest(String batchId, List<org.springframework.web.multipart.MultipartFile> filePart) {
+    private Result<Void> validateProcessRequest(String batchId, List<jakarta.servlet.http.Part> filePart) {
         List<FieldError> fieldErrors = new java.util.ArrayList<>();
 
         // Validate batch ID
@@ -103,6 +111,6 @@ public class ProcessBatchController extends BaseController implements IEndpoint 
             return Result.failure(ErrorDetail.validationError(fieldErrors));
         }
 
-        return Result.success();
+        return Result.success(null);
     }
 }

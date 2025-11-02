@@ -121,6 +121,6 @@ public class BatchStatusController extends BaseController implements IEndpoint {
             return Result.failure(ErrorDetail.validationError(fieldErrors));
         }
 
-        return Result.success();
+        return Result.success(null);
     }
 }
