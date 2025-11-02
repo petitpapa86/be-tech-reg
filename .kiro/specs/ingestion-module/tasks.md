@@ -443,21 +443,28 @@
     - Test circuit breaker functionality
     - _Requirements: 8.1, 8.4, 8.7_
 
-- [-] 13. Performance optimization and scalability
+- [x] 13. Performance optimization and scalability
 
 
 
-  - [-] 13.1 Optimize file processing performance
+
+
+  - [x] 13.1 Optimize file processing performance
+
 
     - Implement streaming JSON parsing to avoid memory issues
     - Use parallel processing for multiple concurrent files
     - Optimize database queries with appropriate indexing
     - _Requirements: 9.2, 9.3, 9.7_
 
+
+
   - [ ] 13.2 Add performance monitoring and alerting
     - Set up alerts for processing time thresholds
     - Monitor memory usage during large file parsing
     - Track system performance under high load
+
+
     - _Requirements: 9.1, 9.4, 13.3_
 
   - [ ] 13.3 Implement file splitting suggestions
@@ -493,3 +500,37 @@
     - Test memory and resource usage patterns
     - Use existing monitoring and logging infrastructure for performance analysis
     - _Requirements: 9.3, 9.4_
+
+- [-] 15. Refactor to modular monolith architecture
+
+  - [-] 15.1 Create modular structure with separate layers
+
+    - Create application, domain, infrastructure, and presentation modules
+    - Set up proper Maven module structure with parent/child pom.xml files
+    - Define clear module dependencies and boundaries
+    - _Requirements: All requirements (architectural improvement)_
+  - [ ] 15.2 Migrate domain layer
+    - Move domain models, repositories interfaces, and domain events
+    - Organize by business entities (batch, bankinfo, performance)
+    - Ensure domain layer has no external dependencies
+    - _Requirements: 1.1, 1.2, 2.1, 3.1, 3.2, 3.3_
+  - [ ] 15.3 Migrate application layer
+    - Move command/query handlers and application services
+    - Organize by entity and operation (batch/upload, batch/process, etc.)
+    - Implement proper CQRS pattern with clear separation
+    - _Requirements: 4.1, 4.2, 4.3, 5.1, 5.2, 5.3_
+  - [ ] 15.4 Migrate infrastructure layer
+    - Move persistence implementations, external service integrations
+    - Organize by entity and technical concern
+    - Ensure proper dependency injection and configuration
+    - _Requirements: 6.1, 6.2, 6.3, 7.1, 7.2, 8.1, 8.2, 8.3_
+  - [ ] 15.5 Migrate presentation layer
+    - Move REST controllers and DTOs
+    - Organize by entity and operation
+    - Ensure proper API versioning and documentation
+    - _Requirements: 4.1, 4.2, 4.3, 10.1, 10.2, 10.3_
+  - [ ] 15.6 Update build configuration and dependencies
+    - Configure Maven modules with proper dependency management
+    - Update Spring Boot configuration for modular structure
+    - Ensure proper test configuration across modules
+    - _Requirements: All requirements (build and deployment)_

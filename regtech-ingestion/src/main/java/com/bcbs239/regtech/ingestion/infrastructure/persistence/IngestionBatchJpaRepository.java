@@ -97,4 +97,69 @@ public interface IngestionBatchJpaRepository extends JpaRepository<IngestionBatc
            "b.status IN :statuses AND b.updatedAt < :cutoffTime")
     List<IngestionBatchEntity> findStuckBatchesByStatuses(@Param("statuses") List<BatchStatus> statuses, 
                                                           @Param("cutoffTime") Instant cutoffTime);
+    
+    /**
+     * Find batches with pagination for large result sets.
+     */
+    @Query("SELECT b FROM IngestionBatchEntity b WHERE " +
+           "b.bankId = :bankId ORDER BY b.uploadedAt DESC")
+    List<IngestionBatchEntity> findByBankIdWithPagination(@Param("bankId") String bankId, 
+                                                          org.springframework.data.domain.Pageable pageable);
+    
+    /**
+     * Find batches by status with pagination for performance.
+     */
+    @Query("SELECT b FROM IngestionBatchEntity b WHERE " +
+           "b.status = :status ORDER BY b.uploadedAt DESC")
+    List<IngestionBatchEntity> findByStatusWithPagination(@Param("status") BatchStatus status,
+                                                          org.springframework.data.domain.Pageable pageable);
+    
+    /**
+     * Get processing performance statistics.
+     */
+    @Query("SELECT " +
+           "AVG(b.processingDurationMs) as avgDuration, " +
+           "MIN(b.processingDurationMs) as minDuration, " +
+           "MAX(b.processingDurationMs) as maxDuration, " +
+           "COUNT(b) as totalCount " +
+           "FROM IngestionBatchEntity b WHERE " +
+           "b.status = 'COMPLETED' AND b.processingDurationMs IS NOT NULL AND " +
+           "b.uploadedAt BETWEEN :startTime AND :endTime")
+    Object[] getProcessingStatistics(@Param("startTime") Instant startTime, 
+                                   @Param("endTime") Instant endTime);
+    
+    /**
+     * Find large files for performance analysis.
+     */
+    @Query("SELECT b FROM IngestionBatchEntity b WHERE " +
+           "b.fileSizeBytes > :sizeThreshold ORDER BY b.fileSizeBytes DESC")
+    List<IngestionBatchEntity> findLargeFiles(@Param("sizeThreshold") long sizeThreshold);
+    
+    /**
+     * Get file size distribution statistics.
+     */
+    @Query("SELECT " +
+           "COUNT(CASE WHEN b.fileSizeBytes < 1048576 THEN 1 END) as small, " +
+           "COUNT(CASE WHEN b.fileSizeBytes BETWEEN 1048576 AND 104857600 THEN 1 END) as medium, " +
+           "COUNT(CASE WHEN b.fileSizeBytes > 104857600 THEN 1 END) as large " +
+           "FROM IngestionBatchEntity b WHERE " +
+           "b.uploadedAt BETWEEN :startTime AND :endTime")
+    Object[] getFileSizeDistribution(@Param("startTime") Instant startTime, 
+                                   @Param("endTime") Instant endTime);
+    
+    /**
+     * Find batches with slow processing for performance monitoring.
+     */
+    @Query("SELECT b FROM IngestionBatchEntity b WHERE " +
+           "b.processingDurationMs > :durationThreshold AND " +
+           "b.status = 'COMPLETED' " +
+           "ORDER BY b.processingDurationMs DESC")
+    List<IngestionBatchEntity> findSlowProcessingBatches(@Param("durationThreshold") long durationThreshold);
+    
+    /**
+     * Count active processing batches for load monitoring.
+     */
+    @Query("SELECT COUNT(b) FROM IngestionBatchEntity b WHERE " +
+           "b.status IN ('PARSING', 'VALIDATED', 'STORING')")
+    long countActiveProcessingBatches();
 }
