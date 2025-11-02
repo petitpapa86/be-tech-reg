@@ -3,7 +3,6 @@ package com.bcbs239.regtech.billing.application.handlers;
 import com.bcbs239.regtech.billing.application.policies.PaymentVerificationSaga;
 import com.bcbs239.regtech.billing.domain.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.billing.BillingAccountId;
-// import com.bcbs239.regtech.billing.domain.billing.PaymentVerificationSagaData;
 import com.bcbs239.regtech.billing.domain.billing.PaymentVerificationSagaData;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
@@ -15,34 +14,56 @@ import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubsc
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.application.IIntegrationEventHandler;
 import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
-// import com.bcbs239.regtech.core.saga.SagaId;
-// import com.bcbs239.regtech.core.saga.SagaManager;
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaManager;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 
-import lombok.RequiredArgsConstructor;
-
+import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Event handler for UserRegisteredIntegrationEvent.
  * Starts the PaymentVerificationSaga when a user registers.
  */
 @Component("billingUserRegisteredEventHandler")
-@RequiredArgsConstructor
 public class UserRegisteredEventHandler implements IIntegrationEventHandler<UserRegisteredIntegrationEvent> {
-     private final SagaManager sagaManager;
+
+    private final ApplicationContext applicationContext;
     private final JpaBillingAccountRepository billingAccountRepository;
     private final JpaSubscriptionRepository subscriptionRepository;
     private final JpaInvoiceRepository invoiceRepository;
+    private final SagaManager sagaManagerForTest; // optional
 
+    @Autowired
+    public UserRegisteredEventHandler(ApplicationContext applicationContext,
+                                      JpaBillingAccountRepository billingAccountRepository,
+                                      JpaSubscriptionRepository subscriptionRepository,
+                                      JpaInvoiceRepository invoiceRepository,
+                                      @Autowired(required = false) SagaManager sagaManagerForTest) {
+        this.applicationContext = applicationContext;
+        this.billingAccountRepository = billingAccountRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.invoiceRepository = invoiceRepository;
+        this.sagaManagerForTest = sagaManagerForTest;
+    }
 
+    // Backwards-compatible constructor for tests that instantiate handler with SagaManager first
+    public UserRegisteredEventHandler(SagaManager sagaManager,
+                                      JpaBillingAccountRepository billingAccountRepository,
+                                      JpaSubscriptionRepository subscriptionRepository,
+                                      JpaInvoiceRepository invoiceRepository) {
+        this.applicationContext = null;
+        this.billingAccountRepository = billingAccountRepository;
+        this.subscriptionRepository = subscriptionRepository;
+        this.invoiceRepository = invoiceRepository;
+        this.sagaManagerForTest = sagaManager;
+    }
 
     @Override
     public void handle(UserRegisteredIntegrationEvent event) {
@@ -123,8 +144,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
                 ));
             }
 
-
-             PaymentVerificationSagaData sagaData = PaymentVerificationSagaData.builder()
+            PaymentVerificationSagaData sagaData = PaymentVerificationSagaData.builder()
                  .correlationId(event.getId().toString()) // Convert UUID to String
                  .userId(event.getUserId())
                  .billingAccountId(billingAccountId.getValue())
@@ -133,20 +153,43 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
                  .paymentMethodId(event.getPaymentMethodId())
                  .build();
 
-            // Start the PaymentVerificationSaga
+            // Start the PaymentVerificationSaga via runtime lookup of sagaManager bean
             LoggingConfiguration.logStructured("About to start PaymentVerificationSaga", Map.of(
                 "eventType", "SAGA_START_ATTEMPT",
                 "userId", event.getUserId(),
                 "sagaData", sagaData.toString()
             ));
 
-            SagaId sagaId = sagaManager.startSaga(PaymentVerificationSaga.class, sagaData);
+            try {
+                if (sagaManagerForTest != null) {
+                    Method startSaga = sagaManagerForTest.getClass().getMethod("startSaga", Class.class, Object.class);
+                    Object sagaIdObj = startSaga.invoke(sagaManagerForTest, PaymentVerificationSaga.class, sagaData);
+                    SagaId sagaId = (SagaId) sagaIdObj;
 
-            LoggingConfiguration.logStructured("PaymentVerificationSaga started successfully", Map.of(
-                "eventType", "SAGA_START_SUCCESS",
-                "userId", event.getUserId(),
-                "sagaId", sagaId.id()
-            ));
+                    LoggingConfiguration.logStructured("PaymentVerificationSaga started successfully", Map.of(
+                        "eventType", "SAGA_START_SUCCESS",
+                        "userId", event.getUserId(),
+                        "sagaId", sagaId.id()
+                    ));
+                } else {
+                    Object sagaManagerBean = applicationContext.getBean("sagaManager");
+                    Method startSaga = sagaManagerBean.getClass().getMethod("startSaga", Class.class, Object.class);
+                    Object sagaIdObj = startSaga.invoke(sagaManagerBean, PaymentVerificationSaga.class, sagaData);
+                    SagaId sagaId = (SagaId) sagaIdObj;
+
+                    LoggingConfiguration.logStructured("PaymentVerificationSaga started successfully", Map.of(
+                        "eventType", "SAGA_START_SUCCESS",
+                        "userId", event.getUserId(),
+                        "sagaId", sagaId.id()
+                    ));
+                }
+            } catch (Exception ex) {
+                LoggingConfiguration.createStructuredLog("SAGA_START_FAILED", Map.of(
+                    "userId", event.getUserId(),
+                    "error", ex.getMessage()
+                ));
+                throw new RuntimeException("Failed to start saga: " + ex.getMessage(), ex);
+            }
 
             LoggingConfiguration.logStructured("User registration integration event processing completed", Map.of(
                 "eventType", "USER_REGISTRATION_COMPLETED",

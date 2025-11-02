@@ -21,6 +21,7 @@ import com.bcbs239.regtech.core.events.CrossModuleEventBus;
 import java.util.function.Function;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import java.util.Map;
+import com.bcbs239.regtech.core.saga.SagaManager;
 
 /**
  * Command handler for creating Stripe invoices in the saga pattern.
@@ -33,16 +34,19 @@ public class CreateStripeInvoiceCommandHandler {
     private final StripeService stripeService;
     private final CrossModuleEventBus crossModuleEventBus;
     private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
+    private final SagaManager sagaManager;
 
     public CreateStripeInvoiceCommandHandler(
             JpaInvoiceRepository invoiceRepository,
             StripeService stripeService,
             CrossModuleEventBus crossModuleEventBus,
-            Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader) {
+            Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
+            SagaManager sagaManager) {
         this.invoiceRepository = invoiceRepository;
         this.stripeService = stripeService;
         this.crossModuleEventBus = crossModuleEventBus;
         this.sagaLoader = sagaLoader;
+        this.sagaManager = sagaManager;
     }
 
  
@@ -55,32 +59,20 @@ public class CreateStripeInvoiceCommandHandler {
         );
 
         if (res.isSuccess()) {
-            // Notify saga of invoice creation: try to load saga and invoke directly
+            // Notify saga of invoice creation: try to let SagaManager process event so commands are dispatched
             StripeInvoiceCreatedEvent ev = new StripeInvoiceCreatedEvent(command.getSagaId(), command.getStripeInvoiceId());
-            Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(command.getSagaId());
-            if (maybeSaga.isPresent()) {
-                try {
-                    @SuppressWarnings("unchecked")
-                    AbstractSaga<Object> rawSaga = (AbstractSaga<Object>) maybeSaga.getValue();
-                    rawSaga.handle(ev);
-                    LoggingConfiguration.logStructured("STRIPE_INVOICE_CREATED_HANDLED_BY_SAGA", Map.of(
-                        "sagaId", command.getSagaId(),
-                        "stripeInvoiceId", command.getStripeInvoiceId()
-                    ), null);
-                } catch (Exception e) {
-                    LoggingConfiguration.logStructured("SAGA_HANDLE_FAILED", Map.of(
-                        "sagaId", command.getSagaId(),
-                        "error", e.getMessage()
-                    ), null);
-                    crossModuleEventBus.publishEventSynchronously(ev);
-                }
-            } else {
-                // fallback publish for async handlers
-                crossModuleEventBus.publishEventSynchronously(ev);
-                LoggingConfiguration.logStructured("STRIPE_INVOICE_CREATED_PUBLISHED_FALLBACK", Map.of(
+            try {
+                sagaManager.processEvent(ev);
+                LoggingConfiguration.logStructured("STRIPE_INVOICE_CREATED_PROCESSED_BY_SAGAMANAGER", Map.of(
                     "sagaId", command.getSagaId(),
                     "stripeInvoiceId", command.getStripeInvoiceId()
                 ), null);
+            } catch (Exception e) {
+                LoggingConfiguration.logStructured("SAGA_MANAGER_PROCESS_FAILED", Map.of(
+                    "sagaId", command.getSagaId(),
+                    "error", e.getMessage()
+                ), null);
+                crossModuleEventBus.publishEventSynchronously(ev);
             }
         }
 

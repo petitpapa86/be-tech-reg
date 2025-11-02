@@ -15,16 +15,14 @@ import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.events.CrossModuleEventBus;
-
-import java.util.function.Function;
-import java.util.Map;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+
+import java.util.function.Function;
+import java.util.Map;
 
 /**
  * Railway-Oriented handler with specific failure events for compensation.
@@ -34,7 +32,7 @@ import org.springframework.stereotype.Component;
 @SuppressWarnings("unused")
 public class CreateStripeCustomerCommandHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(CreateStripeCustomerCommandHandler.class);
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CreateStripeCustomerCommandHandler.class);
 
     private final StripeService stripeService;
     private final CrossModuleEventBus crossModuleEventBus;
@@ -42,6 +40,7 @@ public class CreateStripeCustomerCommandHandler {
     private final JpaBillingAccountRepository billingAccountRepository;
 
     @SuppressWarnings("unused")
+    @Autowired
     public CreateStripeCustomerCommandHandler(
             StripeService stripeService,
             CrossModuleEventBus crossModuleEventBus,
@@ -76,34 +75,12 @@ public class CreateStripeCustomerCommandHandler {
         // Success case
         if (result.isSuccess()) {
             result.getValue().ifPresent(ev -> {
-                // Try to load the saga and invoke its handler directly instead of publishing the event
-                Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
-                if (maybeSaga.isPresent()) {
-                    AbstractSaga<?> saga = maybeSaga.getValue();
-                    try {
-                        @SuppressWarnings("unchecked")
-                        AbstractSaga<Object> rawSaga = (AbstractSaga<Object>) saga;
-                        rawSaga.handle(ev); // invoke saga's handler directly
-                        LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATED_HANDLED_BY_SAGA", Map.of(
-                                "sagaId", sagaId,
-                                "stripeCustomerId", ev.getStripeCustomerId()
-                        ), null);
-                    } catch (Exception e) {
-                        LoggingConfiguration.logStructured("SAGA_HANDLE_FAILED", Map.of(
-                                "sagaId", sagaId,
-                                "error", e.getMessage()
-                        ), null);
-                        // Fallback to publishing the event if direct handling failed
-                        crossModuleEventBus.publishEventSynchronously(ev);
-                    }
-                } else {
-                    // Fallback if saga not found: publish event so async handlers can pick it up
-                    crossModuleEventBus.publishEventSynchronously(ev);
-                    LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATED_PUBLISHED_FALLBACK", Map.of(
-                            "sagaId", sagaId,
-                            "stripeCustomerId", ev.getStripeCustomerId()
-                    ), null);
-                }
+                // Always publish via CrossModuleEventBus (no legacy fallback)
+                crossModuleEventBus.publishEventSynchronously(ev);
+                LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATED_PUBLISHED", Map.of(
+                        "sagaId", sagaId,
+                        "stripeCustomerId", ev.getStripeCustomerId()
+                ), null);
             });
         } else {
             LoggingConfiguration.logStructured("CREATE_STRIPE_CUSTOMER_COMMAND_FAILED", Map.of(
@@ -123,11 +100,6 @@ public class CreateStripeCustomerCommandHandler {
                     "sagaId", sagaId,
                     "error", errorMsg
             ), null);
-            // Publish specific failure event - no compensation needed (nothing created yet)
-//            eventPublisher.publishEvent(new StripeCustomerCreationFailedEvent(
-//                    sagaId,
-//                    errorMsg
-//            ));
         }
 
         return result;
@@ -143,12 +115,6 @@ public class CreateStripeCustomerCommandHandler {
                     "stripeCustomerId", customer.customerId().value(),
                     "error", errorMsg
             ), null);
-            // Publish event to trigger compensation: delete the Stripe customer we just created
-//            eventPublisher.publishEvent(new PaymentMethodAttachmentFailedEvent(
-//                    sagaId,
-//                    customer.customerId().value(),
-//                    errorMsg
-//            ));
             return Result.failure(result.getError().orElseThrow());
         }
 
@@ -166,13 +132,6 @@ public class CreateStripeCustomerCommandHandler {
                     "paymentMethodId", paymentMethodId.value(),
                     "error", errorMsg
             ), null);
-            // Publish event to trigger compensation: detach payment method and delete customer
-//            eventPublisher.publishEvent(new PaymentMethodDefaultFailedEvent(
-//                    sagaId,
-//                    customer.customerId().value(),
-//                    paymentMethodId.value(),
-//                    errorMsg
-//            ));
             return Result.failure(result.getError().orElseThrow());
         }
 
@@ -181,7 +140,6 @@ public class CreateStripeCustomerCommandHandler {
 
     private Result<CustomerAccountData> findBillingAccount(SagaId sagaId, StripeCustomer customer) {
         Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
-        // If not found, retry a few times to handle possible race between commit and async handlers
         if (maybeSaga.isEmpty()) {
             LoggingConfiguration.createStructuredLog("SAGA_LOADER_MISS", Map.of(
                 "sagaId", sagaId,
@@ -204,18 +162,12 @@ public class CreateStripeCustomerCommandHandler {
 
             if (maybeSaga.isEmpty()) {
                 logger.error("Saga not found after retries: {}", sagaId);
-//                // Publish event to trigger compensation: cleanup Stripe customer
-//                eventPublisher.publishEvent(new SagaNotFoundEvent(
-//                        sagaId,
-//                        customer.customerId().value()
-//                ));
                 return Result.failure(ErrorDetail.of("SAGA_NOT_FOUND", "Saga not found: " + sagaId, "saga.not.found"));
             }
         }
 
          PaymentVerificationSaga saga = (PaymentVerificationSaga) maybeSaga.getValue();
 
-         // Use billingAccountId from saga data if present, otherwise fall back to userId
          String billingAccountIdValue = saga.getData().getBillingAccountId();
          if (billingAccountIdValue == null) {
              billingAccountIdValue = saga.getData().getUserId();
@@ -229,12 +181,6 @@ public class CreateStripeCustomerCommandHandler {
                     "billingAccountId", billingAccountId.value(),
                     "stripeCustomerId", customer.customerId().value()
             ), null);
-            // Publish event to trigger compensation: cleanup Stripe customer
-//            eventPublisher.publishEvent(new BillingAccountNotFoundEvent(
-//                    sagaId,
-//                    billingAccountId.value(),
-//                    customer.customerId().value()
-//            ));
             return Result.failure(ErrorDetail.of("ACCOUNT_NOT_FOUND", "Account not found: " + billingAccountId, "account.not.found"));
         }
 
@@ -253,17 +199,9 @@ public class CreateStripeCustomerCommandHandler {
                     "stripeCustomerId", data.customer.customerId().value(),
                     "error", errorMsg
             ), null);
-            // Publish event to trigger compensation: cleanup Stripe customer
-//            eventPublisher.publishEvent(new BillingAccountConfigurationFailedEvent(
-//                    sagaId,
-//                    data.billingAccountId.value(),
-//                    data.customer.customerId().value(),
-//                    errorMsg
-//            ));
             return Result.failure(configureResult.getError().get());
         }
 
-        // Use updater since this account should already exist
         Result<BillingAccountId> updateResult = billingAccountRepository.billingAccountUpdater().apply(data.account);
         if (updateResult.isFailure()) {
             String errorMsg = updateResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error");
@@ -273,14 +211,6 @@ public class CreateStripeCustomerCommandHandler {
                     "stripeCustomerId", data.customer.customerId().value(),
                     "error", errorMsg
             ), null);
-            // Publish event to trigger compensation: cleanup Stripe customer
-            // Reuse existing save-failed event class to avoid adding new event types
-//            eventPublisher.publishEvent(new BillingAccountSaveFailedEvent(
-//                    sagaId,
-//                    data.billingAccountId.value(),
-//                    data.customer.customerId().value(),
-//                    errorMsg
-//            ));
             return Result.failure(updateResult.getError().get());
         }
 

@@ -26,7 +26,6 @@ public class PaymentVerificationSagaE2ETest {
 
     // Static mocks created before Spring context starts to avoid PersistenceAnnotation processing
     private static final JpaBillingAccountRepository BILLING_ACCOUNT_REPO_MOCK = Mockito.mock(JpaBillingAccountRepository.class);
-    private static final BillingEventPublisher BILLING_EVENT_PUBLISHER_MOCK = Mockito.mock(BillingEventPublisher.class);
     private static final StripeService STRIPE_SERVICE_MOCK = Mockito.mock(StripeService.class);
 
     @TestConfiguration
@@ -93,11 +92,6 @@ public class PaymentVerificationSagaE2ETest {
         }
 
         @Bean
-        public BillingEventPublisher billingEventPublisher() {
-            return Mockito.mock(BillingEventPublisher.class);
-        }
-
-        @Bean
         public CrossModuleEventBus crossModuleEventBus(org.springframework.context.ApplicationEventPublisher applicationEventPublisher) {
             // Use the real CrossModuleEventBus wired to the test's ApplicationEventPublisher so events are delivered
             return new com.bcbs239.regtech.core.events.CrossModuleEventBus(applicationEventPublisher);
@@ -132,11 +126,10 @@ public class PaymentVerificationSagaE2ETest {
 
         @Bean
         public CreateStripeCustomerCommandHandler createStripeCustomerCommandHandler(StripeService stripeService,
-                                                                                     BillingEventPublisher billingEventPublisher,
                                                                                      CrossModuleEventBus crossModuleEventBus,
                                                                                      Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
                                                                                      JpaBillingAccountRepository billingAccountRepository) {
-            return new CreateStripeCustomerCommandHandler(stripeService, billingEventPublisher, crossModuleEventBus, sagaLoader, billingAccountRepository);
+            return new CreateStripeCustomerCommandHandler(stripeService, crossModuleEventBus, sagaLoader, billingAccountRepository);
         }
     }
 

@@ -1,0 +1,30 @@
+# Ingestion module specific configuration
+ingestion:
+  s3:
+    bucket: regtech-data-storage
+    prefix: raw/
+    multipart-threshold: 104857600 # 100MB
+    max-retry-attempts: 3
+  
+  file:
+    max-size: 524288000 # 500MB
+    supported-types:
+      - application/json
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+  
+  bank-registry:
+    cache-ttl: 86400 # 24 hours in seconds
+    retry-attempts: 3
+    timeout: 30000 # 30 seconds
+  
+  processing:
+    batch-id-format: "batch_%s_%s" # batch_YYYYMMDD_HHMMSS_UUID
+    streaming-threshold: 100000 # Use streaming for files with > 100k exposures
+
+# Outbox processing configuration
+regtech:
+  ingestion:
+    outbox:
+      processing:
+        enabled: true
+      max-retries: 3

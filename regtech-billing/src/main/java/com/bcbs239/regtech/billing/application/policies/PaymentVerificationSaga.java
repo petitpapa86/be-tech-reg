@@ -82,6 +82,18 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             SubscriptionTier.STARTER,
             data.getUserId()
         ));
+
+        // Diagnostic log: verify command was enqueued on the saga
+        try {
+            LoggingConfiguration.createStructuredLog("SAGA_COMMAND_ENQUEUED_IN_HANDLER", Map.of(
+                "sagaId", getId(),
+                "commandType", "CreateStripeSubscriptionCommand",
+                "commandsPending", this.peekCommandsToDispatch().size()
+            ));
+        } catch (Exception e) {
+            // ignore logging errors
+        }
+
         updateStatus();
     }
 
@@ -179,14 +191,26 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
     protected void compensate() {
         // Compensation: Reverse successful operations
         if (data.getStripeCustomerId() != null) {
-            // Dispatch command to delete Stripe customer
+            // Log compensation intent for customer deletion
+            LoggingConfiguration.createStructuredLog("SAGA_COMPENSATION_CUSTOMER", Map.of(
+                "sagaId", getId(),
+                "stripeCustomerId", data.getStripeCustomerId()
+            ));
             // dispatchCommand(new DeleteStripeCustomerCommand(getId(), data.getStripeCustomerId()));
         }
         if (data.getStripeInvoiceId() != null) {
-            // Dispatch command to void invoice
+            // Log compensation intent for invoice void
+            LoggingConfiguration.createStructuredLog("SAGA_COMPENSATION_INVOICE", Map.of(
+                "sagaId", getId(),
+                "stripeInvoiceId", data.getStripeInvoiceId()
+            ));
             // dispatchCommand(new VoidStripeInvoiceCommand(getId(), data.getStripeInvoiceId()));
         }
         // Dispatch notification to customer
+        LoggingConfiguration.createStructuredLog("SAGA_COMPENSATION_NOTIFY", Map.of(
+            "sagaId", getId(),
+            "userId", data.getUserId()
+        ));
         // dispatchCommand(new NotifyCustomerCommand(getId(), data.getUserId(), "Order cancelled due to payment timeout"));
     }
 

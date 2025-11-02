@@ -50,28 +50,29 @@ public class PaymentVerificationSagaManualE2ETest {
         when(stripeService.attachPaymentMethod(any(), any())).thenReturn(Result.success(null));
         when(stripeService.setDefaultPaymentMethod(any(), any())).thenReturn(Result.success(null));
 
-        BillingEventPublisher billingEventPublisher = Mockito.mock(BillingEventPublisher.class);
+        // Create a simple ApplicationEventPublisher that records events for assertions
+        java.util.List<Object> publishedEvents = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+        ApplicationEventPublisher simplePublisher = new ApplicationEventPublisher() {
+            @Override
+            public void publishEvent(Object event) {
+                publishedEvents.add(event);
+            }
+
+            @Override
+            public void publishEvent(org.springframework.context.ApplicationEvent event) {
+                publishedEvents.add(event.getSource());
+            }
+        };
+
+        // CrossModuleEventBus backed by simplePublisher
+        com.bcbs239.regtech.core.events.CrossModuleEventBus crossModuleEventBus = new com.bcbs239.regtech.core.events.CrossModuleEventBus(simplePublisher);
 
         JpaBillingAccountRepository billingAccountRepository = Mockito.mock(JpaBillingAccountRepository.class);
         when(billingAccountRepository.billingAccountFinder()).thenReturn(id -> Maybe.none());
         when(billingAccountRepository.billingAccountSaver()).thenReturn(acc -> Result.success(null));
 
         // We'll create the CreateStripeCustomerCommandHandler and wire it to a simple ApplicationEventPublisher
-        var handler = new CreateStripeCustomerCommandHandler(stripeService, billingEventPublisher, sagaLoader, billingAccountRepository);
-
-        // Simple ApplicationEventPublisher that routes SagaCommand events to the handler
-        ApplicationEventPublisher simplePublisher = new ApplicationEventPublisher() {
-            @Override
-            public void publishEvent(Object event) {
-                if (event instanceof CreateStripeCustomerCommand c) {
-                    handler.handle(c);
-                } else if (event instanceof com.bcbs239.regtech.core.saga.SagaMessage) {
-                    // ignore for this test
-                } else if (event instanceof com.bcbs239.regtech.core.saga.SagaCommand) {
-                    // ignore other commands
-                }
-            }
-        };
+        var handler = new CreateStripeCustomerCommandHandler(stripeService, crossModuleEventBus, sagaLoader, billingAccountRepository);
 
         // CommandDispatcher uses the simplePublisher
         CommandDispatcher commandDispatcher = new CommandDispatcher(simplePublisher);
@@ -105,12 +106,9 @@ public class PaymentVerificationSagaManualE2ETest {
         Mockito.verify(stripeService).attachPaymentMethod(any(), any());
         Mockito.verify(stripeService).setDefaultPaymentMethod(any(), any());
 
-        // Capture published events and assert the expected compensation event was published
-        org.mockito.ArgumentCaptor<Object> eventCaptor = org.mockito.ArgumentCaptor.forClass(Object.class);
-        Mockito.verify(billingEventPublisher, org.mockito.Mockito.atLeastOnce()).publishEvent(eventCaptor.capture());
-
-        boolean sawBillingAccountNotFound = eventCaptor.getAllValues().stream().anyMatch(ev -> ev instanceof com.bcbs239.regtech.billing.domain.events.BillingAccountNotFoundEvent);
-        boolean sawStripeCustomerCreated = eventCaptor.getAllValues().stream().anyMatch(ev -> ev instanceof com.bcbs239.regtech.billing.domain.events.StripeCustomerCreatedEvent);
+        // Check published events captured by simplePublisher
+        boolean sawBillingAccountNotFound = publishedEvents.stream().anyMatch(ev -> ev instanceof com.bcbs239.regtech.billing.domain.events.BillingAccountNotFoundEvent);
+        boolean sawStripeCustomerCreated = publishedEvents.stream().anyMatch(ev -> ev instanceof com.bcbs239.regtech.billing.domain.events.StripeCustomerCreatedEvent);
 
         // In this scenario billing account lookup fails so we expect BillingAccountNotFoundEvent and NOT a StripeCustomerCreatedEvent
         assertThat(sawBillingAccountNotFound).isTrue();

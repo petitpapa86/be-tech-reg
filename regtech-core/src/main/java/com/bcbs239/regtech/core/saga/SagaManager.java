@@ -13,6 +13,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.lang.reflect.Constructor;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -78,6 +79,7 @@ public class SagaManager {
         return sagaId;
     }
 
+    @Transactional
     public void processEvent(SagaMessage event) {
         Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(event.getSagaId());
         if (maybeSaga.isEmpty()) {
@@ -86,17 +88,56 @@ public class SagaManager {
 
         AbstractSaga<?> saga = maybeSaga.getValue();
 
+        // Let the saga process the incoming event and produce commands
         saga.handle(event);
+
+        // Snapshot pending commands so persistence can record them without consuming the in-memory list
+        List<SagaCommand> commandsSnapshot = saga.peekCommandsToDispatch();
+
+        // Diagnostic log of snapshot
+        try {
+            LoggingConfiguration.createStructuredLog("SAGA_COMMANDS_SNAPSHOT", Map.of(
+                "sagaId", saga.getId(),
+                "snapshotSize", commandsSnapshot.size()
+            ));
+            for (var cmd : commandsSnapshot) {
+                LoggingConfiguration.createStructuredLog("SAGA_COMMAND_SNAPSHOT_ITEM", Map.of(
+                    "sagaId", saga.getId(),
+                    "commandType", cmd.commandType()
+                ));
+            }
+        } catch (Exception e) {
+            // ignore logging errors
+        }
+
+        // Persist saga (saves snapshot of pending commands via repository's peek usage)
         sagaSaver.apply(saga);
 
-        dispatchCommands(saga);
+        // Consume in-memory commands (clears the saga's command list) to avoid duplicate dispatching
+        saga.getCommandsToDispatch();
+
+        // Dispatch the snapshot of commands (these registrations will occur inside the current transaction)
+        if (!commandsSnapshot.isEmpty()) {
+            try {
+                for (var cmd : commandsSnapshot) {
+                    LoggingConfiguration.createStructuredLog("SAGA_DISPATCHING_SNAPSHOT_COMMAND", Map.of(
+                        "sagaId", saga.getId(),
+                        "commandType", cmd.commandType()
+                    ));
+                    commandDispatcher.dispatch(cmd);
+                }
+            } catch (Exception e) {
+                LoggingConfiguration.createStructuredLog("SAGA_DISPATCH_SNAPSHOT_FAILED", Map.of(
+                    "sagaId", saga.getId(),
+                    "error", e.getMessage()
+                ));
+                throw e;
+            }
+        }
+
         publishSagaLifecycleEvent(saga);
     }
 
-    private void dispatchCommands(AbstractSaga<?> saga) {
-        // Dispatch pending saga commands
-        saga.getCommandsToDispatch().forEach(commandDispatcher::dispatch);
-    }
 
     private void publishSagaLifecycleEvent(AbstractSaga<?> saga) {
         if (saga.getStatus() == SagaStatus.COMPLETED) {

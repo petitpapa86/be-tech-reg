@@ -40,6 +40,19 @@ public class EventDispatcher {
             }
 
             if (sagaEvent != null) {
+                // Ignore SagaCommand instances — they are commands meant for command handlers
+                if (sagaEvent instanceof SagaCommand) {
+                    try {
+                        LoggingConfiguration.createStructuredLog("SAGA_COMMAND_IGNORED_BY_EVENT_DISPATCHER", Map.of(
+                            "sagaId", sagaEvent.getSagaId(),
+                            "commandType", ((SagaCommand) sagaEvent).commandType(),
+                            "class", sagaEvent.getClass().getSimpleName()
+                        ));
+                    } catch (Exception ex) {
+                        // ignore logging errors
+                    }
+                    return;
+                }
                 dispatchToSaga(sagaEvent);
             }
         } catch (Exception e) {

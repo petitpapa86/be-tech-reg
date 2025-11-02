@@ -22,6 +22,7 @@ import com.bcbs239.regtech.core.saga.AbstractSaga;
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.events.CrossModuleEventBus;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import com.bcbs239.regtech.core.saga.SagaManager;
 import java.util.Map;
 
 /**
@@ -38,6 +39,7 @@ public class CreateStripeSubscriptionCommandHandler {
     private final Function<Subscription, Result<SubscriptionId>> subscriptionSaver;
     private final CrossModuleEventBus crossModuleEventBus;
     private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
+    private final SagaManager sagaManager;
 
     public CreateStripeSubscriptionCommandHandler(
             StripeService stripeService,
@@ -46,7 +48,8 @@ public class CreateStripeSubscriptionCommandHandler {
             Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder,
             Function<Subscription, Result<SubscriptionId>> subscriptionSaver,
             CrossModuleEventBus crossModuleEventBus,
-            Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader
+            Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
+            SagaManager sagaManager
             ) {
         this.stripeService = stripeService;
         this.billingAccountByUserFinder = billingAccountByUserFinder;
@@ -55,6 +58,7 @@ public class CreateStripeSubscriptionCommandHandler {
         this.subscriptionSaver = subscriptionSaver;
         this.crossModuleEventBus = crossModuleEventBus;
         this.sagaLoader = sagaLoader;
+        this.sagaManager = sagaManager;
     }
 
     /**
@@ -63,6 +67,18 @@ public class CreateStripeSubscriptionCommandHandler {
     @EventListener
     @Async("sagaTaskExecutor")
     public void handle(CreateStripeSubscriptionCommand command) {
+        // Diagnostic log to confirm the command arrived at the handler
+        try {
+            LoggingConfiguration.logStructured("CREATE_STRIPE_SUBSCRIPTION_COMMAND_RECEIVED", Map.of(
+                "sagaId", command.getSagaId(),
+                "stripeCustomerId", command.getStripeCustomerId(),
+                "userId", command.getUserId(),
+                "subscriptionTier", command.getSubscriptionTier()
+            ), null);
+        } catch (Exception e) {
+            // ignore logging failures
+        }
+
         // Get existing billing account
         com.bcbs239.regtech.iam.domain.users.UserId iamUserId = com.bcbs239.regtech.iam.domain.users.UserId.fromString(command.getUserId());
         Maybe<BillingAccount> billingAccountMaybe = billingAccountByUserFinder.apply(iamUserId);
@@ -127,7 +143,7 @@ public class CreateStripeSubscriptionCommandHandler {
 
         SubscriptionId subscriptionId = saveSubscriptionResult.getValue().get();
 
-        // Notify saga of subscription creation: try to load saga and invoke directly
+        // Notify saga of subscription creation: let SagaManager process event so commands are dispatched
         StripeSubscriptionCreatedEvent ev = new StripeSubscriptionCreatedEvent(
             command.getSagaId(),
             stripeSubscriptionId.value(),
@@ -135,29 +151,18 @@ public class CreateStripeSubscriptionCommandHandler {
             subscriptionId
         );
 
-        Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(command.getSagaId());
-        if (maybeSaga.isPresent()) {
-            try {
-                @SuppressWarnings("unchecked")
-                AbstractSaga<Object> rawSaga = (AbstractSaga<Object>) maybeSaga.getValue();
-                rawSaga.handle(ev);
-                LoggingConfiguration.logStructured("STRIPE_SUBSCRIPTION_CREATED_HANDLED_BY_SAGA", Map.of(
-                    "sagaId", command.getSagaId(),
-                    "stripeSubscriptionId", stripeSubscriptionId.value()
-                ), null);
-            } catch (Exception e) {
-                LoggingConfiguration.logStructured("SAGA_HANDLE_FAILED", Map.of(
-                    "sagaId", command.getSagaId(),
-                    "error", e.getMessage()
-                ), null);
-                crossModuleEventBus.publishEventSynchronously(ev);
-            }
-        } else {
-            crossModuleEventBus.publishEventSynchronously(ev);
-            LoggingConfiguration.logStructured("STRIPE_SUBSCRIPTION_CREATED_PUBLISHED_FALLBACK", Map.of(
+        try {
+            sagaManager.processEvent(ev);
+            LoggingConfiguration.logStructured("STRIPE_SUBSCRIPTION_CREATED_PROCESSED_BY_SAGAMANAGER", Map.of(
                 "sagaId", command.getSagaId(),
                 "stripeSubscriptionId", stripeSubscriptionId.value()
             ), null);
+        } catch (Exception e) {
+            LoggingConfiguration.logStructured("SAGA_MANAGER_PROCESS_FAILED", Map.of(
+                "sagaId", command.getSagaId(),
+                "error", e.getMessage()
+            ), null);
+            crossModuleEventBus.publishEventSynchronously(ev);
         }
     }
 }

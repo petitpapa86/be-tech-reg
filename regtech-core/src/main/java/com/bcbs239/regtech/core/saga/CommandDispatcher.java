@@ -28,7 +28,19 @@ public class CommandDispatcher {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    eventPublisher.publishEvent(command);
+                    try {
+                        LoggingConfiguration.createStructuredLog("SAGA_COMMAND_AFTER_COMMIT", java.util.Map.of(
+                            "sagaId", command.getSagaId(),
+                            "commandType", command.commandType()
+                        ));
+                        eventPublisher.publishEvent(command);
+                    } catch (Exception e) {
+                        LoggingConfiguration.createStructuredLog("SAGA_COMMAND_PUBLISH_FAILED", java.util.Map.of(
+                            "sagaId", command.getSagaId(),
+                            "commandType", command.commandType(),
+                            "error", e.getMessage()
+                        ));
+                    }
                 }
             });
         } else {

@@ -1,7 +1,10 @@
 package com.bcbs239.regtech.core.shared;
 
+import lombok.Getter;
+
 import java.util.List;
 
+@Getter
 public class ErrorDetail {
 
     private final String code;
@@ -30,26 +33,6 @@ public class ErrorDetail {
         this(code, message, null, null, null);
     }
 
-    public String getCode() {
-        return code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public String getMessageKey() {
-        return messageKey;
-    }
-
-    public String getDetails() {
-        return details;
-    }
-
-    public List<FieldError> getFieldErrors() {
-        return fieldErrors;
-    }
-
     public boolean hasFieldErrors() {
         return fieldErrors != null && !fieldErrors.isEmpty();
     }
@@ -57,6 +40,11 @@ public class ErrorDetail {
     // Static factory methods
     public static ErrorDetail of(String code, String message, String messageKey) {
         return new ErrorDetail(code, message, messageKey);
+    }
+
+    // Added overload expected by ingestion module
+    public static ErrorDetail of(String code, String message) {
+        return new ErrorDetail(code, message);
     }
 
     public static ErrorDetail validationError(List<FieldError> fieldErrors) {
