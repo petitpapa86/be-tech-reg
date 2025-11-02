@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.function.Function;
+import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,14 +40,14 @@ public class CreateStripeSubscriptionCommandHandlerTest {
 
         // repo/finders
         Function<com.bcbs239.regtech.iam.domain.users.UserId, Maybe<BillingAccount>> billingFinder = id -> Maybe.some(mockAccount);
-        Function<BillingAccount, Result<BillingAccountId>> billingSaver = acc -> Result.success(new BillingAccountId("id"));
+        Function<BillingAccount, Result<BillingAccountId>> billingSaver = acc -> Result.success(new BillingAccountId("billing-1"));
         Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionFinder = id -> tier -> Maybe.some(mockSubscription);
         Function<Subscription, Result<SubscriptionId>> subscriptionSaver = s -> Result.success(new SubscriptionId("sub-id"));
 
         // stripe responses
         StripeSubscription stripeSubscription = mock(StripeSubscription.class);
         when(stripeSubscription.subscriptionId()).thenReturn(new StripeSubscriptionId("stripe-sub-id"));
-        when(stripeSubscription.latestInvoiceId()).thenReturn(new com.bcbs239.regtech.billing.domain.valueobjects.StripeInvoiceId("inv-1"));
+        when(stripeSubscription.latestInvoiceId()).thenReturn(new com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId("inv-1"));
 
         when(stripeService.createSubscription(any(), any())).thenReturn(Result.success(stripeSubscription));
 
@@ -73,7 +74,8 @@ public class CreateStripeSubscriptionCommandHandlerTest {
         );
 
         SagaId sagaId = SagaId.generate();
-        CreateStripeSubscriptionCommand cmd = new CreateStripeSubscriptionCommand(sagaId, "cust-1", SubscriptionTier.STARTER, "user-1");
+        String userId = UUID.randomUUID().toString();
+        CreateStripeSubscriptionCommand cmd = new CreateStripeSubscriptionCommand(sagaId, "cust-1", SubscriptionTier.STARTER, userId);
 
         handler.handle(cmd);
 
@@ -81,4 +83,3 @@ public class CreateStripeSubscriptionCommandHandlerTest {
         verify(sagaManager, atLeastOnce()).processEvent(any());
     }
 }
-
