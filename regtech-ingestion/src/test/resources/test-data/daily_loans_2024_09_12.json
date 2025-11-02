@@ -1,0 +1,54 @@
+{
+  "bank_info": {
+    "bank_name": "Community First Bank",
+    "report_date": "2024-09-12",
+    "total_loans": 5
+  },
+  "loan_portfolio": [
+    {
+      "loan_id": "LOAN001",
+      "borrower_name": "Mike's Pizza Inc",
+      "borrower_id": "CORP12345",
+      "loan_amount": 250000,
+      "currency": "USD",
+      "loan_type": "Business Loan",
+      "borrower_country": "US"
+    },
+    {
+      "loan_id": "LOAN002",
+      "borrower_name": "Sarah Johnson",
+      "borrower_id": "PERS67890",
+      "loan_amount": 450000,
+      "currency": "USD",
+      "loan_type": "Mortgage",
+      "borrower_country": "US"
+    },
+    {
+      "loan_id": "LOAN003",
+      "borrower_name": "Tech Startup LLC",
+      "borrower_id": "",
+      "loan_amount": -50000,
+      "currency": "EUR",
+      "loan_type": "Credit Line",
+      "borrower_country": "DE"
+    },
+    {
+      "loan_id": "LOAN004",
+      "borrower_name": "Green Energy Corp",
+      "borrower_id": "CORP54321",
+      "loan_amount": 750000,
+      "currency": "XXX",
+      "loan_type": "Equipment Loan",
+      "borrower_country": "CA"
+    },
+    {
+      "loan_id": "",
+      "borrower_name": "Mary's Bakery",
+      "borrower_id": "SMALL98765",
+      "loan_amount": 125000,
+      "currency": "USD",
+      "loan_type": "Small Business",
+      "borrower_country": "US"
+    }
+  ]
+}

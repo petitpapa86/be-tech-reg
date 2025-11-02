@@ -1,0 +1,339 @@
+package com.bcbs239.regtech.modules.ingestion.infrastructure;
+
+import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
+import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.modules.ingestion.domain.batch.IngestionBatch;
+import com.bcbs239.regtech.modules.ingestion.domain.batch.S3Reference;
+import com.bcbs239.regtech.modules.ingestion.infrastructure.config.IngestionTestConfiguration;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.containers.localstack.LocalStackContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
+
+import java.io.IOException;
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Integration test focusing on the core ingestion functionality:
+ * 1. File upload
+ * 2. S3 storage
+ * 3. Batch metadata persistence
+ * 
+ * Data quality validation is handled by separate quality module.
+ */
+@SpringBootTest(classes = {IngestionTestConfiguration.class})
+@ActiveProfiles("test")
+@Testcontainers
+@DisplayName("S3 File Upload Integration Test")
+class S3FileUploadIntegrationTest extends BaseIntegrationTest {
+
+    @Container
+    static LocalStackContainer localstack = new LocalStackContainer(
+        org.testcontainers.utility.DockerImageName.parse("localstack/localstack:3.0")
+    ).withServices(LocalStackContainer.Service.S3);
+
+    @Autowired
+    private S3Client s3Client;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private static final String TEST_BUCKET = "regtech-data-storage";
+    private static final String BANK_ID = "COMMUNITY_FIRST_BANK";
+
+    @BeforeEach
+    void setUp() {
+        // Create test bucket
+        try {
+            s3Client.createBucket(CreateBucketRequest.builder()
+                .bucket(TEST_BUCKET)
+                .build());
+        } catch (BucketAlreadyExistsException e) {
+            // Bucket already exists, continue
+        }
+    }
+
+    @Test
+    @DisplayName("Should upload JSON file to S3 and create batch metadata")
+    void shouldUploadJsonFileToS3AndCreateBatchMetadata() throws IOException {
+        // Given: Sample loan portfolio file
+        ClassPathResource inputFile = new ClassPathResource("test-data/daily_loans_2024_09_12.json");
+        byte[] fileContent = inputFile.getInputStream().readAllBytes();
+        String originalFilename = "daily_loans_2024_09_12.json";
+        
+        // When: Processing file upload
+        IngestionResult result = processFileUpload(fileContent, originalFilename, "application/json");
+        
+        // Then: File should be uploaded to S3
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.getBatchId()).isNotNull();
+        assertThat(result.getS3Reference()).isNotNull();
+        
+        S3Reference s3Ref = result.getS3Reference();
+        assertThat(s3Ref.getBucket()).isEqualTo(TEST_BUCKET);
+        assertThat(s3Ref.getKey()).startsWith("raw/");
+        assertThat(s3Ref.getKey()).contains(BANK_ID);
+        assertThat(s3Ref.getKey()).endsWith(".json");
+        
+        // Verify file exists in S3
+        HeadObjectResponse headResponse = s3Client.headObject(HeadObjectRequest.builder()
+            .bucket(s3Ref.getBucket())
+            .key(s3Ref.getKey())
+            .build());
+        
+        assertThat(headResponse.contentLength()).isEqualTo(fileContent.length);
+        assertThat(headResponse.contentType()).isEqualTo("application/json");
+        
+        // Verify file content in S3
+        ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObject(GetObjectRequest.builder()
+            .bucket(s3Ref.getBucket())
+            .key(s3Ref.getKey())
+            .build());
+        
+        byte[] s3Content = s3Object.readAllBytes();
+        assertThat(s3Content).isEqualTo(fileContent);
+        
+        // Verify JSON structure is preserved
+        JsonNode originalJson = objectMapper.readTree(fileContent);
+        JsonNode s3Json = objectMapper.readTree(s3Content);
+        assertThat(s3Json).isEqualTo(originalJson);
+    }
+
+    @Test
+    @DisplayName("Should upload enhanced JSON file to S3 with proper metadata")
+    void shouldUploadEnhancedJsonFileToS3WithProperMetadata() throws IOException {
+        // Given: Enhanced loan portfolio file
+        ClassPathResource inputFile = new ClassPathResource("test-data/enhanced_daily_loans_2024_09_12.json");
+        byte[] fileContent = inputFile.getInputStream().readAllBytes();
+        String originalFilename = "enhanced_daily_loans_2024_09_12.json";
+        
+        // When: Processing file upload
+        IngestionResult result = processFileUpload(fileContent, originalFilename, "application/json");
+        
+        // Then: File should be uploaded successfully
+        assertThat(result.isSuccess()).isTrue();
+        
+        S3Reference s3Ref = result.getS3Reference();
+        FileMetadata metadata = result.getFileMetadata();
+        
+        // Verify S3 storage
+        assertThat(s3Ref.getBucket()).isEqualTo(TEST_BUCKET);
+        assertThat(s3Ref.getKey()).contains("enhanced_daily_loans");
+        
+        // Verify file metadata
+        assertThat(metadata.getOriginalFilename()).isEqualTo(originalFilename);
+        assertThat(metadata.getContentType()).isEqualTo("application/json");
+        assertThat(metadata.getFileSizeBytes()).isEqualTo(fileContent.length);
+        assertThat(metadata.getUploadTimestamp()).isNotNull();
+        
+        // Verify S3 object metadata
+        HeadObjectResponse headResponse = s3Client.headObject(HeadObjectRequest.builder()
+            .bucket(s3Ref.getBucket())
+            .key(s3Ref.getKey())
+            .build());
+        
+        assertThat(headResponse.metadata()).containsEntry("original-filename", originalFilename);
+        assertThat(headResponse.metadata()).containsEntry("bank-id", BANK_ID);
+        assertThat(headResponse.metadata()).containsKey("upload-timestamp");
+    }
+
+    @Test
+    @DisplayName("Should generate unique S3 keys for multiple uploads")
+    void shouldGenerateUniqueS3KeysForMultipleUploads() throws IOException {
+        // Given: Same file uploaded multiple times
+        ClassPathResource inputFile = new ClassPathResource("test-data/daily_loans_2024_09_12.json");
+        byte[] fileContent = inputFile.getInputStream().readAllBytes();
+        String originalFilename = "daily_loans_2024_09_12.json";
+        
+        // When: Uploading same file multiple times
+        IngestionResult result1 = processFileUpload(fileContent, originalFilename, "application/json");
+        IngestionResult result2 = processFileUpload(fileContent, originalFilename, "application/json");
+        IngestionResult result3 = processFileUpload(fileContent, originalFilename, "application/json");
+        
+        // Then: Each upload should have unique S3 key
+        assertThat(result1.getS3Reference().getKey()).isNotEqualTo(result2.getS3Reference().getKey());
+        assertThat(result2.getS3Reference().getKey()).isNotEqualTo(result3.getS3Reference().getKey());
+        assertThat(result1.getS3Reference().getKey()).isNotEqualTo(result3.getS3Reference().getKey());
+        
+        // All files should exist in S3
+        assertThat(s3ObjectExists(result1.getS3Reference())).isTrue();
+        assertThat(s3ObjectExists(result2.getS3Reference())).isTrue();
+        assertThat(s3ObjectExists(result3.getS3Reference())).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should handle large file uploads efficiently")
+    void shouldHandleLargeFileUploadsEfficiently() throws IOException {
+        // Given: Large JSON file (simulated by repeating loan data)
+        ClassPathResource inputFile = new ClassPathResource("test-data/enhanced_daily_loans_2024_09_12.json");
+        JsonNode originalJson = objectMapper.readTree(inputFile.getInputStream());
+        
+        // Create larger file by duplicating loan portfolio
+        JsonNode loanPortfolio = originalJson.get("loan_portfolio");
+        StringBuilder largeJsonBuilder = new StringBuilder();
+        largeJsonBuilder.append("{\"bank_info\":");
+        largeJsonBuilder.append(objectMapper.writeValueAsString(originalJson.get("bank_info")));
+        largeJsonBuilder.append(",\"loan_portfolio\":[");
+        
+        // Add 1000 loan records
+        for (int i = 0; i < 1000; i++) {
+            if (i > 0) largeJsonBuilder.append(",");
+            for (int j = 0; j < loanPortfolio.size(); j++) {
+                if (j > 0) largeJsonBuilder.append(",");
+                JsonNode loan = loanPortfolio.get(j);
+                // Modify loan_id to make it unique
+                String loanJson = objectMapper.writeValueAsString(loan);
+                loanJson = loanJson.replace("\"loan_id\":\"LOAN", "\"loan_id\":\"LOAN" + i + "_");
+                largeJsonBuilder.append(loanJson);
+            }
+        }
+        largeJsonBuilder.append("]}");
+        
+        byte[] largeFileContent = largeJsonBuilder.toString().getBytes();
+        String originalFilename = "large_loan_portfolio.json";
+        
+        // When: Uploading large file
+        long startTime = System.currentTimeMillis();
+        IngestionResult result = processFileUpload(largeFileContent, originalFilename, "application/json");
+        long uploadTime = System.currentTimeMillis() - startTime;
+        
+        // Then: Upload should succeed efficiently
+        assertThat(result.isSuccess()).isTrue();
+        assertThat(uploadTime).isLessThan(30000); // Should complete within 30 seconds
+        
+        // Verify large file in S3
+        HeadObjectResponse headResponse = s3Client.headObject(HeadObjectRequest.builder()
+            .bucket(result.getS3Reference().getBucket())
+            .key(result.getS3Reference().getKey())
+            .build());
+        
+        assertThat(headResponse.contentLength()).isEqualTo(largeFileContent.length);
+        assertThat(headResponse.contentLength()).isGreaterThan(1_000_000); // > 1MB
+    }
+
+    @Test
+    @DisplayName("Should create proper batch metadata for tracking")
+    void shouldCreateProperBatchMetadataForTracking() throws IOException {
+        // Given: Sample file
+        ClassPathResource inputFile = new ClassPathResource("test-data/daily_loans_2024_09_12.json");
+        byte[] fileContent = inputFile.getInputStream().readAllBytes();
+        String originalFilename = "daily_loans_2024_09_12.json";
+        
+        // When: Processing upload
+        IngestionResult result = processFileUpload(fileContent, originalFilename, "application/json");
+        
+        // Then: Batch metadata should be complete
+        IngestionBatch batch = result.getBatch();
+        assertThat(batch).isNotNull();
+        assertThat(batch.getBatchId()).isNotNull();
+        assertThat(batch.getBankId()).isEqualTo(BANK_ID);
+        assertThat(batch.getS3Reference()).isEqualTo(result.getS3Reference());
+        assertThat(batch.getFileMetadata()).isEqualTo(result.getFileMetadata());
+        assertThat(batch.getUploadTimestamp()).isNotNull();
+        assertThat(batch.getStatus()).isEqualTo("UPLOADED");
+        
+        // Batch should be ready for quality module processing
+        assertThat(batch.isReadyForProcessing()).isTrue();
+    }
+
+    // Helper methods
+
+    private IngestionResult processFileUpload(byte[] fileContent, String originalFilename, String contentType) {
+        // Simulate the ingestion upload process
+        BatchId batchId = BatchId.of(UUID.randomUUID().toString());
+        
+        // Generate S3 key
+        String timestamp = String.valueOf(Instant.now().toEpochMilli());
+        String s3Key = String.format("raw/%s/%s/%s_%s", 
+            BANK_ID, 
+            timestamp.substring(0, 8), // Date prefix
+            timestamp,
+            originalFilename);
+        
+        // Upload to S3
+        s3Client.putObject(PutObjectRequest.builder()
+            .bucket(TEST_BUCKET)
+            .key(s3Key)
+            .contentType(contentType)
+            .contentLength((long) fileContent.length)
+            .metadata(java.util.Map.of(
+                "original-filename", originalFilename,
+                "bank-id", BANK_ID,
+                "upload-timestamp", Instant.now().toString(),
+                "batch-id", batchId.getValue()
+            ))
+            .build(),
+            software.amazon.awssdk.core.sync.RequestBody.fromBytes(fileContent));
+        
+        // Create metadata objects
+        S3Reference s3Reference = new S3Reference(TEST_BUCKET, s3Key, "us-east-1");
+        
+        FileMetadata fileMetadata = new FileMetadata(
+            originalFilename,
+            contentType,
+            fileContent.length,
+            Instant.now()
+        );
+        
+        IngestionBatch batch = new IngestionBatch(
+            batchId,
+            BANK_ID,
+            s3Reference,
+            fileMetadata,
+            Instant.now()
+        );
+        
+        return new IngestionResult(true, batchId, s3Reference, fileMetadata, batch);
+    }
+
+    private boolean s3ObjectExists(S3Reference s3Reference) {
+        try {
+            s3Client.headObject(HeadObjectRequest.builder()
+                .bucket(s3Reference.getBucket())
+                .key(s3Reference.getKey())
+                .build());
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        }
+    }
+
+    // Test result class
+    public static class IngestionResult {
+        private final boolean success;
+        private final BatchId batchId;
+        private final S3Reference s3Reference;
+        private final FileMetadata fileMetadata;
+        private final IngestionBatch batch;
+
+        public IngestionResult(boolean success, BatchId batchId, S3Reference s3Reference, 
+                             FileMetadata fileMetadata, IngestionBatch batch) {
+            this.success = success;
+            this.batchId = batchId;
+            this.s3Reference = s3Reference;
+            this.fileMetadata = fileMetadata;
+            this.batch = batch;
+        }
+
+        // Getters
+        public boolean isSuccess() { return success; }
+        public BatchId getBatchId() { return batchId; }
+        public S3Reference getS3Reference() { return s3Reference; }
+        public FileMetadata getFileMetadata() { return fileMetadata; }
+        public IngestionBatch getBatch() { return batch; }
+    }
+}

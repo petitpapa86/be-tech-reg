@@ -56,6 +56,40 @@ iam:
       strict-mode: true
       audit-enabled: true
 
+# Ingestion Module Configuration
+ingestion:
+  s3:
+    bucket: regtech-data-storage
+    region: us-east-1
+    prefix: raw/
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
+    endpoint: ${AWS_S3_ENDPOINT:} # For localstack testing
+  
+  file:
+    max-size: 524288000 # 500MB in bytes
+    supported-types:
+      - application/json
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+  
+  bank-registry:
+    base-url: ${BANK_REGISTRY_URL:http://localhost:8081}
+    timeout: 30000 # 30 seconds
+    retry-attempts: 3
+  
+  processing:
+    async-enabled: true
+    thread-pool-size: 10
+    queue-capacity: 100
+  
+  outbox:
+    enabled: true
+    processing-interval: 30000 # 30 seconds
+    retry-interval: 60000 # 1 minute
+    max-retries: 3
+    cleanup-interval: 86400000 # 24 hours
+    cleanup-retention-days: 30
+
 # Billing Module Configuration
 billing:
   stripe:
@@ -147,6 +181,7 @@ logging:
     # Bounded contexts
     com.bcbs239.regtech.iam: INFO
     com.bcbs239.regtech.billing: INFO
+    com.bcbs239.regtech.modules.ingestion: INFO
     # Spring framework
     org.springframework.security: WARN
     org.springframework: WARN
@@ -174,3 +209,5 @@ logging:
     com.bcbs239.regtech.core.events: DEBUG
     com.bcbs239.regtech.core.inbox: DEBUG
     com.bcbs239.regtech.core.outbox: DEBUG
+    # Ingestion module debugging in GCP
+    com.bcbs239.regtech.modules.ingestion: DEBUG

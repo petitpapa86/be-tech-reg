@@ -28,6 +28,11 @@
 			<artifactId>regtech-billing</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-ingestion-presentation</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 
 		<!-- Spring Boot Starter -->
 		<dependency>

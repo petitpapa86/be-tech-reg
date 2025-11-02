@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.modules.ingestion.domain.batch;
 
-import com.bcbs239.regtech.core.shared.DomainEvent;
+import com.bcbs239.regtech.core.events.DomainEvent;
 import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
 
 import java.time.Instant;
@@ -15,7 +15,7 @@ public record BatchProcessingStartedEvent(
 ) implements DomainEvent {
     
     @Override
-    public Instant occurredOn() {
-        return startedAt;
+    public String eventType() {
+        return "BatchProcessingStarted";
     }
 }

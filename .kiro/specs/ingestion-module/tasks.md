@@ -515,6 +515,9 @@
 
   - [ ] 15.2 Migrate domain layer
     - Move domain models, repositories interfaces, and domain events
+
+
+
     - Organize by business entities (batch, bankinfo, performance)
     - Ensure domain layer has no external dependencies
     - _Requirements: 1.1, 1.2, 2.1, 3.1, 3.2, 3.3_
@@ -523,17 +526,30 @@
     - Organize by entity and operation (batch/upload, batch/process, etc.)
     - Implement proper CQRS pattern with clear separation
     - _Requirements: 4.1, 4.2, 4.3, 5.1, 5.2, 5.3_
-  - [ ] 15.4 Migrate infrastructure layer
+  - [x] 15.4 Migrate infrastructure layer
+
+
+
     - Move persistence implementations, external service integrations
     - Organize by entity and technical concern
     - Ensure proper dependency injection and configuration
     - _Requirements: 6.1, 6.2, 6.3, 7.1, 7.2, 8.1, 8.2, 8.3_
-  - [ ] 15.5 Migrate presentation layer
+  - [x] 15.5 Migrate presentation layer
+
+
+
+
+
     - Move REST controllers and DTOs
     - Organize by entity and operation
     - Ensure proper API versioning and documentation
     - _Requirements: 4.1, 4.2, 4.3, 10.1, 10.2, 10.3_
-  - [ ] 15.6 Update build configuration and dependencies
+  - [x] 15.6 Update build configuration and dependencies
+
+
+
+
+
     - Configure Maven modules with proper dependency management
     - Update Spring Boot configuration for modular structure
     - Ensure proper test configuration across modules
