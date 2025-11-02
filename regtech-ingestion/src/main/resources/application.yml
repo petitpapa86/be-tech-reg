@@ -28,3 +28,28 @@ regtech:
       processing:
         enabled: true
       max-retries: 3
+  
+  # S3 configuration
+  s3:
+    bucket: regtech-data-storage
+    retry:
+      max-attempts: 3
+      base-delay-ms: 1000
+    lifecycle:
+      glacier-transition-days: 180
+  
+  # Compliance and retention configuration
+  compliance:
+    retention:
+      default-policy: FINANCIAL_DATA_DEFAULT
+      reporting:
+        enabled: true
+        schedule: "0 0 3 * * SUN" # Weekly on Sunday at 3 AM
+      lifecycle-update:
+        enabled: true
+        schedule: "0 0 2 * * *" # Daily at 2 AM
+    cleanup:
+      enabled: true
+      dry-run: true # Set to false to enable actual deletion
+      batch-size: 100 # Number of files to process in each batch
+      schedule: "0 0 4 1 * *" # Monthly on 1st day at 4 AM

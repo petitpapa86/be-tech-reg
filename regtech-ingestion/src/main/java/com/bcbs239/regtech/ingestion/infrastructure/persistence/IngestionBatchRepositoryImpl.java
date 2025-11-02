@@ -195,4 +195,57 @@ public class IngestionBatchRepositoryImpl implements IngestionBatchRepository {
             return false;
         }
     }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<IngestionBatch> findBatchesInPeriod(Instant startTime, Instant endTime) {
+        try {
+            return jpaRepository.findByUploadedAtBetween(startTime, endTime)
+                    .stream()
+                    .map(IngestionBatchEntity::toDomain)
+                    .collect(Collectors.toList());
+        } catch (DataAccessException e) {
+            log.error("Error finding batches in period {} to {}", startTime, endTime, e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<IngestionBatch> findStuckBatches(List<BatchStatus> statuses, Instant cutoffTime) {
+        try {
+            return jpaRepository.findStuckBatchesByStatuses(statuses, cutoffTime)
+                    .stream()
+                    .map(IngestionBatchEntity::toDomain)
+                    .collect(Collectors.toList());
+        } catch (DataAccessException e) {
+            log.error("Error finding stuck batches by statuses {} before {}", statuses, cutoffTime, e);
+            return List.of();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public long count() {
+        try {
+            return jpaRepository.count();
+        } catch (DataAccessException e) {
+            log.error("Error counting all batches", e);
+            return 0;
+        }
+    }
+    
+    /**
+     * Find batch entities in a period for compliance reporting.
+     * This method returns entities directly for performance reasons in compliance reporting.
+     */
+    @Transactional(readOnly = true)
+    public List<IngestionBatchEntity> findBatchEntitiesInPeriod(Instant startTime, Instant endTime) {
+        try {
+            return jpaRepository.findByUploadedAtBetween(startTime, endTime);
+        } catch (DataAccessException e) {
+            log.error("Error finding batch entities in period {} to {}", startTime, endTime, e);
+            return List.of();
+        }
+    }
 }

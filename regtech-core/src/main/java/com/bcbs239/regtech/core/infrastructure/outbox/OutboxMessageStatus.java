@@ -7,5 +7,7 @@ public enum OutboxMessageStatus {
     PENDING,
     PROCESSING,
     PROCESSED,
-    FAILED
+    FAILED,
+    PUBLISHED,  // Successfully published to event bus
+    DEAD_LETTER // Moved to dead letter after exhausting retries
 }

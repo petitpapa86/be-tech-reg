@@ -51,6 +51,10 @@ public class ErrorDetail {
         return new ErrorDetail("VALIDATION_ERROR", "Validation failed", "error.validation", null, fieldErrors);
     }
 
+    public static ErrorDetail validationError(List<FieldError> fieldErrors, String message) {
+        return new ErrorDetail("VALIDATION_ERROR", message, "error.validation", null, fieldErrors);
+    }
+
     public static ErrorDetail of(String code) {
         return new ErrorDetail(code, null, code.toLowerCase().replace("_", "."));
     }

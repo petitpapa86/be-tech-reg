@@ -67,6 +67,16 @@ public interface IngestionBatchRepository {
     List<IngestionBatch> findStuckBatches(int minutesAgo);
     
     /**
+     * Find batches that are stuck in specific statuses before a cutoff time.
+     */
+    List<IngestionBatch> findStuckBatches(List<BatchStatus> statuses, Instant cutoffTime);
+    
+    /**
+     * Count total batches.
+     */
+    long count();
+    
+    /**
      * Delete a batch (for cleanup purposes).
      */
     Result<Void> delete(BatchId batchId);
@@ -75,4 +85,9 @@ public interface IngestionBatchRepository {
      * Check if a batch exists.
      */
     boolean existsByBatchId(BatchId batchId);
+    
+    /**
+     * Find batches within a specific time period for compliance reporting.
+     */
+    List<IngestionBatch> findBatchesInPeriod(Instant startTime, Instant endTime);
 }

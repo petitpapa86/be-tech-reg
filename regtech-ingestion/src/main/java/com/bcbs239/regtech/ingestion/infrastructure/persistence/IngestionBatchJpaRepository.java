@@ -89,4 +89,12 @@ public interface IngestionBatchJpaRepository extends JpaRepository<IngestionBatc
            "ORDER BY b.uploadedAt DESC")
     List<IngestionBatchEntity> findRecentBatchesForBank(@Param("bankId") String bankId, 
                                                         @Param("since") Instant since);
+    
+    /**
+     * Find batches that are stuck in specific statuses before a cutoff time.
+     */
+    @Query("SELECT b FROM IngestionBatchEntity b WHERE " +
+           "b.status IN :statuses AND b.updatedAt < :cutoffTime")
+    List<IngestionBatchEntity> findStuckBatchesByStatuses(@Param("statuses") List<BatchStatus> statuses, 
+                                                          @Param("cutoffTime") Instant cutoffTime);
 }

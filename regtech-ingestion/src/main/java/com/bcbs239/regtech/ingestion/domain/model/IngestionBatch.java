@@ -30,6 +30,10 @@ public class IngestionBatch extends Entity {
     private Instant completedAt;
     private String errorMessage;
     private Long processingDurationMs;
+    private int recoveryAttempts = 0;
+    private Instant lastCheckpoint;
+    private String checkpointData;
+    private Instant updatedAt;
     
     /**
      * Constructor for creating a new ingestion batch.
@@ -40,6 +44,7 @@ public class IngestionBatch extends Entity {
         this.fileMetadata = Objects.requireNonNull(fileMetadata, "File metadata cannot be null");
         this.status = BatchStatus.UPLOADED;
         this.uploadedAt = Instant.now();
+        this.updatedAt = Instant.now();
     }
     
     /**
@@ -49,7 +54,9 @@ public class IngestionBatch extends Entity {
                          FileMetadata fileMetadata, S3Reference s3Reference, 
                          BankInfo bankInfo, Integer totalExposures, 
                          Instant uploadedAt, Instant completedAt, 
-                         String errorMessage, Long processingDurationMs) {
+                         String errorMessage, Long processingDurationMs,
+                         int recoveryAttempts, Instant lastCheckpoint, 
+                         String checkpointData, Instant updatedAt) {
         this.batchId = batchId;
         this.bankId = bankId;
         this.status = status;
@@ -61,6 +68,10 @@ public class IngestionBatch extends Entity {
         this.completedAt = completedAt;
         this.errorMessage = errorMessage;
         this.processingDurationMs = processingDurationMs;
+        this.recoveryAttempts = recoveryAttempts;
+        this.lastCheckpoint = lastCheckpoint;
+        this.checkpointData = checkpointData;
+        this.updatedAt = updatedAt != null ? updatedAt : Instant.now();
     }
     
     /**
@@ -217,5 +228,53 @@ public class IngestionBatch extends Entity {
      */
     public boolean isFailed() {
         return status == BatchStatus.FAILED;
+    }
+    
+    /**
+     * Update the batch status and set updated timestamp.
+     */
+    public void updateStatus(BatchStatus newStatus) {
+        this.status = newStatus;
+        this.updatedAt = Instant.now();
+    }
+    
+    /**
+     * Clear the error message (used during recovery).
+     */
+    public void clearErrorMessage() {
+        this.errorMessage = null;
+        this.updatedAt = Instant.now();
+    }
+    
+    /**
+     * Increment recovery attempts counter.
+     */
+    public void incrementRecoveryAttempts() {
+        this.recoveryAttempts++;
+        this.updatedAt = Instant.now();
+    }
+    
+    /**
+     * Set the last checkpoint timestamp.
+     */
+    public void setLastCheckpoint(Instant checkpoint) {
+        this.lastCheckpoint = checkpoint;
+        this.updatedAt = Instant.now();
+    }
+    
+    /**
+     * Set checkpoint data for recovery purposes.
+     */
+    public void setCheckpointData(String data) {
+        this.checkpointData = data;
+        this.updatedAt = Instant.now();
+    }
+    
+    /**
+     * Set the completed timestamp.
+     */
+    public void setCompletedAt(Instant completedAt) {
+        this.completedAt = completedAt;
+        this.updatedAt = Instant.now();
     }
 }

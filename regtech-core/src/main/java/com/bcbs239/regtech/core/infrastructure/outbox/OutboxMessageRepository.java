@@ -42,4 +42,89 @@ public class OutboxMessageRepository {
     public List<OutboxMessageEntity> findAll() {
         return em.createQuery("SELECT om FROM OutboxMessageEntity om", OutboxMessageEntity.class).getResultList();
     }
+    
+    public java.util.Optional<OutboxMessage> findById(Long id) {
+        // Since we're using String IDs, we need to find by a different approach
+        // For now, we'll search by hash code match
+        List<OutboxMessageEntity> entities = em.createQuery(
+            "SELECT om FROM OutboxMessageEntity om", OutboxMessageEntity.class
+        ).getResultList();
+        
+        return entities.stream()
+            .filter(entity -> entity.getId() != null && entity.getId().hashCode() == id.intValue())
+            .findFirst()
+            .map(OutboxMessage::from);
+    }
+    
+    public List<OutboxMessage> findRetryableMessages(java.time.Instant now) {
+        List<OutboxMessageEntity> entities = em.createQuery(
+            "SELECT om FROM OutboxMessageEntity om WHERE om.status = :status AND " +
+            "(om.nextRetryTime IS NULL OR om.nextRetryTime <= :now)",
+            OutboxMessageEntity.class
+        ).setParameter("status", OutboxMessageStatus.PENDING)
+         .setParameter("now", now)
+         .getResultList();
+         
+        return entities.stream()
+            .map(OutboxMessage::from)
+            .collect(java.util.stream.Collectors.toList());
+    }
+    
+    public List<OutboxMessage> findStuckMessages(java.time.Instant cutoffTime) {
+        List<OutboxMessageEntity> entities = em.createQuery(
+            "SELECT om FROM OutboxMessageEntity om WHERE om.status = :status AND om.updatedAt < :cutoffTime",
+            OutboxMessageEntity.class
+        ).setParameter("status", OutboxMessageStatus.PENDING)
+         .setParameter("cutoffTime", cutoffTime)
+         .getResultList();
+         
+        return entities.stream()
+            .map(OutboxMessage::from)
+            .collect(java.util.stream.Collectors.toList());
+    }
+    
+    public List<OutboxMessage> findOldDeadLetterMessages(java.time.Instant cutoffTime) {
+        List<OutboxMessageEntity> entities = em.createQuery(
+            "SELECT om FROM OutboxMessageEntity om WHERE om.status = :status AND om.deadLetterTime < :cutoffTime",
+            OutboxMessageEntity.class
+        ).setParameter("status", OutboxMessageStatus.DEAD_LETTER)
+         .setParameter("cutoffTime", cutoffTime)
+         .getResultList();
+         
+        return entities.stream()
+            .map(OutboxMessage::from)
+            .collect(java.util.stream.Collectors.toList());
+    }
+    
+    public long countStuckMessages(java.time.Instant cutoffTime) {
+        Long count = em.createQuery(
+            "SELECT COUNT(om) FROM OutboxMessageEntity om WHERE om.status = :status AND om.updatedAt < :cutoffTime",
+            Long.class
+        ).setParameter("status", OutboxMessageStatus.PENDING)
+         .setParameter("cutoffTime", cutoffTime)
+         .getSingleResult();
+        return count != null ? count : 0L;
+    }
+    
+    public void delete(OutboxMessage message) {
+        if (message instanceof OutboxMessage.OutboxMessageImpl impl) {
+            OutboxMessageEntity entity = impl.getEntity();
+            if (em.contains(entity)) {
+                em.remove(entity);
+            } else {
+                OutboxMessageEntity managedEntity = em.find(OutboxMessageEntity.class, entity.getId());
+                if (managedEntity != null) {
+                    em.remove(managedEntity);
+                }
+            }
+        }
+    }
+    
+    public OutboxMessage save(OutboxMessage message) {
+        if (message instanceof OutboxMessage.OutboxMessageImpl impl) {
+            OutboxMessageEntity savedEntity = save(impl.getEntity());
+            return OutboxMessage.from(savedEntity);
+        }
+        throw new IllegalArgumentException("Unsupported OutboxMessage implementation");
+    }
 }

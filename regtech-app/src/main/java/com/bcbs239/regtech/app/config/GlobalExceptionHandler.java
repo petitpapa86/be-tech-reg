@@ -1,15 +1,15 @@
 package com.bcbs239.regtech.app.config;
 
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import com.bcbs239.regtech.core.shared.ApiResponse;
+import com.bcbs239.regtech.core.shared.ResponseUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -24,25 +24,26 @@ public class GlobalExceptionHandler {
 
     /**
      * Handles all unhandled exceptions.
-     * Logs the exception and returns a generic error response.
+     * Logs the exception and returns a generic error response using existing ApiResponse format.
      *
      * @param ex the exception
      * @param request the web request
-     * @return a ResponseEntity with error details
+     * @return a ResponseEntity with structured error details
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGlobalException(Exception ex, WebRequest request) {
+    public ResponseEntity<ApiResponse<Void>> handleGlobalException(Exception ex, WebRequest request) {
+        String path = request.getDescription(false).replace("uri=", "");
+        
         LoggingConfiguration.logStructured("UNHANDLED_EXCEPTION", Map.of(
             "exception", ex.getClass().getSimpleName(),
             "message", ex.getMessage(),
-            "path", request.getDescription(false).replace("uri=", "")
+            "path", path
         ));
 
-        Map<String, Object> errorDetails = new HashMap<>();
-        errorDetails.put("message", "An unexpected error occurred.");
-        errorDetails.put("error", ex.getClass().getSimpleName());
-        errorDetails.put("path", request.getDescription(false).replace("uri=", ""));
-
-        return new ResponseEntity<>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);
+        String message = "An unexpected error occurred. Please try again or contact support if the problem persists.";
+        
+        return ResponseEntity.internalServerError().body(
+            ResponseUtils.systemError(message)
+        );
     }
 }
