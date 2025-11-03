@@ -6,7 +6,7 @@ import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankInfo;
 import com.bcbs239.regtech.modules.ingestion.domain.batch.rules.BatchSpecifications;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.rules.BatchTransitions;
+import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchTransitions;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -194,43 +194,9 @@ public class IngestionBatch extends Entity {
     }
     
     /**
-     * Check if the batch can transition to the specified status.
-     */
-    private boolean canTransitionTo(BatchStatus newStatus) {
-        return switch (status) {
-            case UPLOADED -> newStatus == BatchStatus.PARSING || newStatus == BatchStatus.FAILED;
-            case PARSING -> newStatus == BatchStatus.VALIDATED || newStatus == BatchStatus.FAILED;
-            case VALIDATED -> newStatus == BatchStatus.STORING || newStatus == BatchStatus.FAILED;
-            case STORING -> newStatus == BatchStatus.COMPLETED || newStatus == BatchStatus.FAILED;
-            case COMPLETED, FAILED -> false; // Terminal states
-        };
-    }
-
-    /**
-     * Check if the batch is in a terminal state.
-     */
-    public boolean isTerminal() {
-        return status == BatchStatus.COMPLETED || status == BatchStatus.FAILED;
-    }
-    
-    /**
-     * Check if the batch processing was successful.
-     */
-    public boolean isSuccessful() {
-        return status == BatchStatus.COMPLETED;
-    }
-    
-    /**
-     * Check if the batch processing failed.
-     */
-    public boolean isFailed() {
-        return status == BatchStatus.FAILED;
-    }
-    
-    /**
      * Update the batch status and set updated timestamp.
      */
-    public void updateStatus(BatchStatus newStatus) {
+    /* package-private */ void updateStatus(BatchStatus newStatus) {
         this.status = newStatus;
         this.updatedAt = Instant.now();
     }
@@ -274,5 +240,23 @@ public class IngestionBatch extends Entity {
         this.completedAt = completedAt;
         this.updatedAt = Instant.now();
     }
-}
 
+    /**
+     * Check if the batch is in a terminal state.
+     */
+    public boolean isTerminal() {
+        return status == BatchStatus.COMPLETED || status == BatchStatus.FAILED;
+    }
+
+    // Explicit getters (in addition to Lombok) to ensure compilation when annotation processing is not available
+    public BatchStatus getStatus() { return this.status; }
+    public S3Reference getS3Reference() { return this.s3Reference; }
+    public Integer getTotalExposures() { return this.totalExposures; }
+
+    /**
+     * Check if the batch processing was successful.
+     */
+    public boolean isSuccessful() {
+        return status == BatchStatus.COMPLETED;
+    }
+}

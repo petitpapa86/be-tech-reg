@@ -2,6 +2,8 @@ package com.bcbs239.regtech.modules.ingestion.infrastructure.performance;
 
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.modules.ingestion.domain.performance.FileSplittingSuggestion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -234,5 +236,66 @@ public class FileProcessingPerformanceOptimizer {
                 return new ProcessingStats(this);
             }
         }
+    }
+
+    /**
+     * Produce a suggestion whether the provided file should be split for processing.
+     * The heuristic is simple and conservative: if the file size exceeds the domain's
+     * maximum allowed file size the splitting is required. If the estimated exposure
+     * count (if provided) exceeds the configured chunkSize the splitting is recommended.
+     *
+     * This method returns a domain-level `FileSplittingSuggestion` so callers in the
+     * application layer can present user-friendly guidance.
+     */
+    public FileSplittingSuggestion suggestSplitting(FileMetadata metadata) {
+        if (metadata == null) {
+            throw new IllegalArgumentException("FileMetadata cannot be null");
+        }
+
+        long fileSize = metadata.fileSizeBytes();
+        Integer estimatedExposures = null; // we don't have exposures in FileMetadata; caller may enrich
+
+        // required if exceeds hard max
+        boolean required = fileSize > FileMetadata.getMaxFileSizeBytes();
+
+        // recommended if estimated exposures are larger than chunk size
+        boolean recommended = false;
+        if (estimatedExposures != null) {
+            recommended = estimatedExposures > this.chunkSize;
+        }
+
+        // If exposures unknown, use a heuristic by bytes: recommend if file > 100MB and chunkSize small
+        if (estimatedExposures == null) {
+            recommended = recommended || (fileSize > 100L * 1024 * 1024 && this.chunkSize < 100_000);
+        }
+
+        String severity = required ? "CRITICAL" : (recommended ? "WARNING" : "INFO");
+        String reason = required ? "File exceeds maximum allowed size" : (recommended ? "Large file may impair processing throughput" : "File size within acceptable limits");
+        String recommendation = required ? "Split file into multiple files before upload" : (recommended ? "Consider splitting file into smaller chunks or reduce chunk size" : "No action required");
+
+        int estimatedOptimalFiles = 1;
+        if (estimatedExposures != null && estimatedExposures > 0) {
+            estimatedOptimalFiles = Math.max(1, (int) Math.ceil((double) estimatedExposures / this.chunkSize));
+        } else {
+            // heuristic: assume avg 1KB per exposure
+            long approxRecords = Math.max(1L, fileSize / 1024L);
+            estimatedOptimalFiles = Math.max(1, (int) Math.ceil((double) approxRecords / this.chunkSize));
+        }
+
+        FileSplittingSuggestion suggestion = new FileSplittingSuggestion(
+            metadata.fileName(),
+            metadata.fileSizeBytes(),
+            estimatedExposures,
+            required,
+            recommended,
+            severity,
+            reason,
+            recommendation,
+            estimatedOptimalFiles
+        );
+
+        log.info("Generated splitting suggestion for {}: required={}, recommended={}, optimalFiles={}", metadata.fileName(), required, recommended, estimatedOptimalFiles);
+
+        return suggestion;
     }
 }
