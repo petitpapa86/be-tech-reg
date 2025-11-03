@@ -57,7 +57,10 @@ iam:
       audit-enabled: true
 
 # Ingestion Module Configuration
-ingestion:
+regtech:
+  ingestion:
+    compliance:
+      enabled: true
   s3:
     bucket: regtech-data-storage
     region: us-east-1
