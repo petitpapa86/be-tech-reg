@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.modules.dataquality.presentation.config;
 
-import com.bcbs239.regtech.modules.dataquality.presentation.controllers.QualityReportController;
-import com.bcbs239.regtech.modules.dataquality.presentation.controllers.QualityHealthController;
+import com.bcbs239.regtech.modules.dataquality.presentation.routing.QualityReportRoutes;
+import com.bcbs239.regtech.modules.dataquality.presentation.routing.QualityHealthRoutes;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,10 +20,10 @@ public class QualityWebConfig {
      */
     @Bean
     public RouterFunction<ServerResponse> qualityRoutes(
-        QualityReportController qualityReportController,
-        QualityHealthController qualityHealthController
+        QualityReportRoutes qualityReportRoutes,
+        QualityHealthRoutes qualityHealthRoutes
     ) {
-        return qualityReportController.mapEndpoints()
-            .and(qualityHealthController.mapEndpoints());
+        return qualityReportRoutes.createRoutes()
+            .and(qualityHealthRoutes.createRoutes());
     }
 }

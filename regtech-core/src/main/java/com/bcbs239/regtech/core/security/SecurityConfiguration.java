@@ -16,7 +16,7 @@ public class SecurityConfiguration {
      * Register the permission authorization filter.
      */
     @Bean
-    public FilterRegistrationBean<PermissionAuthorizationFilter> permissionAuthorizationFilter(
+    public FilterRegistrationBean<PermissionAuthorizationFilter> permissionAuthorizationFilterRegistration(
             PermissionAuthorizationFilter filter) {
         
         FilterRegistrationBean<PermissionAuthorizationFilter> registration = new FilterRegistrationBean<>();
