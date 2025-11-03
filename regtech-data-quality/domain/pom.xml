@@ -17,6 +17,8 @@
 			<artifactId>regtech-core</artifactId>
 		</dependency>
 		
+
+		
 		<!-- Spring Boot Starter for basic annotations -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

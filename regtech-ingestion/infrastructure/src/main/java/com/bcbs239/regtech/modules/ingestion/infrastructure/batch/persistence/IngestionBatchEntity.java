@@ -4,6 +4,9 @@ import com.bcbs239.regtech.modules.ingestion.domain.batch.*;
 import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankInfo;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.Objects;
 
@@ -11,10 +14,13 @@ import java.util.Objects;
  * JPA entity mapping to the ingestion_batches table.
  * Maps domain aggregate IngestionBatch to database representation.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "ingestion_batches", schema = "regtech")
 public class IngestionBatchEntity {
-    
+
+    // Getters and setters
     @Id
     @Column(name = "batch_id", length = 50)
     private String batchId;
@@ -202,71 +208,7 @@ public class IngestionBatchEntity {
     protected void onUpdate() {
         this.updatedAt = Instant.now();
     }
-    
-    // Getters and setters
-    public String getBatchId() { return batchId; }
-    public void setBatchId(String batchId) { this.batchId = batchId; }
-    
-    public String getBankId() { return bankId; }
-    public void setBankId(String bankId) { this.bankId = bankId; }
-    
-    public String getBankName() { return bankName; }
-    public void setBankName(String bankName) { this.bankName = bankName; }
-    
-    public String getBankCountry() { return bankCountry; }
-    public void setBankCountry(String bankCountry) { this.bankCountry = bankCountry; }
-    
-    public BatchStatus getStatus() { return status; }
-    public void setStatus(BatchStatus status) { this.status = status; }
-    
-    public Integer getTotalExposures() { return totalExposures; }
-    public void setTotalExposures(Integer totalExposures) { this.totalExposures = totalExposures; }
-    
-    public Long getFileSizeBytes() { return fileSizeBytes; }
-    public void setFileSizeBytes(Long fileSizeBytes) { this.fileSizeBytes = fileSizeBytes; }
-    
-    public String getFileName() { return fileName; }
-    public void setFileName(String fileName) { this.fileName = fileName; }
-    
-    public String getContentType() { return contentType; }
-    public void setContentType(String contentType) { this.contentType = contentType; }
-    
-    public String getS3Uri() { return s3Uri; }
-    public void setS3Uri(String s3Uri) { this.s3Uri = s3Uri; }
-    
-    public String getS3Bucket() { return s3Bucket; }
-    public void setS3Bucket(String s3Bucket) { this.s3Bucket = s3Bucket; }
-    
-    public String getS3Key() { return s3Key; }
-    public void setS3Key(String s3Key) { this.s3Key = s3Key; }
-    
-    public String getS3VersionId() { return s3VersionId; }
-    public void setS3VersionId(String s3VersionId) { this.s3VersionId = s3VersionId; }
-    
-    public String getMd5Checksum() { return md5Checksum; }
-    public void setMd5Checksum(String md5Checksum) { this.md5Checksum = md5Checksum; }
-    
-    public String getSha256Checksum() { return sha256Checksum; }
-    public void setSha256Checksum(String sha256Checksum) { this.sha256Checksum = sha256Checksum; }
-    
-    public Instant getUploadedAt() { return uploadedAt; }
-    public void setUploadedAt(Instant uploadedAt) { this.uploadedAt = uploadedAt; }
-    
-    public Instant getCompletedAt() { return completedAt; }
-    public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
-    
-    public String getErrorMessage() { return errorMessage; }
-    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
-    
-    public Long getProcessingDurationMs() { return processingDurationMs; }
-    public void setProcessingDurationMs(Long processingDurationMs) { this.processingDurationMs = processingDurationMs; }
-    
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

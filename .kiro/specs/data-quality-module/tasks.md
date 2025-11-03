@@ -8,21 +8,25 @@
   - _Requirements: 10.1, 10.2, 10.3_
 
 - [ ] 2. Implement domain layer with quality dimensions
-  - [ ] 2.1 Create QualityReport aggregate root
-    - Implement QualityReport entity with business behavior methods
-    - Add state transition validation and domain event publishing
-    - Create QualityReportId, QualityStatus, and related value objects
+  - [x] 2.1 Complete QualityReport aggregate root
+
+
+
+
+
+    - Add business behavior methods (startValidation, recordValidationResults, calculateScores, etc.)
+    - Implement state transition validation and domain event publishing
+    - Add domain event handling for quality report lifecycle
     - _Requirements: 1.5, 4.1, 4.2_
 
   - [x] 2.2 Implement quality scores value objects
     - Create QualityScores record with six dimension scores
     - Implement QualityGrade enum with score thresholds (A+, A, B, C, F)
     - Add QualityWeights record with configurable dimension weights
-
     - Create DimensionScores record for individual dimension calculations
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8_
 
-  - [ ] 2.3 Create validation result value objects
+  - [x] 2.3 Create validation result value objects
     - Create ExposureRecord value object to represent exposure data for validation
     - Implement ValidationResult with exposure results and batch errors
     - Create ExposureValidationResult with dimension-specific errors
@@ -30,14 +34,18 @@
     - Create ValidationSummary for aggregate statistics
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
 
-  - [ ] 2.4 Define repository interfaces
+  - [x] 2.4 Define repository interfaces
+
     - Create IQualityReportRepository interface in domain layer
     - Add methods for save, findByBatchId, and findByBankId
     - Define IQualityErrorSummaryRepository for error storage
     - _Requirements: 5.1, 5.2, 5.3_
 
 - [ ] 3. Implement Specification pattern for all quality dimensions
-  - [ ] 3.1 Create Completeness specifications
+  - [-] 3.1 Create Completeness specifications
+
+
+
     - Implement CompletenessSpecifications with hasRequiredFields()
     - Add hasLeiForCorporates() specification for corporate exposures
     - Create hasMaturityForTermExposures() for term exposure validation
