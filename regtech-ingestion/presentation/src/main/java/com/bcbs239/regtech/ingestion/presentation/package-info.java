@@ -17,4 +17,4 @@
  * - health: Health check endpoints
  * - config: Web configuration and module setup
  */
-package com.bcbs239.regtech.modules.ingestion.presentation;
+package com.bcbs239.regtech.ingestion.presentation;

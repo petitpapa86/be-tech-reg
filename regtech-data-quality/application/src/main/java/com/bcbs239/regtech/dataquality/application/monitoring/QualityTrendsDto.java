@@ -1,6 +1,6 @@
-package com.bcbs239.regtech.modules.dataquality.application.monitoring;
+package com.bcbs239.regtech.dataquality.application.monitoring;
 
-import com.bcbs239.regtech.modules.dataquality.domain.shared.BankId;
+import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 
 import java.time.Instant;
 import java.util.List;

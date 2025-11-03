@@ -1,15 +1,13 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.batch.suggestion;
+package com.bcbs239.regtech.ingestion.presentation.batch.suggestion;
 
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.ingestion.application.files.SuggestFileSplittingCommandHandler;
-import com.bcbs239.regtech.modules.ingestion.application.files.SuggestFileSplittingCommand;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.modules.ingestion.domain.performance.FileSplittingSuggestion;
-import com.bcbs239.regtech.modules.ingestion.presentation.common.IEndpoint;
+import com.bcbs239.regtech.ingestion.application.files.SuggestFileSplittingCommandHandler;
+import com.bcbs239.regtech.ingestion.application.files.SuggestFileSplittingCommand;
+import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;
+import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import jakarta.servlet.ServletException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;

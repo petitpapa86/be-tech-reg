@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.configuration;
+package com.bcbs239.regtech.ingestion.infrastructure.configuration;
 
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;

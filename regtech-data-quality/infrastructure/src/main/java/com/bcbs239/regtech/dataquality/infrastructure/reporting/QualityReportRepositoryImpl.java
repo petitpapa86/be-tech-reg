@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.infrastructure.reporting;
+package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;

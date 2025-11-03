@@ -152,14 +152,15 @@ presentation/
 
 ### **Import Updates**
 All import statements have been updated to reflect the new package structure:
+
 ```java
 // Old imports
+
 import com.bcbs239.regtech.modules.dataquality.presentation.controllers.QualityReportController;
 import com.bcbs239.regtech.modules.dataquality.presentation.handlers.QualityResponseHandler;
 
 // New imports  
-import com.bcbs239.regtech.modules.dataquality.presentation.reports.QualityReportController;
-import com.bcbs239.regtech.modules.dataquality.presentation.web.QualityResponseHandler;
+
 ```
 
 ### **Test Organization**

@@ -1,7 +1,7 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.reports;
+package com.bcbs239.regtech.dataquality.presentation.reports;
 
 import com.bcbs239.regtech.core.web.RouterAttributes;
-import com.bcbs239.regtech.modules.dataquality.presentation.common.Tags;
+import com.bcbs239.regtech.dataquality.presentation.common.Tags;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;

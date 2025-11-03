@@ -13,4 +13,4 @@
  * - Managing validation performance and scalability
  * - Integrating with external validation services
  */
-package com.bcbs239.regtech.modules.dataquality.infrastructure.validation;
+package com.bcbs239.regtech.dataquality.infrastructure.validation;

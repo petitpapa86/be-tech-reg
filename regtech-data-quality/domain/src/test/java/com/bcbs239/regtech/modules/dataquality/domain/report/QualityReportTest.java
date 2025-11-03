@@ -1,14 +1,16 @@
 package com.bcbs239.regtech.modules.dataquality.domain.report;
 
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.dataquality.domain.quality.QualityScores;
-import com.bcbs239.regtech.modules.dataquality.domain.quality.QualityGrade;
-import com.bcbs239.regtech.modules.dataquality.domain.shared.BankId;
-import com.bcbs239.regtech.modules.dataquality.domain.shared.BatchId;
-import com.bcbs239.regtech.modules.dataquality.domain.shared.S3Reference;
-import com.bcbs239.regtech.modules.dataquality.domain.validation.ValidationResult;
-import com.bcbs239.regtech.modules.dataquality.domain.validation.ValidationSummary;
-import com.bcbs239.regtech.modules.dataquality.domain.report.events.*;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
+import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
+import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
+import com.bcbs239.regtech.dataquality.domain.report.events.*;
+import com.bcbs239.regtech.dataquality.domain.shared.BankId;
+import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;

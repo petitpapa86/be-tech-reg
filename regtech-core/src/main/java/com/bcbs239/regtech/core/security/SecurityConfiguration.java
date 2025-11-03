@@ -23,7 +23,7 @@ public class SecurityConfiguration {
         registration.setFilter(filter);
         registration.addUrlPatterns("/api/*");
         registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 2);
-        registration.setName("permissionAuthorizationFilterRegistration");
+        registration.setName("permissionAuthorizationFilterRegistrationRegistration");
         
         return registration;
     }

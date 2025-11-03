@@ -1,12 +1,12 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.config;
+package com.bcbs239.regtech.ingestion.presentation.config;
 
-import com.bcbs239.regtech.modules.ingestion.presentation.batch.status.BatchStatusController;
-import com.bcbs239.regtech.modules.ingestion.presentation.batch.process.ProcessBatchController;
-import com.bcbs239.regtech.modules.ingestion.presentation.batch.upload.UploadFileController;
-import com.bcbs239.regtech.modules.ingestion.presentation.compliance.reports.ComplianceReportsController;
-import com.bcbs239.regtech.modules.ingestion.presentation.compliance.policies.RetentionPoliciesController;
-import com.bcbs239.regtech.modules.ingestion.presentation.compliance.lifecycle.LifecyclePoliciesController;
-import com.bcbs239.regtech.modules.ingestion.presentation.health.IngestionHealthController;
+import com.bcbs239.regtech.ingestion.presentation.batch.status.BatchStatusController;
+import com.bcbs239.regtech.ingestion.presentation.batch.process.ProcessBatchController;
+import com.bcbs239.regtech.ingestion.presentation.batch.upload.UploadFileController;
+import com.bcbs239.regtech.ingestion.presentation.compliance.reports.ComplianceReportsController;
+import com.bcbs239.regtech.ingestion.presentation.compliance.policies.RetentionPoliciesController;
+import com.bcbs239.regtech.ingestion.presentation.compliance.lifecycle.LifecyclePoliciesController;
+import com.bcbs239.regtech.ingestion.presentation.health.IngestionHealthController;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.function.RouterFunction;

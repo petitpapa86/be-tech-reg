@@ -13,4 +13,4 @@
  * - Providing monitoring dashboards and alerts
  * - Integrating with external monitoring systems
  */
-package com.bcbs239.regtech.modules.dataquality.infrastructure.monitoring;
+package com.bcbs239.regtech.dataquality.infrastructure.monitoring;

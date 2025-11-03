@@ -1,7 +1,7 @@
-package com.bcbs239.regtech.modules.dataquality.application.reporting;
+package com.bcbs239.regtech.dataquality.application.reporting;
 
-import com.bcbs239.regtech.modules.dataquality.domain.report.QualityReport;
-import com.bcbs239.regtech.modules.dataquality.domain.report.QualityStatus;
+import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
+import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 
 import java.time.Instant;
 

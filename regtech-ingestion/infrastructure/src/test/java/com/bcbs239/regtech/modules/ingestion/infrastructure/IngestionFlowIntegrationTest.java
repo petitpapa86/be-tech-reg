@@ -1,9 +1,6 @@
 package com.bcbs239.regtech.modules.ingestion.infrastructure;
 
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.IngestionBatch;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.IIngestionBatchRepository;
+import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
 import com.bcbs239.regtech.modules.ingestion.infrastructure.config.IngestionTestConfiguration;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

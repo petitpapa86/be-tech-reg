@@ -1,10 +1,10 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.health;
+package com.bcbs239.regtech.ingestion.presentation.health;
 
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.web.RouterAttributes;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.health.IngestionModuleHealthIndicator;
-import com.bcbs239.regtech.modules.ingestion.presentation.common.IEndpoint;
-import com.bcbs239.regtech.modules.ingestion.presentation.constants.Tags;
+import com.bcbs239.regtech.ingestion.infrastructure.health.IngestionModuleHealthIndicator;
+import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
+import com.bcbs239.regtech.ingestion.presentation.constants.Tags;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;

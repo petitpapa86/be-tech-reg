@@ -1,14 +1,22 @@
 package com.bcbs239.regtech.modules.dataquality.application.validation;
 
-import com.bcbs239.regtech.modules.dataquality.domain.quality.*;
+import com.bcbs239.regtech.dataquality.application.validation.ValidationSummaryDto;
+import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
+import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
+import com.bcbs239.regtech.dataquality.domain.shared.BankId;
+import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
 import com.bcbs239.regtech.modules.dataquality.domain.report.*;
-import com.bcbs239.regtech.modules.dataquality.domain.shared.*;
-import com.bcbs239.regtech.modules.dataquality.domain.validation.*;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 
-import java.time.Instant;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;

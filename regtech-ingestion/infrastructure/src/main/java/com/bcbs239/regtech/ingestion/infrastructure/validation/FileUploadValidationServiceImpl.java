@@ -1,9 +1,8 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.validation;
+package com.bcbs239.regtech.ingestion.infrastructure.validation;
 
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.ingestion.application.batch.upload.UploadFileCommandHandler.FileUploadValidationService;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommandHandler.FileUploadValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

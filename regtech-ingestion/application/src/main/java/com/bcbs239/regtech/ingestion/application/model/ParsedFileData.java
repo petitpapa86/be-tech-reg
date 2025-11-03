@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.application.model;
+package com.bcbs239.regtech.ingestion.application.model;
 
 import com.bcbs239.regtech.ingestion.domain.model.CreditRiskMitigation;
 import com.bcbs239.regtech.ingestion.domain.model.LoanExposure;

@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.batch.process;
+package com.bcbs239.regtech.ingestion.presentation.batch.process;
 
 /**
  * Response DTO for successful batch processing.

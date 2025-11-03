@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.common;
+package com.bcbs239.regtech.dataquality.presentation.common;
 
 /**
  * Constants for API tags used in the data quality module.

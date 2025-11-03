@@ -1,9 +1,9 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.performance;
+package com.bcbs239.regtech.ingestion.infrastructure.performance;
 
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.modules.ingestion.domain.performance.FileSplittingSuggestion;
+import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

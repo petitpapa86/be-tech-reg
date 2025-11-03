@@ -1,7 +1,6 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.exception;
+package com.bcbs239.regtech.ingestion.presentation.exception;
 
 import com.bcbs239.regtech.core.shared.ApiResponse;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.FieldError;
 import com.bcbs239.regtech.core.shared.ResponseUtils;
 import jakarta.validation.ConstraintViolation;

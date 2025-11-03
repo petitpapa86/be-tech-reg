@@ -13,4 +13,4 @@
  * - Managing scoring weights and thresholds
  * - Calculating compliance status and quality grades
  */
-package com.bcbs239.regtech.modules.dataquality.infrastructure.scoring;
+package com.bcbs239.regtech.dataquality.infrastructure.scoring;

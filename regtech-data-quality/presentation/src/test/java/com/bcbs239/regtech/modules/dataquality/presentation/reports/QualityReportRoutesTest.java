@@ -2,6 +2,8 @@ package com.bcbs239.regtech.modules.dataquality.presentation.reports;
 
 
 
+import com.bcbs239.regtech.dataquality.presentation.reports.QualityReportController;
+import com.bcbs239.regtech.dataquality.presentation.reports.QualityReportRoutes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

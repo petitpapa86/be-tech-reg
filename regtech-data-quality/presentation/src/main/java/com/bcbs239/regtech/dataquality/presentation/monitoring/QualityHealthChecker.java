@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
+package com.bcbs239.regtech.dataquality.presentation.monitoring;
 
 import com.bcbs239.regtech.dataquality.application.validation.QualityValidationEngine;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;

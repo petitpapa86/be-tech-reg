@@ -13,4 +13,4 @@
  * - Providing efficient data access for reporting queries
  * - Handling persistence transactions and error recovery
  */
-package com.bcbs239.regtech.modules.dataquality.infrastructure.reporting;
+package com.bcbs239.regtech.dataquality.infrastructure.reporting;

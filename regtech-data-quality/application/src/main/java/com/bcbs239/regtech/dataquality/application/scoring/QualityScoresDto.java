@@ -1,7 +1,7 @@
-package com.bcbs239.regtech.modules.dataquality.application.scoring;
+package com.bcbs239.regtech.dataquality.application.scoring;
 
-import com.bcbs239.regtech.modules.dataquality.domain.quality.QualityGrade;
-import com.bcbs239.regtech.modules.dataquality.domain.quality.QualityScores;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 
 /**
  * DTO for quality scores with all six dimensions.

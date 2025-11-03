@@ -1,10 +1,10 @@
-package com.bcbs239.regtech.modules.dataquality.application.integration;
+package com.bcbs239.regtech.dataquality.application.integration;
 
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.dataquality.domain.shared.BatchId;
-import com.bcbs239.regtech.modules.dataquality.domain.shared.S3Reference;
-import com.bcbs239.regtech.modules.dataquality.domain.validation.ExposureRecord;
-import com.bcbs239.regtech.modules.dataquality.domain.validation.ValidationResult;
+import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
+import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 
 import java.util.List;
 

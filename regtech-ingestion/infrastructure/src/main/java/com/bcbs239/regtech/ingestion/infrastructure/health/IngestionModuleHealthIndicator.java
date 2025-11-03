@@ -1,12 +1,12 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.health;
+package com.bcbs239.regtech.ingestion.infrastructure.health;
 
 import com.bcbs239.regtech.core.health.ModuleHealthIndicator;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.ingestion.domain.services.FileStorageService;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.events.IngestionOutboxProcessor;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.batch.persistence.IngestionBatchJpaRepository;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.batch.persistence.IngestionBatchEntity;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchStatus;
+import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
+import com.bcbs239.regtech.ingestion.infrastructure.events.IngestionOutboxProcessor;
+import com.bcbs239.regtech.ingestion.infrastructure.batch.persistence.IngestionBatchJpaRepository;
+import com.bcbs239.regtech.ingestion.infrastructure.batch.persistence.IngestionBatchEntity;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.stereotype.Component;

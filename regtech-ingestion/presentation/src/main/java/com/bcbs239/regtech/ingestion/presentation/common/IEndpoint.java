@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.common;
+package com.bcbs239.regtech.ingestion.presentation.common;
 
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;

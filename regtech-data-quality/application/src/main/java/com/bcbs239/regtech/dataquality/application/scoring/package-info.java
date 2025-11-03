@@ -13,4 +13,4 @@
  * - Managing scoring weights and thresholds
  * - Providing scoring analytics and insights
  */
-package com.bcbs239.regtech.modules.dataquality.application.scoring;
+package com.bcbs239.regtech.dataquality.application.scoring;

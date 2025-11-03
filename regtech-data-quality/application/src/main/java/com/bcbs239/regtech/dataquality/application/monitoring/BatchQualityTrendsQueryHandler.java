@@ -1,11 +1,11 @@
-package com.bcbs239.regtech.modules.dataquality.application.monitoring;
+package com.bcbs239.regtech.dataquality.application.monitoring;
 
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.modules.dataquality.application.monitoring.QualityTrendsDto;
-import com.bcbs239.regtech.modules.dataquality.application.reporting.QualityReportSummaryDto;
-import com.bcbs239.regtech.modules.dataquality.domain.report.IQualityReportRepository;
-import com.bcbs239.regtech.modules.dataquality.domain.report.QualityReport;
+import com.bcbs239.regtech.dataquality.application.reporting.QualityReportSummaryDto;
+import com.bcbs239.regtech.dataquality.domain.shared.BankId;
+import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
+import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +87,7 @@ public class BatchQualityTrendsQueryHandler {
      * Gets quality reports with scores below a threshold for a bank.
      */
     public Result<List<QualityReportSummaryDto>> getReportsBelowThreshold(
-        com.bcbs239.regtech.modules.dataquality.domain.shared.BankId bankId, 
+        BankId bankId,
         double threshold
     ) {
         try {
@@ -122,7 +122,7 @@ public class BatchQualityTrendsQueryHandler {
      * Gets the most recent quality report for a bank.
      */
     public Result<QualityReportSummaryDto> getMostRecentReport(
-        com.bcbs239.regtech.modules.dataquality.domain.shared.BankId bankId
+        BankId bankId
     ) {
         try {
             logger.debug("Retrieving most recent quality report for bank {}", bankId.value());

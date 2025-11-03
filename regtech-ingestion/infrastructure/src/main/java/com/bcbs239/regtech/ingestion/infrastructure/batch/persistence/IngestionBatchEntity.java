@@ -1,8 +1,9 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.batch.persistence;
+package com.bcbs239.regtech.ingestion.infrastructure.batch.persistence;
 
+import com.bcbs239.regtech.ingestion.domain.batch.*;
 import com.bcbs239.regtech.modules.ingestion.domain.batch.*;
-import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
-import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankInfo;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -150,8 +151,8 @@ public class IngestionBatchEntity {
      * Convert from JPA entity to domain aggregate.
      */
     public IngestionBatch toDomain() {
-        com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId batchId = 
-            new com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId(this.batchId);
+        BatchId batchId =
+            new BatchId(this.batchId);
         BankId bankId = new BankId(this.bankId);
         
         // Create file metadata if data is present

@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.modules.ingestion.infrastructure;
 
+import com.bcbs239.regtech.ingestion.domain.model.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -36,18 +37,18 @@ class EnhancedLoanParsingTest {
         assertThat(loanPortfolio.size()).isEqualTo(5);
 
         // Map loan_portfolio to domain DTOs
-        com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposureDto[] exposures =
-            objectMapper.treeToValue(loanPortfolio, com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposureDto[].class);
+        LoanExposureDto[] exposures =
+            objectMapper.treeToValue(loanPortfolio, LoanExposureDto[].class);
 
         assertThat(exposures).hasSize(5);
 
         // Map to domain objects
-        java.util.List<com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure> exposureModels =
-            com.bcbs239.regtech.modules.ingestion.domain.model.DomainMapper.toLoanExposureList(exposures);
+        java.util.List<LoanExposure> exposureModels =
+            DomainMapper.toLoanExposureList(exposures);
 
         assertThat(exposureModels).hasSize(5);
 
-        com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure loan001 = exposureModels.stream()
+        LoanExposure loan001 = exposureModels.stream()
             .filter(e -> "LOAN001".equals(e.loanId()))
             .findFirst().orElse(null);
 
@@ -62,15 +63,15 @@ class EnhancedLoanParsingTest {
         assertThat(crm.isArray()).isTrue();
         assertThat(crm.size()).isEqualTo(3);
 
-        com.bcbs239.regtech.modules.ingestion.domain.model.CreditRiskMitigationDto[] crms =
-            objectMapper.treeToValue(crm, com.bcbs239.regtech.modules.ingestion.domain.model.CreditRiskMitigationDto[].class);
+        CreditRiskMitigationDto[] crms =
+            objectMapper.treeToValue(crm, CreditRiskMitigationDto[].class);
 
         assertThat(crms).hasSize(3);
 
-        java.util.List<com.bcbs239.regtech.modules.ingestion.domain.model.CreditRiskMitigation> crmModels =
-            com.bcbs239.regtech.modules.ingestion.domain.model.DomainMapper.toCrmList(crms);
+        java.util.List<CreditRiskMitigation> crmModels =
+            DomainMapper.toCrmList(crms);
 
-        com.bcbs239.regtech.modules.ingestion.domain.model.CreditRiskMitigation collForExp1 = crmModels.stream()
+        CreditRiskMitigation collForExp1 = crmModels.stream()
             .filter(c -> "EXP_LOAN001_2024".equals(c.exposureId()))
             .findFirst().orElse(null);
 
@@ -79,9 +80,9 @@ class EnhancedLoanParsingTest {
         assertThat(collForExp1.collateralCurrency()).isEqualTo("EUR");
 
         // Verify loans without counterparty_lei are allowed (empty string) - LOAN002 and LOAN005
-        com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure loan002Model =
+        LoanExposure loan002Model =
             exposureModels.stream().filter(e -> "LOAN002".equals(e.loanId())).findFirst().orElse(null);
-        com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure loan005Model =
+        LoanExposure loan005Model =
             exposureModels.stream().filter(e -> "LOAN005".equals(e.loanId())).findFirst().orElse(null);
 
         assertThat(loan002Model).isNotNull();
@@ -90,7 +91,7 @@ class EnhancedLoanParsingTest {
         assertThat(loan005Model.counterpartyLei()).isEmpty();
 
         // Countries present
-        assertThat(exposureModels.stream().map(com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure::borrowerCountry).toList())
+        assertThat(exposureModels.stream().map(LoanExposure::borrowerCountry).toList())
             .contains("IT", "DE", "CA");
     }
 }

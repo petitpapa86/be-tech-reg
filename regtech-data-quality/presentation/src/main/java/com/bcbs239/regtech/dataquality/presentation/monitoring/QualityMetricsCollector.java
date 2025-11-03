@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
+package com.bcbs239.regtech.dataquality.presentation.monitoring;
 
 import org.springframework.stereotype.Component;
 

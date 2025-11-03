@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.infrastructure.integration;
+package com.bcbs239.regtech.dataquality.infrastructure.integration;
 
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommand;

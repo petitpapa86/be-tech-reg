@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.events;
+package com.bcbs239.regtech.ingestion.infrastructure.events;
 
 import com.bcbs239.regtech.core.events.GenericOutboxEventProcessor;
 import org.springframework.beans.factory.annotation.Value;

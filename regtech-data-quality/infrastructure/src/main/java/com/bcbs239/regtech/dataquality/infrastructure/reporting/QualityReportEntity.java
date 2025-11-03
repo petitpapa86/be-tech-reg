@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.infrastructure.reporting;
+package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
 import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
 import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;

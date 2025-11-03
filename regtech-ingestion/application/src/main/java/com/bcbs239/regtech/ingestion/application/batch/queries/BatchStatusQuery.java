@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.application.batch.queries;
+package com.bcbs239.regtech.ingestion.application.batch.queries;
 
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 

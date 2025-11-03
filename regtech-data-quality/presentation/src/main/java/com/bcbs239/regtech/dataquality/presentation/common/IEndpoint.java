@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.common;
+package com.bcbs239.regtech.dataquality.presentation.common;
 
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;

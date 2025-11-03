@@ -1,9 +1,9 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.auth;
+package com.bcbs239.regtech.ingestion.infrastructure.auth;
 
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.ingestion.application.batch.upload.UploadFileCommandHandler.RateLimitingService;
-import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommandHandler.RateLimitingService;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

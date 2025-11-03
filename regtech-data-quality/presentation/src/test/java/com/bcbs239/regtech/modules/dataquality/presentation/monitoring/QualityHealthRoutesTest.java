@@ -2,6 +2,8 @@ package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
 
 
 
+import com.bcbs239.regtech.dataquality.presentation.monitoring.QualityHealthController;
+import com.bcbs239.regtech.dataquality.presentation.monitoring.QualityHealthRoutes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

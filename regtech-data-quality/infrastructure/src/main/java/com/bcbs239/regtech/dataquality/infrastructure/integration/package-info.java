@@ -13,4 +13,4 @@
  * - Managing cross-module communication protocols
  * - Handling external service integrations and error recovery
  */
-package com.bcbs239.regtech.modules.dataquality.infrastructure.integration;
+package com.bcbs239.regtech.dataquality.infrastructure.integration;

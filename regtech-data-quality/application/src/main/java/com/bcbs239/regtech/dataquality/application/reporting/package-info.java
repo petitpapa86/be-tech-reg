@@ -12,4 +12,4 @@
  * - Handling report queries and searches
  * - Managing report metadata and summaries
  */
-package com.bcbs239.regtech.modules.dataquality.application.reporting;
+package com.bcbs239.regtech.dataquality.application.reporting;

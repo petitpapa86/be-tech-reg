@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.application.files;
+package com.bcbs239.regtech.ingestion.application.files;
 
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;

@@ -1,7 +1,7 @@
-package com.bcbs239.regtech.modules.dataquality.application.validation;
+package com.bcbs239.regtech.dataquality.application.validation;
 
-import com.bcbs239.regtech.modules.dataquality.domain.shared.BankId;
-import com.bcbs239.regtech.modules.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.dataquality.domain.shared.BankId;
+import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 
 /**
  * Command to initiate quality validation for a batch of exposures.

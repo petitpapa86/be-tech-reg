@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.infrastructure.validation;
+package com.bcbs239.regtech.dataquality.infrastructure.validation;
 
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Specification;

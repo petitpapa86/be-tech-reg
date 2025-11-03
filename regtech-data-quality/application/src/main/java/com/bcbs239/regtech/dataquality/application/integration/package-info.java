@@ -13,4 +13,4 @@
  * - Managing cross-module communication
  * - Handling external service contracts
  */
-package com.bcbs239.regtech.modules.dataquality.application.integration;
+package com.bcbs239.regtech.dataquality.application.integration;

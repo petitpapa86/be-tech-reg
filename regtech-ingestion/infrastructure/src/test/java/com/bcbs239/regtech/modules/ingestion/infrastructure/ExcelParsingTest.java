@@ -1,6 +1,8 @@
 package com.bcbs239.regtech.modules.ingestion.infrastructure;
 
-import com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposureDto;
+import com.bcbs239.regtech.ingestion.domain.model.DomainMapper;
+import com.bcbs239.regtech.ingestion.domain.model.LoanExposure;
+import com.bcbs239.regtech.ingestion.domain.model.LoanExposureDto;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
@@ -111,15 +113,15 @@ class ExcelParsingTest {
                 }
 
                 // Map to domain objects
-                java.util.List<com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure> models =
-                    com.bcbs239.regtech.modules.ingestion.domain.model.DomainMapper.toLoanExposureList(
+                java.util.List<LoanExposure> models =
+                    DomainMapper.toLoanExposureList(
                         exposures.toArray(new LoanExposureDto[0])
                     );
 
                 // Assertions on domain objects
                 assertThat(models).hasSize(2);
-                com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure a = models.get(0);
-                com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure b = models.get(1);
+                LoanExposure a = models.get(0);
+                LoanExposure b = models.get(1);
 
                 assertThat(a.loanId()).isEqualTo("LOAN_A");
                 assertThat(a.exposureId()).isEqualTo("EXP_A_2025");

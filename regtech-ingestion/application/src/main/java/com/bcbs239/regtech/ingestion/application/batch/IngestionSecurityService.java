@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.application.batch;
+package com.bcbs239.regtech.ingestion.application.batch;
 
 /**
  * This file was a temporary application-level placeholder for IngestionSecurityService.

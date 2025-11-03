@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.constants;
+package com.bcbs239.regtech.ingestion.presentation.constants;
 
 /**
  * Constants for API endpoint permissions used in authorization.

@@ -1,9 +1,9 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.files;
+package com.bcbs239.regtech.ingestion.infrastructure.files;
 
-import com.bcbs239.regtech.modules.ingestion.application.files.FileSplittingService;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.modules.ingestion.domain.performance.FileSplittingSuggestion;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.performance.FileProcessingPerformanceOptimizer;
+import com.bcbs239.regtech.ingestion.application.files.FileSplittingService;
+import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;
+import com.bcbs239.regtech.ingestion.infrastructure.performance.FileProcessingPerformanceOptimizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

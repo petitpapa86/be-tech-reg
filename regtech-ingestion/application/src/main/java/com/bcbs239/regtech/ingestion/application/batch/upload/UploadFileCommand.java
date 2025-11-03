@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.application.batch.upload;
+package com.bcbs239.regtech.ingestion.application.batch.upload;
 
 import java.io.InputStream;
 

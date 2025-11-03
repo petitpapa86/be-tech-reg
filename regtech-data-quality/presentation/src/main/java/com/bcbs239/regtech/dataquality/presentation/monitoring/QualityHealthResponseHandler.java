@@ -1,8 +1,8 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
+package com.bcbs239.regtech.dataquality.presentation.monitoring;
 
-import com.bcbs239.regtech.modules.dataquality.presentation.monitoring.QualityHealthChecker.HealthCheckResult;
-import com.bcbs239.regtech.modules.dataquality.presentation.monitoring.QualityHealthChecker.ModuleHealthResult;
-import com.bcbs239.regtech.modules.dataquality.presentation.monitoring.QualityMetricsCollector.QualityMetrics;
+import com.bcbs239.regtech.dataquality.presentation.monitoring.QualityHealthChecker.HealthCheckResult;
+import com.bcbs239.regtech.dataquality.presentation.monitoring.QualityHealthChecker.ModuleHealthResult;
+import com.bcbs239.regtech.dataquality.presentation.monitoring.QualityMetricsCollector.QualityMetrics;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

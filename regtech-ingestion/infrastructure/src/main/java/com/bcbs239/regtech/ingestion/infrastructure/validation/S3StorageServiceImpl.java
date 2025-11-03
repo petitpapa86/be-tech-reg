@@ -1,10 +1,10 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.validation;
+package com.bcbs239.regtech.ingestion.infrastructure.validation;
 
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.ingestion.application.batch.process.ProcessBatchCommandHandler.S3StorageService;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.S3Reference;
+import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler.S3StorageService;
+import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

@@ -3,11 +3,12 @@ package com.bcbs239.regtech.modules.ingestion.domain.batch.rules;
 import com.bcbs239.regtech.core.shared.InMemoryTransitionMetrics;
 import com.bcbs239.regtech.core.shared.TransitionMetricsHolder;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchStatus;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.IngestionBatch;
-import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchTransitions;
+import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,13 +35,13 @@ class BatchTransitionsMetricsTest {
         IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1"), sampleMetadata());
 
         // success: UPLOADED -> PARSING
-        Result<Void> r1 = com.bcbs239.regtech.modules.ingestion.domain.batch.BatchTransitions.validateTransition(batch, BatchStatus.PARSING);
+        Result<Void> r1 = BatchTransitions.validateTransition(batch, BatchStatus.PARSING);
         assertThat(r1.isSuccess()).isTrue();
         assertThat(metrics.getRequested("UPLOADED","PARSING")).isGreaterThanOrEqualTo(1);
         assertThat(metrics.getSuccess("UPLOADED","PARSING")).isGreaterThanOrEqualTo(1);
 
         // failure: UPLOADED -> COMPLETED
-        Result<Void> r2 = com.bcbs239.regtech.modules.ingestion.domain.batch.BatchTransitions.validateTransition(batch, BatchStatus.COMPLETED);
+        Result<Void> r2 = BatchTransitions.validateTransition(batch, BatchStatus.COMPLETED);
         assertThat(r2.isFailure()).isTrue();
         assertThat(metrics.getRequested("UPLOADED","COMPLETED")).isGreaterThanOrEqualTo(1);
         assertThat(metrics.getFailure("UPLOADED","COMPLETED")).isGreaterThanOrEqualTo(1);
@@ -52,7 +53,7 @@ class BatchTransitionsMetricsTest {
         TransitionMetricsHolder.set(metrics);
 
         IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1"), sampleMetadata());
-        com.bcbs239.regtech.modules.ingestion.domain.batch.BatchTransitions.applyTransition(batch, BatchStatus.PARSING);
+        BatchTransitions.applyTransition(batch, BatchStatus.PARSING);
 
         assertThat(batch.getStatus()).isEqualTo(BatchStatus.PARSING);
         assertThat(metrics.getSuccess("UPLOADED","PARSING")).isGreaterThanOrEqualTo(1);

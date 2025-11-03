@@ -1,17 +1,17 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.batch.status;
+package com.bcbs239.regtech.ingestion.presentation.batch.status;
 
 import com.bcbs239.regtech.core.shared.ApiResponse;
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.FieldError;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.ingestion.application.batch.queries.BatchStatusDto;
-import com.bcbs239.regtech.modules.ingestion.application.batch.queries.BatchStatusQuery;
-import com.bcbs239.regtech.modules.ingestion.application.batch.queries.BatchStatusQueryHandler;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.security.IngestionSecurityService;
-import com.bcbs239.regtech.modules.ingestion.presentation.common.IEndpoint;
+import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusDto;
+import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQuery;
+import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQueryHandler;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.infrastructure.security.IngestionSecurityService;
+import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;

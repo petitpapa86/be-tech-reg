@@ -1,3 +1,0 @@
-# API Layer
-# This directory contains REST controllers, DTOs, and API-related components
-# Controllers handle HTTP requests and delegate to application layer services

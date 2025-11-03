@@ -1,12 +1,12 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.parser;
+package com.bcbs239.regtech.ingestion.infrastructure.parser;
 
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.modules.ingestion.application.batch.process.ProcessBatchCommandHandler;
-import com.bcbs239.regtech.modules.ingestion.application.model.ParsedFileData;
-import com.bcbs239.regtech.modules.ingestion.domain.model.CreditRiskMitigation;
-import com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.performance.FileProcessingPerformanceOptimizer;
+import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler;
+import com.bcbs239.regtech.ingestion.application.model.ParsedFileData;
+import com.bcbs239.regtech.ingestion.domain.model.CreditRiskMitigation;
+import com.bcbs239.regtech.ingestion.domain.model.LoanExposure;
+import com.bcbs239.regtech.ingestion.infrastructure.performance.FileProcessingPerformanceOptimizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

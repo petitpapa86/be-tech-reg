@@ -11,4 +11,4 @@
  * - Event handling and publishing
  * - Configuration and health monitoring
  */
-package com.bcbs239.regtech.modules.dataquality.infrastructure;
+package com.bcbs239.regtech.dataquality.infrastructure;

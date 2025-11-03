@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.infrastructure.scoring;
+package com.bcbs239.regtech.dataquality.infrastructure.scoring;
 
 import com.bcbs239.regtech.dataquality.application.scoring.QualityScoringEngine;
 import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;

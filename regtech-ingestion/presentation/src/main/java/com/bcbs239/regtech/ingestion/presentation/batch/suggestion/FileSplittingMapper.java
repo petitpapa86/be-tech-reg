@@ -1,6 +1,6 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.batch.suggestion;
+package com.bcbs239.regtech.ingestion.presentation.batch.suggestion;
 
-import com.bcbs239.regtech.modules.ingestion.domain.performance.FileSplittingSuggestion;
+import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;
 
 public final class FileSplittingMapper {
 

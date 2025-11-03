@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.modules.ingestion.presentation.batch.suggestion;
 
+import com.bcbs239.regtech.ingestion.presentation.batch.suggestion.FileSplittingController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

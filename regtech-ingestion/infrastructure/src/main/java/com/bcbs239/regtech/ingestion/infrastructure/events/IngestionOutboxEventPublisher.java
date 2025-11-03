@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.events;
+package com.bcbs239.regtech.ingestion.infrastructure.events;
 
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.events.CrossModuleEventBus;
@@ -6,7 +6,7 @@ import com.bcbs239.regtech.core.events.OutboxEventPublisher;
 import com.bcbs239.regtech.core.infrastructure.outbox.OutboxMessageEntity;
 import com.bcbs239.regtech.core.infrastructure.outbox.OutboxMessageRepository;
 import com.bcbs239.regtech.core.infrastructure.outbox.OutboxMessageStatus;
-import com.bcbs239.regtech.modules.ingestion.domain.integrationevents.BatchIngestedEvent;
+import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 

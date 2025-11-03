@@ -13,4 +13,4 @@
  * - Identifying quality patterns and anomalies
  * - Providing monitoring dashboards and alerts
  */
-package com.bcbs239.regtech.modules.dataquality.application.monitoring;
+package com.bcbs239.regtech.dataquality.application.monitoring;

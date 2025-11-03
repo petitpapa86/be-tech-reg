@@ -1,8 +1,9 @@
-package com.bcbs239.regtech.modules.dataquality.application.scoring;
+package com.bcbs239.regtech.dataquality.application.scoring;
 
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.dataquality.domain.quality.QualityScores;
-import com.bcbs239.regtech.modules.dataquality.domain.validation.ValidationResult;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityWeights;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 
 /**
  * Service interface for calculating quality scores based on validation results.
@@ -28,6 +29,6 @@ public interface QualityScoringEngine {
      */
     Result<QualityScores> calculateScoresWithWeights(
         ValidationResult validationResult, 
-        com.bcbs239.regtech.modules.dataquality.domain.quality.QualityWeights customWeights
+        QualityWeights customWeights
     );
 }

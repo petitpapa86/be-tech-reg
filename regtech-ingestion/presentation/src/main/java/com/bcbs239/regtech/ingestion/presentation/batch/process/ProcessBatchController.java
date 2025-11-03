@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.batch.process;
+package com.bcbs239.regtech.ingestion.presentation.batch.process;
 
 import com.bcbs239.regtech.core.shared.ApiResponse;
 import com.bcbs239.regtech.core.shared.BaseController;
@@ -6,10 +6,10 @@ import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.FieldError;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ResponseUtils;
-import com.bcbs239.regtech.modules.ingestion.application.batch.process.ProcessBatchCommand;
-import com.bcbs239.regtech.modules.ingestion.application.batch.process.ProcessBatchCommandHandler;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.modules.ingestion.presentation.common.IEndpoint;
+import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommand;
+import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
+import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;

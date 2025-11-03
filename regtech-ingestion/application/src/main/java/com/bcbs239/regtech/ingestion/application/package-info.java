@@ -18,4 +18,4 @@
  * - bankinfo: Bank information enrichment services
  * - performance: Performance monitoring application services
  */
-package com.bcbs239.regtech.modules.ingestion.application;
+package com.bcbs239.regtech.ingestion.application;

@@ -1,10 +1,10 @@
-package com.bcbs239.regtech.modules.ingestion.presentation;
+package com.bcbs239.regtech.ingestion.presentation;
 
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
-import com.bcbs239.regtech.modules.ingestion.infrastructure.configuration.IngestionModuleConfiguration;
+import com.bcbs239.regtech.ingestion.infrastructure.configuration.IngestionModuleConfiguration;
 
 /**
  * Presentation layer configuration for the Ingestion module.

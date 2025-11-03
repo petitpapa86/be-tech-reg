@@ -1,6 +1,6 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.batch.persistence;
+package com.bcbs239.regtech.ingestion.infrastructure.batch.persistence;
 
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchStatus;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

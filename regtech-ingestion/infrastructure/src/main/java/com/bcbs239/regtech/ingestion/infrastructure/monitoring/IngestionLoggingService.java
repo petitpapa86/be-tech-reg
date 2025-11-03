@@ -1,10 +1,9 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.monitoring;
+package com.bcbs239.regtech.ingestion.infrastructure.monitoring;
 
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.shared.CorrelationId;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchStatus;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;

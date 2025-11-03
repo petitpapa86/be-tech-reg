@@ -1,10 +1,10 @@
-package com.bcbs239.regtech.modules.ingestion.application.batch.process;
+package com.bcbs239.regtech.ingestion.application.batch.process;
 
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.modules.ingestion.application.model.ParsedFileData;
+import com.bcbs239.regtech.ingestion.application.model.ParsedFileData;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
@@ -223,8 +223,8 @@ public class ProcessBatchCommandHandler {
     // These services will be migrated to infrastructure layer
     // For now, creating placeholder interfaces
     public interface FileParsingService {
-        Result<com.bcbs239.regtech.modules.ingestion.application.model.ParsedFileData> parseJsonFile(InputStream fileStream, String fileName);
-        Result<com.bcbs239.regtech.modules.ingestion.application.model.ParsedFileData> parseExcelFile(InputStream fileStream, String fileName);
+        Result<ParsedFileData> parseJsonFile(InputStream fileStream, String fileName);
+        Result<ParsedFileData> parseExcelFile(InputStream fileStream, String fileName);
     }
     
     public interface FileValidationService {

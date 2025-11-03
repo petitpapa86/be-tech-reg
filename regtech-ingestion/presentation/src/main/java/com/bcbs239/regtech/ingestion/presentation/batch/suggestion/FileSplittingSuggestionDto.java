@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.batch.suggestion;
+package com.bcbs239.regtech.ingestion.presentation.batch.suggestion;
 
 /**
  * DTO di risposta per suggerimenti di split dei file (presentation layer)

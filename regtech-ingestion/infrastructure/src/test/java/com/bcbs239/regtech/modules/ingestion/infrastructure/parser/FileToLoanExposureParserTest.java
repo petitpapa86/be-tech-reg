@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.modules.ingestion.infrastructure.parser;
 
-import com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure;
+import com.bcbs239.regtech.ingestion.infrastructure.parser.FileToLoanExposureParser;
+import com.bcbs239.regtech.ingestion.domain.model.LoanExposure;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;

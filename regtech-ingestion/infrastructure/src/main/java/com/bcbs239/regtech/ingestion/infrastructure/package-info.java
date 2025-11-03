@@ -19,4 +19,4 @@
  * - events: Event publishing and outbox pattern implementations
  * - configuration: Spring configuration and dependency injection
  */
-package com.bcbs239.regtech.modules.ingestion.infrastructure;
+package com.bcbs239.regtech.ingestion.infrastructure;

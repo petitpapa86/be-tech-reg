@@ -1,9 +1,11 @@
 package com.bcbs239.regtech.modules.ingestion.infrastructure;
 
-import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.IngestionBatch;
-import com.bcbs239.regtech.modules.ingestion.domain.batch.S3Reference;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
+import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
+import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -261,7 +263,7 @@ class S3FileUploadIntegrationTest {
         assertThat(batch.getFileMetadata()).isEqualTo(result.fileMetadata());
         // uploadedAt getter is provided via Lombok (@Getter)
         assertThat(batch.getUploadedAt()).isNotNull();
-        assertThat(batch.getStatus()).isEqualTo(com.bcbs239.regtech.modules.ingestion.domain.batch.BatchStatus.UPLOADED);
+        assertThat(batch.getStatus()).isEqualTo(BatchStatus.UPLOADED);
 
         // Batch should be ready for quality module processing: not terminal and uploaded
         assertThat(batch.isTerminal()).isFalse();
@@ -297,7 +299,7 @@ class S3FileUploadIntegrationTest {
             software.amazon.awssdk.core.sync.RequestBody.fromBytes(fileContent));
         
         // Create metadata objects
-        S3Reference s3Reference = com.bcbs239.regtech.modules.ingestion.domain.batch.S3Reference.of(TEST_BUCKET, s3Key, "v1");
+        S3Reference s3Reference = S3Reference.of(TEST_BUCKET, s3Key, "v1");
 
         // FileMetadata requires checksums; use placeholders for tests
         FileMetadata fileMetadata = new FileMetadata(
@@ -311,8 +313,8 @@ class S3FileUploadIntegrationTest {
         // Use the domain constructor for reconstituting a batch from persistence
         IngestionBatch batch = new IngestionBatch(
             batchId,
-            com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId.of(BANK_ID),
-            com.bcbs239.regtech.modules.ingestion.domain.batch.BatchStatus.UPLOADED,
+            BankId.of(BANK_ID),
+            BatchStatus.UPLOADED,
             fileMetadata,
             s3Reference,
             null, // BankInfo (not needed for this test)

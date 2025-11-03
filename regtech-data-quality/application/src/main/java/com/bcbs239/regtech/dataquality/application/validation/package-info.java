@@ -12,4 +12,4 @@
  * - Managing validation state and results
  * - Handling validation errors and recovery
  */
-package com.bcbs239.regtech.modules.dataquality.application.validation;
+package com.bcbs239.regtech.dataquality.application.validation;

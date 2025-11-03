@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.web;
+package com.bcbs239.regtech.dataquality.presentation.web;
 
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.Result;

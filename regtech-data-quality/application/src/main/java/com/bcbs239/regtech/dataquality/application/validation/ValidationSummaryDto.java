@@ -1,8 +1,6 @@
-package com.bcbs239.regtech.modules.dataquality.application.validation;
+package com.bcbs239.regtech.dataquality.application.validation;
 
-import com.bcbs239.regtech.modules.dataquality.domain.quality.QualityDimension;
-import com.bcbs239.regtech.modules.dataquality.domain.validation.ValidationError;
-import com.bcbs239.regtech.modules.dataquality.domain.validation.ValidationSummary;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
 
 import java.util.Map;
 import java.util.stream.Collectors;

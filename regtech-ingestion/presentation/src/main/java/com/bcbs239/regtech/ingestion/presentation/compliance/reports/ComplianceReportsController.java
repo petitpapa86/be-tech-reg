@@ -1,22 +1,16 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.compliance.reports;
+package com.bcbs239.regtech.ingestion.presentation.compliance.reports;
 
 import com.bcbs239.regtech.core.shared.BaseController;
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ResponseUtils;
 // import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.ComplianceReportData;
 // import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.DataRetentionService;
-import com.bcbs239.regtech.modules.ingestion.presentation.common.IEndpoint;
+import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
-
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 
 import static org.springframework.web.servlet.function.RequestPredicates.GET;
 import static org.springframework.web.servlet.function.RouterFunctions.route;

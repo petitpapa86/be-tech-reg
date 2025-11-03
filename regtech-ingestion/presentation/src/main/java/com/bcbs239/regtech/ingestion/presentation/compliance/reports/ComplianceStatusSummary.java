@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.presentation.compliance.reports;
+package com.bcbs239.regtech.ingestion.presentation.compliance.reports;
 
 import java.time.Instant;
 

@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.ingestion.infrastructure.config;
+package com.bcbs239.regtech.ingestion.infrastructure.config;
 
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
