@@ -2,7 +2,7 @@ package com.bcbs239.regtech.iam.application.authentication;
 
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.iam.infrastructure.configuration.OAuth2Configuration;
+import com.bcbs239.regtech.iam.domain.authentication.OAuth2ConfigurationService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -24,13 +24,13 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
 
     private static final Logger logger = LoggerFactory.getLogger(OAuth2ProviderServiceImpl.class);
 
-    private final OAuth2Configuration oauth2Config;
+    private final OAuth2ConfigurationService oauth2ConfigService;
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public OAuth2ProviderServiceImpl(OAuth2Configuration oauth2Config, ObjectMapper objectMapper) {
-        this.oauth2Config = oauth2Config;
+    public OAuth2ProviderServiceImpl(OAuth2ConfigurationService oauth2ConfigService, ObjectMapper objectMapper) {
+        this.oauth2ConfigService = oauth2ConfigService;
         this.objectMapper = objectMapper;
         this.restTemplate = new RestTemplate();
     }
@@ -76,82 +76,50 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
 
     @Override
     public String getAuthorizationUrl(String provider) {
-        return switch (provider.toLowerCase()) {
-            case "google" -> {
-                if (!oauth2Config.getGoogle().isConfigured()) {
-                    throw new IllegalStateException("Google OAuth2 is not configured");
-                }
-                yield String.format(
-                    "https://accounts.google.com/oauth/authorize?client_id=%s&redirect_uri=%s&scope=%s&response_type=code",
-                    oauth2Config.getGoogle().clientId(),
-                    "http://localhost:8080/auth/oauth2/callback/google", // TODO: Make configurable
-                    "openid email profile"
-                );
-            }
-            case "facebook" -> {
-                if (!oauth2Config.getFacebook().isConfigured()) {
-                    throw new IllegalStateException("Facebook OAuth2 is not configured");
-                }
-                yield String.format(
-                    "https://www.facebook.com/v18.0/dialog/oauth?client_id=%s&redirect_uri=%s&scope=%s",
-                    oauth2Config.getFacebook().clientId(),
-                    "http://localhost:8080/auth/oauth2/callback/facebook", // TODO: Make configurable
-                    "email,public_profile"
-                );
-            }
+        String redirectUri = switch (provider.toLowerCase()) {
+            case "google" -> "http://localhost:8080/auth/oauth2/callback/google"; // TODO: Make configurable
+            case "facebook" -> "http://localhost:8080/auth/oauth2/callback/facebook"; // TODO: Make configurable
             default -> throw new IllegalArgumentException("Unsupported OAuth2 provider: " + provider);
         };
+        
+        return oauth2ConfigService.getAuthorizationUrl(provider, redirectUri);
     }
 
     @Override
     public Result<String> exchangeCodeForToken(String provider, String authorizationCode) {
         try {
+            if (!oauth2ConfigService.isProviderConfigured(provider)) {
+                return Result.failure(ErrorDetail.of("OAUTH2_NOT_CONFIGURED",
+                    provider + " OAuth2 is not configured",
+                    "error.oauth2.notConfigured"));
+            }
+
+            OAuth2ConfigurationService.OAuth2ProviderConfig config = oauth2ConfigService.getProviderConfig(provider);
+            
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
             MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
             params.add("grant_type", "authorization_code");
             params.add("code", authorizationCode);
+            params.add("client_id", config.clientId());
+            params.add("client_secret", config.clientSecret());
 
-            String tokenUrl;
-            String clientId;
-            String clientSecret;
-
+            // Add redirect URI based on provider
+            String redirectUri;
             switch (provider.toLowerCase()) {
-                case "google" -> {
-                    if (!oauth2Config.getGoogle().isConfigured()) {
-                        return Result.failure(ErrorDetail.of("OAUTH2_NOT_CONFIGURED",
-                            "Google OAuth2 is not configured",
-                            "error.oauth2.notConfigured"));
-                    }
-                    tokenUrl = "https://oauth2.googleapis.com/token";
-                    clientId = oauth2Config.getGoogle().clientId();
-                    clientSecret = oauth2Config.getGoogle().clientSecret();
-                    params.add("redirect_uri", "http://localhost:8080/auth/oauth2/callback/google"); // TODO: Make configurable
-                }
-                case "facebook" -> {
-                    if (!oauth2Config.getFacebook().isConfigured()) {
-                        return Result.failure(ErrorDetail.of("OAUTH2_NOT_CONFIGURED",
-                            "Facebook OAuth2 is not configured",
-                            "error.oauth2.notConfigured"));
-                    }
-                    tokenUrl = "https://graph.facebook.com/v18.0/oauth/access_token";
-                    clientId = oauth2Config.getFacebook().clientId();
-                    clientSecret = oauth2Config.getFacebook().clientSecret();
-                    params.add("redirect_uri", "http://localhost:8080/auth/oauth2/callback/facebook"); // TODO: Make configurable
-                }
+                case "google" -> redirectUri = "http://localhost:8080/auth/oauth2/callback/google"; // TODO: Make configurable
+                case "facebook" -> redirectUri = "http://localhost:8080/auth/oauth2/callback/facebook"; // TODO: Make configurable
                 default -> {
                     return Result.failure(ErrorDetail.of("OAUTH2_UNSUPPORTED_PROVIDER",
                         "Unsupported OAuth2 provider: " + provider,
                         "error.oauth2.unsupportedProvider"));
                 }
             }
-
-            params.add("client_id", clientId);
-            params.add("client_secret", clientSecret);
+            params.add("redirect_uri", redirectUri);
 
             HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-            ResponseEntity<String> response = restTemplate.postForEntity(tokenUrl, request, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(config.tokenUrl(), request, String.class);
 
             if (response.getStatusCode() == HttpStatus.OK) {
                 JsonNode jsonNode = objectMapper.readTree(response.getBody());
@@ -175,23 +143,19 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
     @Override
     public Result<OAuth2UserInfo> getUserInfo(String provider, String accessToken) {
         try {
+            if (!oauth2ConfigService.isProviderConfigured(provider)) {
+                return Result.failure(ErrorDetail.of("OAUTH2_NOT_CONFIGURED",
+                    provider + " OAuth2 is not configured",
+                    "error.oauth2.notConfigured"));
+            }
+
+            OAuth2ConfigurationService.OAuth2ProviderConfig config = oauth2ConfigService.getProviderConfig(provider);
+            
             HttpHeaders headers = new HttpHeaders();
             headers.setBearerAuth(accessToken);
 
             HttpEntity<?> entity = new HttpEntity<>(headers);
-            String userInfoUrl;
-
-            switch (provider.toLowerCase()) {
-                case "google" -> userInfoUrl = "https://www.googleapis.com/oauth2/v2/userinfo";
-                case "facebook" -> userInfoUrl = "https://graph.facebook.com/me?fields=id,email,name,first_name,last_name,picture";
-                default -> {
-                    return Result.failure(ErrorDetail.of("OAUTH2_UNSUPPORTED_PROVIDER",
-                        "Unsupported OAuth2 provider: " + provider,
-                        "error.oauth2.unsupportedProvider"));
-                }
-            }
-
-            ResponseEntity<String> response = restTemplate.exchange(userInfoUrl, HttpMethod.GET, entity, String.class);
+            ResponseEntity<String> response = restTemplate.exchange(config.userInfoUrl(), HttpMethod.GET, entity, String.class);
 
             if (response.getStatusCode() == HttpStatus.OK) {
                 JsonNode jsonNode = objectMapper.readTree(response.getBody());

@@ -53,9 +53,5 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-iam-infrastructure</artifactId>
-        </dependency>
     </dependencies>
 </project>

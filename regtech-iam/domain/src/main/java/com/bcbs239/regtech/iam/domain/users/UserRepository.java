@@ -33,6 +33,11 @@ public interface UserRepository {
     Function<UserOrgQuery, List<UserRole>> userOrgRolesFinder();
     
     /**
+     * Returns a function that saves a user role
+     */
+    Function<UserRole, Result<String>> userRoleSaver();
+    
+    /**
      * Returns a function that finds user by email
      */
     Function<Email, Maybe<User>> emailLookup();
