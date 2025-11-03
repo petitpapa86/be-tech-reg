@@ -59,17 +59,8 @@ public class FileSplittingController extends BaseController implements IEndpoint
                 throw new ConstraintViolationException(violations);
             }
 
-            // Extract auth token from Authorization header (Bearer <token>)
-            String authHeader = request.headers().firstHeader("Authorization");
-            String token = null;
-            if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                token = authHeader.substring(7);
-            } else if (authHeader != null) {
-                token = authHeader; // allow raw token header as fallback
-            }
-
             FileMetadata metadata = new FileMetadata(dto.fileName(), dto.contentType(), dto.fileSizeBytes(), dto.md5Checksum(), dto.sha256Checksum());
-            SuggestFileSplittingCommand command = new SuggestFileSplittingCommand(metadata, token);
+            SuggestFileSplittingCommand command = new SuggestFileSplittingCommand(metadata, null);
             var result = handler.handle(command);
             if (result.isFailure()) {
                 var err = result.getError().orElseThrow();

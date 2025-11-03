@@ -4,26 +4,22 @@ import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.modules.ingestion.domain.performance.FileSplittingSuggestion;
 import com.bcbs239.regtech.modules.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.modules.ingestion.application.batch.IngestionSecurityService;
-import com.bcbs239.regtech.modules.ingestion.application.batch.IngestionLoggingService;
 import com.bcbs239.regtech.modules.ingestion.application.files.FileSplittingService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SuggestFileSplittingCommandHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(SuggestFileSplittingCommandHandler.class);
+
     private final FileSplittingService fileSplittingService;
-    private final IngestionSecurityService securityService;
-    private final IngestionLoggingService loggingService;
 
     public SuggestFileSplittingCommandHandler(
-            FileSplittingService fileSplittingService,
-            IngestionSecurityService securityService,
-            IngestionLoggingService loggingService) {
+            FileSplittingService fileSplittingService) {
         this.fileSplittingService = fileSplittingService;
-        this.securityService = securityService;
-        this.loggingService = loggingService;
     }
 
     public Result<FileSplittingSuggestion> handle(SuggestFileSplittingCommand command) {
@@ -33,32 +29,11 @@ public class SuggestFileSplittingCommandHandler {
             }
 
             FileMetadata metadata = command.fileMetadata();
-            String token = command.authToken();
 
-            // If token present, validate and extract bank id
-            BankId bankId = null;
-            if (token != null && !token.trim().isEmpty()) {
-                Result<BankId> bankIdResult = securityService.validateTokenAndExtractBankId(token);
-                if (bankIdResult.isFailure()) {
-                    return Result.failure(bankIdResult.getError().orElseThrow());
-                }
-                bankId = bankIdResult.getValue().orElseThrow();
-
-                // Verify ingestion suggestion permission
-                Result<Void> perm = securityService.verifyIngestionPermissions("suggest-splitting");
-                if (perm.isFailure()) {
-                    return Result.failure(perm.getError().orElseThrow());
-                }
-            }
-
-            // Delegate to splitting service
+            // Delegate to splitting service (no security checks here; handled centrally)
             FileSplittingSuggestion suggestion = fileSplittingService.suggestSplitting(metadata);
 
-            // Optionally log
-            if (bankId != null) {
-                loggingService.logRequestFlowStep("SPLITTING_SUGGESTION", "SUGGESTION_GENERATED",
-                    java.util.Map.of("fileName", metadata.fileName(), "bankId", bankId.value()));
-            }
+            log.debug("Generated splitting suggestion for {}: required={}, recommended={}", metadata.fileName(), suggestion.splittingRequired(), suggestion.splittingRecommended());
 
             return Result.success(suggestion);
         } catch (Exception e) {
