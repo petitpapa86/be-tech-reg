@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Command handler for validating batch quality.
+ * Command handler for validating batch quality using the railway pattern.
  * Orchestrates the complete quality validation workflow including:
  * 1. Creating quality report
  * 2. Downloading exposure data from S3
@@ -53,11 +53,12 @@ public class ValidateBatchQualityCommandHandler {
     }
     
     /**
-     * Handles the batch quality validation command.
+     * Handles the batch quality validation command using the railway pattern.
      * Implements the complete workflow with proper error handling and transaction management.
      */
     @Transactional
     public Result<Void> handle(ValidateBatchQualityCommand command) {
+        try {
             // Validate command parameters
             command.validate();
             
@@ -71,122 +72,110 @@ public class ValidateBatchQualityCommandHandler {
                 return Result.success();
             }
             
-            // Step 1: Create quality report
-            Result<QualityReport> reportResult = createQualityReport(command);
-            if (reportResult.isFailure()) {
-                return Result.failure(reportResult.getErrors());
-            }
-            QualityReport report = reportResult.getValueOrThrow();
+            // Railway pattern: clean sequential operations
+            var reportResult = createQualityReport(command);
+            if (reportResult.isFailure()) return Result.failure(reportResult.getErrors());
+            var report = reportResult.getValueOrThrow();
             
-            // Step 2: Download and parse exposure data
-            Result<List<ExposureRecord>> downloadResult = downloadExposureData(command);
-            if (downloadResult.isFailure()) {
-                handleValidationFailure(report, "Failed to download exposure data: " + 
-                    downloadResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
-                return Result.failure(downloadResult.getErrors());
+            var exposuresResult = downloadExposureData(command);
+            if (exposuresResult.isFailure()) {
+                handleValidationFailure(report, "Failed to download exposure data");
+                return Result.failure(exposuresResult.getErrors());
             }
-            List<ExposureRecord> exposures = downloadResult.getValueOrThrow();
+            var exposures = exposuresResult.getValueOrThrow();
             
-            // Step 3: Validate quality across all dimensions
-            Result<ValidationResult> validationResult = validateQuality(exposures);
+            var validationResult = validateQuality(exposures);
             if (validationResult.isFailure()) {
-                handleValidationFailure(report, "Quality validation failed: " + 
-                    validationResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+                handleValidationFailure(report, "Quality validation failed");
                 return Result.failure(validationResult.getErrors());
             }
-            ValidationResult validation = validationResult.getValueOrThrow();
+            var validation = validationResult.getValueOrThrow();
             
-            // Step 4: Record validation results
-            Result<Void> recordResult = report.recordValidationResults(validation);
+            var recordResult = recordValidationResults(report, validation);
             if (recordResult.isFailure()) {
-                handleValidationFailure(report, "Failed to record validation results: " + 
-                    recordResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+                handleValidationFailure(report, "Failed to record validation results");
                 return recordResult;
             }
             
-            // Step 5: Calculate quality scores
-            Result<QualityScores> scoresResult = calculateQualityScores(validation);
+            var scoresResult = calculateQualityScores(validation);
             if (scoresResult.isFailure()) {
-                handleValidationFailure(report, "Failed to calculate quality scores: " + 
-                    scoresResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+                handleValidationFailure(report, "Failed to calculate quality scores");
                 return Result.failure(scoresResult.getErrors());
             }
-            QualityScores scores = scoresResult.getValueOrThrow();
+            var scores = scoresResult.getValueOrThrow();
             
-            Result<Void> scoreRecordResult = report.calculateScores(scores);
+            var scoreRecordResult = recordQualityScores(report, scores);
             if (scoreRecordResult.isFailure()) {
-                handleValidationFailure(report, "Failed to record quality scores: " + 
-                    scoreRecordResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+                handleValidationFailure(report, "Failed to record quality scores");
                 return scoreRecordResult;
             }
             
-            // Step 6: Store detailed results in S3
-            Result<S3Reference> s3Result = storeDetailedResults(command.batchId(), validation, scores);
+            var s3Result = storeDetailedResults(command.batchId(), validation, scores);
             if (s3Result.isFailure()) {
-                handleValidationFailure(report, "Failed to store detailed results: " + 
-                    s3Result.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+                handleValidationFailure(report, "Failed to store detailed results");
                 return Result.failure(s3Result.getErrors());
             }
-            S3Reference detailsReference = s3Result.getValueOrThrow();
+            var detailsReference = s3Result.getValueOrThrow();
             
-            Result<Void> storeResult = report.storeDetailedResults(detailsReference);
+            var storeResult = recordS3Reference(report, detailsReference);
             if (storeResult.isFailure()) {
-                handleValidationFailure(report, "Failed to record S3 reference: " + 
-                    storeResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+                handleValidationFailure(report, "Failed to record S3 reference");
                 return storeResult;
             }
             
-            // Step 7: Complete validation
-            Result<Void> completeResult = report.completeValidation();
+            var completeResult = completeValidation(report);
             if (completeResult.isFailure()) {
-                handleValidationFailure(report, "Failed to complete validation: " + 
-                    completeResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+                handleValidationFailure(report, "Failed to complete validation");
                 return completeResult;
             }
             
-            // Step 8: Save final report state
-            Result<QualityReport> saveResult = qualityReportRepository.save(report);
+            var saveResult = saveReport(report);
             if (saveResult.isFailure()) {
-                logger.error("Failed to save completed quality report for batch {}: {}", 
-                    command.batchId().value(), saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+                logger.error("Failed to save completed quality report for batch {}", command.batchId().value());
                 return Result.failure(saveResult.getErrors());
             }
             
-            // Step 9: Publish completion event
-            Result<Void> publishResult = publishCompletionEvent(command, scores, detailsReference);
-            if (publishResult.isFailure()) {
-                logger.warn("Failed to publish completion event for batch {}: {}", 
-                    command.batchId().value(), publishResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
-                // Don't fail the entire operation if event publishing fails
-            }
+            return finalizeWorkflow(command, scores, detailsReference);
             
-            logger.info("Successfully completed quality validation for batch {} with overall score: {}", 
-                command.batchId().value(), scores.overallScore());
-            
-            return Result.success();
-       
+        } catch (Exception e) {
+            logger.error("Unexpected error during quality validation for batch {}: {}", 
+                command.batchId().value(), e.getMessage(), e);
+            return Result.failure(ErrorDetail.of(
+                "VALIDATION_UNEXPECTED_ERROR",
+                "Unexpected error during quality validation: " + e.getMessage(),
+                "validation"
+            ));
+        }
+    }
+    
+    /**
+     * Finalizes the workflow with logging and event publishing.
+     */
+    private Result<Void> finalizeWorkflow(
+        ValidateBatchQualityCommand command, 
+        QualityScores scores, 
+        S3Reference detailsReference
+    ) {
+        logger.info("Successfully completed quality validation for batch {} with overall score: {}", 
+            command.batchId().value(), scores.overallScore());
+        
+        // Publish completion event (don't fail the entire operation if this fails)
+        publishCompletionEvent(command, scores, detailsReference);
+        
+        return Result.success();
     }
     
     private Result<QualityReport> createQualityReport(ValidateBatchQualityCommand command) {
         try {
             QualityReport report = QualityReport.createForBatch(command.batchId(), command.bankId());
             
-            Result<Void> startResult = report.startValidation();
-            if (startResult.isFailure()) {
-                return Result.failure(startResult.getErrors());
-            }
-            
-            Result<QualityReport> saveResult = qualityReportRepository.save(report);
-            if (saveResult.isFailure()) {
-                logger.error("Failed to save initial quality report for batch {}: {}", 
-                    command.batchId().value(), saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
-                return saveResult;
-            }
-            
-            logger.debug("Created quality report {} for batch {}", 
-                report.getReportId().value(), command.batchId().value());
-            
-            return saveResult;
+            return report.startValidation()
+                .flatMap(ignored -> qualityReportRepository.save(report))
+                .map(savedReport -> {
+                    logger.debug("Created quality report {} for batch {}", 
+                        savedReport.getReportId().value(), command.batchId().value());
+                    return savedReport;
+                });
             
         } catch (Exception e) {
             logger.error("Failed to create quality report for batch {}: {}", 
@@ -203,20 +192,15 @@ public class ValidateBatchQualityCommandHandler {
         try {
             logger.debug("Downloading exposure data from S3: {}", command.s3Uri());
             
-            Result<List<ExposureRecord>> downloadResult;
-            if (command.expectedExposureCount() > 0) {
-                downloadResult = s3StorageService.downloadExposures(command.s3Uri(), command.expectedExposureCount());
-            } else {
-                downloadResult = s3StorageService.downloadExposures(command.s3Uri());
-            }
+            Result<List<ExposureRecord>> downloadResult = command.expectedExposureCount() > 0 
+                ? s3StorageService.downloadExposures(command.s3Uri(), command.expectedExposureCount())
+                : s3StorageService.downloadExposures(command.s3Uri());
             
-            if (downloadResult.isSuccess()) {
-                List<ExposureRecord> exposures = downloadResult.getValueOrThrow();
+            return downloadResult.map(exposures -> {
                 logger.info("Successfully downloaded {} exposures for batch {}", 
                     exposures.size(), command.batchId().value());
-            }
-            
-            return downloadResult;
+                return exposures;
+            });
             
         } catch (Exception e) {
             logger.error("Failed to download exposure data for batch {}: {}", 
@@ -233,15 +217,12 @@ public class ValidateBatchQualityCommandHandler {
         try {
             logger.debug("Starting quality validation for {} exposures", exposures.size());
             
-            Result<ValidationResult> validationResult = validationEngine.validateExposures(exposures);
-            
-            if (validationResult.isSuccess()) {
-                ValidationResult validation = validationResult.getValueOrThrow();
-                logger.info("Quality validation completed: {}/{} exposures valid, {} total errors", 
-                    validation.validExposures(), validation.totalExposures(), validation.allErrors().size());
-            }
-            
-            return validationResult;
+            return validationEngine.validateExposures(exposures)
+                .map(validation -> {
+                    logger.info("Quality validation completed: {}/{} exposures valid, {} total errors", 
+                        validation.validExposures(), validation.totalExposures(), validation.allErrors().size());
+                    return validation;
+                });
             
         } catch (Exception e) {
             logger.error("Failed to validate exposure quality: {}", e.getMessage(), e);
@@ -253,19 +234,20 @@ public class ValidateBatchQualityCommandHandler {
         }
     }
     
+    private Result<Void> recordValidationResults(QualityReport report, ValidationResult validation) {
+        return report.recordValidationResults(validation);
+    }
+    
     private Result<QualityScores> calculateQualityScores(ValidationResult validationResult) {
         try {
             logger.debug("Calculating quality scores from validation results");
             
-            Result<QualityScores> scoresResult = scoringEngine.calculateScores(validationResult);
-            
-            if (scoresResult.isSuccess()) {
-                QualityScores scores = scoresResult.getValueOrThrow();
-                logger.info("Quality scores calculated: Overall={}, Grade={}", 
-                    scores.overallScore(), scores.grade());
-            }
-            
-            return scoresResult;
+            return scoringEngine.calculateScores(validationResult)
+                .map(scores -> {
+                    logger.info("Quality scores calculated: Overall={}, Grade={}", 
+                        scores.overallScore(), scores.grade());
+                    return scores;
+                });
             
         } catch (Exception e) {
             logger.error("Failed to calculate quality scores: {}", e.getMessage(), e);
@@ -275,6 +257,10 @@ public class ValidateBatchQualityCommandHandler {
                 "scoring"
             ));
         }
+    }
+    
+    private Result<Void> recordQualityScores(QualityReport report, QualityScores scores) {
+        return report.calculateScores(scores);
     }
     
     private Result<S3Reference> storeDetailedResults(
@@ -296,15 +282,11 @@ public class ValidateBatchQualityCommandHandler {
                 "total-errors", String.valueOf(validationResult.allErrors().size())
             );
             
-            Result<S3Reference> s3Result = s3StorageService.storeDetailedResults(
-                batchId, validationResult, metadata);
-            
-            if (s3Result.isSuccess()) {
-                S3Reference reference = s3Result.getValueOrThrow();
-                logger.info("Detailed results stored in S3: {}", reference.uri());
-            }
-            
-            return s3Result;
+            return s3StorageService.storeDetailedResults(batchId, validationResult, metadata)
+                .map(reference -> {
+                    logger.info("Detailed results stored in S3: {}", reference.uri());
+                    return reference;
+                });
             
         } catch (Exception e) {
             logger.error("Failed to store detailed results for batch {}: {}", 
@@ -317,6 +299,23 @@ public class ValidateBatchQualityCommandHandler {
         }
     }
     
+    private Result<Void> recordS3Reference(QualityReport report, S3Reference detailsReference) {
+        return report.storeDetailedResults(detailsReference);
+    }
+    
+    private Result<Void> completeValidation(QualityReport report) {
+        return report.completeValidation();
+    }
+    
+    private Result<QualityReport> saveReport(QualityReport report) {
+        return qualityReportRepository.save(report)
+            .map(savedReport -> {
+                logger.debug("Saved quality report {} for batch {}", 
+                    savedReport.getReportId().value(), savedReport.getBatchId().value());
+                return savedReport;
+            });
+    }
+    
     private Result<Void> publishCompletionEvent(
         ValidateBatchQualityCommand command, 
         QualityScores scores, 
@@ -325,20 +324,17 @@ public class ValidateBatchQualityCommandHandler {
         try {
             logger.debug("Publishing batch quality completed event for batch {}", command.batchId().value());
             
-            Result<Void> publishResult = eventPublisher.publishBatchQualityCompleted(
+            return eventPublisher.publishBatchQualityCompleted(
                 command.batchId(),
                 command.bankId(),
                 scores,
                 detailsReference,
                 command.correlationId()
-            );
-            
-            if (publishResult.isSuccess()) {
+            ).map(ignored -> {
                 logger.info("Successfully published batch quality completed event for batch {}", 
                     command.batchId().value());
-            }
-            
-            return publishResult;
+                return null;
+            });
             
         } catch (Exception e) {
             logger.error("Failed to publish completion event for batch {}: {}", 
