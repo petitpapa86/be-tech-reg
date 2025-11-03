@@ -136,7 +136,12 @@
 
 
 
-  - [ ] 4.3 Create DTOs and mapping
+  - [x] 4.3 Create DTOs and mapping
+
+
+
+
+
     - Implement QualityReportDto with complete score breakdown
     - Add QualityScoresDto with all six dimensions
     - Create ValidationSummaryDto for error statistics

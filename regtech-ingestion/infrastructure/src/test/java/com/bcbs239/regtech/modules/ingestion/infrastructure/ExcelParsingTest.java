@@ -119,15 +119,16 @@ class ExcelParsingTest {
                 // Assertions on domain objects
                 assertThat(models).hasSize(2);
                 com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure a = models.get(0);
-                assertThat(a.getLoanId()).isEqualTo("LOAN_A");
-                assertThat(a.getExposureId()).isEqualTo("EXP_A_2025");
-                assertThat(a.getNetExposureAmount()).isEqualTo(95000.0);
-                assertThat(a.getCounterpartyLei()).isEqualTo("LEI123");
-
                 com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure b = models.get(1);
-                assertThat(b.getLoanId()).isEqualTo("LOAN_B");
-                assertThat(b.getCounterpartyLei()).isEmpty();
-                assertThat(b.getBorrowerCountry()).isEqualTo("DE");
+
+                assertThat(a.loanId()).isEqualTo("LOAN_A");
+                assertThat(a.exposureId()).isEqualTo("EXP_A_2025");
+                assertThat(a.netExposureAmount()).isEqualTo(95000.0);
+                assertThat(a.counterpartyLei()).isEqualTo("LEI123");
+
+                assertThat(b.loanId()).isEqualTo("LOAN_B");
+                assertThat(b.counterpartyLei()).isEmpty();
+                assertThat(b.borrowerCountry()).isEqualTo("DE");
             }
         }
     }

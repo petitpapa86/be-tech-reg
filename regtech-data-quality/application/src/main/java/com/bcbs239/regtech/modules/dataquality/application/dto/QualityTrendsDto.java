@@ -24,9 +24,9 @@ public record QualityTrendsDto(
     double averageValidityScore,
     double complianceRate,
     String trendDirection
-) {    
-    /
-**
+) {
+    
+    /**
      * Creates an empty trends DTO for when no reports are found.
      */
     public static QualityTrendsDto empty(BankId bankId, Instant startTime, Instant endTime) {

@@ -48,13 +48,13 @@ class EnhancedLoanParsingTest {
         assertThat(exposureModels).hasSize(5);
 
         com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure loan001 = exposureModels.stream()
-            .filter(e -> "LOAN001".equals(e.getLoanId()))
+            .filter(e -> "LOAN001".equals(e.loanId()))
             .findFirst().orElse(null);
 
         assertThat(loan001).isNotNull();
-        assertThat(loan001.getExposureId()).isEqualTo("EXP_LOAN001_2024");
-        assertThat(loan001.getNetExposureAmount()).isEqualTo(240000.0);
-        assertThat(loan001.getCurrency()).isEqualTo("EUR");
+        assertThat(loan001.exposureId()).isEqualTo("EXP_LOAN001_2024");
+        assertThat(loan001.netExposureAmount()).isEqualTo(240000.0);
+        assertThat(loan001.currency()).isEqualTo("EUR");
 
         // Map credit risk mitigation
         JsonNode crm = root.get("credit_risk_mitigation");
@@ -71,26 +71,26 @@ class EnhancedLoanParsingTest {
             com.bcbs239.regtech.modules.ingestion.domain.model.DomainMapper.toCrmList(crms);
 
         com.bcbs239.regtech.modules.ingestion.domain.model.CreditRiskMitigation collForExp1 = crmModels.stream()
-            .filter(c -> "EXP_LOAN001_2024".equals(c.getExposureId()))
+            .filter(c -> "EXP_LOAN001_2024".equals(c.exposureId()))
             .findFirst().orElse(null);
 
         assertThat(collForExp1).isNotNull();
-        assertThat(collForExp1.getCollateralValue()).isEqualTo(10000.0);
-        assertThat(collForExp1.getCollateralCurrency()).isEqualTo("EUR");
+        assertThat(collForExp1.collateralValue()).isEqualTo(10000.0);
+        assertThat(collForExp1.collateralCurrency()).isEqualTo("EUR");
 
         // Verify loans without counterparty_lei are allowed (empty string) - LOAN002 and LOAN005
         com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure loan002Model =
-            exposureModels.stream().filter(e -> "LOAN002".equals(e.getLoanId())).findFirst().orElse(null);
+            exposureModels.stream().filter(e -> "LOAN002".equals(e.loanId())).findFirst().orElse(null);
         com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure loan005Model =
-            exposureModels.stream().filter(e -> "LOAN005".equals(e.getLoanId())).findFirst().orElse(null);
+            exposureModels.stream().filter(e -> "LOAN005".equals(e.loanId())).findFirst().orElse(null);
 
         assertThat(loan002Model).isNotNull();
-        assertThat(loan002Model.getCounterpartyLei()).isEmpty();
+        assertThat(loan002Model.counterpartyLei()).isEmpty();
         assertThat(loan005Model).isNotNull();
-        assertThat(loan005Model.getCounterpartyLei()).isEmpty();
+        assertThat(loan005Model.counterpartyLei()).isEmpty();
 
         // Countries present
-        assertThat(exposureModels.stream().map(com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure::getBorrowerCountry).toList())
+        assertThat(exposureModels.stream().map(com.bcbs239.regtech.modules.ingestion.domain.model.LoanExposure::borrowerCountry).toList())
             .contains("IT", "DE", "CA");
     }
 }

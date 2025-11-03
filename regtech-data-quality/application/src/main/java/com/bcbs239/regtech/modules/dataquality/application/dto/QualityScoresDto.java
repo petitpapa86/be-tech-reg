@@ -81,7 +81,7 @@ public record QualityScoresDto(
      * Gets a human-readable grade display.
      */
     public String getGradeDisplay() {
-        return QualityGrade.valueOf(grade).getDisplayName();
+        return QualityGrade.valueOf(grade).getLetterGrade();
     }
     
     /**
