@@ -1,8 +1,7 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.routing;
+package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
 
 import com.bcbs239.regtech.core.web.RouterAttributes;
-import com.bcbs239.regtech.modules.dataquality.presentation.constants.Tags;
-import com.bcbs239.regtech.modules.dataquality.presentation.controllers.QualityHealthController;
+import com.bcbs239.regtech.modules.dataquality.presentation.common.Tags;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;

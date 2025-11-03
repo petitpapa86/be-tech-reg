@@ -1,6 +1,6 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.routing;
+package com.bcbs239.regtech.modules.dataquality.presentation.reports;
 
-import com.bcbs239.regtech.modules.dataquality.presentation.controllers.QualityHealthController;
+
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,19 +13,19 @@ import org.springframework.web.servlet.function.ServerResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for QualityHealthRoutes.
+ * Unit tests for QualityReportRoutes.
  */
 @ExtendWith(MockitoExtension.class)
-class QualityHealthRoutesTest {
+class QualityReportRoutesTest {
     
     @Mock
-    private QualityHealthController controller;
+    private QualityReportController controller;
     
-    private QualityHealthRoutes routes;
+    private QualityReportRoutes routes;
     
     @BeforeEach
     void setUp() {
-        routes = new QualityHealthRoutes(controller);
+        routes = new QualityReportRoutes(controller);
     }
     
     @Test

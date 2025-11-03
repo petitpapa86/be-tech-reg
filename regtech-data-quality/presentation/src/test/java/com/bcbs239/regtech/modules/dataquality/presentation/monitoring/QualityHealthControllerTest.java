@@ -1,8 +1,8 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.controllers;
+package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
 
-import com.bcbs239.regtech.modules.dataquality.presentation.handlers.QualityHealthResponseHandler;
-import com.bcbs239.regtech.modules.dataquality.presentation.health.QualityHealthChecker;
-import com.bcbs239.regtech.modules.dataquality.presentation.metrics.QualityMetricsCollector;
+import com.bcbs239.regtech.modules.dataquality.presentation.monitoring.QualityHealthResponseHandler;
+import com.bcbs239.regtech.modules.dataquality.presentation.monitoring.QualityHealthChecker;
+import com.bcbs239.regtech.modules.dataquality.presentation.monitoring.QualityMetricsCollector;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

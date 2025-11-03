@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.controllers;
+package com.bcbs239.regtech.modules.dataquality.presentation.reports;
 
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.modules.dataquality.application.dto.QualityReportDto;
@@ -10,10 +10,10 @@ import com.bcbs239.regtech.modules.dataquality.application.queries.BatchQualityT
 import com.bcbs239.regtech.modules.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.modules.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.modules.dataquality.presentation.common.IEndpoint;
-import com.bcbs239.regtech.modules.dataquality.presentation.handlers.QualityResponseHandler;
-import com.bcbs239.regtech.modules.dataquality.presentation.security.QualitySecurityService;
-import com.bcbs239.regtech.modules.dataquality.presentation.validation.QualityRequestValidator;
-import com.bcbs239.regtech.modules.dataquality.presentation.validation.QualityRequestValidator.TrendsQueryParams;
+import com.bcbs239.regtech.modules.dataquality.presentation.web.QualityResponseHandler;
+import com.bcbs239.regtech.modules.dataquality.presentation.web.QualitySecurityService;
+import com.bcbs239.regtech.modules.dataquality.presentation.web.QualityRequestValidator;
+import com.bcbs239.regtech.modules.dataquality.presentation.web.QualityRequestValidator.TrendsQueryParams;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

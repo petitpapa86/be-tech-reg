@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.exception;
+package com.bcbs239.regtech.modules.dataquality.presentation.web;
 
 import com.bcbs239.regtech.core.shared.ApiResponse;
 import com.bcbs239.regtech.core.shared.ErrorDetail;

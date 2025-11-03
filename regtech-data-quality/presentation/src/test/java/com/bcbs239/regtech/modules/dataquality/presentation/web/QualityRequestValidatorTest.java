@@ -1,8 +1,8 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.validation;
+package com.bcbs239.regtech.modules.dataquality.presentation.web;
 
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.modules.dataquality.domain.shared.BatchId;
-import com.bcbs239.regtech.modules.dataquality.presentation.validation.QualityRequestValidator.TrendsQueryParams;
+import com.bcbs239.regtech.modules.dataquality.presentation.web.QualityRequestValidator.TrendsQueryParams;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

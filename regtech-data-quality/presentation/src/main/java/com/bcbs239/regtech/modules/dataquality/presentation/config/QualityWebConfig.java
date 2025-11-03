@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.modules.dataquality.presentation.config;
 
-import com.bcbs239.regtech.modules.dataquality.presentation.routing.QualityReportRoutes;
-import com.bcbs239.regtech.modules.dataquality.presentation.routing.QualityHealthRoutes;
+import com.bcbs239.regtech.modules.dataquality.presentation.reports.QualityReportRoutes;
+import com.bcbs239.regtech.modules.dataquality.presentation.monitoring.QualityHealthRoutes;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

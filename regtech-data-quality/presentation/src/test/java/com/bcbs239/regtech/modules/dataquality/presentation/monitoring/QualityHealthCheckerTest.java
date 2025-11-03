@@ -1,10 +1,10 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.health;
+package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
 
 import com.bcbs239.regtech.modules.dataquality.application.services.QualityValidationEngine;
 import com.bcbs239.regtech.modules.dataquality.application.services.S3StorageService;
 import com.bcbs239.regtech.modules.dataquality.domain.report.IQualityReportRepository;
-import com.bcbs239.regtech.modules.dataquality.presentation.health.QualityHealthChecker.HealthCheckResult;
-import com.bcbs239.regtech.modules.dataquality.presentation.health.QualityHealthChecker.ModuleHealthResult;
+import com.bcbs239.regtech.modules.dataquality.presentation.monitoring.QualityHealthChecker.HealthCheckResult;
+import com.bcbs239.regtech.modules.dataquality.presentation.monitoring.QualityHealthChecker.ModuleHealthResult;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

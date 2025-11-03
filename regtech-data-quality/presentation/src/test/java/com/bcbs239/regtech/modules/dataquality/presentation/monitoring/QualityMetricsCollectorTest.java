@@ -1,6 +1,6 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.metrics;
+package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
 
-import com.bcbs239.regtech.modules.dataquality.presentation.metrics.QualityMetricsCollector.QualityMetrics;
+import com.bcbs239.regtech.modules.dataquality.presentation.monitoring.QualityMetricsCollector.QualityMetrics;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

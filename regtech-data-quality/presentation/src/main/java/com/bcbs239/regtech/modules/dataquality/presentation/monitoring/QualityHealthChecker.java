@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.presentation.health;
+package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
 
 import com.bcbs239.regtech.modules.dataquality.application.services.QualityValidationEngine;
 import com.bcbs239.regtech.modules.dataquality.application.services.S3StorageService;
