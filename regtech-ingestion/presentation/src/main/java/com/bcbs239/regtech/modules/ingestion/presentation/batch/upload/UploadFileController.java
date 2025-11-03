@@ -76,6 +76,7 @@ public class UploadFileController extends BaseController implements IEndpoint {
             }
             
             ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
+            assert responseEntity.getBody() != null;
             return ServerResponse.status(responseEntity.getStatusCode())
                 .body(responseEntity.getBody());
         }
@@ -109,6 +110,7 @@ public class UploadFileController extends BaseController implements IEndpoint {
         } else {
             ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(result, 
                 "File uploaded successfully", "ingestion.upload.success");
+            assert responseEntity.getBody() != null;
             return ServerResponse.status(responseEntity.getStatusCode())
                 .body(responseEntity.getBody());
         }

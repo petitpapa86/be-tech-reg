@@ -24,7 +24,6 @@ public class UploadFileCommandHandler {
     private final FileUploadValidationService fileUploadValidationService;
     private final JwtTokenService jwtTokenService;
     private final RateLimitingService rateLimitingService;
-    private final IngestionSecurityService securityService;
     private final IngestionLoggingService loggingService;
     
     public UploadFileCommandHandler(
@@ -32,13 +31,11 @@ public class UploadFileCommandHandler {
             FileUploadValidationService fileUploadValidationService,
             JwtTokenService jwtTokenService,
             RateLimitingService rateLimitingService,
-            IngestionSecurityService securityService,
             IngestionLoggingService loggingService) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.fileUploadValidationService = fileUploadValidationService;
         this.jwtTokenService = jwtTokenService;
         this.rateLimitingService = rateLimitingService;
-        this.securityService = securityService;
         this.loggingService = loggingService;
     }
     
@@ -55,19 +52,13 @@ public class UploadFileCommandHandler {
         long startTime = System.currentTimeMillis();
         
         try {
-            // 1. Validate JWT token and extract bank ID using existing security infrastructure
-            Result<BankId> bankIdResult = securityService.validateTokenAndExtractBankId(command.authToken());
+            // 1. Validate JWT token and extract bank ID using JWT token service
+            Result<BankId> bankIdResult = jwtTokenService.validateTokenAndExtractBankId(command.authToken());
             if (bankIdResult.isFailure()) {
                 return Result.failure(bankIdResult.getError().orElseThrow());
             }
             
             BankId bankId = bankIdResult.getValue().orElseThrow();
-            
-            // 1a. Verify bank permissions for file access
-            Result<Void> bankPermissionResult = securityService.verifyBankPermissions(bankId);
-            if (bankPermissionResult.isFailure()) {
-                return Result.failure(bankPermissionResult.getError().orElseThrow());
-            }
             
             // 2. Apply rate limiting per bank
             Result<Void> rateLimitCheck = rateLimitingService.checkRateLimit(bankId);
@@ -97,7 +88,7 @@ public class UploadFileCommandHandler {
                 command.contentType(),
                 command.fileSizeBytes(),
                 md5Checksum,
-                null // SHA-256 will be calculated during S3 storage
+                null
             );
             
             // 7. Create IngestionBatch aggregate
@@ -174,11 +165,6 @@ public class UploadFileCommandHandler {
     
     public interface RateLimitingService {
         Result<Void> checkRateLimit(BankId bankId);
-    }
-    
-    public interface IngestionSecurityService {
-        Result<BankId> validateTokenAndExtractBankId(String token);
-        Result<Void> verifyBankPermissions(BankId bankId);
     }
     
     public interface IngestionLoggingService {

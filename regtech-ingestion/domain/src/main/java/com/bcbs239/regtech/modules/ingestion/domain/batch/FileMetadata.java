@@ -24,7 +24,7 @@ public record FileMetadata(
         Objects.requireNonNull(fileName, "File name cannot be null");
         Objects.requireNonNull(contentType, "Content type cannot be null");
         Objects.requireNonNull(md5Checksum, "MD5 checksum cannot be null");
-        Objects.requireNonNull(sha256Checksum, "SHA-256 checksum cannot be null");
+        // sha256Checksum can be null as it's calculated during S3 storage
         
         if (fileName.trim().isEmpty()) {
             throw new IllegalArgumentException("File name cannot be empty");
@@ -35,8 +35,8 @@ public record FileMetadata(
         if (md5Checksum.trim().isEmpty()) {
             throw new IllegalArgumentException("MD5 checksum cannot be empty");
         }
-        if (sha256Checksum.trim().isEmpty()) {
-            throw new IllegalArgumentException("SHA-256 checksum cannot be empty");
+        if (sha256Checksum != null && sha256Checksum.trim().isEmpty()) {
+            throw new IllegalArgumentException("SHA-256 checksum cannot be empty if provided");
         }
     }
     
