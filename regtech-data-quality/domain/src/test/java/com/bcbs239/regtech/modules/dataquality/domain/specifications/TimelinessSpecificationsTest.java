@@ -158,7 +158,7 @@ class TimelinessSpecificationsTest {
         
         // Then
         assertFalse(result.isSuccess());
-        assertEquals("TIMELINESS_FUTURE_REPORTING_DATE", result.getError().getCode());
+        assertEquals("TIMELINESS_FUTURE_REPORTING_DATE", result.getError().get().getCode());
     }
 
     @Test
@@ -176,7 +176,7 @@ class TimelinessSpecificationsTest {
         
         // Then
         assertFalse(result.isSuccess());
-        assertEquals("TIMELINESS_FUTURE_VALUATION_DATE", result.getError().getCode());
+        assertEquals("TIMELINESS_FUTURE_VALUATION_DATE", result.getError().get().getCode());
     }
 
     @Test
@@ -203,8 +203,8 @@ class TimelinessSpecificationsTest {
         
         // Then
         assertFalse(result.isSuccess());
-        assertEquals("TIMELINESS_PROCESSING_WINDOW_EXCEEDED", result.getError().getCode());
-        assertEquals("reporting_date", result.getError().getField());
+        assertEquals("TIMELINESS_PROCESSING_WINDOW_EXCEEDED", result.getError().get().getCode());
+        assertEquals("reporting_date", result.getError().get().getField());
     }
 
     @Test
@@ -254,7 +254,7 @@ class TimelinessSpecificationsTest {
         
         // Then
         assertFalse(result.isSuccess());
-        assertEquals("TIMELINESS_MATURITY_BEFORE_REPORTING", result.getError().getCode());
+        assertEquals("TIMELINESS_MATURITY_BEFORE_REPORTING", result.getError().get().getCode());
     }
 
     @Test
@@ -273,8 +273,8 @@ class TimelinessSpecificationsTest {
         
         // Then
         assertFalse(result.isSuccess());
-        assertEquals("TIMELINESS_UNREASONABLE_MATURITY", result.getError().getCode());
-        assertTrue(result.getError().getMessage().contains("60 years"));
+        assertEquals("TIMELINESS_UNREASONABLE_MATURITY", result.getError().get().getCode());
+        assertTrue(result.getError().get().getMessage().contains("60 years"));
     }
 
     @Test
@@ -311,7 +311,7 @@ class TimelinessSpecificationsTest {
         
         // Then
         assertFalse(result.isSuccess());
-        assertEquals("TIMELINESS_VALUATION_AFTER_REPORTING", result.getError().getCode());
+        assertEquals("TIMELINESS_VALUATION_AFTER_REPORTING", result.getError().get().getCode());
     }
 
     @Test
@@ -330,7 +330,7 @@ class TimelinessSpecificationsTest {
         
         // Then
         assertFalse(result.isSuccess());
-        assertEquals("TIMELINESS_MATURITY_BEFORE_REPORTING", result.getError().getCode());
+        assertEquals("TIMELINESS_MATURITY_BEFORE_REPORTING", result.getError().get().getCode());
     }
 
     @Test
@@ -373,7 +373,7 @@ class TimelinessSpecificationsTest {
         
         // Then
         assertFalse(result.isSuccess());
-        assertEquals("TIMELINESS_FUTURE_REPORTING_DATE", result.getError().getCode());
+        assertEquals("TIMELINESS_FUTURE_REPORTING_DATE", result.getError().get().getCode());
     }
 
     // Helper methods

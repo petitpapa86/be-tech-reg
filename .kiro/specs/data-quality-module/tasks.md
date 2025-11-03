@@ -82,7 +82,10 @@
     - Add productTypeMatchesMaturity() for product consistency
     - _Requirements: 3.4, 10.1, 10.2, 10.3, 10.4_
 
-  - [ ] 3.4 Create Timeliness specifications
+  - [-] 3.4 Create Timeliness specifications
+
+
+
     - Implement TimelinessSpecifications with isWithinReportingPeriod()
     - Add hasRecentValuation() for valuation date freshness
     - Create isNotFutureDate() for date validation

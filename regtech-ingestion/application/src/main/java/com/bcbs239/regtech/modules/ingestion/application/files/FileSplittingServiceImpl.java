@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.modules.ingestion.application.files;
 
-/**
- * Placeholder: application-level implementation moved to infrastructure module.
- * Keep this file as a placeholder to avoid accidental references; remove in cleanup.
- */
+// Placeholder removed — concrete implementation lives in
+// com.bcbs239.regtech.modules.ingestion.infrastructure.files.FileSplittingServiceImpl
+// This file is left intentionally empty as a marker and will be deleted from the repository.
+
 public final class FileSplittingServiceImpl {
     private FileSplittingServiceImpl() {}
 }
