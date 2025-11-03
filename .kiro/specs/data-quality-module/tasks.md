@@ -106,72 +106,74 @@
     - _Requirements: 3.6, 10.1, 10.2, 10.3, 10.4_
 
   - [ ] 3.6 Create Validity specifications
+
+
     - Implement ValiditySpecifications with hasValidSector()
     - Add hasValidRiskWeight() with range validation (0-1.5)
     - Create hasValidMaturityDate() for business rule validation
     - Add hasValidProductType() for product classification
     - _Requirements: 3.7, 10.1, 10.2, 10.3, 10.4_
 
-- [x] 4. Implement application layer services
 
 
-
-
-
-
+- [ ] 4. Implement application layer services
   - [x] 4.1 Create command handlers
-
     - Implement ValidateBatchQualityCommandHandler with complete workflow
     - Add error handling and transaction management
     - Create ValidateBatchQualityCommand with batch metadata
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-
   - [x] 4.2 Create query handlers
-
     - Implement QualityReportQueryHandler for report retrieval
     - Add BatchQualityTrendsQueryHandler for historical analysis
     - Create GetQualityReportQuery and related DTOs
     - _Requirements: 9.1, 9.2, 9.3_
 
-
-
   - [x] 4.3 Create DTOs and mapping
-
-
-
-
-
     - Implement QualityReportDto with complete score breakdown
     - Add QualityScoresDto with all six dimensions
     - Create ValidationSummaryDto for error statistics
     - Add mapping methods between domain and DTOs
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7_
 
+  - [ ] 4.4 Implement application service interfaces
+    - Create QualityValidationEngineImpl with six-dimensional validation
+    - Implement QualityScoringEngineImpl with weighted calculation
+    - Create S3StorageServiceImpl for file operations
+    - Implement CrossModuleEventPublisherImpl for event publishing
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 4.1, 4.2, 7.1, 7.2_
+
+
 - [ ] 5. Implement infrastructure layer
   - [ ] 5.1 Create database repositories
     - Implement QualityReportRepositoryImpl with JPA
     - Create QualityReportEntity with proper mapping
     - Add QualityErrorSummaryRepositoryImpl for error storage
+
+
+
+
+
+
     - Create QualityErrorSummaryEntity with dimension classification
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
   - [ ] 5.2 Implement quality validation engine
-    - Create QualityValidationEngine with six-dimensional validation
+    - Create QualityValidationEngineImpl with six-dimensional validation
     - Add validateSingleExposure() method with specification composition
     - Implement validateBatchLevel() for uniqueness checks
     - Add streaming validation for large batches
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10_
 
   - [ ] 5.3 Implement quality scoring engine
-    - Create QualityScoringEngine with weighted calculation
+    - Create QualityScoringEngineImpl with weighted calculation
     - Add calculateDimensionScores() for individual dimensions
     - Implement calculateOverallScore() with configurable weights
     - Add grade determination logic (A+, A, B, C, F)
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9_
 
   - [ ] 5.4 Create S3 storage service
-    - Implement S3StorageService for detailed results storage
+    - Implement S3StorageServiceImpl for detailed results storage
     - Add downloadExposures() with streaming JSON parsing
     - Create storeDetailedResults() with AES-256 encryption
     - Add retry logic with exponential backoff
@@ -179,10 +181,26 @@
 
   - [ ] 5.5 Implement event handling
     - Create QualityEventListener for BatchIngested events
-    - Add CrossModuleEventPublisher for BatchQualityCompleted events
+    - Add CrossModuleEventPublisherImpl for BatchQualityCompleted events
     - Implement idempotency checking for duplicate events
     - Add retry mechanism for failed event publishing
     - _Requirements: 1.1, 1.2, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6_
+
+  - [ ] 5.7 Create event listener for batch ingestion
+    - Implement BatchIngestedEventListener to trigger quality validation
+    - Add event filtering and routing logic
+    - Create command dispatching to ValidateBatchQualityCommandHandler
+    - Add error handling and dead letter processing
+    - _Requirements: 1.1, 1.2, 1.3, 7.1, 7.2_
+
+  - [ ] 5.6 Create validation utility classes
+    - Implement CurrencyValidator with ISO 4217 validation
+    - Add CountryValidator with ISO 3166 validation
+    - Create LeiValidator with format validation
+    - Add SectorValidator with approved sector list
+    - Create CurrencyCountryValidator for consistency checks
+    - Add RatingValidator for rating consistency validation
+    - _Requirements: 3.3, 3.4, 3.7, 11.1, 11.2, 11.3_
 
 - [ ] 6. Create presentation layer
   - [ ] 6.1 Implement quality report controller
@@ -199,19 +217,27 @@
     - Add performance metrics endpoint
     - _Requirements: 9.5, 9.6_
 
-- [ ] 7. Implement configuration and validation utilities
-  - [ ] 7.1 Create validation utility classes
-    - Implement CurrencyValidator with ISO 4217 validation
-    - Add CountryValidator with ISO 3166 validation
-    - Create LeiValidator with format validation
-    - Add SectorValidator with approved sector list
-    - _Requirements: 3.3, 3.4, 3.7, 11.1, 11.2, 11.3_
-
-  - [ ] 7.2 Create configuration classes
+- [ ] 7. Implement configuration and Spring integration
+  - [ ] 7.1 Create configuration classes
     - Implement QualityModuleConfiguration with Spring configuration
     - Add QualityProperties for configurable weights and thresholds
     - Create validation rule configuration
     - Add S3 and database configuration
+    - Create AutoConfiguration for module integration
+    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+
+  - [ ] 7.2 Create Spring Boot integration
+    - Add spring.factories for auto-configuration
+    - Create component scanning configuration
+    - Add property binding for quality weights
+    - Implement conditional bean creation
+    - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
+
+  - [ ] 7.3 Integrate with main application
+    - Add data-quality module dependency to regtech-app
+    - Configure module in application.yml
+    - Add quality-specific configuration properties
+    - Test module integration and startup
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
 - [ ] 8. Add monitoring and observability
@@ -258,6 +284,13 @@
     - Add dimension classification and error codes
     - Include affected exposure ID arrays
     - _Requirements: 5.2, 5.3_
+
+  - [ ] 10.3 Create Flyway migration scripts
+    - Add V1__create_quality_reports_table.sql
+    - Create V2__create_quality_error_summaries_table.sql
+    - Add proper indexes and constraints
+    - Include sample data for testing
+    - _Requirements: 5.1, 5.2, 5.3_
 
 - [ ]* 11. Write comprehensive tests
   - [ ]* 11.1 Create unit tests for specifications

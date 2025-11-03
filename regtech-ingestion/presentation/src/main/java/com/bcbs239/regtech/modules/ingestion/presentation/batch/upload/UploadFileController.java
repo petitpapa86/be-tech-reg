@@ -9,9 +9,8 @@ import com.bcbs239.regtech.core.shared.ResponseUtils;
 import com.bcbs239.regtech.modules.ingestion.application.batch.upload.UploadFileCommand;
 import com.bcbs239.regtech.modules.ingestion.application.batch.upload.UploadFileCommandHandler;
 import com.bcbs239.regtech.modules.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId;
-import com.bcbs239.regtech.modules.ingestion.infrastructure.security.IngestionSecurityService;
 import com.bcbs239.regtech.modules.ingestion.presentation.common.IEndpoint;
+import com.bcbs239.regtech.modules.ingestion.presentation.constants.Permissions;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -35,101 +34,83 @@ import static com.bcbs239.regtech.core.web.RouterAttributes.*;
 public class UploadFileController extends BaseController implements IEndpoint {
     
     private final UploadFileCommandHandler uploadFileCommandHandler;
-    private final IngestionSecurityService securityService;
     
-    public UploadFileController(UploadFileCommandHandler uploadFileCommandHandler,
-                              IngestionSecurityService securityService) {
+    public UploadFileController(UploadFileCommandHandler uploadFileCommandHandler) {
         this.uploadFileCommandHandler = uploadFileCommandHandler;
-        this.securityService = securityService;
     }
     
     @Override
     public RouterFunction<ServerResponse> mapEndpoint() {
         return withAttributes(
             route(POST("/api/v1/ingestion/upload"), this::handle),
-            new String[]{"ingestion:upload"},
+            new String[]{Permissions.UPLOAD_FILE},
             new String[]{"File Upload", "Ingestion"},
             "Upload a file for ingestion processing with validation and rate limiting"
         );
     }
     
     private ServerResponse handle(ServerRequest request) {
+        // Extract auth token from header
+        String authToken = request.headers().firstHeader("Authorization");
+        
+        // Extract multipart file
+        org.springframework.util.MultiValueMap<String, jakarta.servlet.http.Part> multipartData;
+        java.util.List<jakarta.servlet.http.Part> filePart;
         try {
-            // Extract auth token from header
-            String authToken = request.headers().firstHeader("Authorization");
+            multipartData = request.multipartData();
+            filePart = multipartData.get("file");
+        } catch (IOException | jakarta.servlet.ServletException e) {
+            throw new RuntimeException("Failed to process multipart request", e);
+        }
+        
+        // Validate request parameters
+        Result<Void> validationResult = validateUploadRequest(filePart, authToken);
+        if (validationResult.isFailure()) {
+            ErrorDetail error = validationResult.getError().orElseThrow();
             
-            // Validate JWT token and extract bank ID using existing security infrastructure
-            Result<BankId> bankIdResult = securityService.validateTokenAndExtractBankId(authToken);
-            if (bankIdResult.isFailure()) {
-                ErrorDetail error = bankIdResult.getError().orElseThrow();
-                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
-                return ServerResponse.status(responseEntity.getStatusCode())
-                    .body(responseEntity.getBody());
+            // Handle file too large case with HTTP 413
+            if (error.hasFieldErrors() && error.getFieldErrors().stream()
+                .anyMatch(fe -> "FILE_TOO_LARGE".equals(fe.getCode()))) {
+                return ServerResponse.status(413)
+                    .body(ResponseUtils.validationError(error.getFieldErrors(), error.getMessage()));
             }
             
-            BankId bankId = bankIdResult.getValue().orElseThrow();
-            
-            // Verify ingestion permissions using existing security infrastructure
-            Result<Void> permissionResult = securityService.verifyIngestionPermissions("upload");
-            if (permissionResult.isFailure()) {
-                ErrorDetail error = permissionResult.getError().orElseThrow();
-                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
-                return ServerResponse.status(responseEntity.getStatusCode())
-                    .body(responseEntity.getBody());
-            }
-            
-            // Extract multipart file
-            var multipartData = request.multipartData();
-            var filePart = multipartData.get("file");
-            
-            // Validate request parameters
-            Result<Void> validationResult = validateUploadRequest(filePart, authToken);
-            if (validationResult.isFailure()) {
-                ErrorDetail error = validationResult.getError().orElseThrow();
-                
-                // Handle file too large case with HTTP 413
-                if (error.hasFieldErrors() && error.getFieldErrors().stream()
-                    .anyMatch(fe -> "FILE_TOO_LARGE".equals(fe.getCode()))) {
-                    return ServerResponse.status(413)
-                        .body(ResponseUtils.validationError(error.getFieldErrors(), error.getMessage()));
-                }
-                
-                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
-                return ServerResponse.status(responseEntity.getStatusCode())
-                    .body(responseEntity.getBody());
-            }
-            
-            var file = filePart.get(0);
-            
-            // Create command - IOException will be caught by IngestionExceptionHandler
-            UploadFileCommand command = new UploadFileCommand(
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
+            return ServerResponse.status(responseEntity.getStatusCode())
+                .body(responseEntity.getBody());
+        }
+        
+        var file = filePart.get(0);
+        
+        // Create command - IOException will be caught by IngestionExceptionHandler
+        UploadFileCommand command;
+        try {
+            command = new UploadFileCommand(
                 file.getInputStream(),
                 file.getSubmittedFileName(),
                 file.getContentType(),
                 file.getSize(),
                 authToken
             );
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to read uploaded file", e);
+        }
+        
+        // Execute command
+        Result<BatchId> result = uploadFileCommandHandler.handle(command);
+        
+        if (result.isSuccess()) {
+            BatchId batchId = result.getValue().orElseThrow();
+            UploadFileResponse response = UploadFileResponse.from(batchId);
             
-            // Execute command
-            Result<BatchId> result = uploadFileCommandHandler.handle(command);
-            
-            if (result.isSuccess()) {
-                BatchId batchId = result.getValue().orElseThrow();
-                UploadFileResponse response = UploadFileResponse.from(batchId);
-                
-                // Return HTTP 202 Accepted for asynchronous processing
-                return ServerResponse.accepted()
-                    .body(ResponseUtils.success(response, "File uploaded successfully and queued for processing"));
-            } else {
-                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(result, 
-                    "File uploaded successfully", "ingestion.upload.success");
-                return ServerResponse.status(responseEntity.getStatusCode())
-                    .body(responseEntity.getBody());
-            }
-        } catch (java.io.IOException | jakarta.servlet.ServletException e) {
-            log.error("Error processing uploaded file: {}", e.getMessage(), e);
-            return ServerResponse.status(500)
-                .body(ResponseUtils.systemError("Failed to process uploaded file: " + e.getMessage()));
+            // Return HTTP 202 Accepted for asynchronous processing
+            return ServerResponse.accepted()
+                .body(ResponseUtils.success(response, "File uploaded successfully and queued for processing"));
+        } else {
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(result, 
+                "File uploaded successfully", "ingestion.upload.success");
+            return ServerResponse.status(responseEntity.getStatusCode())
+                .body(responseEntity.getBody());
         }
     }
     
