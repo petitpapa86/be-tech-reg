@@ -332,4 +332,73 @@ class CompletenessSpecificationsTest {
         assertTrue(result.getErrors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_LEI_MISSING")));
         assertTrue(result.getErrors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_INTERNAL_RATING_MISSING")));
     }
-}
+
+    @Test
+    void uniquenessSpecifications_hasUniqueExposureIds_shouldWork() {
+        // Given - Test the UniquenessSpecifications to verify it's working
+        java.util.List<ExposureRecord> exposures = java.util.Arrays.asList(
+            ExposureRecord.builder()
+                .exposureId("EXP001")
+                .counterpartyId("CP001")
+                .amount(new BigDecimal("1000000"))
+                .currency("USD")
+                .country("US")
+                .sector("CORPORATE")
+                .referenceNumber("REF001")
+                .build(),
+            ExposureRecord.builder()
+                .exposureId("EXP002")
+                .counterpartyId("CP002")
+                .amount(new BigDecimal("2000000"))
+                .currency("EUR")
+                .country("DE")
+                .sector("BANKING")
+                .referenceNumber("REF002")
+                .build()
+        );
+
+        com.bcbs239.regtech.core.shared.Specification<java.util.List<ExposureRecord>> spec = 
+            UniquenessSpecifications.hasUniqueExposureIds();
+
+        // When
+        Result<Void> result = spec.isSatisfiedBy(exposures);
+
+        // Then
+        assertTrue(result.isSuccess(), "UniquenessSpecifications.hasUniqueExposureIds() should work with unique IDs");
+    }
+
+    @Test
+    void uniquenessSpecifications_hasUniqueExposureIds_shouldFailWithDuplicates() {
+        // Given - Test the UniquenessSpecifications with duplicate IDs
+        java.util.List<ExposureRecord> exposures = java.util.Arrays.asList(
+            ExposureRecord.builder()
+                .exposureId("EXP001")
+                .counterpartyId("CP001")
+                .amount(new BigDecimal("1000000"))
+                .currency("USD")
+                .country("US")
+                .sector("CORPORATE")
+                .referenceNumber("REF001")
+                .build(),
+            ExposureRecord.builder()
+                .exposureId("EXP001") // Duplicate ID
+                .counterpartyId("CP002")
+                .amount(new BigDecimal("2000000"))
+                .currency("EUR")
+                .country("DE")
+                .sector("BANKING")
+                .referenceNumber("REF002")
+                .build()
+        );
+
+        com.bcbs239.regtech.core.shared.Specification<java.util.List<ExposureRecord>> spec = 
+            UniquenessSpecifications.hasUniqueExposureIds();
+
+        // When
+        Result<Void> result = spec.isSatisfiedBy(exposures);
+
+        // Then
+        assertFalse(result.isSuccess(), "UniquenessSpecifications.hasUniqueExposureIds() should fail with duplicate IDs");
+        assertEquals("UNIQUENESS_DUPLICATE_EXPOSURE_IDS", result.getError().get().getCode());
+        assertTrue(result.getError().get().getMessage().contains("EXP001"));
+    }}

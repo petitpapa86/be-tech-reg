@@ -82,7 +82,9 @@
     - Add productTypeMatchesMaturity() for product consistency
     - _Requirements: 3.4, 10.1, 10.2, 10.3, 10.4_
 
-  - [-] 3.4 Create Timeliness specifications
+  - [x] 3.4 Create Timeliness specifications
+
+
 
 
 
@@ -92,7 +94,12 @@
     - Add isWithinProcessingWindow() for batch timeliness
     - _Requirements: 3.5, 10.1, 10.2, 10.3, 10.4_
 
-  - [ ] 3.5 Create Uniqueness specifications
+  - [x] 3.5 Create Uniqueness specifications
+
+
+
+
+
     - Implement UniquenessSpecifications with hasUniqueExposureIds()
     - Add hasUniqueCounterpartyExposurePairs() for relationship uniqueness
     - Create hasUniqueReferenceNumbers() for reference validation
