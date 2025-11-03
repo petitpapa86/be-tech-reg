@@ -41,17 +41,20 @@ public class S3FileStorageService implements FileStorageService {
         S3ClientBuilder s3ClientBuilder = S3Client.builder()
                 .region(Region.of(s3Properties.region()));
 
-        // Configure credentials if provided
-        if (s3Properties.accessKey() != null && s3Properties.secretKey() != null) {
+        // Configure credentials only if both access key and secret key are provided
+        if (s3Properties.accessKey() != null && !s3Properties.accessKey().trim().isEmpty() &&
+            s3Properties.secretKey() != null && !s3Properties.secretKey().trim().isEmpty()) {
             AwsBasicCredentials credentials = AwsBasicCredentials.create(
                 s3Properties.accessKey(),
                 s3Properties.secretKey()
             );
             s3ClientBuilder.credentialsProvider(StaticCredentialsProvider.create(credentials));
         }
+        // If no explicit credentials provided, AWS SDK will use default credential provider chain
+        // (environment variables, system properties, credential files, IAM roles, etc.)
 
         // Configure endpoint if provided (for local testing with MinIO, LocalStack, etc.)
-        if (s3Properties.endpoint() != null) {
+        if (s3Properties.endpoint() != null && !s3Properties.endpoint().trim().isEmpty()) {
             s3ClientBuilder.endpointOverride(URI.create(s3Properties.endpoint()));
         }
 

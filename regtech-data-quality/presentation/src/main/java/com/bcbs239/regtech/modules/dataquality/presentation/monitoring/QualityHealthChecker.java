@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
 
-import com.bcbs239.regtech.modules.dataquality.application.services.QualityValidationEngine;
-import com.bcbs239.regtech.modules.dataquality.application.services.S3StorageService;
+import com.bcbs239.regtech.modules.dataquality.application.validation.QualityValidationEngine;
+import com.bcbs239.regtech.modules.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.modules.dataquality.domain.report.IQualityReportRepository;
 
 import org.slf4j.Logger;

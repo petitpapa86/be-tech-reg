@@ -1,12 +1,12 @@
 package com.bcbs239.regtech.modules.dataquality.presentation.reports;
 
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.modules.dataquality.application.dto.QualityReportDto;
-import com.bcbs239.regtech.modules.dataquality.application.dto.QualityTrendsDto;
-import com.bcbs239.regtech.modules.dataquality.application.queries.GetQualityReportQuery;
-import com.bcbs239.regtech.modules.dataquality.application.queries.BatchQualityTrendsQuery;
-import com.bcbs239.regtech.modules.dataquality.application.queries.QualityReportQueryHandler;
-import com.bcbs239.regtech.modules.dataquality.application.queries.BatchQualityTrendsQueryHandler;
+import com.bcbs239.regtech.modules.dataquality.application.reporting.QualityReportDto;
+import com.bcbs239.regtech.modules.dataquality.application.monitoring.QualityTrendsDto;
+import com.bcbs239.regtech.modules.dataquality.application.reporting.GetQualityReportQuery;
+import com.bcbs239.regtech.modules.dataquality.application.monitoring.BatchQualityTrendsQuery;
+import com.bcbs239.regtech.modules.dataquality.application.reporting.QualityReportQueryHandler;
+import com.bcbs239.regtech.modules.dataquality.application.monitoring.BatchQualityTrendsQueryHandler;
 import com.bcbs239.regtech.modules.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.modules.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.modules.dataquality.presentation.common.IEndpoint;

@@ -2,7 +2,7 @@ package com.bcbs239.regtech.modules.dataquality.infrastructure.validation;
 
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Specification;
-import com.bcbs239.regtech.modules.dataquality.application.services.QualityValidationEngine;
+import com.bcbs239.regtech.modules.dataquality.application.validation.QualityValidationEngine;
 import com.bcbs239.regtech.modules.dataquality.domain.quality.DimensionScores;
 import com.bcbs239.regtech.modules.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.modules.dataquality.domain.specifications.*;

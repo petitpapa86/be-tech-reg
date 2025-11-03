@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.modules.dataquality.presentation.reports;
 
-import com.bcbs239.regtech.modules.dataquality.application.queries.QualityReportQueryHandler;
-import com.bcbs239.regtech.modules.dataquality.application.queries.BatchQualityTrendsQueryHandler;
+import com.bcbs239.regtech.modules.dataquality.application.reporting.QualityReportQueryHandler;
+import com.bcbs239.regtech.modules.dataquality.application.monitoring.BatchQualityTrendsQueryHandler;
 import com.bcbs239.regtech.modules.dataquality.presentation.web.QualityResponseHandler;
 import com.bcbs239.regtech.modules.dataquality.presentation.web.QualitySecurityService;
 import com.bcbs239.regtech.modules.dataquality.presentation.web.QualityRequestValidator;
