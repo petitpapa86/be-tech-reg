@@ -37,7 +37,6 @@ class TimelinessSpecificationsTest {
         // Then
         assertFalse(result.isSuccess());
         assertEquals("TIMELINESS_FUTURE_REPORTING_DATE", result.getError().get().getCode());
-        assertEquals("reporting_date", result.getError().get().getField());
     }
 
     @Test
@@ -52,7 +51,6 @@ class TimelinessSpecificationsTest {
         // Then
         assertFalse(result.isSuccess());
         assertEquals("TIMELINESS_STALE_REPORTING_DATE", result.getError().get().getCode());
-        assertEquals("reporting_date", result.getError().get().getField());
         assertTrue(result.getError().get().getMessage().contains("100 days"));
     }
 
@@ -94,7 +92,6 @@ class TimelinessSpecificationsTest {
         // Then
         assertFalse(result.isSuccess());
         assertEquals("TIMELINESS_FUTURE_VALUATION_DATE", result.getError().get().getCode());
-        assertEquals("valuation_date", result.getError().get().getField());
     }
 
     @Test
@@ -109,7 +106,6 @@ class TimelinessSpecificationsTest {
         // Then
         assertFalse(result.isSuccess());
         assertEquals("TIMELINESS_STALE_VALUATION", result.getError().get().getCode());
-        assertEquals("valuation_date", result.getError().get().getField());
         assertTrue(result.getError().get().getMessage().contains("40 days"));
     }
 
@@ -204,7 +200,6 @@ class TimelinessSpecificationsTest {
         // Then
         assertFalse(result.isSuccess());
         assertEquals("TIMELINESS_PROCESSING_WINDOW_EXCEEDED", result.getError().get().getCode());
-        assertEquals("reporting_date", result.getError().get().getField());
     }
 
     @Test

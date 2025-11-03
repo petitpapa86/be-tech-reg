@@ -43,7 +43,7 @@ public class TimelinessSpecifications {
             // Check if reporting date is in the future
             if (reportingDate.isAfter(now)) {
                 return Result.failure(ErrorDetail.of("TIMELINESS_FUTURE_REPORTING_DATE", 
-                    "Reporting date cannot be in the future", "reporting_date"));
+                    "Reporting date cannot be in the future"));
             }
             
             // Check if reporting date is too old (stale data)
@@ -51,7 +51,7 @@ public class TimelinessSpecifications {
             if (daysBetween > MAX_REPORTING_AGE_DAYS) {
                 return Result.failure(ErrorDetail.of("TIMELINESS_STALE_REPORTING_DATE", 
                     String.format("Reporting date is too old (%d days, max %d days)", 
-                        daysBetween, MAX_REPORTING_AGE_DAYS), "reporting_date"));
+                        daysBetween, MAX_REPORTING_AGE_DAYS)));
             }
             
             return Result.success();
@@ -76,7 +76,7 @@ public class TimelinessSpecifications {
             // Check if valuation date is in the future
             if (valuationDate.isAfter(now)) {
                 return Result.failure(ErrorDetail.of("TIMELINESS_FUTURE_VALUATION_DATE", 
-                    "Valuation date cannot be in the future", "valuation_date"));
+                    "Valuation date cannot be in the future"));
             }
             
             // Check if valuation is too old (stale valuation)
@@ -84,7 +84,7 @@ public class TimelinessSpecifications {
             if (daysBetween > MAX_VALUATION_AGE_DAYS) {
                 return Result.failure(ErrorDetail.of("TIMELINESS_STALE_VALUATION", 
                     String.format("Valuation date is too old (%d days, max %d days)", 
-                        daysBetween, MAX_VALUATION_AGE_DAYS), "valuation_date"));
+                        daysBetween, MAX_VALUATION_AGE_DAYS)));
             }
             
             return Result.success();
@@ -104,13 +104,13 @@ public class TimelinessSpecifications {
             // Check reporting date
             if (exposure.reportingDate() != null && exposure.reportingDate().isAfter(now)) {
                 return Result.failure(ErrorDetail.of("TIMELINESS_FUTURE_REPORTING_DATE", 
-                    "Reporting date cannot be in the future", "reporting_date"));
+                    "Reporting date cannot be in the future"));
             }
             
             // Check valuation date
             if (exposure.valuationDate() != null && exposure.valuationDate().isAfter(now)) {
                 return Result.failure(ErrorDetail.of("TIMELINESS_FUTURE_VALUATION_DATE", 
-                    "Valuation date cannot be in the future", "valuation_date"));
+                    "Valuation date cannot be in the future"));
             }
             
             // Note: Maturity date can be in the future, so we don't validate it here
@@ -144,7 +144,7 @@ public class TimelinessSpecifications {
                 if (businessDaysApprox > MAX_PROCESSING_WINDOW_DAYS) {
                     return Result.failure(ErrorDetail.of("TIMELINESS_PROCESSING_WINDOW_EXCEEDED", 
                         String.format("Processing window exceeded (%d business days, max %d days)", 
-                            businessDaysApprox, MAX_PROCESSING_WINDOW_DAYS), "reporting_date"));
+                            businessDaysApprox, MAX_PROCESSING_WINDOW_DAYS)));
                 }
             }
             
@@ -170,15 +170,14 @@ public class TimelinessSpecifications {
             // Maturity date should be after reporting date for term exposures
             if (exposure.isTermExposure() && maturityDate.isBefore(reportingDate)) {
                 return Result.failure(ErrorDetail.of("TIMELINESS_MATURITY_BEFORE_REPORTING", 
-                    "Maturity date cannot be before reporting date for term exposures", "maturity_date"));
+                    "Maturity date cannot be before reporting date for term exposures"));
             }
             
             // Check for unreasonably long maturities (more than 50 years)
             long yearsBetween = ChronoUnit.YEARS.between(reportingDate, maturityDate);
             if (yearsBetween > 50) {
                 return Result.failure(ErrorDetail.of("TIMELINESS_UNREASONABLE_MATURITY", 
-                    String.format("Maturity date is unreasonably far in the future (%d years)", yearsBetween), 
-                    "maturity_date"));
+                    String.format("Maturity date is unreasonably far in the future (%d years)", yearsBetween)));
             }
             
             return Result.success();
@@ -201,7 +200,7 @@ public class TimelinessSpecifications {
             if (reportingDate != null && valuationDate != null) {
                 if (valuationDate.isAfter(reportingDate.plusDays(7))) {
                     return Result.failure(ErrorDetail.of("TIMELINESS_VALUATION_AFTER_REPORTING", 
-                        "Valuation date should not be more than 7 days after reporting date", "valuation_date"));
+                        "Valuation date should not be more than 7 days after reporting date"));
                 }
             }
             
@@ -209,7 +208,7 @@ public class TimelinessSpecifications {
             if (reportingDate != null && maturityDate != null && exposure.isTermExposure()) {
                 if (maturityDate.isBefore(reportingDate)) {
                     return Result.failure(ErrorDetail.of("TIMELINESS_MATURITY_BEFORE_REPORTING", 
-                        "Maturity date cannot be before reporting date for term exposures", "maturity_date"));
+                        "Maturity date cannot be before reporting date for term exposures"));
                 }
             }
             
