@@ -2,6 +2,9 @@ package com.bcbs239.regtech.billing.application.payments;
 
 import com.bcbs239.billing.PaymentVerificationSagaData;
 import com.bcbs239.regtech.billing.application.policies.createstripecustomer.CreateStripeCustomerCommand;
+import com.bcbs239.regtech.billing.application.subscriptions.CreateStripeSubscriptionCommand;
+import com.bcbs239.regtech.billing.application.invoicing.CreateStripeInvoiceCommand;
+import com.bcbs239.regtech.billing.application.integration.FinalizeBillingAccountCommand;
 import com.bcbs239.regtech.billing.domain.events.StripeCustomerCreatedEvent;
 import com.bcbs239.regtech.billing.domain.events.StripeSubscriptionCreatedEvent;
 import com.bcbs239.regtech.billing.domain.events.StripeSubscriptionWebhookReceivedEvent;
@@ -39,25 +42,13 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     private void handleSagaStarted(SagaStartedEvent event) {
         // Dispatch CreateStripeCustomerCommand to start the process
-        var createResult = CreateStripeCustomerCommand.create(
+        CreateStripeCustomerCommand createCommand = CreateStripeCustomerCommand.create(
                 event.getSagaId(),
                 data.getUserEmail(),
                 data.getUserName(),
                 data.getPaymentMethodId()
         );
-        if (createResult.isSuccess()) {
-            dispatchCommand(createResult.getValue().orElseThrow());
-        } else {
-            // Fail the saga due to validation error
-            String reason = createResult.getError().map(ErrorDetail::getMessage).orElse("Invalid CreateStripeCustomerCommand");
-            LoggingConfiguration.logStructured("Failed to create CreateStripeCustomerCommand", Map.of(
-                "sagaId", event.getSagaId(),
-                "reason", reason,
-                "eventType", "CREATE_STRIPE_CUSTOMER_COMMAND_FAILED"
-            ));
-            fail(reason);
-            return;
-        }
+        dispatchCommand(createCommand);
 
         LoggingConfiguration.createStructuredLog("PAYMENT_VERIFICATION_SAGA_DISPATCHED_COMMAND", Map.of(
             "sagaId", event.getSagaId(),

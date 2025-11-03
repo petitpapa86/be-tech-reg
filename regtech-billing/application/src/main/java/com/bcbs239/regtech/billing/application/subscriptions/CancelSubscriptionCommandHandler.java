@@ -2,8 +2,8 @@ package com.bcbs239.regtech.billing.application.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
-import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
+import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
+import com.bcbs239.regtech.billing.domain.services.PaymentService;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
@@ -18,14 +18,14 @@ import java.util.function.Function;
 @Component
 public class CancelSubscriptionCommandHandler {
 
-    private final JpaSubscriptionRepository subscriptionRepository;
-    private final StripeService stripeService;
+    private final SubscriptionRepository subscriptionRepository;
+    private final PaymentService paymentService;
 
     public CancelSubscriptionCommandHandler(
-            JpaSubscriptionRepository subscriptionRepository,
-            StripeService stripeService) {
+            SubscriptionRepository subscriptionRepository,
+            PaymentService paymentService) {
         this.subscriptionRepository = subscriptionRepository;
-        this.stripeService = stripeService;
+        this.paymentService = paymentService;
     }
 
     /**
@@ -95,6 +95,6 @@ public class CancelSubscriptionCommandHandler {
      * Cancel subscription in Stripe
      */
     private Result<Void> cancelStripeSubscription(Subscription subscription) {
-        return stripeService.cancelSubscription(subscription.getStripeSubscriptionId());
+        return paymentService.cancelSubscription(subscription.getStripeSubscriptionId());
     }
 }

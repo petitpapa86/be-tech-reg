@@ -8,8 +8,7 @@ import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
 import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
-import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
-import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeSubscription;
+import com.bcbs239.regtech.billing.domain.services.PaymentService;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
@@ -32,7 +31,7 @@ import java.util.Map;
 @Component
 public class CreateStripeSubscriptionCommandHandler {
 
-    private final StripeService stripeService;
+    private final PaymentService paymentService;
     private final Function<UserId, Maybe<BillingAccount>> billingAccountByUserFinder;
     private final Function<BillingAccount, Result<BillingAccountId>> billingAccountSaver;
     private final Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder;
@@ -42,7 +41,7 @@ public class CreateStripeSubscriptionCommandHandler {
     private final SagaManager sagaManager;
 
     public CreateStripeSubscriptionCommandHandler(
-            StripeService stripeService,
+            PaymentService paymentService,
             Function<UserId, Maybe<BillingAccount>> billingAccountByUserFinder,
             Function<BillingAccount, Result<BillingAccountId>> billingAccountSaver,
             Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder,
@@ -51,7 +50,7 @@ public class CreateStripeSubscriptionCommandHandler {
             Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
             SagaManager sagaManager
             ) {
-        this.stripeService = stripeService;
+        this.paymentService = paymentService;
         this.billingAccountByUserFinder = billingAccountByUserFinder;
         this.billingAccountSaver = billingAccountSaver;
         this.subscriptionByBillingAccountAndTierFinder = subscriptionByBillingAccountAndTierFinder;
@@ -98,17 +97,25 @@ public class CreateStripeSubscriptionCommandHandler {
         }
 
         // Create Stripe subscription
-        Result<StripeSubscription> subscriptionResult = stripeService.createSubscription(
+        PaymentService.SubscriptionCreationRequest subscriptionRequest = new PaymentService.SubscriptionCreationRequest(
             customerId,
-            command.getSubscriptionTier()
+            command.getSubscriptionTier(),
+            null // PaymentMethodId - would need to be provided in command
         );
+        
+        Result<PaymentService.SubscriptionCreationResult> subscriptionResult = paymentService.createSubscription(subscriptionRequest);
         if (subscriptionResult.isFailure()) {
             // TODO: Handle failure - perhaps publish a failure event or log
             return;
         }
 
-        StripeSubscription stripeSubscription = subscriptionResult.getValue().get();
-        StripeSubscriptionId stripeSubscriptionId = stripeSubscription.subscriptionId();
+        PaymentService.SubscriptionCreationResult stripeSubscription = subscriptionResult.getValue().get();
+        Result<StripeSubscriptionId> stripeSubscriptionIdResult = StripeSubscriptionId.fromString(stripeSubscription.subscriptionId());
+        if (stripeSubscriptionIdResult.isFailure()) {
+            // TODO: Handle failure
+            return;
+        }
+        StripeSubscriptionId stripeSubscriptionId = stripeSubscriptionIdResult.getValue().get();
 
         // Find existing subscription to update
         BillingAccountId billingAccountId = billingAccount.getId();
@@ -147,7 +154,7 @@ public class CreateStripeSubscriptionCommandHandler {
         StripeSubscriptionCreatedEvent ev = new StripeSubscriptionCreatedEvent(
             command.getSagaId(),
             stripeSubscriptionId.value(),
-            stripeSubscription.latestInvoiceId().value(),
+            "in_" + stripeSubscriptionId.value(), // Mock invoice ID - would need to be provided by payment service
             subscriptionId
         );
 

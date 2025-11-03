@@ -16,6 +16,10 @@ public sealed interface Maybe<T> {
     boolean isPresent();
     boolean isEmpty();
     T getValue();
+    
+    default T orElse(T defaultValue) {
+        return isPresent() ? getValue() : defaultValue;
+    }
 
     record Some<T>(T value) implements Maybe<T> {
         @Override public boolean isPresent() { return true; }

@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
+import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
@@ -23,12 +24,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * JPA repository for Invoice using closure-based functional patterns.
- * Provides functional operations for Invoice persistence.
+ * JPA repository for Invoice with clean interface implementation.
+ * Provides direct method implementations for Invoice persistence.
  */
 @Repository
 @Transactional
-public class JpaInvoiceRepository {
+public class JpaInvoiceRepository implements InvoiceRepository {
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -36,6 +37,57 @@ public class JpaInvoiceRepository {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
+    @Override
+    public Maybe<Invoice> findById(InvoiceId invoiceId) {
+        try {
+            InvoiceEntity entity = entityManager.find(InvoiceEntity.class, invoiceId.value());
+            if (entity == null) {
+                return Maybe.none();
+            }
+            return Maybe.some(entity.toDomain());
+        } catch (Exception e) {
+            return Maybe.none();
+        }
+    }
+
+    @Override
+    public Maybe<Invoice> findByStripeInvoiceId(StripeInvoiceId stripeInvoiceId) {
+        try {
+            InvoiceEntity entity = entityManager.createQuery(
+                "SELECT i FROM InvoiceEntity i WHERE i.stripeInvoiceId = :stripeId", 
+                InvoiceEntity.class)
+                .setParameter("stripeId", stripeInvoiceId.value())
+                .getSingleResult();
+            return Maybe.some(entity.toDomain());
+        } catch (NoResultException e) {
+            return Maybe.none();
+        } catch (Exception e) {
+            return Maybe.none();
+        }
+    }
+
+    @Override
+    public Result<InvoiceId> save(Invoice invoice) {
+        return transactionTemplate.execute(status -> {
+            try {
+                InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
+                if (invoice.getId() == null) {
+                    // New invoice
+                    entityManager.persist(entity);
+                } else {
+                    // Update existing invoice
+                    entity = entityManager.merge(entity);
+                }
+                entityManager.flush();
+                return Result.success(InvoiceId.fromString(entity.getId()).getValue().orElseThrow());
+            } catch (Exception e) {
+                return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED",
+                    "Failed to save invoice: " + e.getMessage(), "invoice.save.failed"));
+            }
+        });
+    }
+
+    // Legacy functional methods for backward compatibility
     public Function<InvoiceId, Maybe<Invoice>> invoiceFinder() {
         return id -> {
             try {

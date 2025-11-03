@@ -10,8 +10,9 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
-import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeInvoice;
+import com.bcbs239.regtech.billing.domain.services.PaymentService;
 import com.bcbs239.regtech.core.saga.AbstractSaga;
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaStatus;
@@ -42,7 +43,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
     private final Function<BillingAccountId, Maybe<BillingAccount>> billingAccountFinder;
     @SuppressWarnings("unused")
     private final Function<BillingAccountId, Maybe<Subscription>> activeSubscriptionFinder;
-    private final Function<InvoiceCreationData, Result<StripeInvoice>> stripeInvoiceCreator;
+    private final Function<PaymentService.InvoiceCreationRequest, Result<PaymentService.InvoiceCreationResult>> stripeInvoiceCreator;
     private final Function<Invoice, Result<InvoiceId>> invoiceSaver;
     private final Consumer<Object> eventPublisher;
 
@@ -55,7 +56,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
             Function<UsageQuery, Result<UsageMetrics>> usageMetricsQuery,
             Function<BillingAccountId, Maybe<BillingAccount>> billingAccountFinder,
             Function<BillingAccountId, Maybe<Subscription>> activeSubscriptionFinder,
-            Function<InvoiceCreationData, Result<StripeInvoice>> stripeInvoiceCreator,
+            Function<PaymentService.InvoiceCreationRequest, Result<PaymentService.InvoiceCreationResult>> stripeInvoiceCreator,
             Function<Invoice, Result<InvoiceId>> invoiceSaver,
             Consumer<Object> eventPublisher) {
         super(sagaId, "monthly-billing", data, timeoutScheduler);
@@ -135,26 +136,34 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
         BillingAccount billingAccount = billingAccountResult.getValue().get();
 
         // Create Stripe invoice
-        InvoiceCreationData invoiceData = new InvoiceCreationData(
-            billingAccount.getStripeCustomerId().getValue(),
-            data.getTotalCharges(),
+        com.bcbs239.regtech.core.shared.Maybe<com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId> customerIdMaybe = billingAccount.getStripeCustomerId();
+        if (customerIdMaybe.isEmpty()) {
+            String errorMsg = "Billing account has no Stripe customer ID";
+            data.markStepFailed(errorMsg);
+            fail(errorMsg);
+            return;
+        }
+        
+        PaymentService.InvoiceCreationRequest invoiceRequest = new PaymentService.InvoiceCreationRequest(
+            customerIdMaybe.getValue(),
+            data.getTotalCharges().getAmount().toString(),
             "Monthly billing for " + data.getBillingPeriod().toString()
         );
 
-        Result<StripeInvoice> stripeInvoiceResult = stripeInvoiceCreator.apply(invoiceData);
+        Result<PaymentService.InvoiceCreationResult> stripeInvoiceResult = stripeInvoiceCreator.apply(invoiceRequest);
         if (stripeInvoiceResult.isFailure()) {
             String errorMsg = "Failed to create Stripe invoice: " + stripeInvoiceResult.getError().get().getMessage();
             data.markStepFailed(errorMsg);
             fail(errorMsg);
             return;
         }
-        StripeInvoice stripeInvoice = stripeInvoiceResult.getValue().get();
-        data.setStripeInvoiceId(stripeInvoice.invoiceId().value());
+        PaymentService.InvoiceCreationResult stripeInvoice = stripeInvoiceResult.getValue().get();
+        data.setStripeInvoiceId(stripeInvoice.invoiceId());
 
         // Create domain invoice
         Result<Invoice> invoiceResult = Invoice.create(
             Maybe.some(billingAccount.getId()),
-            stripeInvoice.invoiceId(),
+            StripeInvoiceId.fromString(stripeInvoice.invoiceId()).getValue().get(),
             data.getSubscriptionCharges(),
             data.getOverageCharges(),
             data.getBillingPeriod(),
@@ -319,7 +328,6 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
 
     // Helper records for function parameters
     public record UsageQuery(UserId userId, BillingPeriod billingPeriod) {}
-    public record InvoiceCreationData(StripeCustomerId customerId, Money amount, String description) {}
     public record BillingCompletedPayload(
         UserId userId,
         InvoiceId invoiceId,

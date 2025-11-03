@@ -88,6 +88,13 @@ public record Money(BigDecimal amount, Currency currency) {
     }
     
     /**
+     * Get the amount (compatibility method)
+     */
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    /**
      * Check if amount is positive
      */
     public boolean isPositive() {

@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.billing.application.integration;
 
-import com.bcbs239.regtech.billing.infrastructure.validation.BillingValidationUtils;
-import com.bcbs239.regtech.billing.infrastructure.validation.ValidStripeId;
+import com.bcbs239.regtech.billing.domain.validation.BillingValidationUtils;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,7 +13,7 @@ import jakarta.validation.constraints.Size;
  */
 public record ProcessWebhookCommand(
     @NotBlank(message = "Event ID is required")
-    @ValidStripeId(type = ValidStripeId.StripeIdType.EVENT, message = "Invalid Stripe event ID format")
+
     String eventId,
     
     @NotBlank(message = "Event type is required")

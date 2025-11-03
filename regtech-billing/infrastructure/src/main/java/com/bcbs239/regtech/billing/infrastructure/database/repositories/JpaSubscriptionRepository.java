@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
+import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
  */
 @Repository
 @Transactional
-public class JpaSubscriptionRepository {
+public class JpaSubscriptionRepository implements SubscriptionRepository {
 
     @PersistenceContext
     private EntityManager entityManager;

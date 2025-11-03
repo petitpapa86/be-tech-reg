@@ -182,6 +182,29 @@ public class Invoice {
     }
 
     /**
+     * Mark invoice as paid (simplified version without parameters)
+     */
+    public Result<Invoice> markAsPaid() {
+        this.status = InvoiceStatus.PAID;
+        this.paidAt = Instant.now();
+        this.updatedAt = Instant.now();
+        this.version++;
+        
+        return Result.success(this);
+    }
+
+    /**
+     * Mark invoice as payment failed
+     */
+    public Result<Invoice> markAsPaymentFailed() {
+        this.status = InvoiceStatus.FAILED;
+        this.updatedAt = Instant.now();
+        this.version++;
+        
+        return Result.success(this);
+    }
+
+    /**
      * Mark invoice as overdue
      */
     public Result<Void> markAsOverdue(Supplier<Instant> clock) {

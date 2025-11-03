@@ -8,9 +8,9 @@ import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
+import com.bcbs239.regtech.billing.domain.repositories.BillingAccountRepository;
+import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
+import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.application.IIntegrationEventHandler;
 import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
@@ -35,16 +35,16 @@ import org.springframework.stereotype.Component;
 public class UserRegisteredEventHandler implements IIntegrationEventHandler<UserRegisteredIntegrationEvent> {
 
     private final ApplicationContext applicationContext;
-    private final JpaBillingAccountRepository billingAccountRepository;
-    private final JpaSubscriptionRepository subscriptionRepository;
-    private final JpaInvoiceRepository invoiceRepository;
+    private final BillingAccountRepository billingAccountRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final InvoiceRepository invoiceRepository;
     private final SagaManager sagaManagerForTest; // optional
 
     @Autowired
     public UserRegisteredEventHandler(ApplicationContext applicationContext,
-                                      JpaBillingAccountRepository billingAccountRepository,
-                                      JpaSubscriptionRepository subscriptionRepository,
-                                      JpaInvoiceRepository invoiceRepository,
+                                      BillingAccountRepository billingAccountRepository,
+                                      SubscriptionRepository subscriptionRepository,
+                                      InvoiceRepository invoiceRepository,
                                       @Autowired(required = false) SagaManager sagaManagerForTest) {
         this.applicationContext = applicationContext;
         this.billingAccountRepository = billingAccountRepository;
@@ -55,9 +55,9 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
 
     // Backwards-compatible constructor for tests that instantiate handler with SagaManager first
     public UserRegisteredEventHandler(SagaManager sagaManager,
-                                      JpaBillingAccountRepository billingAccountRepository,
-                                      JpaSubscriptionRepository subscriptionRepository,
-                                      JpaInvoiceRepository invoiceRepository) {
+                                      BillingAccountRepository billingAccountRepository,
+                                      SubscriptionRepository subscriptionRepository,
+                                      InvoiceRepository invoiceRepository) {
         this.applicationContext = null;
         this.billingAccountRepository = billingAccountRepository;
         this.subscriptionRepository = subscriptionRepository;

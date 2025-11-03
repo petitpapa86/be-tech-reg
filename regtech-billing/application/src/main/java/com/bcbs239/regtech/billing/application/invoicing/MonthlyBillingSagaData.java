@@ -5,6 +5,7 @@ import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.saga.SagaData;
 import com.bcbs239.regtech.iam.domain.users.UserId;
+import lombok.Getter;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -15,6 +16,7 @@ import java.util.Currency;
  * Tracks the state of billing cycle execution including usage metrics,
  * charge calculations, and invoice generation.
  */
+@Getter
 public class MonthlyBillingSagaData extends SagaData {
     
     // User and billing period identification
@@ -147,55 +149,39 @@ public class MonthlyBillingSagaData extends SagaData {
     }
     
     // Getters and setters
-    
-    public UserId getUserId() { return userId; }
+
     public void setUserId(UserId userId) { this.userId = userId; }
-    
-    public String getBillingPeriodId() { return billingPeriodId; }
+
     public void setBillingPeriodId(String billingPeriodId) { this.billingPeriodId = billingPeriodId; }
-    
-    public LocalDate getStartDate() { return startDate; }
+
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-    
-    public LocalDate getEndDate() { return endDate; }
+
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
-    
-    public int getTotalExposures() { return totalExposures; }
+
     public void setTotalExposures(int totalExposures) { this.totalExposures = totalExposures; }
-    
-    public int getDocumentsProcessed() { return documentsProcessed; }
+
     public void setDocumentsProcessed(int documentsProcessed) { this.documentsProcessed = documentsProcessed; }
-    
-    public long getDataVolumeBytes() { return dataVolumeBytes; }
+
     public void setDataVolumeBytes(long dataVolumeBytes) { this.dataVolumeBytes = dataVolumeBytes; }
-    
-    public Money getSubscriptionCharges() { return subscriptionCharges; }
-    public void setSubscriptionCharges(Money subscriptionCharges) { 
+
+    public void setSubscriptionCharges(Money subscriptionCharges) {
         this.subscriptionCharges = subscriptionCharges;
         calculateTotalCharges();
     }
-    
-    public Money getOverageCharges() { return overageCharges; }
-    public void setOverageCharges(Money overageCharges) { 
+
+    public void setOverageCharges(Money overageCharges) {
         this.overageCharges = overageCharges;
         calculateTotalCharges();
     }
-    
-    public Money getTotalCharges() { return totalCharges; }
-    
-    public InvoiceId getGeneratedInvoiceId() { return generatedInvoiceId; }
+
     public void setGeneratedInvoiceId(InvoiceId generatedInvoiceId) { this.generatedInvoiceId = generatedInvoiceId; }
-    
-    public String getStripeInvoiceId() { return stripeInvoiceId; }
+
     public void setStripeInvoiceId(String stripeInvoiceId) { this.stripeInvoiceId = stripeInvoiceId; }
-    
-    public BillingStep getCurrentStep() { return currentStep; }
+
     public void setCurrentStep(BillingStep currentStep) { this.currentStep = currentStep; }
-    
-    public String getLastStepError() { return lastStepError; }
+
     public void setLastStepError(String lastStepError) { this.lastStepError = lastStepError; }
-    
-    public String getStatus() { return status; }
+
     public void setStatus(String status) { this.status = status; }
     
     public String getLastError() { return lastStepError; }

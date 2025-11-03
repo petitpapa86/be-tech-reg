@@ -17,6 +17,11 @@
 			<artifactId>regtech-core</artifactId>
 		</dependency>
 		
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-iam-domain</artifactId>
+		</dependency>
+		
 		<!-- Spring Boot Starter for basic annotations -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -1,57 +1,33 @@
 package com.bcbs239.regtech.billing.application.integration;
 
 /**
- * Response for webhook processing.
- * Contains the processing result and any relevant information.
+ * Response for webhook processing operations
  */
 public record ProcessWebhookResponse(
     String eventId,
     String eventType,
-    ProcessingResult result,
-    String message,
-    boolean wasAlreadyProcessed
+    ProcessingStatus status,
+    String message
 ) {
     
-    public enum ProcessingResult {
-        SUCCESS,
-        ALREADY_PROCESSED,
+    public enum ProcessingStatus {
+        PROCESSED,
         IGNORED,
-        FAILED
+        ALREADY_PROCESSED
     }
     
-    /**
-     * Factory method for successful processing
-     */
-    public static ProcessWebhookResponse success(String eventId, String eventType, String message) {
-        return new ProcessWebhookResponse(eventId, eventType, ProcessingResult.SUCCESS, message, false);
+    public static ProcessWebhookResponse processed(String eventId, String eventType) {
+        return new ProcessWebhookResponse(eventId, eventType, ProcessingStatus.PROCESSED, 
+            "Webhook event processed successfully");
     }
     
-    /**
-     * Factory method for already processed events
-     */
+    public static ProcessWebhookResponse ignored(String eventId, String eventType) {
+        return new ProcessWebhookResponse(eventId, eventType, ProcessingStatus.IGNORED, 
+            "Webhook event type not supported or not relevant");
+    }
+    
     public static ProcessWebhookResponse alreadyProcessed(String eventId, String eventType) {
-        return new ProcessWebhookResponse(eventId, eventType, ProcessingResult.ALREADY_PROCESSED, 
-            "Event was already processed", true);
-    }
-    
-    /**
-     * Factory method for ignored events
-     */
-    public static ProcessWebhookResponse ignored(String eventId, String eventType, String reason) {
-        return new ProcessWebhookResponse(eventId, eventType, ProcessingResult.IGNORED, reason, false);
-    }
-    
-    /**
-     * Factory method for failed processing
-     */
-    public static ProcessWebhookResponse failed(String eventId, String eventType, String error) {
-        return new ProcessWebhookResponse(eventId, eventType, ProcessingResult.FAILED, error, false);
-    }
-    
-    /**
-     * Check if processing was successful
-     */
-    public boolean isSuccess() {
-        return result == ProcessingResult.SUCCESS || result == ProcessingResult.ALREADY_PROCESSED;
+        return new ProcessWebhookResponse(eventId, eventType, ProcessingStatus.ALREADY_PROCESSED, 
+            "Webhook event was already processed");
     }
 }

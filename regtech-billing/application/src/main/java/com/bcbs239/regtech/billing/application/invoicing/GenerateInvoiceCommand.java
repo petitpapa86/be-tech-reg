@@ -2,7 +2,7 @@ package com.bcbs239.regtech.billing.application.invoicing;
 
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
-import com.bcbs239.regtech.billing.infrastructure.validation.BillingValidationUtils;
+import com.bcbs239.regtech.billing.domain.validation.BillingValidationUtils;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import jakarta.validation.constraints.NotBlank;

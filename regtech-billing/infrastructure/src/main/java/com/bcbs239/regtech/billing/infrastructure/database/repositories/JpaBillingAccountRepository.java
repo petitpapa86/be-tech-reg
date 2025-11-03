@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
 import com.bcbs239.billing.BillingAccount;
+import com.bcbs239.regtech.billing.domain.repositories.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.BillingAccountEntity;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
@@ -28,6 +29,7 @@ import jakarta.persistence.OptimisticLockException;
 @Repository
 @Transactional
 @SuppressWarnings("unused")
+public class JpaBillingAccountRepository implements BillingAccountRepository {
 public class JpaBillingAccountRepository {
 
     @PersistenceContext

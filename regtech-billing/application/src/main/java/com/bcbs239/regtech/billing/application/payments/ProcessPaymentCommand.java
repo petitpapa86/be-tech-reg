@@ -1,8 +1,7 @@
 package com.bcbs239.regtech.billing.application.payments;
 
 import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
-import com.bcbs239.regtech.billing.infrastructure.validation.BillingValidationUtils;
-import com.bcbs239.regtech.billing.infrastructure.validation.ValidStripeId;
+import com.bcbs239.regtech.billing.domain.validation.BillingValidationUtils;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import jakarta.validation.constraints.NotBlank;
@@ -14,7 +13,7 @@ import jakarta.validation.constraints.Size;
  */
 public record ProcessPaymentCommand(
     @NotBlank(message = "Payment method ID is required")
-    @ValidStripeId(type = ValidStripeId.StripeIdType.PAYMENT_METHOD, message = "Invalid payment method ID format")
+
     String paymentMethodId,
     
     @NotBlank(message = "Correlation ID is required")

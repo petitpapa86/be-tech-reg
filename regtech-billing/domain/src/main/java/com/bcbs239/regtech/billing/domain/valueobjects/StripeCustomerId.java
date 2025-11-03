@@ -29,6 +29,13 @@ public record StripeCustomerId(String value) {
         return Result.success(new StripeCustomerId(value));
     }
     
+    /**
+     * Get the value (compatibility method)
+     */
+    public String getValue() {
+        return value;
+    }
+    
     @Override
     public String toString() {
         return value;

@@ -2,7 +2,7 @@ package com.bcbs239.regtech.billing.application.integration;
 
 import com.bcbs239.billing.BillingAccount;
 import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
+import com.bcbs239.regtech.billing.domain.repositories.BillingAccountRepository;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
@@ -11,9 +11,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class FinalizeBillingAccountCommandHandler {
 
-    private final JpaBillingAccountRepository billingAccountRepository;
+    private final BillingAccountRepository billingAccountRepository;
 
-    public FinalizeBillingAccountCommandHandler(JpaBillingAccountRepository billingAccountRepository) {
+    public FinalizeBillingAccountCommandHandler(BillingAccountRepository billingAccountRepository) {
         this.billingAccountRepository = billingAccountRepository;
     }
 

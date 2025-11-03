@@ -27,4 +27,16 @@ public class CreateStripeInvoiceCommand extends SagaCommand {
     public String getSubscriptionId() {
         return (String) payload().get("subscriptionId");
     }
+    
+    public String getCustomerId() {
+        return (String) payload().get("customerId");
+    }
+    
+    public String getAmount() {
+        return (String) payload().get("amount");
+    }
+    
+    public String getDescription() {
+        return (String) payload().get("description");
+    }
 }

@@ -33,6 +33,13 @@ public record StripeInvoiceId(String value) {
         return Result.success(new StripeInvoiceId(normalized));
     }
     
+    /**
+     * Get the value (compatibility method)
+     */
+    public String getValue() {
+        return value;
+    }
+    
     @Override
     public String toString() {
         return value;

@@ -8,11 +8,10 @@ import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
-import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
-import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeInvoice;
+import com.bcbs239.regtech.billing.domain.repositories.BillingAccountRepository;
+import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
+import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
+import com.bcbs239.regtech.billing.domain.services.PaymentService;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.billing.application.shared.UsageMetrics;
 import com.bcbs239.regtech.core.shared.Result;
@@ -30,20 +29,20 @@ import java.util.function.Function;
 @Component
 public class GenerateInvoiceCommandHandler {
 
-    private final JpaBillingAccountRepository billingAccountRepository;
-    private final JpaSubscriptionRepository subscriptionRepository;
-    private final JpaInvoiceRepository invoiceRepository;
-    private final StripeService stripeService;
+    private final BillingAccountRepository billingAccountRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final InvoiceRepository invoiceRepository;
+    private final PaymentService paymentService;
 
     public GenerateInvoiceCommandHandler(
-            JpaBillingAccountRepository billingAccountRepository,
-            JpaSubscriptionRepository subscriptionRepository,
-            JpaInvoiceRepository invoiceRepository,
-            StripeService stripeService) {
+            BillingAccountRepository billingAccountRepository,
+            SubscriptionRepository subscriptionRepository,
+            InvoiceRepository invoiceRepository,
+            PaymentService paymentService) {
         this.billingAccountRepository = billingAccountRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.invoiceRepository = invoiceRepository;
-        this.stripeService = stripeService;
+        this.paymentService = paymentService;
     }
 
     /**
@@ -70,7 +69,7 @@ public class GenerateInvoiceCommandHandler {
             Function<BillingAccountId, Maybe<Subscription>> activeSubscriptionFinder,
             Function<Invoice, Result<InvoiceId>> invoiceSaver,
             Function<UsageQuery, Result<UsageMetrics>> usageMetricsQuery,
-            Function<InvoiceCreationData, Result<StripeInvoice>> stripeInvoiceCreator) {
+            Function<InvoiceCreationData, Result<PaymentService.InvoiceCreationResult>> invoiceCreator) {
 
         // Step 1: Validate billing account ID
         Result<BillingAccountId> billingAccountIdResult = command.getBillingAccountId();
@@ -122,16 +121,16 @@ public class GenerateInvoiceCommandHandler {
             totalAmount,
             "Invoice for " + command.billingPeriod().toString()
         );
-        Result<StripeInvoice> stripeInvoiceResult = stripeInvoiceCreator.apply(invoiceData);
-        if (stripeInvoiceResult.isFailure()) {
-            return Result.failure(stripeInvoiceResult.getError().get());
+        Result<PaymentService.InvoiceCreationResult> invoiceResult = invoiceCreator.apply(invoiceData);
+        if (invoiceResult.isFailure()) {
+            return Result.failure(invoiceResult.getError().get());
         }
-        StripeInvoice stripeInvoice = stripeInvoiceResult.getValue().get();
+        PaymentService.InvoiceCreationResult createdInvoice = invoiceResult.getValue().get();
 
         // Step 9: Create invoice domain object
-        Result<Invoice> invoiceResult = Invoice.create(
+        Result<Invoice> domainInvoiceResult = Invoice.create(
             Maybe.some(billingAccountId),
-            stripeInvoice.invoiceId(),
+            createdInvoice.invoiceId(),
             subscriptionAmount,
             overageAmount,
             command.billingPeriod(),
@@ -193,10 +192,15 @@ public class GenerateInvoiceCommandHandler {
     }
 
     /**
-     * Create Stripe invoice
+     * Create invoice using payment service
      */
-    private Result<StripeInvoice> createStripeInvoice(InvoiceCreationData data) {
-        return stripeService.createInvoice(data.customerId(), data.amount(), data.description());
+    private Result<PaymentService.InvoiceCreationResult> createStripeInvoice(InvoiceCreationData data) {
+        PaymentService.InvoiceCreationRequest request = new PaymentService.InvoiceCreationRequest(
+            data.customerId(),
+            data.amount(),
+            data.description()
+        );
+        return paymentService.createInvoice(request);
     }
 
     // Helper records for function parameters
