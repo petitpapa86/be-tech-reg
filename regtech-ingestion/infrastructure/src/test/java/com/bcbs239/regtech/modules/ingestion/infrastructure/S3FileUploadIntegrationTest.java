@@ -79,20 +79,20 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
         IngestionResult result = processFileUpload(fileContent, originalFilename, "application/json");
         
         // Then: File should be uploaded to S3
-        assertThat(result.isSuccess()).isTrue();
-        assertThat(result.getBatchId()).isNotNull();
-        assertThat(result.getS3Reference()).isNotNull();
+        assertThat(result.success()).isTrue();
+        assertThat(result.batchId()).isNotNull();
+        assertThat(result.s3Reference()).isNotNull();
         
-        S3Reference s3Ref = result.getS3Reference();
-        assertThat(s3Ref.getBucket()).isEqualTo(TEST_BUCKET);
-        assertThat(s3Ref.getKey()).startsWith("raw/");
-        assertThat(s3Ref.getKey()).contains(BANK_ID);
-        assertThat(s3Ref.getKey()).endsWith(".json");
+        S3Reference s3Ref = result.s3Reference();
+        assertThat(s3Ref.bucket()).isEqualTo(TEST_BUCKET);
+        assertThat(s3Ref.key()).startsWith("raw/");
+        assertThat(s3Ref.key()).contains(BANK_ID);
+        assertThat(s3Ref.key()).endsWith(".json");
         
         // Verify file exists in S3
         HeadObjectResponse headResponse = s3Client.headObject(HeadObjectRequest.builder()
-            .bucket(s3Ref.getBucket())
-            .key(s3Ref.getKey())
+            .bucket(s3Ref.bucket())
+            .key(s3Ref.key())
             .build());
         
         assertThat(headResponse.contentLength()).isEqualTo(fileContent.length);
@@ -100,8 +100,8 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
         
         // Verify file content in S3
         ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObject(GetObjectRequest.builder()
-            .bucket(s3Ref.getBucket())
-            .key(s3Ref.getKey())
+            .bucket(s3Ref.bucket())
+            .key(s3Ref.key())
             .build());
         
         byte[] s3Content = s3Object.readAllBytes();
@@ -125,14 +125,14 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
         IngestionResult result = processFileUpload(fileContent, originalFilename, "application/json");
         
         // Then: File should be uploaded successfully
-        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.success()).isTrue();
         
-        S3Reference s3Ref = result.getS3Reference();
-        FileMetadata metadata = result.getFileMetadata();
+        S3Reference s3Ref = result.s3Reference();
+        FileMetadata metadata = result.fileMetadata();
         
         // Verify S3 storage
-        assertThat(s3Ref.getBucket()).isEqualTo(TEST_BUCKET);
-        assertThat(s3Ref.getKey()).contains("enhanced_daily_loans");
+        assertThat(s3Ref.bucket()).isEqualTo(TEST_BUCKET);
+        assertThat(s3Ref.key()).contains("enhanced_daily_loans");
         
         // Verify file metadata
         assertThat(metadata.getOriginalFilename()).isEqualTo(originalFilename);
@@ -142,8 +142,8 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
         
         // Verify S3 object metadata
         HeadObjectResponse headResponse = s3Client.headObject(HeadObjectRequest.builder()
-            .bucket(s3Ref.getBucket())
-            .key(s3Ref.getKey())
+            .bucket(s3Ref.bucket())
+            .key(s3Ref.key())
             .build());
         
         assertThat(headResponse.metadata()).containsEntry("original-filename", originalFilename);
@@ -165,14 +165,14 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
         IngestionResult result3 = processFileUpload(fileContent, originalFilename, "application/json");
         
         // Then: Each upload should have unique S3 key
-        assertThat(result1.getS3Reference().getKey()).isNotEqualTo(result2.getS3Reference().getKey());
-        assertThat(result2.getS3Reference().getKey()).isNotEqualTo(result3.getS3Reference().getKey());
-        assertThat(result1.getS3Reference().getKey()).isNotEqualTo(result3.getS3Reference().getKey());
+        assertThat(result1.s3Reference().key()).isNotEqualTo(result2.s3Reference().key());
+        assertThat(result2.s3Reference().key()).isNotEqualTo(result3.s3Reference().key());
+        assertThat(result1.s3Reference().key()).isNotEqualTo(result3.s3Reference().key());
         
         // All files should exist in S3
-        assertThat(s3ObjectExists(result1.getS3Reference())).isTrue();
-        assertThat(s3ObjectExists(result2.getS3Reference())).isTrue();
-        assertThat(s3ObjectExists(result3.getS3Reference())).isTrue();
+        assertThat(s3ObjectExists(result1.s3Reference())).isTrue();
+        assertThat(s3ObjectExists(result2.s3Reference())).isTrue();
+        assertThat(s3ObjectExists(result3.s3Reference())).isTrue();
     }
 
     @Test
@@ -212,13 +212,13 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
         long uploadTime = System.currentTimeMillis() - startTime;
         
         // Then: Upload should succeed efficiently
-        assertThat(result.isSuccess()).isTrue();
+        assertThat(result.success()).isTrue();
         assertThat(uploadTime).isLessThan(30000); // Should complete within 30 seconds
         
         // Verify large file in S3
         HeadObjectResponse headResponse = s3Client.headObject(HeadObjectRequest.builder()
-            .bucket(result.getS3Reference().getBucket())
-            .key(result.getS3Reference().getKey())
+            .bucket(result.s3Reference().bucket())
+            .key(result.s3Reference().key())
             .build());
         
         assertThat(headResponse.contentLength()).isEqualTo(largeFileContent.length);
@@ -237,12 +237,12 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
         IngestionResult result = processFileUpload(fileContent, originalFilename, "application/json");
         
         // Then: Batch metadata should be complete
-        IngestionBatch batch = result.getBatch();
+        IngestionBatch batch = result.batch();
         assertThat(batch).isNotNull();
         assertThat(batch.getBatchId()).isNotNull();
         assertThat(batch.getBankId()).isEqualTo(BANK_ID);
-        assertThat(batch.getS3Reference()).isEqualTo(result.getS3Reference());
-        assertThat(batch.getFileMetadata()).isEqualTo(result.getFileMetadata());
+        assertThat(batch.getS3Reference()).isEqualTo(result.s3Reference());
+        assertThat(batch.getFileMetadata()).isEqualTo(result.fileMetadata());
         assertThat(batch.getUploadTimestamp()).isNotNull();
         assertThat(batch.getStatus()).isEqualTo("UPLOADED");
         
@@ -274,7 +274,7 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
                 "original-filename", originalFilename,
                 "bank-id", BANK_ID,
                 "upload-timestamp", Instant.now().toString(),
-                "batch-id", batchId.getValue()
+                "batch-id", batchId.value()
             ))
             .build(),
             software.amazon.awssdk.core.sync.RequestBody.fromBytes(fileContent));
@@ -289,12 +289,23 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
             Instant.now()
         );
         
+        // Use the domain constructor for reconstituting a batch from persistence
         IngestionBatch batch = new IngestionBatch(
             batchId,
-            BANK_ID,
-            s3Reference,
+            com.bcbs239.regtech.modules.ingestion.domain.bankinfo.BankId.of(BANK_ID),
+            com.bcbs239.regtech.modules.ingestion.domain.batch.BatchStatus.UPLOADED,
             fileMetadata,
-            Instant.now()
+            s3Reference,
+            null, // BankInfo (not needed for this test)
+            Integer.valueOf(0), // totalExposures (0 as placeholder)
+            Instant.now(), // uploadedAt
+            null, // completedAt
+            null, // errorMessage
+            null, // processingDurationMs
+            0, // recoveryAttempts
+            null, // lastCheckpoint
+            null, // checkpointData
+            Instant.now() // updatedAt
         );
         
         return new IngestionResult(true, batchId, s3Reference, fileMetadata, batch);
@@ -303,8 +314,8 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
     private boolean s3ObjectExists(S3Reference s3Reference) {
         try {
             s3Client.headObject(HeadObjectRequest.builder()
-                .bucket(s3Reference.getBucket())
-                .key(s3Reference.getKey())
+                .bucket(s3Reference.bucket())
+                .key(s3Reference.key())
                 .build());
             return true;
         } catch (NoSuchKeyException e) {
@@ -312,28 +323,12 @@ class S3FileUploadIntegrationTest extends BaseIntegrationTest {
         }
     }
 
-    // Test result class
-    public static class IngestionResult {
-        private final boolean success;
-        private final BatchId batchId;
-        private final S3Reference s3Reference;
-        private final FileMetadata fileMetadata;
-        private final IngestionBatch batch;
+    /**
+     * @param success Getters
+     */ // Test result class
+        public record IngestionResult(boolean success, BatchId batchId, S3Reference s3Reference, FileMetadata fileMetadata,
+                                      IngestionBatch batch) {
 
-        public IngestionResult(boolean success, BatchId batchId, S3Reference s3Reference, 
-                             FileMetadata fileMetadata, IngestionBatch batch) {
-            this.success = success;
-            this.batchId = batchId;
-            this.s3Reference = s3Reference;
-            this.fileMetadata = fileMetadata;
-            this.batch = batch;
-        }
-
-        // Getters
-        public boolean isSuccess() { return success; }
-        public BatchId getBatchId() { return batchId; }
-        public S3Reference getS3Reference() { return s3Reference; }
-        public FileMetadata getFileMetadata() { return fileMetadata; }
-        public IngestionBatch getBatch() { return batch; }
     }
 }
+
