@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.billing.domain.invoicing.events;
+package com.bcbs239.regtech.billing.domain.invoices.events;
 
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaMessage;

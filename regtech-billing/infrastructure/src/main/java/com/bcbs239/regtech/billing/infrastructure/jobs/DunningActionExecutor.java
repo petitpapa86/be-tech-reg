@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.billing.infrastructure.jobs;
 
-import com.bcbs239.billing.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.dunning.DunningStep;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningStep;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaInvoiceRepository;
@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.bcbs239.regtech.billing.domain.dunning.DunningStep.*;
 
 /**
  * Service responsible for executing dunning actions based on the current dunning step.
@@ -43,7 +45,7 @@ public class DunningActionExecutor {
      * Execute the appropriate dunning action based on the current step.
      */
     public DunningProcessScheduler.DunningActionResult executeAction(
-            DunningStep step, 
+            DunningStep step,
             InvoiceId invoiceId, 
             BillingAccountId billingAccountId) {
         

@@ -1,6 +1,8 @@
 package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
@@ -10,6 +12,8 @@ import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -27,9 +31,9 @@ public class QualityReportMapper {
         }
         
         QualityReportEntity entity = new QualityReportEntity(
-            domainReport.getReportId().getValue(),
-            domainReport.getBatchId().getValue(),
-            domainReport.getBankId().getValue(),
+            domainReport.getReportId().value(),
+            domainReport.getBatchId().value(),
+            domainReport.getBankId().value(),
             domainReport.getStatus()
         );
         
@@ -52,12 +56,17 @@ public class QualityReportMapper {
             entity.setTotalExposures(summary.totalExposures());
             entity.setValidExposures(summary.validExposures());
             entity.setTotalErrors(summary.totalErrors());
-            entity.setCompletenessErrors(summary.completenessErrors());
-            entity.setAccuracyErrors(summary.accuracyErrors());
-            entity.setConsistencyErrors(summary.consistencyErrors());
-            entity.setTimelinessErrors(summary.timelinessErrors());
-            entity.setUniquenessErrors(summary.uniquenessErrors());
-            entity.setValidityErrors(summary.validityErrors());
+
+            // errorsByDimension map -> individual columns
+            Map<QualityDimension, Integer> byDim = summary.errorsByDimension();
+            if (byDim != null) {
+                entity.setCompletenessErrors(byDim.getOrDefault(QualityDimension.COMPLETENESS, 0));
+                entity.setAccuracyErrors(byDim.getOrDefault(QualityDimension.ACCURACY, 0));
+                entity.setConsistencyErrors(byDim.getOrDefault(QualityDimension.CONSISTENCY, 0));
+                entity.setTimelinessErrors(byDim.getOrDefault(QualityDimension.TIMELINESS, 0));
+                entity.setUniquenessErrors(byDim.getOrDefault(QualityDimension.UNIQUENESS, 0));
+                entity.setValidityErrors(byDim.getOrDefault(QualityDimension.VALIDITY, 0));
+            }
         }
         
         // Map S3 reference
@@ -112,27 +121,34 @@ public class QualityReportMapper {
         // Create validation summary
         ValidationSummary summary = null;
         if (entity.getTotalExposures() != null) {
-            summary = new ValidationSummary(
-                Optional.ofNullable(entity.getTotalExposures()).orElse(0),
-                Optional.ofNullable(entity.getValidExposures()).orElse(0),
-                Optional.ofNullable(entity.getTotalErrors()).orElse(0),
-                Optional.ofNullable(entity.getCompletenessErrors()).orElse(0),
-                Optional.ofNullable(entity.getAccuracyErrors()).orElse(0),
-                Optional.ofNullable(entity.getConsistencyErrors()).orElse(0),
-                Optional.ofNullable(entity.getTimelinessErrors()).orElse(0),
-                Optional.ofNullable(entity.getUniquenessErrors()).orElse(0),
-                Optional.ofNullable(entity.getValidityErrors()).orElse(0)
-            );
+            Map<QualityDimension, Integer> errorsByDimension = new HashMap<>();
+            errorsByDimension.put(QualityDimension.COMPLETENESS, Optional.ofNullable(entity.getCompletenessErrors()).orElse(0));
+            errorsByDimension.put(QualityDimension.ACCURACY, Optional.ofNullable(entity.getAccuracyErrors()).orElse(0));
+            errorsByDimension.put(QualityDimension.CONSISTENCY, Optional.ofNullable(entity.getConsistencyErrors()).orElse(0));
+            errorsByDimension.put(QualityDimension.TIMELINESS, Optional.ofNullable(entity.getTimelinessErrors()).orElse(0));
+            errorsByDimension.put(QualityDimension.UNIQUENESS, Optional.ofNullable(entity.getUniquenessErrors()).orElse(0));
+            errorsByDimension.put(QualityDimension.VALIDITY, Optional.ofNullable(entity.getValidityErrors()).orElse(0));
+
+            double overallRate = 0.0;
+            if (entity.getTotalExposures() != null && entity.getTotalExposures() > 0) {
+                overallRate = (double) Optional.ofNullable(entity.getValidExposures()).orElse(0) / entity.getTotalExposures();
+            }
+
+            summary = ValidationSummary.builder()
+                .totalExposures(Optional.ofNullable(entity.getTotalExposures()).orElse(0))
+                .validExposures(Optional.ofNullable(entity.getValidExposures()).orElse(0))
+                .totalErrors(Optional.ofNullable(entity.getTotalErrors()).orElse(0))
+                .errorsByDimension(errorsByDimension)
+                .errorsBySeverity(Map.of())
+                .errorsByCode(Map.of())
+                .overallValidationRate(overallRate)
+                .build();
         }
         
         // Create S3 reference
         S3Reference s3Reference = null;
-        if (entity.getS3Uri() != null) {
-            s3Reference = new S3Reference(
-                entity.getS3Bucket(),
-                entity.getS3Key(),
-                entity.getS3Uri()
-            );
+        if (entity.getS3Bucket() != null && entity.getS3Key() != null) {
+            s3Reference = S3Reference.of(entity.getS3Bucket(), entity.getS3Key(), "0");
         }
         
         // Create domain object using factory method
@@ -142,8 +158,8 @@ public class QualityReportMapper {
         );
         
         // Set the report ID (this would normally be done during creation)
-        domainReport.setReportId(new QualityReportId(entity.getReportId()));
-        
+        domainReport.setReportId(QualityReportId.of(entity.getReportId()));
+
         // Set status
         domainReport.setStatus(entity.getStatus());
         
@@ -179,3 +195,4 @@ public class QualityReportMapper {
         return domainReport;
     }
 }
+

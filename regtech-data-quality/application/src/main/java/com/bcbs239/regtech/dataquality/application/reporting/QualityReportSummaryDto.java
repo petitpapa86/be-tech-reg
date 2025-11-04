@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.dataquality.application.reporting;
 
+import com.bcbs239.regtech.dataquality.application.scoring.QualityScoresDto;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 
 import java.time.Instant;

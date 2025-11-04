@@ -1,12 +1,13 @@
 package com.bcbs239.regtech.billing.application.integration;
 
-import com.bcbs239.regtech.billing.domain.events.*;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
-import com.bcbs239.regtech.billing.domain.valueobjects.ProcessedWebhookEvent;
+import com.bcbs239.regtech.billing.domain.invoices.events.InvoicePaymentFailedEvent;
+import com.bcbs239.regtech.billing.domain.invoices.events.InvoicePaymentSucceededEvent;
+import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
-import com.bcbs239.regtech.billing.domain.services.PaymentService;
+import com.bcbs239.regtech.billing.domain.shared.events.WebhookEvent;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;

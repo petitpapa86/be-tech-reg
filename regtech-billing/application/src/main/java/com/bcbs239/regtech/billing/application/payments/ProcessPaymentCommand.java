@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.billing.application.payments;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
-import com.bcbs239.regtech.billing.domain.validation.BillingValidationUtils;
+
+import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
+import com.bcbs239.regtech.billing.domain.shared.validation.BillingValidationUtils;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 

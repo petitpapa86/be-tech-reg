@@ -46,10 +46,10 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Transactional(readOnly = true)
     public Optional<QualityReport> findByReportId(QualityReportId reportId) {
         try {
-            return jpaRepository.findById(reportId.getValue())
+            return jpaRepository.findById(reportId.value())
                 .map(mapper::toDomain);
         } catch (DataAccessException e) {
-            logger.error("Error finding quality report by ID: {}", reportId.getValue(), e);
+            logger.error("Error finding quality report by ID: {}", reportId.value(), e);
             return Optional.empty();
         }
     }
@@ -58,10 +58,10 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Transactional(readOnly = true)
     public Optional<QualityReport> findByBatchId(BatchId batchId) {
         try {
-            return jpaRepository.findByBatchId(batchId.getValue())
+            return jpaRepository.findByBatchId(batchId.value())
                 .map(mapper::toDomain);
         } catch (DataAccessException e) {
-            logger.error("Error finding quality report by batch ID: {}", batchId.getValue(), e);
+            logger.error("Error finding quality report by batch ID: {}", batchId.value(), e);
             return Optional.empty();
         }
     }
@@ -73,25 +73,25 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
             QualityReportEntity savedEntity = jpaRepository.save(entity);
             QualityReport savedReport = mapper.toDomain(savedEntity);
             
-            logger.debug("Successfully saved quality report: {}", report.getReportId().getValue());
+            logger.debug("Successfully saved quality report: {}", report.getReportId().value());
             return Result.success(savedReport);
             
         } catch (DataIntegrityViolationException e) {
-            logger.error("Data integrity violation saving quality report: {}", report.getReportId().getValue(), e);
+            logger.error("Data integrity violation saving quality report: {}", report.getReportId().value(), e);
             return Result.failure(ErrorDetail.of(
                 "QUALITY_REPORT_SAVE_CONSTRAINT_VIOLATION",
                 "Quality report violates database constraints: " + e.getMessage(),
                 "report_id"
             ));
         } catch (DataAccessException e) {
-            logger.error("Database error saving quality report: {}", report.getReportId().getValue(), e);
+            logger.error("Database error saving quality report: {}", report.getReportId().value(), e);
             return Result.failure(ErrorDetail.of(
                 "QUALITY_REPORT_SAVE_ERROR",
                 "Failed to save quality report: " + e.getMessage(),
                 "database"
             ));
         } catch (Exception e) {
-            logger.error("Unexpected error saving quality report: {}", report.getReportId().getValue(), e);
+            logger.error("Unexpected error saving quality report: {}", report.getReportId().value(), e);
             return Result.failure(ErrorDetail.of(
                 "QUALITY_REPORT_SAVE_UNEXPECTED_ERROR",
                 "Unexpected error saving quality report: " + e.getMessage(),
@@ -104,12 +104,12 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Transactional(readOnly = true)
     public List<QualityReport> findByBankId(BankId bankId) {
         try {
-            return jpaRepository.findByBankId(bankId.getValue())
+            return jpaRepository.findByBankId(bankId.value())
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
-            logger.error("Error finding quality reports by bank ID: {}", bankId.getValue(), e);
+            logger.error("Error finding quality reports by bank ID: {}", bankId.value(), e);
             return List.of();
         }
     }
@@ -118,12 +118,12 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Transactional(readOnly = true)
     public List<QualityReport> findByBankIdAndStatus(BankId bankId, QualityStatus status) {
         try {
-            return jpaRepository.findByBankIdAndStatus(bankId.getValue(), status)
+            return jpaRepository.findByBankIdAndStatus(bankId.value(), status)
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
-            logger.error("Error finding quality reports by bank ID and status: {} {}", bankId.getValue(), status, e);
+            logger.error("Error finding quality reports by bank ID and status: {} {}", bankId.value(), status, e);
             return List.of();
         }
     }
@@ -160,13 +160,13 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Transactional(readOnly = true)
     public List<QualityReport> findByBankIdAndCreatedAtBetween(BankId bankId, Instant startTime, Instant endTime) {
         try {
-            return jpaRepository.findByBankIdAndCreatedAtBetween(bankId.getValue(), startTime, endTime)
+            return jpaRepository.findByBankIdAndCreatedAtBetween(bankId.value(), startTime, endTime)
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
             logger.error("Error finding quality reports by bank ID and creation time range: {} {} to {}", 
-                bankId.getValue(), startTime, endTime, e);
+                bankId.value(), startTime, endTime, e);
             return List.of();
         }
     }
@@ -189,13 +189,13 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Transactional(readOnly = true)
     public List<QualityReport> findByBankIdAndOverallScoreBelow(BankId bankId, double threshold) {
         try {
-            return jpaRepository.findByBankIdAndOverallScoreLessThan(bankId.getValue(), BigDecimal.valueOf(threshold))
+            return jpaRepository.findByBankIdAndOverallScoreLessThan(bankId.value(), BigDecimal.valueOf(threshold))
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
             logger.error("Error finding quality reports by bank ID and overall score below: {} {}", 
-                bankId.getValue(), threshold, e);
+                bankId.value(), threshold, e);
             return List.of();
         }
     }
@@ -215,9 +215,9 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Transactional(readOnly = true)
     public long countByBankIdAndStatus(BankId bankId, QualityStatus status) {
         try {
-            return jpaRepository.countByBankIdAndStatus(bankId.getValue(), status);
+            return jpaRepository.countByBankIdAndStatus(bankId.value(), status);
         } catch (DataAccessException e) {
-            logger.error("Error counting quality reports by bank ID and status: {} {}", bankId.getValue(), status, e);
+            logger.error("Error counting quality reports by bank ID and status: {} {}", bankId.value(), status, e);
             return 0;
         }
     }
@@ -265,27 +265,27 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Override
     public Result<Void> delete(QualityReportId reportId) {
         try {
-            if (!jpaRepository.existsById(reportId.getValue())) {
+            if (!jpaRepository.existsById(reportId.value())) {
                 return Result.failure(ErrorDetail.of(
                     "QUALITY_REPORT_NOT_FOUND",
-                    "Quality report not found for deletion: " + reportId.getValue(),
+                    "Quality report not found for deletion: " + reportId.value(),
                     "report_id"
                 ));
             }
             
-            jpaRepository.deleteById(reportId.getValue());
-            logger.debug("Successfully deleted quality report: {}", reportId.getValue());
+            jpaRepository.deleteById(reportId.value());
+            logger.debug("Successfully deleted quality report: {}", reportId.value());
             return Result.success();
             
         } catch (DataAccessException e) {
-            logger.error("Database error deleting quality report: {}", reportId.getValue(), e);
+            logger.error("Database error deleting quality report: {}", reportId.value(), e);
             return Result.failure(ErrorDetail.of(
                 "QUALITY_REPORT_DELETE_ERROR",
                 "Failed to delete quality report: " + e.getMessage(),
                 "database"
             ));
         } catch (Exception e) {
-            logger.error("Unexpected error deleting quality report: {}", reportId.getValue(), e);
+            logger.error("Unexpected error deleting quality report: {}", reportId.value(), e);
             return Result.failure(ErrorDetail.of(
                 "QUALITY_REPORT_DELETE_UNEXPECTED_ERROR",
                 "Unexpected error deleting quality report: " + e.getMessage(),
@@ -298,9 +298,9 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Transactional(readOnly = true)
     public boolean existsByBatchId(BatchId batchId) {
         try {
-            return jpaRepository.existsByBatchId(batchId.getValue());
+            return jpaRepository.existsByBatchId(batchId.value());
         } catch (DataAccessException e) {
-            logger.error("Error checking if quality report exists by batch ID: {}", batchId.getValue(), e);
+            logger.error("Error checking if quality report exists by batch ID: {}", batchId.value(), e);
             return false;
         }
     }
@@ -323,10 +323,10 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Transactional(readOnly = true)
     public Optional<QualityReport> findMostRecentByBankId(BankId bankId) {
         try {
-            return jpaRepository.findFirstByBankIdOrderByCreatedAtDesc(bankId.getValue())
+            return jpaRepository.findFirstByBankIdOrderByCreatedAtDesc(bankId.value())
                 .map(mapper::toDomain);
         } catch (DataAccessException e) {
-            logger.error("Error finding most recent quality report by bank ID: {}", bankId.getValue(), e);
+            logger.error("Error finding most recent quality report by bank ID: {}", bankId.value(), e);
             return Optional.empty();
         }
     }
@@ -349,12 +349,12 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Transactional(readOnly = true)
     public List<QualityReport> findNonCompliantReportsByBankId(BankId bankId) {
         try {
-            return jpaRepository.findByBankIdAndComplianceStatusFalse(bankId.getValue())
+            return jpaRepository.findByBankIdAndComplianceStatusFalse(bankId.value())
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
-            logger.error("Error finding non-compliant quality reports by bank ID: {}", bankId.getValue(), e);
+            logger.error("Error finding non-compliant quality reports by bank ID: {}", bankId.value(), e);
             return List.of();
         }
     }

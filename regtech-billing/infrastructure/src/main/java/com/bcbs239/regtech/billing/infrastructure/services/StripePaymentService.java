@@ -1,15 +1,20 @@
 package com.bcbs239.regtech.billing.infrastructure.services;
 
-import com.bcbs239.regtech.billing.domain.services.PaymentService;
-import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
-import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
+
+import com.bcbs239.regtech.billing.domain.payments.PaymentService;
+import com.bcbs239.regtech.billing.domain.shared.events.WebhookEvent;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeSubscription;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.stripe.model.Event;
 import org.springframework.stereotype.Service;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.math.BigDecimal;
+import java.util.Currency;
 
 /**
  * Infrastructure implementation of PaymentService using Stripe.
@@ -19,7 +24,8 @@ import org.springframework.stereotype.Service;
 public class StripePaymentService implements PaymentService {
     
     private final StripeService stripeService;
-    
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     public StripePaymentService(StripeService stripeService) {
         this.stripeService = stripeService;
     }
@@ -27,10 +33,10 @@ public class StripePaymentService implements PaymentService {
     @Override
     public Result<CustomerCreationResult> createCustomer(CustomerCreationRequest request) {
         try {
+            // StripeService supports createCustomer(email, name). PaymentMethodId is not required here.
             Result<StripeCustomer> result = stripeService.createCustomer(
                 request.email(),
-                request.name(),
-                request.paymentMethodId()
+                request.name()
             );
             
             if (result.isFailure()) {
@@ -56,10 +62,10 @@ public class StripePaymentService implements PaymentService {
     @Override
     public Result<SubscriptionCreationResult> createSubscription(SubscriptionCreationRequest request) {
         try {
+            // StripeService.createSubscription expects (StripeCustomerId, SubscriptionTier)
             Result<StripeSubscription> result = stripeService.createSubscription(
                 request.customerId(),
-                request.tier(),
-                request.paymentMethodId()
+                request.tier()
             );
             
             if (result.isFailure()) {
@@ -67,8 +73,10 @@ public class StripePaymentService implements PaymentService {
             }
             
             StripeSubscription subscription = result.getValue().get();
+            // Map domain result: subscriptionId is a String in the PaymentService contract
+            String subId = subscription.subscriptionId() != null ? subscription.subscriptionId().value() : null;
             SubscriptionCreationResult domainResult = new SubscriptionCreationResult(
-                subscription.subscriptionId(),
+                subId,
                 subscription.status(),
                 subscription.customerId()
             );
@@ -85,7 +93,12 @@ public class StripePaymentService implements PaymentService {
     @Override
     public Result<Void> cancelSubscription(String subscriptionId) {
         try {
-            return stripeService.cancelSubscription(subscriptionId);
+            // Convert string id to domain StripeSubscriptionId
+            var parsed = com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId.fromString(subscriptionId);
+            if (parsed.isFailure()) {
+                return Result.failure(parsed.getError().get());
+            }
+            return stripeService.cancelSubscription(parsed.getValue().get());
         } catch (Exception e) {
             return Result.failure(ErrorDetail.of("SUBSCRIPTION_CANCELLATION_FAILED",
                 "Failed to cancel subscription: " + e.getMessage(),
@@ -96,19 +109,25 @@ public class StripePaymentService implements PaymentService {
     @Override
     public Result<InvoiceCreationResult> createInvoice(InvoiceCreationRequest request) {
         try {
-            // Assuming StripeService has a createInvoice method
-            Result<com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeInvoice> result = 
-                stripeService.createInvoice(request.customerId(), request.amount(), request.description());
-            
+            // PaymentService passes amount as String - convert to Money using EUR default
+            java.math.BigDecimal amountBd = new BigDecimal(request.amount());
+            com.bcbs239.regtech.billing.domain.valueobjects.Money money = com.bcbs239.regtech.billing.domain.valueobjects.Money.of(amountBd, Currency.getInstance("EUR"));
+
+            Result<com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeInvoice> result =
+                stripeService.createInvoice(request.customerId(), money, request.description());
+
             if (result.isFailure()) {
                 return Result.failure(result.getError().get());
             }
             
             com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeInvoice invoice = result.getValue().get();
+            // Map invoice fields to strings expected by PaymentService contract
+            String invoiceId = invoice.invoiceId() != null ? invoice.invoiceId().value() : null;
+            String amountStr = invoice.amount() != null ? invoice.amount().amount().toPlainString() : null;
             InvoiceCreationResult domainResult = new InvoiceCreationResult(
-                invoice.invoiceId(),
+                invoiceId,
                 invoice.status(),
-                invoice.amount()
+                amountStr
             );
             
             return Result.success(domainResult);
@@ -121,12 +140,24 @@ public class StripePaymentService implements PaymentService {
     }
     
     @Override
-    public Result<Boolean> verifyWebhookSignature(String payload, String signatureHeader) {
+    public Result<com.bcbs239.regtech.billing.domain.shared.events.WebhookEvent> verifyAndParseWebhook(String payload, String signatureHeader) {
         try {
-            return stripeService.verifyWebhookSignature(payload, signatureHeader);
+            Result<Event> eventResult = stripeService.verifyWebhookSignature(payload, signatureHeader);
+            if (eventResult.isFailure()) {
+                return Result.failure(eventResult.getError().get());
+            }
+            Event event = eventResult.getValue().get();
+
+            // Convert event JSON to JsonNode
+            JsonNode root = objectMapper.readTree(event.toJson());
+            JsonNode dataNode = root.has("data") ? root.get("data") : root;
+            long created = event.getCreated() != null ? event.getCreated().longValue() : java.time.Instant.now().getEpochSecond();
+
+            WebhookEvent webhookEvent = new WebhookEvent(event.getId(), event.getType(), dataNode, created);
+            return Result.success(webhookEvent);
         } catch (Exception e) {
             return Result.failure(ErrorDetail.of("WEBHOOK_VERIFICATION_FAILED",
-                "Failed to verify webhook signature: " + e.getMessage(),
+                "Failed to verify and parse webhook: " + e.getMessage(),
                 "error.payment.webhookVerificationFailed"));
         }
     }

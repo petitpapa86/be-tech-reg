@@ -1,7 +1,9 @@
-package com.bcbs239.regtech.billing.api.billing;
+package com.bcbs239.regtech.billing.presentation.billing;
 
 import com.bcbs239.regtech.core.security.authorization.AuthorizationService;
 import com.bcbs239.regtech.core.security.authorization.Permission;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -85,23 +87,19 @@ public class BillingAuthorizationController {
     }
     
     // Example DTOs
+    @Setter
+    @Getter
     public static class PaymentRequest {
         private double amount;
         private String currency;
-        
-        public double getAmount() { return amount; }
-        public void setAmount(double amount) { this.amount = amount; }
-        public String getCurrency() { return currency; }
-        public void setCurrency(String currency) { this.currency = currency; }
+
     }
     
+    @Setter
+    @Getter
     public static class WebhookConfig {
         private String url;
         private String secret;
-        
-        public String getUrl() { return url; }
-        public void setUrl(String url) { this.url = url; }
-        public String getSecret() { return secret; }
-        public void setSecret(String secret) { this.secret = secret; }
+
     }
 }

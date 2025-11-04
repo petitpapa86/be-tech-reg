@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.application.createsubscription;
 
+import com.bcbs239.regtech.billing.domain.shared.validation.BillingValidationUtils;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.billing.domain.validation.BillingValidationUtils;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import jakarta.validation.constraints.NotBlank;

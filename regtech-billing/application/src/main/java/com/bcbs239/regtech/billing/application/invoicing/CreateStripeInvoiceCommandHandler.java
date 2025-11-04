@@ -3,8 +3,9 @@ package com.bcbs239.regtech.billing.application.invoicing;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
+import com.bcbs239.regtech.billing.domain.payments.PaymentService;
+import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
-import com.bcbs239.regtech.billing.domain.services.PaymentService;
 import com.bcbs239.regtech.core.shared.Result;
 import org.springframework.stereotype.Component;
 
@@ -30,8 +31,8 @@ public class CreateStripeInvoiceCommandHandler {
      */
     public Result<CreateStripeInvoiceResponse> handle(CreateStripeInvoiceCommand command) {
         // Convert string to StripeCustomerId
-        Result<com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId> customerIdResult = 
-            com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId.fromString(command.getCustomerId());
+        Result<StripeCustomerId> customerIdResult =
+            StripeCustomerId.fromString(command.getCustomerId());
         if (customerIdResult.isFailure()) {
             return Result.failure(customerIdResult.getError().get());
         }

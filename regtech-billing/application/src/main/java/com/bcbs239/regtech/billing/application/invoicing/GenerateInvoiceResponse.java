@@ -3,8 +3,8 @@ package com.bcbs239.regtech.billing.application.invoicing;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceNumber;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceStatus;
+import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import java.time.LocalDate;
 
 /**

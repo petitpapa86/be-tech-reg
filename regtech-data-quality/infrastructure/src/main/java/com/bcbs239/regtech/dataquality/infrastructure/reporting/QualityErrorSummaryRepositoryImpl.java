@@ -52,12 +52,12 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
             QualityErrorSummary savedSummary = mapper.toDomain(savedEntity);
             
             logger.debug("Successfully saved quality error summary for batch: {} rule: {}", 
-                errorSummary.batchId().getValue(), errorSummary.ruleCode());
+                errorSummary.batchId().value(), errorSummary.ruleCode());
             return Result.success(savedSummary);
             
         } catch (DataIntegrityViolationException e) {
             logger.error("Data integrity violation saving quality error summary: batch {} rule {}", 
-                errorSummary.batchId().getValue(), errorSummary.ruleCode(), e);
+                errorSummary.batchId().value(), errorSummary.ruleCode(), e);
             return Result.failure(ErrorDetail.of(
                 "QUALITY_ERROR_SUMMARY_SAVE_CONSTRAINT_VIOLATION",
                 "Quality error summary violates database constraints: " + e.getMessage(),
@@ -65,7 +65,7 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
             ));
         } catch (DataAccessException e) {
             logger.error("Database error saving quality error summary: batch {} rule {}", 
-                errorSummary.batchId().getValue(), errorSummary.ruleCode(), e);
+                errorSummary.batchId().value(), errorSummary.ruleCode(), e);
             return Result.failure(ErrorDetail.of(
                 "QUALITY_ERROR_SUMMARY_SAVE_ERROR",
                 "Failed to save quality error summary: " + e.getMessage(),
@@ -73,7 +73,7 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
             ));
         } catch (Exception e) {
             logger.error("Unexpected error saving quality error summary: batch {} rule {}", 
-                errorSummary.batchId().getValue(), errorSummary.ruleCode(), e);
+                errorSummary.batchId().value(), errorSummary.ruleCode(), e);
             return Result.failure(ErrorDetail.of(
                 "QUALITY_ERROR_SUMMARY_SAVE_UNEXPECTED_ERROR",
                 "Unexpected error saving quality error summary: " + e.getMessage(),
@@ -132,12 +132,12 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public List<QualityErrorSummary> findByBatchId(BatchId batchId) {
         try {
-            return jpaRepository.findByBatchId(batchId.getValue())
+            return jpaRepository.findByBatchId(batchId.value())
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
-            logger.error("Error finding quality error summaries by batch ID: {}", batchId.getValue(), e);
+            logger.error("Error finding quality error summaries by batch ID: {}", batchId.value(), e);
             return List.of();
         }
     }
@@ -146,13 +146,13 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public List<QualityErrorSummary> findByBatchIdAndDimension(BatchId batchId, QualityDimension dimension) {
         try {
-            return jpaRepository.findByBatchIdAndDimension(batchId.getValue(), dimension)
+            return jpaRepository.findByBatchIdAndDimension(batchId.value(), dimension)
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
             logger.error("Error finding quality error summaries by batch ID and dimension: {} {}", 
-                batchId.getValue(), dimension, e);
+                batchId.value(), dimension, e);
             return List.of();
         }
     }
@@ -161,13 +161,13 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public List<QualityErrorSummary> findByBatchIdAndSeverity(BatchId batchId, ValidationError.ErrorSeverity severity) {
         try {
-            return jpaRepository.findByBatchIdAndSeverity(batchId.getValue(), severity)
+            return jpaRepository.findByBatchIdAndSeverity(batchId.value(), severity)
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
             logger.error("Error finding quality error summaries by batch ID and severity: {} {}", 
-                batchId.getValue(), severity, e);
+                batchId.value(), severity, e);
             return List.of();
         }
     }
@@ -180,13 +180,13 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
         ValidationError.ErrorSeverity severity
     ) {
         try {
-            return jpaRepository.findByBatchIdAndDimensionAndSeverity(batchId.getValue(), dimension, severity)
+            return jpaRepository.findByBatchIdAndDimensionAndSeverity(batchId.value(), dimension, severity)
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
             logger.error("Error finding quality error summaries by batch ID, dimension and severity: {} {} {}", 
-                batchId.getValue(), dimension, severity, e);
+                batchId.value(), dimension, severity, e);
             return List.of();
         }
     }
@@ -209,12 +209,12 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public List<QualityErrorSummary> findByBankId(BankId bankId) {
         try {
-            return jpaRepository.findByBankId(bankId.getValue())
+            return jpaRepository.findByBankId(bankId.value())
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
-            logger.error("Error finding quality error summaries by bank ID: {}", bankId.getValue(), e);
+            logger.error("Error finding quality error summaries by bank ID: {}", bankId.value(), e);
             return List.of();
         }
     }
@@ -223,13 +223,13 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public List<QualityErrorSummary> findByBankIdAndDimension(BankId bankId, QualityDimension dimension) {
         try {
-            return jpaRepository.findByBankIdAndDimension(bankId.getValue(), dimension)
+            return jpaRepository.findByBankIdAndDimension(bankId.value(), dimension)
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
             logger.error("Error finding quality error summaries by bank ID and dimension: {} {}", 
-                bankId.getValue(), dimension, e);
+                bankId.value(), dimension, e);
             return List.of();
         }
     }
@@ -238,13 +238,13 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public List<QualityErrorSummary> findByBankIdAndSeverity(BankId bankId, ValidationError.ErrorSeverity severity) {
         try {
-            return jpaRepository.findByBankIdAndSeverity(bankId.getValue(), severity)
+            return jpaRepository.findByBankIdAndSeverity(bankId.value(), severity)
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
             logger.error("Error finding quality error summaries by bank ID and severity: {} {}", 
-                bankId.getValue(), severity, e);
+                bankId.value(), severity, e);
             return List.of();
         }
     }
@@ -268,13 +268,13 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public List<QualityErrorSummary> findByBankIdAndCreatedAtBetween(BankId bankId, Instant startTime, Instant endTime) {
         try {
-            return jpaRepository.findByBankIdAndCreatedAtBetween(bankId.getValue(), startTime, endTime)
+            return jpaRepository.findByBankIdAndCreatedAtBetween(bankId.value(), startTime, endTime)
                 .stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
             logger.error("Error finding quality error summaries by bank ID and creation time range: {} {} to {}", 
-                bankId.getValue(), startTime, endTime, e);
+                bankId.value(), startTime, endTime, e);
             return List.of();
         }
     }
@@ -298,14 +298,14 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public List<QualityErrorSummary> findMostFrequentErrorsByBankId(BankId bankId, int limit) {
         try {
-            return jpaRepository.findMostFrequentErrorsByBankId(bankId.getValue(), limit)
+            return jpaRepository.findMostFrequentErrorsByBankId(bankId.value(), limit)
                 .stream()
                 .limit(limit)
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
         } catch (DataAccessException e) {
             logger.error("Error finding most frequent quality error summaries by bank ID with limit: {} {}", 
-                bankId.getValue(), limit, e);
+                bankId.value(), limit, e);
             return List.of();
         }
     }
@@ -342,9 +342,9 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public long countByBatchId(BatchId batchId) {
         try {
-            return jpaRepository.countByBatchId(batchId.getValue());
+            return jpaRepository.countByBatchId(batchId.value());
         } catch (DataAccessException e) {
-            logger.error("Error counting quality error summaries by batch ID: {}", batchId.getValue(), e);
+            logger.error("Error counting quality error summaries by batch ID: {}", batchId.value(), e);
             return 0;
         }
     }
@@ -353,10 +353,10 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public long countByBatchIdAndDimension(BatchId batchId, QualityDimension dimension) {
         try {
-            return jpaRepository.countByBatchIdAndDimension(batchId.getValue(), dimension);
+            return jpaRepository.countByBatchIdAndDimension(batchId.value(), dimension);
         } catch (DataAccessException e) {
             logger.error("Error counting quality error summaries by batch ID and dimension: {} {}", 
-                batchId.getValue(), dimension, e);
+                batchId.value(), dimension, e);
             return 0;
         }
     }
@@ -365,10 +365,10 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public long countByBatchIdAndSeverity(BatchId batchId, ValidationError.ErrorSeverity severity) {
         try {
-            return jpaRepository.countByBatchIdAndSeverity(batchId.getValue(), severity);
+            return jpaRepository.countByBatchIdAndSeverity(batchId.value(), severity);
         } catch (DataAccessException e) {
             logger.error("Error counting quality error summaries by batch ID and severity: {} {}", 
-                batchId.getValue(), severity, e);
+                batchId.value(), severity, e);
             return 0;
         }
     }
@@ -377,9 +377,9 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public long getTotalErrorCountByBatchId(BatchId batchId) {
         try {
-            return jpaRepository.getTotalErrorCountByBatchId(batchId.getValue());
+            return jpaRepository.getTotalErrorCountByBatchId(batchId.value());
         } catch (DataAccessException e) {
-            logger.error("Error getting total error count by batch ID: {}", batchId.getValue(), e);
+            logger.error("Error getting total error count by batch ID: {}", batchId.value(), e);
             return 0;
         }
     }
@@ -388,10 +388,10 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public long getTotalErrorCountByBatchIdAndDimension(BatchId batchId, QualityDimension dimension) {
         try {
-            return jpaRepository.getTotalErrorCountByBatchIdAndDimension(batchId.getValue(), dimension);
+            return jpaRepository.getTotalErrorCountByBatchIdAndDimension(batchId.value(), dimension);
         } catch (DataAccessException e) {
             logger.error("Error getting total error count by batch ID and dimension: {} {}", 
-                batchId.getValue(), dimension, e);
+                batchId.value(), dimension, e);
             return 0;
         }
     }
@@ -399,19 +399,19 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Override
     public Result<Void> deleteByBatchId(BatchId batchId) {
         try {
-            jpaRepository.deleteByBatchId(batchId.getValue());
-            logger.debug("Successfully deleted quality error summaries for batch: {}", batchId.getValue());
+            jpaRepository.deleteByBatchId(batchId.value());
+            logger.debug("Successfully deleted quality error summaries for batch: {}", batchId.value());
             return Result.success();
             
         } catch (DataAccessException e) {
-            logger.error("Database error deleting quality error summaries by batch ID: {}", batchId.getValue(), e);
+            logger.error("Database error deleting quality error summaries by batch ID: {}", batchId.value(), e);
             return Result.failure(ErrorDetail.of(
                 "QUALITY_ERROR_SUMMARIES_DELETE_ERROR",
                 "Failed to delete quality error summaries: " + e.getMessage(),
                 "database"
             ));
         } catch (Exception e) {
-            logger.error("Unexpected error deleting quality error summaries by batch ID: {}", batchId.getValue(), e);
+            logger.error("Unexpected error deleting quality error summaries by batch ID: {}", batchId.value(), e);
             return Result.failure(ErrorDetail.of(
                 "QUALITY_ERROR_SUMMARIES_DELETE_UNEXPECTED_ERROR",
                 "Unexpected error deleting quality error summaries: " + e.getMessage(),
@@ -448,9 +448,9 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     @Transactional(readOnly = true)
     public boolean existsByBatchId(BatchId batchId) {
         try {
-            return jpaRepository.existsByBatchId(batchId.getValue());
+            return jpaRepository.existsByBatchId(batchId.value());
         } catch (DataAccessException e) {
-            logger.error("Error checking if quality error summaries exist by batch ID: {}", batchId.getValue(), e);
+            logger.error("Error checking if quality error summaries exist by batch ID: {}", batchId.value(), e);
             return false;
         }
     }
@@ -464,6 +464,9 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
         // For now, we'll assume the bank ID is embedded in the batch ID or use a placeholder
         // In a real implementation, you would look up the batch to get the bank ID
         // This is a simplified approach for the infrastructure implementation
-        return new BankId("bank-" + batchId.getValue().substring(0, 8));
+        String val = batchId.value();
+        String prefix = val != null && val.length() >= 8 ? val.substring(0, 8) : val;
+        return new BankId("bank-" + (prefix != null ? prefix : "unknown"));
     }
 }
+

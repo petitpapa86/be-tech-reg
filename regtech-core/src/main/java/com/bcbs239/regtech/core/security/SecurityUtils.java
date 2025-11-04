@@ -66,6 +66,20 @@ public class SecurityUtils {
     }
 
     /**
+     * Convenience accessor to get current bank id from security context.
+     */
+    public static String getCurrentBankId() {
+        return SecurityContext.getCurrentBankId();
+    }
+
+    /**
+     * Convenience wrapper to check a single permission.
+     */
+    public static boolean hasPermission(String permission) {
+        return SecurityContext.hasPermission(permission);
+    }
+
+    /**
      * Validate that current user can access a specific batch.
      * Users can only access batches from their own bank.
      */

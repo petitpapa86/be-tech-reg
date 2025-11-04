@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.*;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

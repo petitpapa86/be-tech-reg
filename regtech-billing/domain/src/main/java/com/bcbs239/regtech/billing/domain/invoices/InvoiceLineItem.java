@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.domain.invoices;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
+import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;

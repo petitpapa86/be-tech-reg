@@ -37,6 +37,17 @@ public class ErrorDetail {
         return fieldErrors != null && !fieldErrors.isEmpty();
     }
 
+    /**
+     * Convenience getter for the first field name if this ErrorDetail contains field errors.
+     * Tests and some callers expect a direct `getField()` method for single-field validation errors.
+     */
+    public String getField() {
+        if (fieldErrors != null && !fieldErrors.isEmpty()) {
+            return fieldErrors.get(0).getField();
+        }
+        return null;
+    }
+
     // Static factory methods
     public static ErrorDetail of(String code, String message, String messageKey) {
         return new ErrorDetail(code, message, messageKey);

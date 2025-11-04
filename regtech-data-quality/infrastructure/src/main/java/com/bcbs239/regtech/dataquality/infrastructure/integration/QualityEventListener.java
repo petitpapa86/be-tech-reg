@@ -62,30 +62,29 @@ public class QualityEventListener {
                 return;
             }
             
-            // Create and execute validation command
-            ValidateBatchQualityCommand command = new ValidateBatchQualityCommand(
+            // Create and execute validation command (use factory; fileMetadata not part of command)
+            ValidateBatchQualityCommand command = ValidateBatchQualityCommand.of(
                 new BatchId(event.getBatchId()),
                 new BankId(event.getBankId()),
                 event.getS3Uri(),
-                event.getExpectedExposureCount(),
-                event.getFileMetadata()
+                event.getExpectedExposureCount()
             );
             
             Result<Void> result = commandHandler.handle(command);
-            
-            if (result.isSuccess()) {
-                logger.info("Successfully initiated quality validation for batch: {}", event.getBatchId());
-            } else {
-                logger.error("Failed to initiate quality validation for batch: {} - Error: {}", 
-                    event.getBatchId(), result.getError().getMessage());
-                
-                // Remove from processed set so it can be retried
-                processedBatches.remove(event.getBatchId());
-                
-                // Re-throw to trigger retry mechanism
-                throw new RuntimeException("Quality validation failed: " + result.getError().getMessage());
-            }
-            
+
+             if (result.isSuccess()) {
+                 logger.info("Successfully initiated quality validation for batch: {}", event.getBatchId());
+             } else {
+                String errMsg = result.getError().map(e -> e.getMessage() != null ? e.getMessage() : e.getCode()).orElse("unknown error");
+                logger.error("Failed to initiate quality validation for batch: {} - Error: {}", event.getBatchId(), errMsg);
+
+                 // Remove from processed set so it can be retried
+                 processedBatches.remove(event.getBatchId());
+
+                 // Re-throw to trigger retry mechanism
+                throw new RuntimeException("Quality validation failed: " + errMsg);
+             }
+
         } catch (Exception e) {
             logger.error("Error processing BatchIngested event for batch: {}", event.getBatchId(), e);
             

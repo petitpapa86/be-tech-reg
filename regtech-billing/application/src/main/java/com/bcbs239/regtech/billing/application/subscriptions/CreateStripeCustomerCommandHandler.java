@@ -1,16 +1,14 @@
 package com.bcbs239.regtech.billing.application.subscriptions;
 
 import com.bcbs239.regtech.billing.application.policies.createstripecustomer.CreateStripeCustomerCommand;
-import com.bcbs239.billing.BillingAccount;
-import com.bcbs239.regtech.billing.domain.events.*;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
-import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
-import com.bcbs239.regtech.billing.domain.repositories.BillingAccountRepository;
-import com.bcbs239.regtech.billing.domain.services.PaymentService;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
+import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
+import com.bcbs239.regtech.billing.domain.payments.PaymentService;
+import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
+import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreatedEvent;
+import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreationFailedEvent;
 import com.bcbs239.regtech.core.saga.AbstractSaga;
 import com.bcbs239.regtech.core.saga.SagaId;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.events.CrossModuleEventBus;

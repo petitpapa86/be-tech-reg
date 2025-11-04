@@ -1,9 +1,12 @@
 package com.bcbs239.regtech.billing.domain.dunning;
 
-import com.bcbs239.regtech.billing.domain.invoicing.InvoiceId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -16,6 +19,8 @@ import java.util.Optional;
  * DunningCase aggregate root - manages the dunning process for overdue invoices.
  * Handles step progression, action tracking, and case resolution for payment collection.
  */
+@Getter
+@Setter
 public class DunningCase {
     
     private DunningCaseId id;
@@ -248,37 +253,6 @@ public class DunningCase {
     public boolean isActive() {
         return this.status == DunningCaseStatus.IN_PROGRESS;
     }
-    
-    // Getters
-    public DunningCaseId getId() { return id; }
-    public InvoiceId getInvoiceId() { return invoiceId; }
-    public BillingAccountId getBillingAccountId() { return billingAccountId; }
-    public DunningCaseStatus getStatus() { return status; }
-    public DunningStep getCurrentStep() { return currentStep; }
-    public LocalDate getStartDate() { return startDate; }
-    public LocalDate getNextActionDate() { return nextActionDate; }
-    public LocalDate getResolvedDate() { return resolvedAt != null ? resolvedAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null; }
-    public Instant getResolvedAt() { return resolvedAt; }
-    public String getResolutionReason() { return resolutionReason; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public long getVersion() { return version; }
-    
-    // Public setters for JPA/persistence layer
-    public void setId(DunningCaseId id) { this.id = id; }
-    public void setInvoiceId(InvoiceId invoiceId) { this.invoiceId = invoiceId; }
-    public void setBillingAccountId(BillingAccountId billingAccountId) { this.billingAccountId = billingAccountId; }
-    public void setStatus(DunningCaseStatus status) { this.status = status; }
-    public void setCurrentStep(DunningStep currentStep) { this.currentStep = currentStep; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-    public void setNextActionDate(LocalDate nextActionDate) { this.nextActionDate = nextActionDate; }
-    public void setResolvedDate(LocalDate resolvedDate) { this.resolvedAt = resolvedDate != null ? resolvedDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant() : null; }
-    public void setResolvedAt(Instant resolvedAt) { this.resolvedAt = resolvedAt; }
-    public void setResolutionReason(String resolutionReason) { this.resolutionReason = resolutionReason; }
-    public void setActions(List<DunningAction> actions) { this.actions = actions != null ? actions : new ArrayList<>(); }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    public void setVersion(long version) { this.version = version; }
     
     @Override
     public boolean equals(Object o) {

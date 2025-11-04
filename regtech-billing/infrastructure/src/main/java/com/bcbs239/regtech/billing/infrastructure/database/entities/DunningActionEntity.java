@@ -1,9 +1,12 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningAction;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningActionId;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningStep;
+import com.bcbs239.regtech.billing.domain.dunning.DunningAction;
+import com.bcbs239.regtech.billing.domain.dunning.DunningActionId;
+import com.bcbs239.regtech.billing.domain.dunning.DunningStep;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -11,10 +14,13 @@ import java.util.UUID;
  * JPA Entity for DunningAction value object persistence.
  * Maps domain value object to database table structure.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "dunning_actions", schema = "billing")
 public class DunningActionEntity {
 
+    // Getters and setters for JPA
     @Id
     @Column(name = "id", nullable = false)
     private String id;
@@ -72,25 +78,4 @@ public class DunningActionEntity {
         );
     }
 
-    // Getters and setters for JPA
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getDunningCaseId() { return dunningCaseId; }
-    public void setDunningCaseId(String dunningCaseId) { this.dunningCaseId = dunningCaseId; }
-
-    public DunningStep getStep() { return step; }
-    public void setStep(DunningStep step) { this.step = step; }
-
-    public String getActionType() { return actionType; }
-    public void setActionType(String actionType) { this.actionType = actionType; }
-
-    public Instant getExecutedAt() { return executedAt; }
-    public void setExecutedAt(Instant executedAt) { this.executedAt = executedAt; }
-
-    public String getResult() { return result; }
-    public void setResult(String result) { this.result = result; }
-
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
 }

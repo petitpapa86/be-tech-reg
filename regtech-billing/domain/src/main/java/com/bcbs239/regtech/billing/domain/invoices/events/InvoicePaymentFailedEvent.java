@@ -1,7 +1,7 @@
-package com.bcbs239.regtech.billing.domain.invoicing.events;
+package com.bcbs239.regtech.billing.domain.invoices.events;
 
-import com.bcbs239.regtech.billing.domain.invoicing.InvoiceId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 
 /**

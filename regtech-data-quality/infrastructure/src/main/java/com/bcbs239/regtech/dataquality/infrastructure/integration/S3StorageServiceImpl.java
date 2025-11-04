@@ -123,12 +123,12 @@ public class S3StorageServiceImpl implements S3StorageService {
     @Override
     @Retryable(value = {S3Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public Result<S3Reference> storeDetailedResults(BatchId batchId, ValidationResult validationResult) {
-        logger.info("Starting storage of detailed validation results for batch: {}", batchId.getValue());
+        logger.info("Starting storage of detailed validation results for batch: {}", batchId.value());
         long startTime = System.currentTimeMillis();
         
         try {
             // Create S3 key for detailed results
-            String s3Key = String.format("quality/quality_%s.json", batchId.getValue());
+            String s3Key = String.format("quality/quality_%s.json", batchId.value());
             String s3Uri = String.format("s3://%s/%s", resultsBucket, s3Key);
             
             // Serialize validation result to JSON
@@ -140,29 +140,30 @@ public class S3StorageServiceImpl implements S3StorageService {
             // Upload to S3 with encryption
             uploadWithEncryption(resultsBucket, s3Key, jsonContent, metadata);
             
-            S3Reference s3Reference = new S3Reference(resultsBucket, s3Key, s3Uri);
-            
+            // Construct an S3Reference; use a placeholder version id when not available
+            S3Reference s3Reference = S3Reference.of(resultsBucket, s3Key, "0");
+
             long duration = System.currentTimeMillis() - startTime;
-            logger.info("Successfully stored detailed results for batch {} in {} ms", batchId.getValue(), duration);
-            
+            logger.info("Successfully stored detailed results for batch {} in {} ms", batchId.value(), duration);
+
             return Result.success(s3Reference);
             
         } catch (S3Exception e) {
-            logger.error("S3 error storing detailed results for batch: {}", batchId.getValue(), e);
+            logger.error("S3 error storing detailed results for batch: {}", batchId.value(), e);
             return Result.failure(ErrorDetail.of(
                 "S3_UPLOAD_ERROR",
                 "Failed to upload to S3: " + e.getMessage(),
                 "s3_upload"
             ));
         } catch (IOException e) {
-            logger.error("IO error serializing results for batch: {}", batchId.getValue(), e);
+            logger.error("IO error serializing results for batch: {}", batchId.value(), e);
             return Result.failure(ErrorDetail.of(
                 "S3_SERIALIZE_ERROR",
                 "Failed to serialize validation results: " + e.getMessage(),
                 "json_serialization"
             ));
         } catch (Exception e) {
-            logger.error("Unexpected error storing results for batch: {}", batchId.getValue(), e);
+            logger.error("Unexpected error storing results for batch: {}", batchId.value(), e);
             return Result.failure(ErrorDetail.of(
                 "S3_UPLOAD_UNEXPECTED_ERROR",
                 "Unexpected error storing detailed results: " + e.getMessage(),
@@ -171,6 +172,58 @@ public class S3StorageServiceImpl implements S3StorageService {
         }
     }
     
+    @Override
+    public Result<S3Reference> storeDetailedResults(BatchId batchId, ValidationResult validationResult, java.util.Map<String, String> metadata) {
+        logger.info("Starting storage of detailed validation results for batch: {} (with custom metadata)", batchId.value());
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // Create S3 key for detailed results
+            String s3Key = String.format("quality/quality_%s.json", batchId.value());
+            String s3Uri = String.format("s3://%s/%s", resultsBucket, s3Key);
+
+            // Serialize validation result to JSON
+            String jsonContent = serializeValidationResult(validationResult);
+
+            // Merge provided metadata with generated metadata
+            Map<String, String> merged = createMetadata(batchId, validationResult);
+            if (metadata != null) merged.putAll(metadata);
+
+            // Upload to S3 with encryption
+            uploadWithEncryption(resultsBucket, s3Key, jsonContent, merged);
+
+            // Construct an S3Reference; use a placeholder version id when not available
+            S3Reference s3Reference = S3Reference.of(resultsBucket, s3Key, "0");
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Successfully stored detailed results for batch {} in {} ms", batchId.value(), duration);
+
+            return Result.success(s3Reference);
+
+        } catch (S3Exception e) {
+            logger.error("S3 error storing detailed results for batch: {}", batchId.value(), e);
+            return Result.failure(ErrorDetail.of(
+                "S3_UPLOAD_ERROR",
+                "Failed to upload to S3: " + e.getMessage(),
+                "s3_upload"
+            ));
+        } catch (IOException e) {
+            logger.error("IO error serializing results for batch: {}", batchId.value(), e);
+            return Result.failure(ErrorDetail.of(
+                "S3_SERIALIZE_ERROR",
+                "Failed to serialize validation results: " + e.getMessage(),
+                "json_serialization"
+            ));
+        } catch (Exception e) {
+            logger.error("Unexpected error storing results for batch: {}", batchId.value(), e);
+            return Result.failure(ErrorDetail.of(
+                "S3_UPLOAD_UNEXPECTED_ERROR",
+                "Unexpected error storing detailed results: " + e.getMessage(),
+                "system"
+            ));
+        }
+    }
+
     /**
      * Parse S3 URI to extract bucket and key information.
      */
@@ -188,8 +241,9 @@ public class S3StorageServiceImpl implements S3StorageService {
                 return null;
             }
             
-            return new S3Reference(bucket, key, s3Uri);
-            
+            // Use placeholder version id "0" when parsing external URIs
+            return S3Reference.of(bucket, key, "0");
+
         } catch (Exception e) {
             logger.error("Error parsing S3 URI: {}", s3Uri, e);
             return null;
@@ -273,20 +327,20 @@ public class S3StorageServiceImpl implements S3StorageService {
         Map<String, Object> resultMap = new HashMap<>();
         
         // Basic statistics
-        resultMap.put("totalExposures", validationResult.getTotalExposures());
-        resultMap.put("validExposures", validationResult.getValidExposures());
-        resultMap.put("totalErrors", validationResult.getAllErrors().size());
+        resultMap.put("totalExposures", validationResult.totalExposures());
+        resultMap.put("validExposures", validationResult.validExposures());
+        resultMap.put("totalErrors", validationResult.allErrors().size());
         resultMap.put("timestamp", Instant.now().toString());
         
         // Dimension scores
-        if (validationResult.getDimensionScores() != null) {
+        if (validationResult.dimensionScores() != null) {
             Map<String, Double> dimensionScores = new HashMap<>();
-            dimensionScores.put("completeness", validationResult.getDimensionScores().completeness());
-            dimensionScores.put("accuracy", validationResult.getDimensionScores().accuracy());
-            dimensionScores.put("consistency", validationResult.getDimensionScores().consistency());
-            dimensionScores.put("timeliness", validationResult.getDimensionScores().timeliness());
-            dimensionScores.put("uniqueness", validationResult.getDimensionScores().uniqueness());
-            dimensionScores.put("validity", validationResult.getDimensionScores().validity());
+            dimensionScores.put("completeness", validationResult.dimensionScores().completeness());
+            dimensionScores.put("accuracy", validationResult.dimensionScores().accuracy());
+            dimensionScores.put("consistency", validationResult.dimensionScores().consistency());
+            dimensionScores.put("timeliness", validationResult.dimensionScores().timeliness());
+            dimensionScores.put("uniqueness", validationResult.dimensionScores().uniqueness());
+            dimensionScores.put("validity", validationResult.dimensionScores().validity());
             resultMap.put("dimensionScores", dimensionScores);
         }
         
@@ -294,8 +348,8 @@ public class S3StorageServiceImpl implements S3StorageService {
         List<Map<String, Object>> exposureResults = new ArrayList<>();
         int count = 0;
         for (Map.Entry<String, ExposureValidationResult> entry :
-             validationResult.getExposureResults().entrySet()) {
-            
+             validationResult.exposureResults().entrySet()) {
+
             if (count >= 10000) { // Limit to first 10,000 exposures for detailed results
                 break;
             }
@@ -303,15 +357,15 @@ public class S3StorageServiceImpl implements S3StorageService {
             Map<String, Object> exposureResult = new HashMap<>();
             exposureResult.put("exposureId", entry.getKey());
             exposureResult.put("isValid", entry.getValue().isValid());
-            exposureResult.put("errorCount", entry.getValue().getErrors().size());
-            
+            exposureResult.put("errorCount", entry.getValue().errors().size());
+
             // Include error details for invalid exposures
             if (!entry.getValue().isValid()) {
                 List<Map<String, Object>> errors = new ArrayList<>();
-                for (ValidationError error : entry.getValue().getErrors()) {
+                for (ValidationError error : entry.getValue().errors()) {
                     Map<String, Object> errorMap = new HashMap<>();
                     errorMap.put("dimension", error.dimension().toString());
-                    errorMap.put("ruleCode", error.ruleCode());
+                    errorMap.put("ruleCode", error.code());
                     errorMap.put("message", error.message());
                     errorMap.put("fieldName", error.fieldName());
                     errorMap.put("severity", error.severity().toString());
@@ -327,10 +381,10 @@ public class S3StorageServiceImpl implements S3StorageService {
         
         // Batch errors
         List<Map<String, Object>> batchErrors = new ArrayList<>();
-        for (ValidationError error : validationResult.getBatchErrors()) {
+        for (ValidationError error : validationResult.batchErrors()) {
             Map<String, Object> errorMap = new HashMap<>();
             errorMap.put("dimension", error.dimension().toString());
-            errorMap.put("ruleCode", error.ruleCode());
+            errorMap.put("ruleCode", error.code());
             errorMap.put("message", error.message());
             errorMap.put("fieldName", error.fieldName());
             errorMap.put("severity", error.severity().toString());
@@ -346,22 +400,22 @@ public class S3StorageServiceImpl implements S3StorageService {
      */
     private Map<String, String> createMetadata(BatchId batchId, ValidationResult validationResult) {
         Map<String, String> metadata = new HashMap<>();
-        metadata.put("batch-id", batchId.getValue());
-        metadata.put("total-exposures", String.valueOf(validationResult.getTotalExposures()));
-        metadata.put("valid-exposures", String.valueOf(validationResult.getValidExposures()));
-        metadata.put("total-errors", String.valueOf(validationResult.getAllErrors().size()));
+        metadata.put("batch-id", batchId.value());
+        metadata.put("total-exposures", String.valueOf(validationResult.totalExposures()));
+        metadata.put("valid-exposures", String.valueOf(validationResult.validExposures()));
+        metadata.put("total-errors", String.valueOf(validationResult.allErrors().size()));
         metadata.put("timestamp", Instant.now().toString());
         metadata.put("content-type", "application/json");
         
-        if (validationResult.getDimensionScores() != null) {
+        if (validationResult.dimensionScores() != null) {
             // Calculate overall score for metadata
             double overallScore = (
-                validationResult.getDimensionScores().completeness() * 0.25 +
-                validationResult.getDimensionScores().accuracy() * 0.25 +
-                validationResult.getDimensionScores().consistency() * 0.20 +
-                validationResult.getDimensionScores().timeliness() * 0.15 +
-                validationResult.getDimensionScores().uniqueness() * 0.10 +
-                validationResult.getDimensionScores().validity() * 0.05
+                validationResult.dimensionScores().completeness() * 0.25 +
+                validationResult.dimensionScores().accuracy() * 0.25 +
+                validationResult.dimensionScores().consistency() * 0.20 +
+                validationResult.dimensionScores().timeliness() * 0.15 +
+                validationResult.dimensionScores().uniqueness() * 0.10 +
+                validationResult.dimensionScores().validity() * 0.05
             );
             metadata.put("overall-score", String.format("%.2f", overallScore));
             metadata.put("compliant", String.valueOf(overallScore >= 70.0));
@@ -404,14 +458,15 @@ public class S3StorageServiceImpl implements S3StorageService {
             for (int i = 0; i < batchIds.size(); i++) {
                 Result<S3Reference> result = storeDetailedResults(batchIds.get(i), validationResults.get(i));
                 if (result.isSuccess()) {
-                    references.add(result.getValue());
+                    references.add(result.getValue().orElse(null));
                 } else {
-                    return Result.failure(result.getError());
+                    references.add(null); // ensure list size matches
+                    return Result.failure(result.getError().orElse(ErrorDetail.of("S3_UPLOAD_ERROR","Failed to upload one result")));
                 }
             }
-            
-            return Result.success(references);
-        }, executorService);
+
+             return Result.success(references);
+         }, executorService);
     }
     
     /**
@@ -459,5 +514,75 @@ public class S3StorageServiceImpl implements S3StorageService {
      */
     public void shutdown() {
         executorService.shutdown();
+    }
+
+    @Override
+    public Result<Boolean> objectExists(String s3Uri) {
+        S3Reference ref = parseS3Uri(s3Uri);
+        if (ref == null) {
+            return Result.failure(ErrorDetail.of("S3_URI_INVALID", "Invalid S3 URI: " + s3Uri));
+        }
+
+        try {
+            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+                .bucket(ref.bucket())
+                .key(ref.key())
+                .build();
+
+            s3Client.headObject(headObjectRequest);
+            return Result.success(true);
+        } catch (NoSuchKeyException e) {
+            logger.debug("S3 object not found: s3://{}/{} - {}", ref.bucket(), ref.key(), e.getMessage());
+            return Result.success(false);
+        } catch (S3Exception e) {
+            logger.error("S3 error checking object existence: s3://{}/{}", ref.bucket(), ref.key(), e);
+            return Result.failure(ErrorDetail.of("S3_HEAD_ERROR", "Failed to check object: " + e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Error checking S3 object existence: s3://{}/{}", ref.bucket(), ref.key(), e);
+            return Result.failure(ErrorDetail.of("S3_HEAD_ERROR", "Failed to check object: " + e.getMessage()));
+        }
+    }
+
+    @Override
+    public Result<Long> getObjectSize(String s3Uri) {
+        S3Reference ref = parseS3Uri(s3Uri);
+        if (ref == null) {
+            return Result.failure(ErrorDetail.of("S3_URI_INVALID", "Invalid S3 URI: " + s3Uri));
+        }
+
+        try {
+            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
+                .bucket(ref.bucket())
+                .key(ref.key())
+                .build();
+
+            HeadObjectResponse response = s3Client.headObject(headObjectRequest);
+            return Result.success(response.contentLength());
+        } catch (NoSuchKeyException e) {
+            return Result.failure(ErrorDetail.of("S3_OBJECT_NOT_FOUND", "Object not found: " + s3Uri));
+        } catch (S3Exception e) {
+            logger.error("S3 error getting object size for s3://{}/{}", ref.bucket(), ref.key(), e);
+            return Result.failure(ErrorDetail.of("S3_HEAD_ERROR", "Failed to get object size: " + e.getMessage()));
+        } catch (Exception e) {
+            logger.error("Unexpected error getting object size for s3://{}/{}", ref.bucket(), ref.key(), e);
+            return Result.failure(ErrorDetail.of("S3_HEAD_UNEXPECTED", "Unexpected error: " + e.getMessage()));
+        }
+    }
+
+    @Override
+    public Result<List<ExposureRecord>> downloadExposures(String s3Uri, int expectedCount) {
+        Result<List<ExposureRecord>> result = downloadExposures(s3Uri);
+        if (result.isFailure()) return result;
+
+        List<ExposureRecord> exposures = result.getValue().orElse(List.of());
+        if (expectedCount >= 0 && exposures.size() != expectedCount) {
+            return Result.failure(ErrorDetail.of(
+                "S3_EXPOSURE_COUNT_MISMATCH",
+                String.format("Expected %d exposures but found %d in %s", expectedCount, exposures.size(), s3Uri),
+                "validation"
+            ));
+        }
+
+        return Result.success(exposures);
     }
 }

@@ -1,18 +1,18 @@
 package com.bcbs239.regtech.billing.application.invoicing;
 
 import com.bcbs239.regtech.billing.application.shared.UsageMetrics;
-import com.bcbs239.billing.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
+import com.bcbs239.regtech.billing.domain.payments.PaymentService;
+import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
+import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceGeneratedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
-import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
-import com.bcbs239.regtech.billing.domain.services.PaymentService;
 import com.bcbs239.regtech.core.saga.AbstractSaga;
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaStatus;
@@ -136,7 +136,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
         BillingAccount billingAccount = billingAccountResult.getValue().get();
 
         // Create Stripe invoice
-        com.bcbs239.regtech.core.shared.Maybe<com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId> customerIdMaybe = billingAccount.getStripeCustomerId();
+        com.bcbs239.regtech.core.shared.Maybe<StripeCustomerId> customerIdMaybe = billingAccount.getStripeCustomerId();
         if (customerIdMaybe.isEmpty()) {
             String errorMsg = "Billing account has no Stripe customer ID";
             data.markStepFailed(errorMsg);
@@ -147,7 +147,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
         PaymentService.InvoiceCreationRequest invoiceRequest = new PaymentService.InvoiceCreationRequest(
             customerIdMaybe.getValue(),
             data.getTotalCharges().getAmount().toString(),
-            "Monthly billing for " + data.getBillingPeriod().toString()
+            "Monthly billing for " + data.getBillingPeriod()
         );
 
         Result<PaymentService.InvoiceCreationResult> stripeInvoiceResult = stripeInvoiceCreator.apply(invoiceRequest);

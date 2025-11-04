@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.application.shared;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
+import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 
 /**

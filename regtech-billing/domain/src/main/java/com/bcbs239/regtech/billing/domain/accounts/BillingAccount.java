@@ -1,11 +1,11 @@
 package com.bcbs239.regtech.billing.domain.accounts;
 
+import com.bcbs239.regtech.billing.domain.invoices.Invoice;
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.billing.domain.invoicing.Invoice;
-import com.bcbs239.regtech.billing.domain.invoicing.StripeInvoiceId;
-import com.bcbs239.regtech.billing.domain.shared.valueobjects.Money;
+import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
 import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
@@ -371,3 +371,4 @@ public class BillingAccount {
         }
     }
 }
+

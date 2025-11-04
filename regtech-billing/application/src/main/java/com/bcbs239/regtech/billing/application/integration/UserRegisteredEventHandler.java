@@ -1,14 +1,15 @@
 package com.bcbs239.regtech.billing.application.integration;
 
 import com.bcbs239.regtech.billing.application.policies.PaymentVerificationSaga;
-import com.bcbs239.billing.BillingAccount;
-import com.bcbs239.billing.BillingAccountId;
-import com.bcbs239.billing.PaymentVerificationSagaData;
+
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.payments.PaymentVerificationSagaData;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.billing.domain.repositories.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
@@ -90,7 +91,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
             Instant now = Instant.now();
             BillingAccount billingAccount = new BillingAccount.Builder().userId(userId).createdAt(now).updatedAt(now).withDefaults().build();
 
-            Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId> saveResult = billingAccountRepository.save(billingAccount);
+            Result<BillingAccountId> saveResult = billingAccountRepository.save(billingAccount);
             if (saveResult.isFailure()) {
                 LoggingConfiguration.logStructured("Failed to create billing account", Map.of(
                     "eventType", "BILLING_ACCOUNT_CREATION_FAILED",
@@ -100,8 +101,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
                 return;
             }
 
-            com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId valueObjectId = saveResult.getValue().get();
-            BillingAccountId billingAccountId = BillingAccountId.of(valueObjectId.value());
+            BillingAccountId billingAccountId = saveResult.getValue().get();
             LoggingConfiguration.logStructured("Billing account created", Map.of(
                 "eventType", "BILLING_ACCOUNT_CREATED",
                 "billingAccountId", billingAccountId.getValue(),

@@ -2,9 +2,9 @@ package com.bcbs239.regtech.billing.infrastructure.jobs;
 
 import com.bcbs239.regtech.billing.application.invoicing.MonthlyBillingSaga;
 import com.bcbs239.regtech.billing.application.invoicing.MonthlyBillingSagaData;
-import com.bcbs239.billing.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
+import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;

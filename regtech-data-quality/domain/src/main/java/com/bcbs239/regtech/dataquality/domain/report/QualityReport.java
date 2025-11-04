@@ -10,7 +10,7 @@ import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
-import com.bcbs239.regtech.modules.dataquality.domain.report.events.*;
+import lombok.Getter;
 
 import java.time.Instant;
 
@@ -19,8 +19,10 @@ import java.time.Instant;
  * for a batch of exposures. Implements business rules for state transitions and
  * publishes domain events for quality processing lifecycle.
  */
+@Getter
 public class QualityReport extends Entity {
-    
+
+    // Getters
     private QualityReportId reportId;
     private BatchId batchId;
     private BankId bankId;
@@ -31,10 +33,34 @@ public class QualityReport extends Entity {
     private String errorMessage;
     private Instant createdAt;
     private Instant updatedAt;
-    
+    // Processing metadata (persisted/auditable)
+    private Instant processingStartTime;
+    private Instant processingEndTime;
+    private Long processingDurationMs;
+
     // Private constructor - use factory methods
     private QualityReport() {}
-    
+
+    // Explicit setters used by mappers/repository when hydrating aggregate from persistence
+    public void setReportId(QualityReportId reportId) { this.reportId = reportId; }
+    public void setBatchId(BatchId batchId) { this.batchId = batchId; }
+    public void setBankId(BankId bankId) { this.bankId = bankId; }
+    public void setStatus(QualityStatus status) { this.status = status; }
+    public void setScores(QualityScores scores) { this.scores = scores; }
+    public void setValidationSummary(ValidationSummary validationSummary) { this.validationSummary = validationSummary; }
+    public void setDetailsReference(S3Reference detailsReference) { this.detailsReference = detailsReference; }
+    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setProcessingStartTime(Instant processingStartTime) { this.processingStartTime = processingStartTime; }
+    public void setProcessingEndTime(Instant processingEndTime) { this.processingEndTime = processingEndTime; }
+    public void setProcessingDurationMs(Long processingDurationMs) { this.processingDurationMs = processingDurationMs; }
+
+    // Getters for new fields (lombok @Getter is not reliable due to manual edits; provide explicit getters)
+    public Instant getProcessingStartTime() { return processingStartTime; }
+    public Instant getProcessingEndTime() { return processingEndTime; }
+    public Long getProcessingDurationMs() { return processingDurationMs; }
+
     /**
      * Factory method to create a new quality report for a batch.
      * Initializes the report in PENDING status ready for validation.
@@ -315,16 +341,5 @@ public class QualityReport extends Entity {
     public boolean requiresAttention() {
         return scores != null && scores.requiresAttention();
     }
-    
-    // Getters
-    public QualityReportId getReportId() { return reportId; }
-    public BatchId getBatchId() { return batchId; }
-    public BankId getBankId() { return bankId; }
-    public QualityStatus getStatus() { return status; }
-    public QualityScores getScores() { return scores; }
-    public ValidationSummary getValidationSummary() { return validationSummary; }
-    public S3Reference getDetailsReference() { return detailsReference; }
-    public String getErrorMessage() { return errorMessage; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+
 }

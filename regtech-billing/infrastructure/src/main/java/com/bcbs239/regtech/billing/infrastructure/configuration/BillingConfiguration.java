@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.billing.infrastructure.configuration;
 
-import com.bcbs239.billing.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
 import org.slf4j.Logger;
@@ -176,40 +177,4 @@ public class BillingConfiguration {
             new NotificationsConfiguration.PushNotification(push.enabled())
         );
     }
-
-    /**
-     * Billing account finder function
-     */
-     @SuppressWarnings("unused")
-     @Bean
-     public java.util.function.Function<com.bcbs239.regtech.iam.domain.users.UserId, com.bcbs239.regtech.core.shared.Maybe<BillingAccount>> billingAccountByUserFinder() {
-         return billingAccountRepository.billingAccountByUserFinder();
-     }
-
-     /**
-      * Billing account saver function
-      */
-     @SuppressWarnings("unused")
-     @Bean
-     public java.util.function.Function<BillingAccount, com.bcbs239.regtech.core.shared.Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId>> billingAccountSaver() {
-         return billingAccountRepository.billingAccountSaver();
-     }
-
-     /**
-      * Subscription finder by billing account and tier function
-      */
-     @SuppressWarnings("unused")
-     @Bean
-     public java.util.function.Function<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId, java.util.function.Function<com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier, com.bcbs239.regtech.core.shared.Maybe<com.bcbs239.regtech.billing.domain.subscriptions.Subscription>>> subscriptionByBillingAccountAndTierFinder() {
-         return subscriptionRepository.subscriptionByBillingAccountAndTierFinder();
-     }
-
-     /**
-      * Subscription saver function
-      */
-     @SuppressWarnings("unused")
-     @Bean
-     public java.util.function.Function<com.bcbs239.regtech.billing.domain.subscriptions.Subscription, com.bcbs239.regtech.core.shared.Result<com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId>> subscriptionSaver() {
-         return subscriptionRepository.subscriptionSaver();
-     }
 }

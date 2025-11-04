@@ -47,9 +47,9 @@ class UniquenessSpecificationsTest {
         
         // Assert
         assertFalse(result.isSuccess());
-        assertEquals("UNIQUENESS_DUPLICATE_EXPOSURE_IDS", result.getError().getCode());
-        assertTrue(result.getError().getMessage().contains("EXP001"));
-        assertEquals("exposure_id", result.getError().getField());
+        assertEquals("UNIQUENESS_DUPLICATE_EXPOSURE_IDS", result.getError().get().getCode());
+        assertTrue(result.getError().get().getMessage().contains("EXP001"));
+        assertEquals("exposure_id", result.getError().get().getField());
     }
 
     @Test
@@ -84,9 +84,9 @@ class UniquenessSpecificationsTest {
         
         // Assert
         assertFalse(result.isSuccess());
-        assertEquals("UNIQUENESS_DUPLICATE_COUNTERPARTY_EXPOSURE", result.getError().getCode());
-        assertTrue(result.getError().getMessage().contains("CP001:EXP001"));
-        assertEquals("counterparty_id", result.getError().getField());
+        assertEquals("UNIQUENESS_DUPLICATE_COUNTERPARTY_EXPOSURE", result.getError().get().getCode());
+        assertTrue(result.getError().get().getMessage().contains("CP001:EXP001"));
+        assertEquals("counterparty_id", result.getError().get().getField());
     }
 
     @Test
@@ -121,9 +121,9 @@ class UniquenessSpecificationsTest {
         
         // Assert
         assertFalse(result.isSuccess());
-        assertEquals("UNIQUENESS_DUPLICATE_REFERENCE_NUMBERS", result.getError().getCode());
-        assertTrue(result.getError().getMessage().contains("REF001"));
-        assertEquals("reference_number", result.getError().getField());
+        assertEquals("UNIQUENESS_DUPLICATE_REFERENCE_NUMBERS", result.getError().get().getCode());
+        assertTrue(result.getError().get().getMessage().contains("REF001"));
+        assertEquals("reference_number", result.getError().get().getField());
     }
 
     private ExposureRecord createExposureRecord(String exposureId, String counterpartyId, String referenceNumber) {

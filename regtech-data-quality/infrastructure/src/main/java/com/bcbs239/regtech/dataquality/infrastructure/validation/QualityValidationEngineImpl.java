@@ -10,7 +10,6 @@ import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
-import com.bcbs239.regtech.modules.dataquality.domain.specifications.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -37,16 +36,16 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
     private static final int STREAMING_BATCH_SIZE = 1000;
     
     @Override
-    public ValidationResult validateExposures(List<ExposureRecord> exposures) {
+    public Result<ValidationResult> validateExposures(List<ExposureRecord> exposures) {
         logger.info("Starting validation of {} exposures", exposures.size());
         long startTime = System.currentTimeMillis();
         
         try {
             // Use streaming validation for large batches
             if (exposures.size() > STREAMING_BATCH_SIZE) {
-                return validateExposuresStreaming(exposures);
+                return Result.success(validateExposuresStreaming(exposures));
             } else {
-                return validateExposuresStandard(exposures);
+                return Result.success(validateExposuresStandard(exposures));
             }
         } finally {
             long duration = System.currentTimeMillis() - startTime;
@@ -63,13 +62,13 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         
         // Individual exposure validation
         for (ExposureRecord exposure : exposures) {
-            ExposureValidationResult result = validateSingleExposure(exposure);
-            exposureResults.put(exposure.getExposureId(), result);
-            allErrors.addAll(result.getErrors());
+            ExposureValidationResult result = validateSingleExposureInternal(exposure);
+            exposureResults.put(exposure.exposureId(), result);
+            allErrors.addAll(result.errors());
         }
         
         // Batch-level validation (uniqueness)
-        List<ValidationError> batchErrors = validateBatchLevel(exposures);
+        List<ValidationError> batchErrors = validateBatchLevelInternal(exposures);
         allErrors.addAll(batchErrors);
         
         // Calculate dimension scores
@@ -106,9 +105,9 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
                 List<ValidationError> batchErrors = new ArrayList<>();
                 
                 for (ExposureRecord exposure : batch) {
-                    ExposureValidationResult result = validateSingleExposure(exposure);
-                    batchResults.put(exposure.getExposureId(), result);
-                    batchErrors.addAll(result.getErrors());
+                    ExposureValidationResult result = validateSingleExposureInternal(exposure);
+                    batchResults.put(exposure.exposureId(), result);
+                    batchErrors.addAll(result.errors());
                 }
                 
                 synchronized (exposureResults) {
@@ -125,7 +124,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
         
         // Batch-level validation (uniqueness)
-        List<ValidationError> batchErrors = validateBatchLevel(exposures);
+        List<ValidationError> batchErrors = validateBatchLevelInternal(exposures);
         allErrors.addAll(batchErrors);
         
         // Calculate dimension scores
@@ -141,8 +140,8 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
             .build();
     }
     
-    @Override
-    public ExposureValidationResult validateSingleExposure(ExposureRecord exposure) {
+    // Internal helper that returns ExposureValidationResult for internal callers
+    private ExposureValidationResult validateSingleExposureInternal(ExposureRecord exposure) {
         List<ValidationError> errors = new ArrayList<>();
         Map<QualityDimension, List<ValidationError>> dimensionErrors = new HashMap<>();
         
@@ -172,7 +171,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         dimensionErrors.put(QualityDimension.VALIDITY, validityErrors);
         
         return ExposureValidationResult.builder()
-            .exposureId(exposure.getExposureId())
+            .exposureId(exposure.exposureId())
             .errors(errors)
             .dimensionErrors(dimensionErrors)
             .isValid(errors.isEmpty())
@@ -180,7 +179,28 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
     }
     
     @Override
-    public List<ValidationError> validateBatchLevel(List<ExposureRecord> exposures) {
+    public Result<ValidationResult> validateSingleExposure(ExposureRecord exposure) {
+        ExposureValidationResult evr = validateSingleExposureInternal(exposure);
+
+        Map<String, ExposureValidationResult> exposureResults = Map.of(evr.exposureId(), evr);
+        List<ValidationError> allErrors = new ArrayList<>(evr.errors());
+
+        DimensionScores dimensionScores = calculateDimensionScores(exposureResults, List.of(), 1);
+
+        ValidationResult vr = ValidationResult.builder()
+            .exposureResults(exposureResults)
+            .batchErrors(List.of())
+            .allErrors(allErrors)
+            .dimensionScores(dimensionScores)
+            .totalExposures(1)
+            .validExposures(evr.isValid() ? 1 : 0)
+            .build();
+
+        return Result.success(vr);
+    }
+
+    // Internal helper for batch-level validation
+    private List<ValidationError> validateBatchLevelInternal(List<ExposureRecord> exposures) {
         List<ValidationError> batchErrors = new ArrayList<>();
         
         // Uniqueness validation (batch-level)
@@ -189,6 +209,22 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         return batchErrors;
     }
     
+    @Override
+    public Result<ValidationResult> validateBatchLevel(List<ExposureRecord> exposures) {
+        List<ValidationError> batchErrors = validateBatchLevelInternal(exposures);
+
+        ValidationResult vr = ValidationResult.builder()
+            .exposureResults(Map.of())
+            .batchErrors(batchErrors)
+            .allErrors(batchErrors)
+            .dimensionScores(calculateDimensionScores(Map.of(), batchErrors, exposures.size()))
+            .totalExposures(exposures.size())
+            .validExposures(Math.max(0, exposures.size() - batchErrors.size()))
+            .build();
+
+        return Result.success(vr);
+    }
+
     /**
      * Validate completeness dimension using specification composition.
      */
@@ -204,7 +240,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         Result<Void> result = completenessSpec.isSatisfiedBy(exposure);
         if (!result.isSuccess()) {
             errors.addAll(result.getErrors().stream()
-                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.COMPLETENESS, exposure.getExposureId()))
+                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.COMPLETENESS, exposure.exposureId()))
                 .collect(Collectors.toList()));
         }
         
@@ -227,7 +263,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         Result<Void> result = accuracySpec.isSatisfiedBy(exposure);
         if (!result.isSuccess()) {
             errors.addAll(result.getErrors().stream()
-                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.ACCURACY, exposure.getExposureId()))
+                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.ACCURACY, exposure.exposureId()))
                 .collect(Collectors.toList()));
         }
         
@@ -249,7 +285,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         Result<Void> result = consistencySpec.isSatisfiedBy(exposure);
         if (!result.isSuccess()) {
             errors.addAll(result.getErrors().stream()
-                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.CONSISTENCY, exposure.getExposureId()))
+                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.CONSISTENCY, exposure.exposureId()))
                 .collect(Collectors.toList()));
         }
         
@@ -271,7 +307,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         Result<Void> result = timelinessSpec.isSatisfiedBy(exposure);
         if (!result.isSuccess()) {
             errors.addAll(result.getErrors().stream()
-                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.TIMELINESS, exposure.getExposureId()))
+                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.TIMELINESS, exposure.exposureId()))
                 .collect(Collectors.toList()));
         }
         
@@ -332,10 +368,9 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         
         // Count exposure-level errors
         for (ExposureValidationResult result : exposureResults.values()) {
-            for (Map.Entry<QualityDimension, List<ValidationError>> entry : result.getDimensionErrors().entrySet()) {
+            for (Map.Entry<QualityDimension, List<ValidationError>> entry : result.dimensionErrors().entrySet()) {
                 QualityDimension dimension = entry.getKey();
-                int currentCount = errorCounts.get(dimension);
-                errorCounts.put(dimension, currentCount + entry.getValue().size());
+                errorCounts.compute(dimension, (k, currentCount) -> currentCount + entry.getValue().size());
             }
         }
         

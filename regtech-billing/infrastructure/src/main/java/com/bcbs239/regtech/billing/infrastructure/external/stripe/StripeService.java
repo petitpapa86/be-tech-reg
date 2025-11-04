@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.billing.infrastructure.external.stripe;
 
+import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
+import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
-import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
-import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.billing.infrastructure.configuration.BillingConfiguration;

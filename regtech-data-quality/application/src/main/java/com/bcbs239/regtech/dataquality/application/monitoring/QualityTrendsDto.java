@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.dataquality.application.monitoring;
 
+import com.bcbs239.regtech.dataquality.application.reporting.QualityReportSummaryDto;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 
 import java.time.Instant;

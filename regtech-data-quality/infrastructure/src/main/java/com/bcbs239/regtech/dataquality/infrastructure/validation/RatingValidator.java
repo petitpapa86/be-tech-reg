@@ -48,61 +48,59 @@ public class RatingValidator {
     /**
      * Mapping of internal ratings to expected risk categories.
      */
-    private static final Map<String, Set<String>> RATING_RISK_CATEGORY_MAPPING = Map.of(
-        // Excellent ratings -> Minimal/Low risk
-        "AAA", Set.of("MINIMAL", "LOW"),
-        "AA+", Set.of("MINIMAL", "LOW"),
-        "AA", Set.of("MINIMAL", "LOW"),
-        "AA-", Set.of("MINIMAL", "LOW"),
-        "A+", Set.of("LOW"),
-        "A", Set.of("LOW"),
-        "A-", Set.of("LOW"),
-        "1", Set.of("MINIMAL", "LOW"),
-        "2", Set.of("LOW"),
-        "1A", Set.of("MINIMAL", "LOW"),
-        "1B", Set.of("LOW"),
-        "1C", Set.of("LOW"),
-        
+    private static final Map<String, Set<String>> RATING_RISK_CATEGORY_MAPPING = Map.ofEntries(
+        Map.entry("AAA", Set.of("MINIMAL", "LOW")),
+        Map.entry("AA+", Set.of("MINIMAL", "LOW")),
+        Map.entry("AA", Set.of("MINIMAL", "LOW")),
+        Map.entry("AA-", Set.of("MINIMAL", "LOW")),
+        Map.entry("A+", Set.of("LOW")),
+        Map.entry("A", Set.of("LOW")),
+        Map.entry("A-", Set.of("LOW")),
+        Map.entry("1", Set.of("MINIMAL", "LOW")),
+        Map.entry("2", Set.of("LOW")),
+        Map.entry("1A", Set.of("MINIMAL", "LOW")),
+        Map.entry("1B", Set.of("LOW")),
+        Map.entry("1C", Set.of("LOW")),
+
         // Good ratings -> Low/Moderate risk
-        "BBB+", Set.of("LOW", "MODERATE"),
-        "BBB", Set.of("MODERATE"),
-        "BBB-", Set.of("MODERATE"),
-        "3", Set.of("LOW", "MODERATE"),
-        "4", Set.of("MODERATE"),
-        "2A", Set.of("LOW", "MODERATE"),
-        "2B", Set.of("MODERATE"),
-        "2C", Set.of("MODERATE"),
-        
+        Map.entry("BBB+", Set.of("LOW", "MODERATE")),
+        Map.entry("BBB", Set.of("MODERATE")),
+        Map.entry("BBB-", Set.of("MODERATE")),
+        Map.entry("3", Set.of("LOW", "MODERATE")),
+        Map.entry("4", Set.of("MODERATE")),
+        Map.entry("2A", Set.of("LOW", "MODERATE")),
+        Map.entry("2B", Set.of("MODERATE")),
+        Map.entry("2C", Set.of("MODERATE")),
+
         // Speculative ratings -> Moderate/High risk
-        "BB+", Set.of("MODERATE", "HIGH"),
-        "BB", Set.of("HIGH"),
-        "BB-", Set.of("HIGH"),
-        "B+", Set.of("HIGH"),
-        "B", Set.of("HIGH", "VERY_HIGH"),
-        "B-", Set.of("VERY_HIGH"),
-        "5", Set.of("MODERATE", "HIGH"),
-        "6", Set.of("HIGH"),
-        "7", Set.of("HIGH", "VERY_HIGH"),
-        "3A", Set.of("MODERATE", "HIGH"),
-        "3B", Set.of("HIGH"),
-        "3C", Set.of("HIGH"),
-        
+        Map.entry("BB+", Set.of("MODERATE", "HIGH")),
+        Map.entry("BB", Set.of("HIGH")),
+        Map.entry("BB-", Set.of("HIGH")),
+        Map.entry("B+", Set.of("HIGH")),
+        Map.entry("B", Set.of("HIGH", "VERY_HIGH")),
+        Map.entry("B-", Set.of("VERY_HIGH")),
+        Map.entry("5", Set.of("MODERATE", "HIGH")),
+        Map.entry("6", Set.of("HIGH")),
+        Map.entry("7", Set.of("HIGH", "VERY_HIGH")),
+        Map.entry("3A", Set.of("MODERATE", "HIGH")),
+        Map.entry("3B", Set.of("HIGH")),
+        Map.entry("3C", Set.of("HIGH")),
+
         // Poor ratings -> High/Very High risk
-        "CCC+", Set.of("VERY_HIGH"),
-        "CCC", Set.of("VERY_HIGH", "EXTREME"),
-        "CCC-", Set.of("EXTREME"),
-        "CC", Set.of("EXTREME"),
-        "C", Set.of("EXTREME"),
-        "8", Set.of("VERY_HIGH"),
-        "9", Set.of("VERY_HIGH", "EXTREME"),
-        "4A", Set.of("HIGH", "VERY_HIGH"),
-        "4B", Set.of("VERY_HIGH"),
-        "4C", Set.of("VERY_HIGH", "EXTREME"),
-        
+        Map.entry("CCC+", Set.of("VERY_HIGH")),
+        Map.entry("CCC", Set.of("VERY_HIGH", "EXTREME")),
+        Map.entry("CCC-", Set.of("EXTREME")),
+        Map.entry("CC", Set.of("EXTREME")),
+        Map.entry("C", Set.of("EXTREME")),
+        Map.entry("8", Set.of("VERY_HIGH")),
+        Map.entry("9", Set.of("VERY_HIGH", "EXTREME")),
+        Map.entry("4A", Set.of("HIGH", "VERY_HIGH")),
+        Map.entry("4B", Set.of("VERY_HIGH")),
+        Map.entry("4C", Set.of("VERY_HIGH", "EXTREME")),
+
         // Default
-        "D", Set.of("DEFAULT"),
-        "10", Set.of("EXTREME", "DEFAULT"),
-        "5", Set.of("EXTREME", "DEFAULT")
+        Map.entry("D", Set.of("DEFAULT")),
+        Map.entry("10", Set.of("EXTREME", "DEFAULT"))
     );
     
     /**
@@ -254,3 +252,4 @@ public class RatingValidator {
         return Set.copyOf(VALID_RISK_CATEGORIES);
     }
 }
+

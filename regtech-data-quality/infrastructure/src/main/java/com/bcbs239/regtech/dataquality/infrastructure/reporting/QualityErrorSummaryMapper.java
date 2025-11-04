@@ -20,8 +20,8 @@ public class QualityErrorSummaryMapper {
         }
         
         return new QualityErrorSummaryEntity(
-            domainSummary.batchId().getValue(),
-            bankId.getValue(),
+            domainSummary.batchId().value(),
+            bankId.value(),
             domainSummary.ruleCode(),
             domainSummary.dimension(),
             domainSummary.severity(),

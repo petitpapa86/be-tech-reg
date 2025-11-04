@@ -1,13 +1,12 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
-import com.bcbs239.billing.DunningCase;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseId;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.dunning.*;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseStatus;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningStep;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningAction;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,10 +16,13 @@ import java.util.stream.Collectors;
  * JPA Entity for DunningCase aggregate persistence.
  * Maps domain aggregate to database table structure.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "dunning_cases", schema = "billing")
 public class DunningCaseEntity {
 
+    // Getters and setters for JPA
     @Id
     @Column(name = "id", nullable = false)
     private String id;
@@ -116,34 +118,4 @@ public class DunningCaseEntity {
         return dunningCase;
     }
 
-    // Getters and setters for JPA
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getBillingAccountId() { return billingAccountId; }
-    public void setBillingAccountId(String billingAccountId) { this.billingAccountId = billingAccountId; }
-
-    public String getInvoiceId() { return invoiceId; }
-    public void setInvoiceId(String invoiceId) { this.invoiceId = invoiceId; }
-
-    public DunningCaseStatus getStatus() { return status; }
-    public void setStatus(DunningCaseStatus status) { this.status = status; }
-
-    public DunningStep getCurrentStep() { return currentStep; }
-    public void setCurrentStep(DunningStep currentStep) { this.currentStep = currentStep; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-
-    public Instant getResolvedAt() { return resolvedAt; }
-    public void setResolvedAt(Instant resolvedAt) { this.resolvedAt = resolvedAt; }
-
-    public Long getVersion() { return version; }
-    public void setVersion(Long version) { this.version = version; }
-
-    public List<DunningActionEntity> getActions() { return actions; }
-    public void setActions(List<DunningActionEntity> actions) { this.actions = actions; }
 }

@@ -1,20 +1,16 @@
 package com.bcbs239.regtech.billing.application.payments;
 
-import com.bcbs239.billing.BillingAccount;
-import com.bcbs239.regtech.billing.domain.invoices.Invoice;
-import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
+import com.bcbs239.regtech.billing.domain.payments.PaymentService;
+import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.valueobjects.PaymentMethodId;
-import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
-import com.bcbs239.regtech.billing.domain.repositories.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
-import com.bcbs239.regtech.billing.domain.services.PaymentService;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.springframework.stereotype.Component;
 

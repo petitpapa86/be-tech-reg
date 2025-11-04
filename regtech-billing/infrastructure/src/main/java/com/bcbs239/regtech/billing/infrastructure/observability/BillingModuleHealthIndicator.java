@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.infrastructure.observability;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountStatus;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountStatus;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.core.health.ModuleHealthIndicator;

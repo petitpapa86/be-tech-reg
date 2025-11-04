@@ -179,20 +179,21 @@ public class BatchIngestedEventListener {
      * Route event to appropriate processing logic based on event characteristics.
      */
     private void routeEvent(BatchIngestedEvent event) {
-        // Determine processing priority based on file size and bank tier
-        ProcessingPriority priority = determinePriority(event);
-        
-        // Create command with appropriate configuration
-        ValidateBatchQualityCommand command = createValidationCommand(event, priority);
-        
-        // Dispatch command
-        Result<Void> result = commandHandler.handle(command);
-        
-        if (!result.isSuccess()) {
-            throw new RuntimeException("Command handling failed: " + result.getError().getMessage());
-        }
-    }
-    
+         // Determine processing priority based on file size and bank tier
+         ProcessingPriority priority = determinePriority(event);
+
+         // Create command with appropriate configuration
+         ValidateBatchQualityCommand command = createValidationCommand(event, priority);
+
+         // Dispatch command
+         Result<Void> result = commandHandler.handle(command);
+
+         if (!result.isSuccess()) {
+            String errMsg = result.getError().map(ed -> ed.getMessage() != null ? ed.getMessage() : ed.getCode()).orElse("unknown error");
+            throw new RuntimeException("Command handling failed: " + errMsg);
+         }
+     }
+
     /**
      * Determine processing priority based on event characteristics.
      */
@@ -220,13 +221,31 @@ public class BatchIngestedEventListener {
      * Create validation command with appropriate configuration.
      */
     private ValidateBatchQualityCommand createValidationCommand(BatchIngestedEvent event, ProcessingPriority priority) {
-        return new ValidateBatchQualityCommand(
+        // Try to reuse a correlation id from metadata if available
+        String correlationId = null;
+        Map<String, Object> metadata = event.getFileMetadata();
+        if (metadata != null && metadata.containsKey("correlationId")) {
+            Object c = metadata.get("correlationId");
+            if (c instanceof String) {
+                correlationId = (String) c;
+            }
+        }
+
+        if (correlationId != null) {
+            return ValidateBatchQualityCommand.withCorrelation(
+                new BatchId(event.getBatchId()),
+                new BankId(event.getBankId()),
+                event.getS3Uri(),
+                event.getExpectedExposureCount(),
+                correlationId
+            );
+        }
+
+        return ValidateBatchQualityCommand.of(
             new BatchId(event.getBatchId()),
             new BankId(event.getBankId()),
             event.getS3Uri(),
-            event.getExpectedExposureCount(),
-            event.getFileMetadata(),
-            priority
+            event.getExpectedExposureCount()
         );
     }
     
@@ -386,3 +405,4 @@ public class BatchIngestedEventListener {
         }
     }
 }
+

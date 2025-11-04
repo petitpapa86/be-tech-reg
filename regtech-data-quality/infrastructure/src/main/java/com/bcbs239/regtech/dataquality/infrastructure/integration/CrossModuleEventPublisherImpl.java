@@ -40,33 +40,31 @@ public class CrossModuleEventPublisherImpl implements CrossModuleEventPublisher 
     
     @Override
     @Retryable(value = {Exception.class}, maxAttempts = 5, backoff = @Backoff(delay = 1000, multiplier = 2))
-    public Result<Void> publishBatchQualityCompleted(BatchQualityCompletedEvent event) {
-        logger.info("Publishing BatchQualityCompleted event for batch: {} with overall score: {}", 
-            event.getBatchId().getValue(), event.getQualityScores().overallScore());
-        
+    public Result<Void> publishBatchQualityCompleted(BatchId batchId, BankId bankId, QualityScores qualityScores, S3Reference detailsReference) {
+        logger.info("Publishing BatchQualityCompleted event for batch: {} with overall score: {}",
+            batchId.value(), qualityScores.overallScore());
+
         try {
-            // Create the event object
+            // Build a minimal validation summary / metadata placeholders
+            Map<String, Object> validationSummary = new HashMap<>();
+            Map<String, Object> processingMetadata = new HashMap<>();
+
             BatchQualityCompletedEventImpl eventImpl = new BatchQualityCompletedEventImpl(
-                event.getBatchId(),
-                event.getBankId(),
-                event.getQualityScores(),
-                event.getS3Reference(),
-                event.getValidationSummary(),
-                event.getProcessingMetadata()
+                batchId,
+                bankId,
+                qualityScores,
+                detailsReference,
+                validationSummary,
+                processingMetadata
             );
-            
-            // Publish the event
+
             eventPublisher.publishEvent(eventImpl);
-            
-            logger.info("Successfully published BatchQualityCompleted event for batch: {}", 
-                event.getBatchId().getValue());
-            
+
+            logger.info("Successfully published BatchQualityCompleted event for batch: {}", batchId.value());
             return Result.success();
-            
+
         } catch (Exception e) {
-            logger.error("Failed to publish BatchQualityCompleted event for batch: {}", 
-                event.getBatchId().getValue(), e);
-            
+            logger.error("Failed to publish BatchQualityCompleted event for batch: {}", batchId.value(), e);
             return Result.failure(ErrorDetail.of(
                 "EVENT_PUBLISH_ERROR",
                 "Failed to publish BatchQualityCompleted event: " + e.getMessage(),
@@ -74,40 +72,72 @@ public class CrossModuleEventPublisherImpl implements CrossModuleEventPublisher 
             ));
         }
     }
-    
+
     @Override
-    public CompletableFuture<Result<Void>> publishBatchQualityCompletedAsync(BatchQualityCompletedEvent event) {
-        return CompletableFuture.supplyAsync(() -> publishBatchQualityCompleted(event), eventExecutor);
+    @Retryable(value = {Exception.class}, maxAttempts = 5, backoff = @Backoff(delay = 1000, multiplier = 2))
+    public Result<Void> publishBatchQualityCompleted(BatchId batchId, BankId bankId, QualityScores qualityScores, S3Reference detailsReference, String correlationId) {
+        // include correlationId in processing metadata when publishing
+        logger.info("Publishing BatchQualityCompleted event for batch: {} with correlationId: {} and overall score: {}",
+            batchId.value(), correlationId, qualityScores.overallScore());
+
+        try {
+            Map<String, Object> validationSummary = new HashMap<>();
+            Map<String, Object> processingMetadata = new HashMap<>();
+            if (correlationId != null) {
+                processingMetadata.put("correlationId", correlationId);
+            }
+
+            BatchQualityCompletedEventImpl eventImpl = new BatchQualityCompletedEventImpl(
+                batchId,
+                bankId,
+                qualityScores,
+                detailsReference,
+                validationSummary,
+                processingMetadata
+            );
+
+            eventPublisher.publishEvent(eventImpl);
+
+            logger.info("Successfully published BatchQualityCompleted event for batch: {}", batchId.value());
+            return Result.success();
+
+        } catch (Exception e) {
+            logger.error("Failed to publish BatchQualityCompleted event for batch: {}", batchId.value(), e);
+            return Result.failure(ErrorDetail.of(
+                "EVENT_PUBLISH_ERROR",
+                "Failed to publish BatchQualityCompleted event: " + e.getMessage(),
+                "event_publishing"
+            ));
+        }
+    }
+
+    public CompletableFuture<Result<Void>> publishBatchQualityCompletedAsync(BatchId batchId, BankId bankId, QualityScores qualityScores, S3Reference detailsReference) {
+        return CompletableFuture.supplyAsync(() -> publishBatchQualityCompleted(batchId, bankId, qualityScores, detailsReference), eventExecutor);
     }
     
     @Override
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
-    public Result<Void> publishBatchQualityFailed(BatchQualityFailedEvent event) {
-        logger.info("Publishing BatchQualityFailed event for batch: {} with error: {}", 
-            event.getBatchId().getValue(), event.getErrorMessage());
-        
+    public Result<Void> publishBatchQualityFailed(BatchId batchId, BankId bankId, String errorMessage) {
+        logger.info("Publishing BatchQualityFailed event for batch: {} with error: {}", batchId.value(), errorMessage);
+
         try {
-            // Create the event object
+            Map<String, Object> errorDetails = new HashMap<>();
+            Map<String, Object> processingMetadata = new HashMap<>();
+
             BatchQualityFailedEventImpl eventImpl = new BatchQualityFailedEventImpl(
-                event.getBatchId(),
-                event.getBankId(),
-                event.getErrorMessage(),
-                event.getErrorDetails(),
-                event.getProcessingMetadata()
+                batchId,
+                bankId,
+                errorMessage,
+                errorDetails,
+                processingMetadata
             );
-            
-            // Publish the event
+
             eventPublisher.publishEvent(eventImpl);
-            
-            logger.info("Successfully published BatchQualityFailed event for batch: {}", 
-                event.getBatchId().getValue());
-            
+            logger.info("Successfully published BatchQualityFailed event for batch: {}", batchId.value());
             return Result.success();
-            
+
         } catch (Exception e) {
-            logger.error("Failed to publish BatchQualityFailed event for batch: {}", 
-                event.getBatchId().getValue(), e);
-            
+            logger.error("Failed to publish BatchQualityFailed event for batch: {}", batchId.value(), e);
             return Result.failure(ErrorDetail.of(
                 "EVENT_PUBLISH_ERROR",
                 "Failed to publish BatchQualityFailed event: " + e.getMessage(),
@@ -115,44 +145,36 @@ public class CrossModuleEventPublisherImpl implements CrossModuleEventPublisher 
             ));
         }
     }
-    
-    @Override
-    public CompletableFuture<Result<Void>> publishBatchQualityFailedAsync(BatchQualityFailedEvent event) {
-        return CompletableFuture.supplyAsync(() -> publishBatchQualityFailed(event), eventExecutor);
-    }
-    
+
     @Override
     @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
-    public Result<Void> publishQualityAlert(QualityAlertEvent event) {
-        logger.info("Publishing QualityAlert event for batch: {} with alert type: {}", 
-            event.getBatchId().getValue(), event.getAlertType());
-        
+    public Result<Void> publishBatchQualityFailed(BatchId batchId, BankId bankId, String errorMessage, String correlationId) {
+        logger.info("Publishing BatchQualityFailed event for batch: {} with error: {} and correlationId: {}", batchId.value(), errorMessage, correlationId);
+
         try {
-            // Create the event object
-            QualityAlertEventImpl eventImpl = new QualityAlertEventImpl(
-                event.getBatchId(),
-                event.getBankId(),
-                event.getAlertType(),
-                event.getAlertMessage(),
-                event.getQualityScores(),
-                event.getAlertMetadata()
+            Map<String, Object> errorDetails = new HashMap<>();
+            Map<String, Object> processingMetadata = new HashMap<>();
+            if (correlationId != null) {
+                processingMetadata.put("correlationId", correlationId);
+            }
+
+            BatchQualityFailedEventImpl eventImpl = new BatchQualityFailedEventImpl(
+                batchId,
+                bankId,
+                errorMessage,
+                errorDetails,
+                processingMetadata
             );
-            
-            // Publish the event
+
             eventPublisher.publishEvent(eventImpl);
-            
-            logger.info("Successfully published QualityAlert event for batch: {}", 
-                event.getBatchId().getValue());
-            
+            logger.info("Successfully published BatchQualityFailed event for batch: {}", batchId.value());
             return Result.success();
-            
+
         } catch (Exception e) {
-            logger.error("Failed to publish QualityAlert event for batch: {}", 
-                event.getBatchId().getValue(), e);
-            
+            logger.error("Failed to publish BatchQualityFailed event for batch: {}", batchId.value(), e);
             return Result.failure(ErrorDetail.of(
                 "EVENT_PUBLISH_ERROR",
-                "Failed to publish QualityAlert event: " + e.getMessage(),
+                "Failed to publish BatchQualityFailed event: " + e.getMessage(),
                 "event_publishing"
             ));
         }
@@ -231,8 +253,8 @@ class BatchQualityCompletedEventImpl {
     @Override
     public String toString() {
         return "BatchQualityCompletedEvent{" +
-                "batchId=" + batchId.getValue() +
-                ", bankId=" + bankId.getValue() +
+                "batchId=" + batchId.value() +
+                ", bankId=" + bankId.value() +
                 ", overallScore=" + qualityScores.overallScore() +
                 ", grade=" + qualityScores.grade() +
                 ", timestamp=" + timestamp +
@@ -277,59 +299,9 @@ class BatchQualityFailedEventImpl {
     @Override
     public String toString() {
         return "BatchQualityFailedEvent{" +
-                "batchId=" + batchId.getValue() +
-                ", bankId=" + bankId.getValue() +
+                "batchId=" + batchId.value() +
+                ", bankId=" + bankId.value() +
                 ", errorMessage='" + errorMessage + '\'' +
-                ", timestamp=" + timestamp +
-                '}';
-    }
-}
-
-/**
- * Implementation of QualityAlertEvent for Spring event publishing.
- */
-class QualityAlertEventImpl {
-    private final BatchId batchId;
-    private final BankId bankId;
-    private final String alertType;
-    private final String alertMessage;
-    private final QualityScores qualityScores;
-    private final Map<String, Object> alertMetadata;
-    private final Instant timestamp;
-    
-    public QualityAlertEventImpl(
-        BatchId batchId,
-        BankId bankId,
-        String alertType,
-        String alertMessage,
-        QualityScores qualityScores,
-        Map<String, Object> alertMetadata
-    ) {
-        this.batchId = batchId;
-        this.bankId = bankId;
-        this.alertType = alertType;
-        this.alertMessage = alertMessage;
-        this.qualityScores = qualityScores;
-        this.alertMetadata = alertMetadata != null ? alertMetadata : new HashMap<>();
-        this.timestamp = Instant.now();
-    }
-    
-    // Getters
-    public BatchId getBatchId() { return batchId; }
-    public BankId getBankId() { return bankId; }
-    public String getAlertType() { return alertType; }
-    public String getAlertMessage() { return alertMessage; }
-    public QualityScores getQualityScores() { return qualityScores; }
-    public Map<String, Object> getAlertMetadata() { return alertMetadata; }
-    public Instant getTimestamp() { return timestamp; }
-    
-    @Override
-    public String toString() {
-        return "QualityAlertEvent{" +
-                "batchId=" + batchId.getValue() +
-                ", bankId=" + bankId.getValue() +
-                ", alertType='" + alertType + '\'' +
-                ", alertMessage='" + alertMessage + '\'' +
                 ", timestamp=" + timestamp +
                 '}';
     }

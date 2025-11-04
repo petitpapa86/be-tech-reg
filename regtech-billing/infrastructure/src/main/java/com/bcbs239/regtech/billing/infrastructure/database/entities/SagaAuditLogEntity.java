@@ -1,16 +1,22 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 
 /**
  * JPA Entity for Saga Audit Log persistence.
  * Tracks saga execution events for compliance and monitoring.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "saga_audit_log", schema = "billing")
 public class SagaAuditLogEntity {
 
+    // Getters and setters for JPA
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
@@ -55,28 +61,4 @@ public class SagaAuditLogEntity {
         this.createdAt = Instant.now();
     }
 
-    // Getters and setters for JPA
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getSagaId() { return sagaId; }
-    public void setSagaId(String sagaId) { this.sagaId = sagaId; }
-
-    public String getSagaType() { return sagaType; }
-    public void setSagaType(String sagaType) { this.sagaType = sagaType; }
-
-    public String getEventType() { return eventType; }
-    public void setEventType(String eventType) { this.eventType = eventType; }
-
-    public String getEventData() { return eventData; }
-    public void setEventData(String eventData) { this.eventData = eventData; }
-
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
-
-    public String getBillingAccountId() { return billingAccountId; }
-    public void setBillingAccountId(String billingAccountId) { this.billingAccountId = billingAccountId; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 }

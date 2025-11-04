@@ -1,11 +1,11 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
-import com.bcbs239.billing.DunningCase;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseId;
+import com.bcbs239.regtech.billing.domain.dunning.DunningCase;
+import com.bcbs239.regtech.billing.domain.dunning.DunningCaseId;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.dunning.DunningCaseStatus;
+import com.bcbs239.regtech.billing.domain.dunning.DunningStep;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseStatus;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningStep;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.DunningCaseEntity;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;

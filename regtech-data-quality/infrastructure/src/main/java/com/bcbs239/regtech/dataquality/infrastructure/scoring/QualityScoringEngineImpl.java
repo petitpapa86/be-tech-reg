@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.dataquality.infrastructure.scoring;
 
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.dataquality.application.scoring.QualityScoringEngine;
 import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
@@ -29,43 +30,51 @@ public class QualityScoringEngineImpl implements QualityScoringEngine {
     private final QualityWeights defaultWeights = QualityWeights.defaultWeights();
     
     @Override
-    public QualityScores calculateScores(ValidationResult validationResult) {
-        return calculateScores(validationResult, defaultWeights);
+    public Result<QualityScores> calculateScores(ValidationResult validationResult) {
+        return calculateScoresWithWeights(validationResult, defaultWeights);
     }
     
     @Override
-    public QualityScores calculateScores(ValidationResult validationResult, QualityWeights weights) {
-        logger.debug("Calculating quality scores for {} exposures with {} total errors", 
-            validationResult.getTotalExposures(), validationResult.getAllErrors().size());
-        
-        // Calculate dimension scores
-        DimensionScores dimensionScores = calculateDimensionScores(validationResult);
-        
-        // Calculate overall weighted score
-        double overallScore = calculateOverallScore(dimensionScores, weights);
-        
-        // Determine quality grade
-        QualityGrade grade = determineGrade(overallScore);
-        
-        QualityScores scores = new QualityScores(
-            dimensionScores.completeness(),
-            dimensionScores.accuracy(),
-            dimensionScores.consistency(),
-            dimensionScores.timeliness(),
-            dimensionScores.uniqueness(),
-            dimensionScores.validity(),
-            overallScore,
-            grade
-        );
-        
-        logger.debug("Calculated quality scores: overall={}, grade={}", overallScore, grade);
-        return scores;
+    public Result<QualityScores> calculateScoresWithWeights(ValidationResult validationResult, QualityWeights weights) {
+        try {
+            if (validationResult == null) {
+                return Result.failure(com.bcbs239.regtech.core.shared.ErrorDetail.of("VALIDATION_RESULT_NULL", "Validation result cannot be null"));
+            }
+
+            logger.debug("Calculating quality scores for {} exposures with {} total errors",
+                validationResult.totalExposures(), validationResult.allErrors().size());
+
+            // Calculate dimension scores
+            DimensionScores dimensionScores = calculateDimensionScores(validationResult);
+
+            // Calculate overall weighted score
+            double overallScore = calculateOverallScore(dimensionScores, weights);
+
+            // Determine quality grade
+            QualityGrade grade = determineGrade(overallScore);
+
+            QualityScores scores = new QualityScores(
+                dimensionScores.completeness(),
+                dimensionScores.accuracy(),
+                dimensionScores.consistency(),
+                dimensionScores.timeliness(),
+                dimensionScores.uniqueness(),
+                dimensionScores.validity(),
+                overallScore,
+                grade
+            );
+
+            logger.debug("Calculated quality scores: overall={}, grade={}", overallScore, grade);
+            return Result.success(scores);
+        } catch (Exception e) {
+            logger.error("Failed to calculate quality scores", e);
+            return Result.failure(com.bcbs239.regtech.core.shared.ErrorDetail.of("SCORE_CALCULATION_ERROR", "Failed to calculate scores: " + e.getMessage()));
+        }
     }
     
-    @Override
     public DimensionScores calculateDimensionScores(ValidationResult validationResult) {
-        int totalExposures = validationResult.getTotalExposures();
-        
+        int totalExposures = validationResult.totalExposures();
+
         if (totalExposures == 0) {
             logger.warn("Cannot calculate dimension scores for zero exposures");
             return new DimensionScores(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -73,12 +82,12 @@ public class QualityScoringEngineImpl implements QualityScoringEngine {
         
         // Count errors by dimension from exposure-level validation
         Map<QualityDimension, Integer> exposureErrorCounts = countExposureErrorsByDimension(
-            validationResult.getExposureResults());
-        
+            validationResult.exposureResults());
+
         // Count errors by dimension from batch-level validation
         Map<QualityDimension, Integer> batchErrorCounts = countBatchErrorsByDimension(
-            validationResult.getBatchErrors());
-        
+            validationResult.batchErrors());
+
         // Calculate individual dimension scores
         double completenessScore = calculateDimensionScore(
             exposureErrorCounts.getOrDefault(QualityDimension.COMPLETENESS, 0) +
@@ -126,7 +135,6 @@ public class QualityScoringEngineImpl implements QualityScoringEngine {
         );
     }
     
-    @Override
     public double calculateOverallScore(DimensionScores dimensionScores, QualityWeights weights) {
         double weightedScore = 
             (dimensionScores.completeness() * weights.completeness()) +
@@ -140,7 +148,6 @@ public class QualityScoringEngineImpl implements QualityScoringEngine {
         return Math.max(0.0, Math.min(100.0, weightedScore));
     }
     
-    @Override
     public QualityGrade determineGrade(double overallScore) {
         return QualityGrade.fromScore(overallScore);
     }
@@ -184,7 +191,7 @@ public class QualityScoringEngineImpl implements QualityScoringEngine {
         
         // Count errors by dimension
         for (ExposureValidationResult result : exposureResults.values()) {
-            for (Map.Entry<QualityDimension, List<ValidationError>> entry : result.getDimensionErrors().entrySet()) {
+            for (Map.Entry<QualityDimension, List<ValidationError>> entry : result.dimensionErrors().entrySet()) {
                 QualityDimension dimension = entry.getKey();
                 int errorCount = entry.getValue().size();
                 
@@ -248,15 +255,15 @@ public class QualityScoringEngineImpl implements QualityScoringEngine {
      * @return quality score statistics
      */
     public QualityScoreStatistics getScoreStatistics(ValidationResult validationResult) {
-        QualityScores scores = calculateScores(validationResult);
+        QualityScores scores = calculateScoresWithWeights(validationResult, defaultWeights).getValueOrThrow();
         DimensionScores dimensionScores = calculateDimensionScores(validationResult);
         
         return new QualityScoreStatistics(
             scores,
             dimensionScores,
-            validationResult.getTotalExposures(),
-            validationResult.getValidExposures(),
-            validationResult.getAllErrors().size(),
+            validationResult.totalExposures(),
+            validationResult.validExposures(),
+            validationResult.allErrors().size(),
             isCompliant(scores)
         );
     }

@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
-import com.bcbs239.billing.BillingAccount;
-import com.bcbs239.regtech.billing.domain.repositories.BillingAccountRepository;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.BillingAccountEntity;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.shared.ErrorDetail;

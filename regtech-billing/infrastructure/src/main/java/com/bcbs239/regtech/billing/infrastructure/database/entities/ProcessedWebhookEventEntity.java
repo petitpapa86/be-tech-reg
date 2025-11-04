@@ -1,7 +1,10 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.ProcessedWebhookEvent;
+import com.bcbs239.regtech.billing.domain.shared.valueobjects.ProcessedWebhookEvent;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.Instant;
 import java.util.UUID;
 
@@ -9,10 +12,13 @@ import java.util.UUID;
  * JPA Entity for ProcessedWebhookEvent value object persistence.
  * Maps domain value object to database table structure for idempotency tracking.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "processed_webhook_events", schema = "billing")
 public class ProcessedWebhookEventEntity {
 
+    // Getters and setters for JPA
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
@@ -66,22 +72,4 @@ public class ProcessedWebhookEventEntity {
         );
     }
 
-    // Getters and setters for JPA
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getStripeEventId() { return stripeEventId; }
-    public void setStripeEventId(String stripeEventId) { this.stripeEventId = stripeEventId; }
-
-    public String getEventType() { return eventType; }
-    public void setEventType(String eventType) { this.eventType = eventType; }
-
-    public Instant getProcessedAt() { return processedAt; }
-    public void setProcessedAt(Instant processedAt) { this.processedAt = processedAt; }
-
-    public ProcessedWebhookEvent.ProcessingResult getResult() { return result; }
-    public void setResult(ProcessedWebhookEvent.ProcessingResult result) { this.result = result; }
-
-    public String getErrorMessage() { return errorMessage; }
-    public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
 }

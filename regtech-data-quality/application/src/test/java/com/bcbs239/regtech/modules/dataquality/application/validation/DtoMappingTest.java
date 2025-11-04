@@ -12,7 +12,9 @@ import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
-import com.bcbs239.regtech.modules.dataquality.domain.report.*;
+import com.bcbs239.regtech.dataquality.domain.report.*;
+import com.bcbs239.regtech.dataquality.application.scoring.QualityScoresDto;
+import com.bcbs239.regtech.dataquality.application.reporting.QualityReportDto;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -235,10 +237,10 @@ class DtoMappingTest {
             Map.of(), // exposureResults
             java.util.List.of(), // batchErrors
             java.util.List.of(), // allErrors
+            summary,
             new DimensionScores(85.0, 90.0, 80.0, 75.0, 95.0, 88.0),
             1000, // totalExposures
-            850, // validExposures
-            summary
+            850 // validExposures
         );
     }
 }

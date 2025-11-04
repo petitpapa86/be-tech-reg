@@ -1,14 +1,13 @@
 package com.bcbs239.regtech.billing.application.subscriptions;
-
-import com.bcbs239.billing.BillingAccount;
-import com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.events.StripeSubscriptionCreatedEvent;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
-import com.bcbs239.regtech.billing.domain.valueobjects.StripeCustomerId;
-import com.bcbs239.regtech.billing.domain.services.PaymentService;
+import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
+import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
@@ -135,7 +134,7 @@ public class CreateStripeSubscriptionCommandHandler {
         }
 
         // Save updated billing account
-        Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId> saveAccountResult = billingAccountSaver.apply(billingAccount);
+        Result<BillingAccountId> saveAccountResult = billingAccountSaver.apply(billingAccount);
         if (saveAccountResult.isFailure()) {
             // TODO: Handle failure
             return;
