@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import java.util.List;
  * Subclasses can override to add custom logic, but typically just register entities.
  */
 @Component
+@Scope("prototype") 
 @RequiredArgsConstructor
 public class BaseUnitOfWork {
 
@@ -42,7 +44,6 @@ public class BaseUnitOfWork {
         entity.clearDomainEvents();
     }
 
-
     /**
      * Register an entity whose domain events should be collected.
      */
@@ -56,26 +57,26 @@ public class BaseUnitOfWork {
      */
     @Transactional
     public void saveChanges() {
-
         if (!domainEvents.isEmpty()) {
+            List<OutboxMessageEntity> outboxMessages = new ArrayList<>();
             for (DomainEvent domainEvent : domainEvents) {
-                String content = null;
+                String content;
                 try {
                     content = objectMapper.writeValueAsString(domainEvent);
                 } catch (JsonProcessingException e) {
-                    domainEvents.clear();
+                    logger.error("Failed to serialize domain event: {}", domainEvent, e);
+                    throw new IllegalStateException("Failed to serialize domain events for outbox persistence.", e);
                 }
                 String type = domainEvent.getClass().getName();
-
                 OutboxMessageEntity outboxMessage = new OutboxMessageEntity(type, content, Instant.now());
-                entityManager.persist(outboxMessage);
+                outboxMessages.add(outboxMessage);
             }
-            if (domainEvents.isEmpty()) {
-                throw new IllegalStateException("Failed to serialize domain events for outbox persistence.");
+            // Persist all at once
+            for (OutboxMessageEntity msg : outboxMessages) {
+                entityManager.persist(msg);
             }
+            // Clear only after successful persistence
+            domainEvents.clear();
         }
-        domainEvents.clear();
-
     }
-
 }
