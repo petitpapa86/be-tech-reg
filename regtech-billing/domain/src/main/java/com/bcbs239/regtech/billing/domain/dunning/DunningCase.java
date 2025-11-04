@@ -1,11 +1,7 @@
 package com.bcbs239.regtech.billing.domain.dunning;
 
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseId;
-import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
-import com.bcbs239.billing.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningCaseStatus;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningStep;
-import com.bcbs239.regtech.billing.domain.valueobjects.DunningAction;
+import com.bcbs239.regtech.billing.domain.invoicing.InvoiceId;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import java.time.Instant;
@@ -29,15 +25,15 @@ public class DunningCase {
     private DunningStep currentStep;
     private LocalDate startDate;
     private LocalDate nextActionDate;
-    private LocalDate resolvedDate;
+    private Instant resolvedAt;
     private String resolutionReason;
     private List<DunningAction> actions;
     private Instant createdAt;
     private Instant updatedAt;
     private long version;
     
-    // Private constructor for factory method pattern
-    private DunningCase() {
+    // Public constructor for JPA entity mapping
+    public DunningCase() {
         this.actions = new ArrayList<>();
     }
     
@@ -105,7 +101,7 @@ public class DunningCase {
             } else {
                 // Final step completed - mark as failed since no payment was received
                 this.status = DunningCaseStatus.FAILED;
-                this.resolvedDate = LocalDate.now();
+                this.resolvedAt = Instant.now();
                 this.resolutionReason = "All dunning steps completed without payment";
             }
         } else {
@@ -138,7 +134,7 @@ public class DunningCase {
         }
         
         this.status = DunningCaseStatus.RESOLVED;
-        this.resolvedDate = LocalDate.now();
+        this.resolvedAt = Instant.now();
         this.resolutionReason = resolutionReason;
         this.updatedAt = Instant.now();
         this.version++;
@@ -172,7 +168,7 @@ public class DunningCase {
         }
         
         this.status = DunningCaseStatus.CANCELLED;
-        this.resolvedDate = LocalDate.now();
+        this.resolvedAt = Instant.now();
         this.resolutionReason = cancellationReason;
         this.updatedAt = Instant.now();
         this.version++;
@@ -261,26 +257,28 @@ public class DunningCase {
     public DunningStep getCurrentStep() { return currentStep; }
     public LocalDate getStartDate() { return startDate; }
     public LocalDate getNextActionDate() { return nextActionDate; }
-    public LocalDate getResolvedDate() { return resolvedDate; }
+    public LocalDate getResolvedDate() { return resolvedAt != null ? resolvedAt.atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null; }
+    public Instant getResolvedAt() { return resolvedAt; }
     public String getResolutionReason() { return resolutionReason; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
     
-    // Package-private setters for JPA/persistence layer
-    void setId(DunningCaseId id) { this.id = id; }
-    void setInvoiceId(InvoiceId invoiceId) { this.invoiceId = invoiceId; }
-    void setBillingAccountId(BillingAccountId billingAccountId) { this.billingAccountId = billingAccountId; }
-    void setStatus(DunningCaseStatus status) { this.status = status; }
-    void setCurrentStep(DunningStep currentStep) { this.currentStep = currentStep; }
-    void setStartDate(LocalDate startDate) { this.startDate = startDate; }
-    void setNextActionDate(LocalDate nextActionDate) { this.nextActionDate = nextActionDate; }
-    void setResolvedDate(LocalDate resolvedDate) { this.resolvedDate = resolvedDate; }
-    void setResolutionReason(String resolutionReason) { this.resolutionReason = resolutionReason; }
-    void setActions(List<DunningAction> actions) { this.actions = actions != null ? actions : new ArrayList<>(); }
-    void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-    void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-    void setVersion(long version) { this.version = version; }
+    // Public setters for JPA/persistence layer
+    public void setId(DunningCaseId id) { this.id = id; }
+    public void setInvoiceId(InvoiceId invoiceId) { this.invoiceId = invoiceId; }
+    public void setBillingAccountId(BillingAccountId billingAccountId) { this.billingAccountId = billingAccountId; }
+    public void setStatus(DunningCaseStatus status) { this.status = status; }
+    public void setCurrentStep(DunningStep currentStep) { this.currentStep = currentStep; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public void setNextActionDate(LocalDate nextActionDate) { this.nextActionDate = nextActionDate; }
+    public void setResolvedDate(LocalDate resolvedDate) { this.resolvedAt = resolvedDate != null ? resolvedDate.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant() : null; }
+    public void setResolvedAt(Instant resolvedAt) { this.resolvedAt = resolvedAt; }
+    public void setResolutionReason(String resolutionReason) { this.resolutionReason = resolutionReason; }
+    public void setActions(List<DunningAction> actions) { this.actions = actions != null ? actions : new ArrayList<>(); }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public void setVersion(long version) { this.version = version; }
     
     @Override
     public boolean equals(Object o) {

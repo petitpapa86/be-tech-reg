@@ -74,7 +74,6 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             data.getUserId()
         ));
 
-        // Diagnostic log: verify command was enqueued on the saga
         try {
             LoggingConfiguration.createStructuredLog("SAGA_COMMAND_ENQUEUED_IN_HANDLER", Map.of(
                 "sagaId", getId(),
