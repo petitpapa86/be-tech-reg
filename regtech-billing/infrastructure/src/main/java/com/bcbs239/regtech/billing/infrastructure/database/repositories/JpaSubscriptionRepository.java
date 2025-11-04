@@ -23,8 +23,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * JPA repository for Subscription using closure-based functional patterns.
- * Provides functional operations for Subscription persistence.
+ * JPA repository implementation for Subscription with direct method signatures.
+ * Provides clean, straightforward persistence operations for Subscription entities.
  */
 @Repository
 @Transactional
@@ -36,124 +36,111 @@ public class JpaSubscriptionRepository implements SubscriptionRepository {
     @Autowired
     private TransactionTemplate transactionTemplate;
 
-    public Function<SubscriptionId, Maybe<Subscription>> subscriptionFinder() {
-        return subscriptionId -> {
-            try {
-                SubscriptionEntity entity = entityManager.createQuery(
-                    "SELECT s FROM SubscriptionEntity s WHERE s.id = :subscriptionId", 
-                    SubscriptionEntity.class)
-                    .setParameter("subscriptionId", subscriptionId.value())
-                    .getSingleResult();
-                return Maybe.some(entity.toDomain());
-            } catch (NoResultException e) {
-                return Maybe.none();
-            } catch (Exception e) {
-                // Log error but return none for functional pattern
-                return Maybe.none();
-            }
-        };
+    @Override
+    public Maybe<Subscription> findById(SubscriptionId subscriptionId) {
+        try {
+            SubscriptionEntity entity = entityManager.createQuery(
+                "SELECT s FROM SubscriptionEntity s WHERE s.id = :subscriptionId", 
+                SubscriptionEntity.class)
+                .setParameter("subscriptionId", subscriptionId.value())
+                .getSingleResult();
+            return Maybe.some(entity.toDomain());
+        } catch (NoResultException e) {
+            return Maybe.none();
+        } catch (Exception e) {
+            return Maybe.none();
+        }
     }
 
-    public Function<BillingAccountId, Maybe<Subscription>> activeSubscriptionFinder() {
-        return billingAccountId -> {
-            try {
-                SubscriptionEntity entity = entityManager.createQuery(
-                    "SELECT s FROM SubscriptionEntity s WHERE s.billingAccountId = :billingAccountId AND s.status = :status", 
-                    SubscriptionEntity.class)
-                    .setParameter("billingAccountId", billingAccountId.value())
-                    .setParameter("status", SubscriptionStatus.ACTIVE)
-                    .getSingleResult();
-                return Maybe.some(entity.toDomain());
-            } catch (NoResultException e) {
-                return Maybe.none();
-            } catch (Exception e) {
-                // Log error but return none for functional pattern
-                return Maybe.none();
-            }
-        };
+    @Override
+    public Maybe<Subscription> findActiveByBillingAccountId(BillingAccountId billingAccountId) {
+        try {
+            SubscriptionEntity entity = entityManager.createQuery(
+                "SELECT s FROM SubscriptionEntity s WHERE s.billingAccountId = :billingAccountId AND s.status = :status", 
+                SubscriptionEntity.class)
+                .setParameter("billingAccountId", billingAccountId.value())
+                .setParameter("status", SubscriptionStatus.ACTIVE)
+                .getSingleResult();
+            return Maybe.some(entity.toDomain());
+        } catch (NoResultException e) {
+            return Maybe.none();
+        } catch (Exception e) {
+            return Maybe.none();
+        }
     }
 
-    public Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder() {
-        return billingAccountId -> tier -> {
+    @Override
+    public Result<SubscriptionId> save(Subscription subscription) {
+        if (subscription.getId() != null) {
+            return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
+                "Cannot save subscription with existing ID", "subscription.save.existing.id"));
+        }
+        
+        return transactionTemplate.execute(status -> {
             try {
-                SubscriptionEntity entity = entityManager.createQuery(
-                    "SELECT s FROM SubscriptionEntity s WHERE s.billingAccountId = :billingAccountId AND s.tier = :tier AND s.stripeSubscriptionId IS NULL", 
-                    SubscriptionEntity.class)
-                    .setParameter("billingAccountId", billingAccountId.value())
-                    .setParameter("tier", tier)
-                    .getSingleResult();
-                return Maybe.some(entity.toDomain());
-            } catch (NoResultException e) {
-                return Maybe.none();
+                SubscriptionEntity entity = SubscriptionEntity.fromDomain(subscription);
+                entityManager.persist(entity);
+                entityManager.flush();
+                return Result.success(SubscriptionId.fromString(entity.getId()).getValue().orElseThrow());
             } catch (Exception e) {
-                // Log error but return none for functional pattern
-                return Maybe.none();
-            }
-        };
-    }
-
-    public Function<Subscription, Result<SubscriptionId>> subscriptionSaver() {
-        return subscription -> {
-            if (subscription.getId() != null) {
                 return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
-                    "Cannot save subscription with existing ID", "subscription.save.existing.id"));
+                    "Failed to save subscription: " + e.getMessage(), "subscription.save.failed"));
             }
-            return transactionTemplate.execute(status -> {
-                try {
-                    SubscriptionEntity entity = SubscriptionEntity.fromDomain(subscription);
-                    entityManager.persist(entity);
-                    entityManager.flush(); // Ensure the entity is persisted
-                    return Result.success(SubscriptionId.fromString(entity.getId()).getValue().orElseThrow());
-                } catch (Exception e) {
-                    return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
-                        "Failed to save subscription: " + e.getMessage(), "subscription.save.failed"));
-                }
-            });
-        };
+        });
     }
 
-    public Function<Subscription, Result<SubscriptionId>> subscriptionUpdater() {
-        return subscription -> {
-            if (subscription.getId() == null) {
-                return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
-                    "Cannot update subscription without ID", "subscription.update.missing.id"));
-            }
-            return transactionTemplate.execute(status -> {
-                try {
-                    SubscriptionEntity entity = SubscriptionEntity.fromDomain(subscription);
-                    entity = entityManager.merge(entity);
-                    entityManager.flush(); // Ensure the entity is updated
-                    return Result.success(SubscriptionId.fromString(entity.getId()).getValue().orElseThrow());
-                } catch (Exception e) {
-                    return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
-                        "Failed to update subscription: " + e.getMessage(), "subscription.update.failed"));
-                }
-            });
-        };
+    // Additional methods for specific use cases
+    public Maybe<Subscription> findByBillingAccountAndTier(BillingAccountId billingAccountId, SubscriptionTier tier) {
+        try {
+            SubscriptionEntity entity = entityManager.createQuery(
+                "SELECT s FROM SubscriptionEntity s WHERE s.billingAccountId = :billingAccountId AND s.tier = :tier AND s.stripeSubscriptionId IS NULL", 
+                SubscriptionEntity.class)
+                .setParameter("billingAccountId", billingAccountId.value())
+                .setParameter("tier", tier)
+                .getSingleResult();
+            return Maybe.some(entity.toDomain());
+        } catch (NoResultException e) {
+            return Maybe.none();
+        } catch (Exception e) {
+            return Maybe.none();
+        }
     }
 
-    public Function<SubscriptionStatus, List<Subscription>> subscriptionsByStatusFinder() {
-        return status -> {
+    public Result<SubscriptionId> update(Subscription subscription) {
+        if (subscription.getId() == null) {
+            return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
+                "Cannot update subscription without ID", "subscription.update.missing.id"));
+        }
+        
+        return transactionTemplate.execute(status -> {
             try {
-                List<SubscriptionEntity> entities = entityManager.createQuery(
-                    "SELECT s FROM SubscriptionEntity s WHERE s.status = :status", 
-                    SubscriptionEntity.class)
-                    .setParameter("status", status)
-                    .getResultList();
-                
-                return entities.stream()
-                    .map(SubscriptionEntity::toDomain)
-                    .collect(Collectors.toList());
+                SubscriptionEntity entity = SubscriptionEntity.fromDomain(subscription);
+                entity = entityManager.merge(entity);
+                entityManager.flush();
+                return Result.success(SubscriptionId.fromString(entity.getId()).getValue().orElseThrow());
             } catch (Exception e) {
-                // Log error but return empty list for functional pattern
-                return List.of();
+                return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
+                    "Failed to update subscription: " + e.getMessage(), "subscription.update.failed"));
             }
-        };
+        });
     }
 
-    /**
-     * Find subscriptions by multiple statuses (for saga orchestration)
-     */
+    public List<Subscription> findByStatus(SubscriptionStatus status) {
+        try {
+            List<SubscriptionEntity> entities = entityManager.createQuery(
+                "SELECT s FROM SubscriptionEntity s WHERE s.status = :status", 
+                SubscriptionEntity.class)
+                .setParameter("status", status)
+                .getResultList();
+            
+            return entities.stream()
+                .map(SubscriptionEntity::toDomain)
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     public List<Subscription> findByStatusIn(List<SubscriptionStatus> statuses) {
         try {
             List<SubscriptionEntity> entities = entityManager.createQuery(
@@ -166,8 +153,38 @@ public class JpaSubscriptionRepository implements SubscriptionRepository {
                 .map(SubscriptionEntity::toDomain)
                 .collect(Collectors.toList());
         } catch (Exception e) {
-            // Log error but return empty list for functional pattern
             return List.of();
         }
+    }
+
+    // Backward compatibility methods for existing functional patterns
+    @Deprecated
+    public Function<SubscriptionId, Maybe<Subscription>> subscriptionFinder() {
+        return this::findById;
+    }
+
+    @Deprecated
+    public Function<BillingAccountId, Maybe<Subscription>> activeSubscriptionFinder() {
+        return this::findActiveByBillingAccountId;
+    }
+
+    @Deprecated
+    public Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder() {
+        return billingAccountId -> tier -> findByBillingAccountAndTier(billingAccountId, tier);
+    }
+
+    @Deprecated
+    public Function<Subscription, Result<SubscriptionId>> subscriptionSaver() {
+        return this::save;
+    }
+
+    @Deprecated
+    public Function<Subscription, Result<SubscriptionId>> subscriptionUpdater() {
+        return this::update;
+    }
+
+    @Deprecated
+    public Function<SubscriptionStatus, List<Subscription>> subscriptionsByStatusFinder() {
+        return this::findByStatus;
     }
 }

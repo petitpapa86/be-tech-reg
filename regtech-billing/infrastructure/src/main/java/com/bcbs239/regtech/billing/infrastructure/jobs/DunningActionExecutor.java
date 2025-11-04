@@ -79,8 +79,7 @@ public class DunningActionExecutor {
                 case FIRST_REMINDER -> executeFirstReminder(invoice, account);
                 case SECOND_REMINDER -> executeSecondReminder(invoice, account);
                 case FINAL_NOTICE -> executeFinalNotice(invoice, account);
-                case COLLECTION_AGENCY -> executeAccountSuspension(invoice, account); // Reuse suspension logic
-                case LEGAL_ACTION -> executeAccountSuspension(invoice, account); // Reuse suspension logic
+                case COLLECTION_AGENCY, LEGAL_ACTION -> executeAccountSuspension(invoice, account); // Reuse suspension logic
             };
 
         } catch (Exception e) {

@@ -29,27 +29,9 @@ public class CancelSubscriptionCommandHandler {
     }
 
     /**
-     * Handle the CancelSubscriptionCommand by injecting repository operations as closures
+     * Handle the CancelSubscriptionCommand using direct repository method calls
      */
     public Result<CancelSubscriptionResponse> handle(CancelSubscriptionCommand command) {
-        return cancelSubscription(
-            command,
-            subscriptionRepository.subscriptionFinder(),
-            subscriptionRepository.subscriptionSaver(),
-            this::cancelStripeSubscription
-        );
-    }
-
-    /**
-     * Pure function for subscription cancellation with injected dependencies as closures.
-     * This function contains no side effects and can be easily tested.
-     */
-    static Result<CancelSubscriptionResponse> cancelSubscription(
-            CancelSubscriptionCommand command,
-            Function<SubscriptionId, Maybe<Subscription>> subscriptionFinder,
-            Function<Subscription, Result<SubscriptionId>> subscriptionSaver,
-            Function<Subscription, Result<Void>> stripeCanceller) {
-
         // Step 1: Validate subscription ID
         Result<SubscriptionId> subscriptionIdResult = command.getSubscriptionId();
         if (subscriptionIdResult.isFailure()) {
@@ -58,7 +40,7 @@ public class CancelSubscriptionCommandHandler {
         SubscriptionId subscriptionId = subscriptionIdResult.getValue().get();
 
         // Step 2: Find subscription
-        Maybe<Subscription> subscriptionMaybe = subscriptionFinder.apply(subscriptionId);
+        Maybe<Subscription> subscriptionMaybe = subscriptionRepository.findById(subscriptionId);
         if (subscriptionMaybe.isEmpty()) {
             return Result.failure(ErrorDetail.of("SUBSCRIPTION_NOT_FOUND", 
                 "Subscription not found: " + subscriptionId, "subscription.not.found"));
@@ -72,13 +54,13 @@ public class CancelSubscriptionCommandHandler {
         }
 
         // Step 4: Cancel subscription in Stripe
-        Result<Void> stripeCancellationResult = stripeCanceller.apply(subscription);
+        Result<Void> stripeCancellationResult = cancelStripeSubscription(subscription);
         if (stripeCancellationResult.isFailure()) {
             return Result.failure(stripeCancellationResult.getError().get());
         }
 
         // Step 5: Save updated subscription
-        Result<SubscriptionId> saveResult = subscriptionSaver.apply(subscription);
+        Result<SubscriptionId> saveResult = subscriptionRepository.save(subscription);
         if (saveResult.isFailure()) {
             return Result.failure(saveResult.getError().get());
         }
@@ -95,6 +77,6 @@ public class CancelSubscriptionCommandHandler {
      * Cancel subscription in Stripe
      */
     private Result<Void> cancelStripeSubscription(Subscription subscription) {
-        return paymentService.cancelSubscription(subscription.getStripeSubscriptionId());
+        return paymentService.cancelSubscription(subscription.getStripeSubscriptionId().value());
     }
 }

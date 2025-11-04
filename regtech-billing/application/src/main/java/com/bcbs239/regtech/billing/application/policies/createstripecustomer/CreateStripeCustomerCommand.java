@@ -1,20 +1,29 @@
 package com.bcbs239.regtech.billing.application.policies.createstripecustomer;
 
 import com.bcbs239.regtech.core.saga.SagaId;
+import com.bcbs239.regtech.core.saga.SagaCommand;
+
+import java.time.Instant;
+import java.util.Map;
 
 /**
  * Command to create a Stripe customer
  */
-public record CreateStripeCustomerCommand(
-    SagaId sagaId,
-    String userId,
-    String email,
-    String name,
-    String paymentMethodId
-) {
-    
-    public SagaId getSagaId() {
-        return sagaId;
+public class CreateStripeCustomerCommand extends SagaCommand {
+    private final String userId;
+    private final String email;
+    private final String name;
+    private final String paymentMethodId;
+
+    public CreateStripeCustomerCommand(SagaId sagaId, String userId, String email, String name, String paymentMethodId) {
+        super(sagaId, "CreateStripeCustomerCommand", 
+              Map.of("userId", userId, "email", email, "name", name, 
+                     "paymentMethodId", paymentMethodId != null ? paymentMethodId : ""), 
+              Instant.now());
+        this.userId = userId;
+        this.email = email;
+        this.name = name;
+        this.paymentMethodId = paymentMethodId;
     }
     
     public String getUserId() {

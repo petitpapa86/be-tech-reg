@@ -46,31 +46,9 @@ public class GenerateInvoiceCommandHandler {
     }
 
     /**
-     * Handle the GenerateInvoiceCommand by injecting repository operations as closures
+     * Handle the GenerateInvoiceCommand using direct repository method calls
      */
     public Result<GenerateInvoiceResponse> handle(GenerateInvoiceCommand command) {
-        return generateInvoice(
-            command,
-            billingAccountRepository.billingAccountFinder(),
-            subscriptionRepository.activeSubscriptionFinder(),
-            invoiceRepository.invoiceSaver(),
-            this::queryUsageMetrics,
-            this::createStripeInvoice
-        );
-    }
-
-    /**
-     * Pure function for invoice generation with injected dependencies as closures.
-     * This function contains no side effects and can be easily tested.
-     */
-    static Result<GenerateInvoiceResponse> generateInvoice(
-            GenerateInvoiceCommand command,
-            Function<BillingAccountId, Maybe<BillingAccount>> billingAccountFinder,
-            Function<BillingAccountId, Maybe<Subscription>> activeSubscriptionFinder,
-            Function<Invoice, Result<InvoiceId>> invoiceSaver,
-            Function<UsageQuery, Result<UsageMetrics>> usageMetricsQuery,
-            Function<InvoiceCreationData, Result<PaymentService.InvoiceCreationResult>> invoiceCreator) {
-
         // Step 1: Validate billing account ID
         Result<BillingAccountId> billingAccountIdResult = command.getBillingAccountId();
         if (billingAccountIdResult.isFailure()) {
@@ -79,7 +57,7 @@ public class GenerateInvoiceCommandHandler {
         BillingAccountId billingAccountId = billingAccountIdResult.getValue().get();
 
         // Step 2: Find and validate billing account
-        Maybe<BillingAccount> billingAccountMaybe = billingAccountFinder.apply(billingAccountId);
+        Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository.findById(billingAccountId);
         if (billingAccountMaybe.isEmpty()) {
             return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", 
                 "Billing account not found: " + billingAccountId, "invoice.billing.account.not.found"));
@@ -87,7 +65,7 @@ public class GenerateInvoiceCommandHandler {
         BillingAccount billingAccount = billingAccountMaybe.getValue();
 
         // Step 3: Find active subscription
-        Maybe<Subscription> subscriptionMaybe = activeSubscriptionFinder.apply(billingAccountId);
+        Maybe<Subscription> subscriptionMaybe = subscriptionRepository.findActiveByBillingAccountId(billingAccountId);
         if (subscriptionMaybe.isEmpty()) {
             return Result.failure(ErrorDetail.of("NO_ACTIVE_SUBSCRIPTION", 
                 "No active subscription found for billing account: " + billingAccountId, "invoice.no.active.subscription"));
@@ -96,7 +74,7 @@ public class GenerateInvoiceCommandHandler {
 
         // Step 4: Query usage metrics from ingestion context
         UsageQuery usageQuery = new UsageQuery(billingAccount.getUserId(), command.billingPeriod());
-        Result<UsageMetrics> usageResult = usageMetricsQuery.apply(usageQuery);
+        Result<UsageMetrics> usageResult = queryUsageMetrics(usageQuery);
         if (usageResult.isFailure()) {
             return Result.failure(usageResult.getError().get());
         }
@@ -121,29 +99,35 @@ public class GenerateInvoiceCommandHandler {
             totalAmount,
             "Invoice for " + command.billingPeriod().toString()
         );
-        Result<PaymentService.InvoiceCreationResult> invoiceResult = invoiceCreator.apply(invoiceData);
+        Result<PaymentService.InvoiceCreationResult> invoiceResult = createStripeInvoice(invoiceData);
         if (invoiceResult.isFailure()) {
             return Result.failure(invoiceResult.getError().get());
         }
         PaymentService.InvoiceCreationResult createdInvoice = invoiceResult.getValue().get();
 
         // Step 9: Create invoice domain object
+        Result<com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId> stripeInvoiceIdResult = 
+            com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId.fromString(createdInvoice.invoiceId());
+        if (stripeInvoiceIdResult.isFailure()) {
+            return Result.failure(stripeInvoiceIdResult.getError().get());
+        }
+        
         Result<Invoice> domainInvoiceResult = Invoice.create(
             Maybe.some(billingAccountId),
-            createdInvoice.invoiceId(),
+            stripeInvoiceIdResult.getValue().get(),
             subscriptionAmount,
             overageAmount,
             command.billingPeriod(),
             () -> Instant.now(), // Clock supplier
             () -> LocalDate.now() // Date supplier
         );
-        if (invoiceResult.isFailure()) {
-            return Result.failure(invoiceResult.getError().get());
+        if (domainInvoiceResult.isFailure()) {
+            return Result.failure(domainInvoiceResult.getError().get());
         }
-        Invoice invoice = invoiceResult.getValue().get();
+        Invoice invoice = domainInvoiceResult.getValue().get();
 
         // Step 10: Save invoice
-        Result<InvoiceId> saveResult = invoiceSaver.apply(invoice);
+        Result<InvoiceId> saveResult = invoiceRepository.save(invoice);
         if (saveResult.isFailure()) {
             return Result.failure(saveResult.getError().get());
         }
@@ -197,7 +181,7 @@ public class GenerateInvoiceCommandHandler {
     private Result<PaymentService.InvoiceCreationResult> createStripeInvoice(InvoiceCreationData data) {
         PaymentService.InvoiceCreationRequest request = new PaymentService.InvoiceCreationRequest(
             data.customerId(),
-            data.amount(),
+            data.amount().amount().toString(),
             data.description()
         );
         return paymentService.createInvoice(request);

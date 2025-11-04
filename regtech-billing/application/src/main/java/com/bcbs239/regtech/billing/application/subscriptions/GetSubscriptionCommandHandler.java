@@ -24,23 +24,9 @@ public class GetSubscriptionCommandHandler {
     }
 
     /**
-     * Handle the GetSubscriptionCommand by injecting repository operations as closures
+     * Handle the GetSubscriptionCommand using direct repository method calls
      */
     public Result<GetSubscriptionResponse> handle(GetSubscriptionCommand command) {
-        return getSubscription(
-            command,
-            subscriptionRepository.subscriptionFinder()
-        );
-    }
-
-    /**
-     * Pure function for subscription retrieval with injected dependencies as closures.
-     * This function contains no side effects and can be easily tested.
-     */
-    static Result<GetSubscriptionResponse> getSubscription(
-            GetSubscriptionCommand command,
-            Function<SubscriptionId, Maybe<Subscription>> subscriptionFinder) {
-
         // Step 1: Validate subscription ID
         Result<SubscriptionId> subscriptionIdResult = command.getSubscriptionId();
         if (subscriptionIdResult.isFailure()) {
@@ -49,7 +35,7 @@ public class GetSubscriptionCommandHandler {
         SubscriptionId subscriptionId = subscriptionIdResult.getValue().get();
 
         // Step 2: Find subscription
-        Maybe<Subscription> subscriptionMaybe = subscriptionFinder.apply(subscriptionId);
+        Maybe<Subscription> subscriptionMaybe = subscriptionRepository.findById(subscriptionId);
         if (subscriptionMaybe.isEmpty()) {
             return Result.failure(ErrorDetail.of("SUBSCRIPTION_NOT_FOUND", 
                 "Subscription not found: " + subscriptionId, "subscription.not.found"));

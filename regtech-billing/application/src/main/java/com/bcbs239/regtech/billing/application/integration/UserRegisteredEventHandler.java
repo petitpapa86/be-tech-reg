@@ -77,7 +77,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
             UserId userId = UserId.fromString(event.getUserId());
 
             // Check if billing account already exists (idempotency)
-            com.bcbs239.regtech.core.shared.Maybe<BillingAccount> existingAccount = billingAccountRepository.billingAccountByUserFinder().apply(userId);
+            com.bcbs239.regtech.core.shared.Maybe<BillingAccount> existingAccount = billingAccountRepository.findByUserId(userId);
             if (existingAccount.isPresent()) {
                 LoggingConfiguration.logStructured("Billing account already exists, skipping processing", Map.of(
                     "eventType", "BILLING_ACCOUNT_EXISTS",
@@ -90,7 +90,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
             Instant now = Instant.now();
             BillingAccount billingAccount = new BillingAccount.Builder().userId(userId).createdAt(now).updatedAt(now).withDefaults().build();
 
-            Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId> saveResult = billingAccountRepository.billingAccountSaver().apply(billingAccount);
+            Result<com.bcbs239.regtech.billing.domain.valueobjects.BillingAccountId> saveResult = billingAccountRepository.save(billingAccount);
             if (saveResult.isFailure()) {
                 LoggingConfiguration.logStructured("Failed to create billing account", Map.of(
                     "eventType", "BILLING_ACCOUNT_CREATION_FAILED",
@@ -110,7 +110,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
 
             // Save the default subscription
             for (Subscription subscription : billingAccount.getSubscriptions()) {
-                Result<SubscriptionId> subscriptionSaveResult = subscriptionRepository.subscriptionSaver().apply(subscription);
+                Result<SubscriptionId> subscriptionSaveResult = subscriptionRepository.save(subscription);
                 if (subscriptionSaveResult.isFailure()) {
                     LoggingConfiguration.logStructured("Subscription creation failed", Map.of(
                         "eventType", "SUBSCRIPTION_CREATION_FAILED",
@@ -128,7 +128,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
 
             // Save the default invoice
             for (Invoice invoice : billingAccount.getInvoices()) {
-                Result<InvoiceId> invoiceSaveResult = invoiceRepository.invoiceSaver().apply(invoice);
+                Result<InvoiceId> invoiceSaveResult = invoiceRepository.save(invoice);
                 if (invoiceSaveResult.isFailure()) {
                     LoggingConfiguration.logStructured("Invoice creation failed", Map.of(
                         "eventType", "INVOICE_CREATION_FAILED",

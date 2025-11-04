@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommandHandler.RateLimitingService;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -101,6 +102,7 @@ public class RateLimitingServiceImpl implements RateLimitingService {
     }
 
     private static class RateLimitWindow {
+        @Getter
         private volatile Instant windowStart;
         private final AtomicInteger count = new AtomicInteger(0);
 
@@ -125,16 +127,13 @@ public class RateLimitingServiceImpl implements RateLimitingService {
             count.incrementAndGet();
         }
 
-        public Instant getWindowStart() {
-            return windowStart;
-        }
-
         public long getMinutesUntilReset(Instant now, int windowMinutes) {
             Instant resetTime = windowStart.plus(windowMinutes, ChronoUnit.MINUTES);
             return ChronoUnit.MINUTES.between(now, resetTime);
         }
     }
 
+    @Getter
     public static class RateLimitStatus {
         private final int currentCount;
         private final int maxCount;
@@ -146,9 +145,6 @@ public class RateLimitingServiceImpl implements RateLimitingService {
             this.minutesUntilReset = minutesUntilReset;
         }
 
-        public int getCurrentCount() { return currentCount; }
-        public int getMaxCount() { return maxCount; }
-        public long getMinutesUntilReset() { return minutesUntilReset; }
         public boolean isLimitExceeded() { return currentCount >= maxCount; }
     }
 }

@@ -102,13 +102,19 @@ public class CreateSubscriptionCommandHandler {
         PaymentService.SubscriptionCreationResult stripeSubscription = stripeSubscriptionResult.getValue().get();
 
         // Step 6: Create subscription domain object
+        Result<com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId> stripeSubIdResult = 
+            com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId.fromString(stripeSubscription.subscriptionId());
+        if (stripeSubIdResult.isFailure()) {
+            return Result.failure(stripeSubIdResult.getError().get());
+        }
+        
         Subscription subscription = Subscription.create(
-            stripeSubscription.subscriptionId(),
+            stripeSubIdResult.getValue().get(),
             command.tier()
         );
 
         // Step 7: Save subscription
-        Result<SubscriptionId> saveResult = subscriptionSaver.apply(subscription);
+        Result<SubscriptionId> saveResult = subscriptionRepository.save(subscription);
         if (saveResult.isFailure()) {
             return Result.failure(saveResult.getError().get());
         }

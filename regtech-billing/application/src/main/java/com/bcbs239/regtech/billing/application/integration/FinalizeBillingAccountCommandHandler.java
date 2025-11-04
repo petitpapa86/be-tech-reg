@@ -21,11 +21,11 @@ public class FinalizeBillingAccountCommandHandler {
         String billingAccountIdStr = (String) command.payload().get("billingAccountId");
         BillingAccountId billingAccountId = BillingAccountId.fromString(billingAccountIdStr).getValue().get();
         
-        Maybe<BillingAccount> maybeAccount = billingAccountRepository.billingAccountFinder().apply(billingAccountId);
+        Maybe<BillingAccount> maybeAccount = billingAccountRepository.findById(billingAccountId);
         if (maybeAccount.isPresent()) {
             BillingAccount billingAccount = maybeAccount.getValue();
             billingAccount.finalizeAccount();
-            Result<BillingAccountId> saveResult = billingAccountRepository.billingAccountSaver().apply(billingAccount);
+            Result<BillingAccountId> saveResult = billingAccountRepository.save(billingAccount);
             if (saveResult.isSuccess()) {
                 return Result.success(null);
             } else {
