@@ -3,6 +3,8 @@ package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -15,6 +17,8 @@ import java.util.Objects;
  * JPA entity for persisting QualityErrorSummary value objects.
  * Maps to the quality_error_summaries table in the database.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "quality_error_summaries", indexes = {
     @Index(name = "idx_error_summaries_batch_id", columnList = "batch_id"),
@@ -29,7 +33,8 @@ import java.util.Objects;
     @Index(name = "idx_error_summaries_error_count", columnList = "error_count")
 })
 public class QualityErrorSummaryEntity {
-    
+
+    // Getters and Setters
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -111,104 +116,7 @@ public class QualityErrorSummaryEntity {
             throw new IllegalArgumentException("Affected exposure IDs list cannot exceed 10 examples");
         }
     }
-    
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
-    
-    public String getBatchId() {
-        return batchId;
-    }
-    
-    public void setBatchId(String batchId) {
-        this.batchId = batchId;
-    }
-    
-    public String getBankId() {
-        return bankId;
-    }
-    
-    public void setBankId(String bankId) {
-        this.bankId = bankId;
-    }
-    
-    public String getRuleCode() {
-        return ruleCode;
-    }
-    
-    public void setRuleCode(String ruleCode) {
-        this.ruleCode = ruleCode;
-    }
-    
-    public QualityDimension getDimension() {
-        return dimension;
-    }
-    
-    public void setDimension(QualityDimension dimension) {
-        this.dimension = dimension;
-    }
-    
-    public ValidationError.ErrorSeverity getSeverity() {
-        return severity;
-    }
-    
-    public void setSeverity(ValidationError.ErrorSeverity severity) {
-        this.severity = severity;
-    }
-    
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-    
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-    
-    public String getFieldName() {
-        return fieldName;
-    }
-    
-    public void setFieldName(String fieldName) {
-        this.fieldName = fieldName;
-    }
-    
-    public Integer getErrorCount() {
-        return errorCount;
-    }
-    
-    public void setErrorCount(Integer errorCount) {
-        this.errorCount = errorCount;
-    }
-    
-    public List<String> getAffectedExposureIds() {
-        return affectedExposureIds;
-    }
-    
-    public void setAffectedExposureIds(List<String> affectedExposureIds) {
-        this.affectedExposureIds = affectedExposureIds;
-    }
-    
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public Long getVersion() {
-        return version;
-    }
-    
-    public void setVersion(Long version) {
-        this.version = version;
-    }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

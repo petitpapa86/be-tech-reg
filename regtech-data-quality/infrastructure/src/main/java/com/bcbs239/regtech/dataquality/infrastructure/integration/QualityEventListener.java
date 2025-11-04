@@ -6,6 +6,7 @@ import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQuali
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -15,6 +16,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -181,7 +183,9 @@ public class QualityEventListener {
  * Event class representing a batch that has been successfully ingested.
  * This event is published by the ingestion module.
  */
+@Getter
 class BatchIngestedEvent {
+    // Getters
     private final String batchId;
     private final String bankId;
     private final String s3Uri;
@@ -203,15 +207,7 @@ class BatchIngestedEvent {
         this.fileMetadata = fileMetadata != null ? fileMetadata : new java.util.HashMap<>();
         this.timestamp = java.time.Instant.now();
     }
-    
-    // Getters
-    public String getBatchId() { return batchId; }
-    public String getBankId() { return bankId; }
-    public String getS3Uri() { return s3Uri; }
-    public int getExpectedExposureCount() { return expectedExposureCount; }
-    public Map<String, Object> getFileMetadata() { return fileMetadata; }
-    public java.time.Instant getTimestamp() { return timestamp; }
-    
+
     @Override
     public String toString() {
         return "BatchIngestedEvent{" +
@@ -227,7 +223,9 @@ class BatchIngestedEvent {
 /**
  * Event class representing a batch processing failure.
  */
+@Getter
 class BatchProcessingFailedEvent {
+    // Getters
     private final String batchId;
     private final String bankId;
     private final String errorMessage;
@@ -239,13 +237,7 @@ class BatchProcessingFailedEvent {
         this.errorMessage = errorMessage;
         this.timestamp = java.time.Instant.now();
     }
-    
-    // Getters
-    public String getBatchId() { return batchId; }
-    public String getBankId() { return bankId; }
-    public String getErrorMessage() { return errorMessage; }
-    public java.time.Instant getTimestamp() { return timestamp; }
-    
+
     @Override
     public String toString() {
         return "BatchProcessingFailedEvent{" +

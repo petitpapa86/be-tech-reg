@@ -71,11 +71,12 @@ public abstract class GenericOutboxEventProcessor {
             long duration = System.currentTimeMillis() - startTime;
             LoggingConfiguration.logBatchProcessing("outbox", contextName, 0, (int) processed, 0, duration);
 
-            logger.info("Completed outbox event processing", LoggingConfiguration.createStructuredLog("OUTBOX_PROCESSING_COMPLETED", Map.of(
-                "context", contextName,
-                "processed", processed,
-                "duration", duration
-            )));
+            logger.info("Completed outbox event processing",
+                    LoggingConfiguration.createStructuredLog("OUTBOX_PROCESSING_COMPLETED", Map.of(
+                            "context", contextName,
+                            "processed", processed,
+                            "duration", duration
+                    )));
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
