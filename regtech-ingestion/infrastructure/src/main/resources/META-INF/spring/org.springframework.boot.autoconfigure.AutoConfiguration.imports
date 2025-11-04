@@ -1,1 +1,1 @@
-com.bcbs239.regtech.modules.ingestion.infrastructure.config.IngestionAutoConfiguration
+com.bcbs239.regtech.ingestion.infrastructure.config.IngestionAutoConfiguration

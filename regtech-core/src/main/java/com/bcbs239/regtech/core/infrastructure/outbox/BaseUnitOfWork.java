@@ -2,9 +2,18 @@ package com.bcbs239.regtech.core.infrastructure.outbox;
 
 import com.bcbs239.regtech.core.events.DomainEvent;
 import com.bcbs239.regtech.core.shared.Result;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,13 +21,16 @@ import java.util.List;
  * Base Unit of Work that collects domain events and persists them to outbox.
  * Subclasses can override to add custom logic, but typically just register entities.
  */
+@Component
+@RequiredArgsConstructor
 public class BaseUnitOfWork {
 
-    @Autowired
-    private EventBus outboxEventBus;
+    private static final Logger logger = LoggerFactory.getLogger(BaseUnitOfWork.class);
 
-    @Autowired
-    private DomainEventPublisher domainEventPublisher;
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    private final ObjectMapper objectMapper;
 
     private final List<DomainEvent> domainEvents = new ArrayList<>();
 
@@ -30,14 +42,6 @@ public class BaseUnitOfWork {
         entity.clearDomainEvents();
     }
 
-    /**
-     * Collect domain events from multiple entities.
-     */
-    protected void collectDomainEvents(com.bcbs239.regtech.core.shared.Entity... entities) {
-        for (com.bcbs239.regtech.core.shared.Entity entity : entities) {
-            collectDomainEvents(entity);
-        }
-    }
 
     /**
      * Register an entity whose domain events should be collected.
@@ -51,35 +55,27 @@ public class BaseUnitOfWork {
      * Events will be dispatched by the OutboxProcessor background job for external systems.
      */
     @Transactional
-    public Result<Void> saveChanges() {
-        try {
-            // Perform the actual save operations (implemented by subclasses)
-            doSaveChanges();
+    public void saveChanges() {
 
-            // Persist domain events to outbox within the same transaction
-            if (!domainEvents.isEmpty()) {
-                Result<Void> outboxResult = outboxEventBus.publishAll(domainEvents.toArray(DomainEvent[]::new));
-                if (outboxResult.isFailure()) {
+        if (!domainEvents.isEmpty()) {
+            for (DomainEvent domainEvent : domainEvents) {
+                String content = null;
+                try {
+                    content = objectMapper.writeValueAsString(domainEvent);
+                } catch (JsonProcessingException e) {
                     domainEvents.clear();
-                    throw new RuntimeException("Failed to persist events to outbox: " + outboxResult.getError().get().getMessage());
                 }
+                String type = domainEvent.getClass().getName();
 
-//                // Schedule dispatch of internal handlers after commit
-//                domainEventPublisher.publishEvents(new ArrayList<>(domainEvents));
-
-                // Clear the collected events now that they've been persisted and scheduled
-                domainEvents.clear();
+                OutboxMessageEntity outboxMessage = new OutboxMessageEntity(type, content, Instant.now());
+                entityManager.persist(outboxMessage);
             }
-
-            return Result.success(null);
-
-        } catch (Exception e) {
-            domainEvents.clear();
-            throw e;
+            if (domainEvents.isEmpty()) {
+                throw new IllegalStateException("Failed to serialize domain events for outbox persistence.");
+            }
         }
+        domainEvents.clear();
+
     }
 
-    protected void doSaveChanges() {
-        // Default implementation does nothing; subclasses can override
-    }
 }

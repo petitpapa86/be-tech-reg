@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.iam.application.users;
 
+import com.bcbs239.regtech.core.infrastructure.outbox.BaseUnitOfWork;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
@@ -25,11 +26,11 @@ public class RegisterUserCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(RegisterUserCommandHandler.class);
 
     private final UserRepository userRepository;
-    private final UserRegistrationUnitOfWork unitOfWork;
+    private final BaseUnitOfWork unitOfWork;
 
     public RegisterUserCommandHandler(
             UserRepository userRepository,
-            UserRegistrationUnitOfWork unitOfWork) {
+            BaseUnitOfWork unitOfWork) {
         this.userRepository = userRepository;
         this.unitOfWork = unitOfWork;
     }
@@ -111,7 +112,7 @@ public class RegisterUserCommandHandler {
         RegisterUserCommand command,
         Function<Email, Maybe<User>> emailLookup,
         Function<User, Result<UserId>> userSaver,
-        UserRegistrationUnitOfWork unitOfWork
+        BaseUnitOfWork unitOfWork
     ) {
     // Fallback to overload that doesn't persist roles (keeps existing tests working)
     return registerUser(command, emailLookup, userSaver, unitOfWork, null);
@@ -122,7 +123,7 @@ public class RegisterUserCommandHandler {
         RegisterUserCommand command,
         Function<Email, Maybe<User>> emailLookup,
         Function<User, Result<UserId>> userSaver,
-        UserRegistrationUnitOfWork unitOfWork,
+        BaseUnitOfWork unitOfWork,
         java.util.function.Function<com.bcbs239.regtech.iam.domain.users.UserRole, Result<String>> userRoleSaver
     ) {
         // Generate correlation ID for saga tracking with user data embedded
@@ -312,15 +313,7 @@ public class RegisterUserCommandHandler {
                 "userId", userId.getValue()
             )));
 
-            Result<Void> uowResult = unitOfWork.saveChanges();
-            if (uowResult.isFailure()) {
-                logger.error("Unit of work save failed", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_UOW_FAILED", Map.of(
-                    "correlationId", correlationId,
-                    "email", command.email(),
-                    "error", uowResult.getError().get().getMessage()
-                )));
-                return Result.failure(uowResult.getError().get());
-            }
+            unitOfWork.saveChanges();
 
             logger.info("User registration completed via unit of work", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_UOW_SUCCESS", Map.of(
                 "correlationId", correlationId,
