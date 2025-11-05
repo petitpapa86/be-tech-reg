@@ -72,8 +72,13 @@ public abstract class BaseController {
     protected ResponseEntity<? extends ApiResponse<?>> handleError(ErrorDetail error) {
         // Determine error type based on error code and content
         if (error.hasFieldErrors() || isValidationError(error.getCode())) {
+            List<com.bcbs239.regtech.core.presentation.apiresponses.FieldError> presentationErrors = 
+                error.getFieldErrors().stream()
+                    .map(fe -> new com.bcbs239.regtech.core.presentation.apiresponses.FieldError(
+                        fe.getField(), fe.getMessage(), fe.getRejectedValue(), fe.getMessageKey()))
+                    .toList();
             return ResponseEntity.badRequest().body(
-                ResponseUtils.validationError(error.getFieldErrors(), error.getMessage())
+                ResponseUtils.validationError(presentationErrors, error.getMessage())
             );
         } else if (isAuthenticationError(error.getCode())) {
             return ResponseEntity.status(401).body(
@@ -102,8 +107,14 @@ public abstract class BaseController {
             List<FieldError> fieldErrors,
             String message) {
 
+        List<com.bcbs239.regtech.core.presentation.apiresponses.FieldError> presentationErrors = 
+            fieldErrors.stream()
+                .map(fe -> new com.bcbs239.regtech.core.presentation.apiresponses.FieldError(
+                    fe.getField(), fe.getMessage(), fe.getRejectedValue(), fe.getMessageKey()))
+                .toList();
+
         return ResponseEntity.badRequest().body(
-            ResponseUtils.validationError(fieldErrors, message)
+            ResponseUtils.validationError(presentationErrors, message)
         );
     }
 
