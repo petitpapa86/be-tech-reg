@@ -17,3 +17,4 @@ public class CoreModuleHealthIndicator implements ModuleHealthIndicator {
         return Health.up().build();
     }
 }
+

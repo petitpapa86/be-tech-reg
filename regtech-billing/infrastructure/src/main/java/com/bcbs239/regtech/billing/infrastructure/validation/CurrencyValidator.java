@@ -36,3 +36,4 @@ public class CurrencyValidator implements ConstraintValidator<ValidCurrency, Str
         return true;
     }
 }
+

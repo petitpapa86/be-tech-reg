@@ -35,3 +35,4 @@ public enum ErrorType {
      */
     NOT_FOUND_ERROR
 }
+

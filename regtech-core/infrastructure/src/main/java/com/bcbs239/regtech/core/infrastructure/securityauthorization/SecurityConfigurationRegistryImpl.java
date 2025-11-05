@@ -24,3 +24,4 @@ public class SecurityConfigurationRegistryImpl implements SecurityConfigurationR
         return Map.copyOf(configurations);
     }
 }
+

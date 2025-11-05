@@ -17,4 +17,10 @@ public class LoggingService implements ILogger {
     public Map<String, Object> createStructuredLog(String eventType, Map<String, Object> details) {
         return LoggingConfiguration.createStructuredLog(eventType, details);
     }
+
+    @Override
+    public void asyncStructuredLog(String message, Map<String, Object> details) {
+        LoggingConfiguration.logStructured(message, details);
+    }
 }
+

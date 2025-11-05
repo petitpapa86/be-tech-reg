@@ -51,3 +51,4 @@ public class QualityResponseHandler extends BaseController {
             .body(responseEntity.getBody());
     }
 }
+

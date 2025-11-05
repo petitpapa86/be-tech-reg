@@ -18,3 +18,4 @@ public class IamModuleHealthIndicator implements ModuleHealthIndicator {
         return Health.up().build();
     }
 }
+

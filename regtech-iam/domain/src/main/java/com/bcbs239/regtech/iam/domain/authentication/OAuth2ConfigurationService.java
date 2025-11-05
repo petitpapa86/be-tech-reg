@@ -52,3 +52,4 @@ public interface OAuth2ConfigurationService {
         }
     }
 }
+

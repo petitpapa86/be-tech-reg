@@ -7,3 +7,4 @@ import com.bcbs239.regtech.iam.domain.users.UserId;
  */
 public record RegisterUserResponse(UserId userId, String correlationId) {
 }
+

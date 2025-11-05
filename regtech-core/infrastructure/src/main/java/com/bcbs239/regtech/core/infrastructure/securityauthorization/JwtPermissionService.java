@@ -280,3 +280,4 @@ public class JwtPermissionService implements PermissionService {
         return permissions;
     }
 }
+

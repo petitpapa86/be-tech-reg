@@ -402,3 +402,4 @@ class CompletenessSpecificationsTest {
         assertEquals("UNIQUENESS_DUPLICATE_EXPOSURE_IDS", result.getError().get().getCode());
         assertTrue(result.getError().get().getMessage().contains("EXP001"));
     }}
+

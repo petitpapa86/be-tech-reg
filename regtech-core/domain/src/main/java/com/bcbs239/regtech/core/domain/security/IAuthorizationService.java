@@ -11,3 +11,4 @@ public interface IAuthorizationService {
 
     boolean isAuthorized(String userId, String resource, String action);
 }
+

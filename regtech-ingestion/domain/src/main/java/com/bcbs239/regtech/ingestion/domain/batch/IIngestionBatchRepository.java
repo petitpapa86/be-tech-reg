@@ -88,3 +88,4 @@ public interface IIngestionBatchRepository {
      */
     List<IngestionBatch> findBatchesInPeriod(Instant startTime, Instant endTime);
 }
+

@@ -13,3 +13,4 @@ public interface ISecurityContext {
 
     boolean hasAuthority(String authority);
 }
+

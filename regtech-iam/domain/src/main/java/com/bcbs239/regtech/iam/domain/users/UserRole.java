@@ -59,3 +59,4 @@ public class UserRole {
     public String getOrganizationId() { return organizationId; }
     public boolean isActive() { return active; }
 }
+

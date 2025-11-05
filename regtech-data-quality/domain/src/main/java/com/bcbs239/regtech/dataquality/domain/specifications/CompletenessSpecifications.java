@@ -113,3 +113,4 @@ public class CompletenessSpecifications {
         return value == null || value.trim().isEmpty();
     }
 }
+

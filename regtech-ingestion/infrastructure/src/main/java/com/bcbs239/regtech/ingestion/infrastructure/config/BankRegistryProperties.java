@@ -19,3 +19,4 @@ public record BankRegistryProperties(
         if (retryAttempts == 0) retryAttempts = 3;
     }
 }
+

@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.presentation.validation;
 
-import com.bcbs239.regtech.core.application.shared.Maybe;
+
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 
 /**
  * Small validation helpers that return Maybe instead of nulls to avoid NPEs
@@ -16,3 +17,4 @@ public final class ValidationUtils {
         return Maybe.some(name.trim());
     }
 }
+

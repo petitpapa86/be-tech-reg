@@ -30,3 +30,4 @@ public @interface ValidEmail {
      */
     int maxLength() default 254;
 }
+

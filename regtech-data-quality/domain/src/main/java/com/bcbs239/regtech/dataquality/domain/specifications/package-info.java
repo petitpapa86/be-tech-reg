@@ -10,3 +10,4 @@
  * - Validity: Business rule compliance validation
  */
 package com.bcbs239.regtech.dataquality.domain.specifications;
+

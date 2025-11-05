@@ -91,3 +91,4 @@ public enum QualityGrade {
         return this.ordinal() >= ACCEPTABLE.ordinal();
     }
 }
+

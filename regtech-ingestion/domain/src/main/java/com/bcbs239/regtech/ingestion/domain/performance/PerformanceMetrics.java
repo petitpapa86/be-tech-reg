@@ -59,3 +59,4 @@ public record PerformanceMetrics(
                getThroughputMBps() >= minThroughputMBps;
     }
 }
+

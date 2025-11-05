@@ -87,3 +87,4 @@ public class ProcessInboxJob {
         logger.info("Processed {} inbox messages successfully", processedCount);
     }
 }
+

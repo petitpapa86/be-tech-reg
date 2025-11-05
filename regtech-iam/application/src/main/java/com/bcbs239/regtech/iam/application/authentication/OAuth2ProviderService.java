@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.iam.application.authentication;
 
-import com.bcbs239.regtech.core.application.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 /**
  * Service interface for OAuth2 provider authentication
@@ -42,3 +42,4 @@ public interface OAuth2ProviderService {
      */
     Result<OAuth2UserInfo> getUserInfo(String provider, String accessToken);
 }
+

@@ -8,3 +8,4 @@ public class RetrySagaCommand extends SagaCommand {
         super(sagaId, "RETRY_SAGA", Map.of("sagaId", sagaId.toString()), Instant.now());
     }
 }
+

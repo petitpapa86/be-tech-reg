@@ -45,3 +45,4 @@ public record BatchId(String value) {
         return value;
     }
 }
+

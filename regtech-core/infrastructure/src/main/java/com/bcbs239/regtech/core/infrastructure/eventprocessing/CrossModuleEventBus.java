@@ -89,3 +89,4 @@ public class CrossModuleEventBus implements IIntegrationEventBus, InitializingBe
         publishEventSynchronously(event);
     }
 }
+

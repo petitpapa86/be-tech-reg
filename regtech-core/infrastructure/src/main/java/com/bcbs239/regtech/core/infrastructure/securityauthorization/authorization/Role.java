@@ -230,3 +230,4 @@ public enum Role {
         return permissions.contains(permission);
     }
 }
+

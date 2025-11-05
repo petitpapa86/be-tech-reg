@@ -138,3 +138,4 @@ public record BillingPeriod(YearMonth yearMonth) {
         return yearMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
     }
 }
+

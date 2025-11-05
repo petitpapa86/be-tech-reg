@@ -2,8 +2,8 @@ package com.bcbs239.regtech.core.application.inbox;
 
 import com.bcbs239.regtech.core.application.eventprocessing.IntegrationEventDeserializer;
 import com.bcbs239.regtech.core.application.integration.DomainEventDispatcher;
-import com.bcbs239.regtech.core.domain.core.Result;
-import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.events.BaseEvent;
 import com.bcbs239.regtech.core.domain.inbox.IInboxMessageRepository;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessage;
@@ -88,3 +88,4 @@ public class ProcessInboxJob {
         }
     }
 }
+

@@ -47,3 +47,4 @@ public record UsageMetrics(
         return totalExposures > 0 || documentsProcessed > 0 || dataVolumeBytes > 0;
     }
 }
+

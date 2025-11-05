@@ -5,13 +5,14 @@ import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.Consumer;
-
+@Setter
 @Getter
 @Slf4j
 public abstract class AbstractSaga<T> {
@@ -30,13 +31,7 @@ public abstract class AbstractSaga<T> {
     // Inject the timeout scheduler (for retries and timeouts)
     protected final TimeoutScheduler timeoutScheduler;
     protected final ILogger logger;
-    public void setStatus(SagaStatus status) {
-        this.status = status;
-    }
-    
-    public void setCompletedAt(Instant completedAt) {
-        this.completedAt = completedAt;
-    }
+
     
     private final List<SagaCommand> commandsToDispatch = new ArrayList<>();
     private final List<SagaMessage> processedEvents = new ArrayList<>();
@@ -241,3 +236,4 @@ public abstract class AbstractSaga<T> {
     }
     
 }
+

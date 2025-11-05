@@ -45,3 +45,4 @@ public @interface ValidSanitizedText {
      */
     boolean checkSqlInjection() default true;
 }
+

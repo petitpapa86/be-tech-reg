@@ -90,3 +90,4 @@ public class BillingSecurityConfiguration implements ModuleSecurityConfiguration
         return new BillingRateLimitingFilter(paymentRateLimit);
     }
 }
+

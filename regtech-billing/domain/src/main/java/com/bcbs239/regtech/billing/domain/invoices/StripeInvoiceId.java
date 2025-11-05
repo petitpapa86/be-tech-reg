@@ -46,3 +46,4 @@ public record StripeInvoiceId(String value) {
         return value;
     }
 }
+

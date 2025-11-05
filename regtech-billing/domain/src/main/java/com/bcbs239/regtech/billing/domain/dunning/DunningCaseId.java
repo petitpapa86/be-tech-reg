@@ -25,3 +25,4 @@ public record DunningCaseId(UUID value) {
         return value.toString();
     }
 }
+

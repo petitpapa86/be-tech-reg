@@ -41,3 +41,4 @@ public record InvoiceLineItemId(String value) {
         return value;
     }
 }
+

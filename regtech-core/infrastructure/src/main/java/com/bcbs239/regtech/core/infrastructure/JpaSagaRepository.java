@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.infrastructure;
 
-import com.bcbs239.regtech.core.domain.core.Maybe;
-import com.bcbs239.regtech.core.domain.core.Result;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.saga.ISagaRepository;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.SagaSnapshot;
@@ -119,3 +119,4 @@ public class JpaSagaRepository implements ISagaRepository {
         }
     }
 }
+

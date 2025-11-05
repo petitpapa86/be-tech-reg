@@ -56,3 +56,4 @@ public enum QualityStatus {
         return this == COMPLETED;
     }
 }
+

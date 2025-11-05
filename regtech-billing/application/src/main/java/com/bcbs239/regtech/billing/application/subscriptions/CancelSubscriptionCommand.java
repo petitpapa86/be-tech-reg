@@ -56,3 +56,4 @@ public record CancelSubscriptionCommand(
         return cancellationDate != null ? cancellationDate : LocalDate.now();
     }
 }
+

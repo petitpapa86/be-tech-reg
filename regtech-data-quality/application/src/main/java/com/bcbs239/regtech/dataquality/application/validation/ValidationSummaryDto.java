@@ -187,3 +187,4 @@ public record ValidationSummaryDto(
         return getErrorCountForSeverity("WARNING") > 0;
     }
 }
+

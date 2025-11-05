@@ -36,3 +36,4 @@ public record SubscriptionId(String value) {
     }
 
 }
+

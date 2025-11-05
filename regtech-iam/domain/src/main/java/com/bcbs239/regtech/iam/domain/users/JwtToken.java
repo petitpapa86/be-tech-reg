@@ -1,7 +1,9 @@
 package com.bcbs239.regtech.iam.domain.users;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.application.shared.Result;
+
+
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import io.jsonwebtoken.*;
 
 import java.time.Duration;
@@ -49,8 +51,7 @@ public record JwtToken(String value, Instant expiresAt) {
             return Result.success(new JwtToken(token, expiresAt));
         } catch (Exception e) {
             return Result.failure(ErrorDetail.of("JWT_GENERATION_FAILED",
-                "Failed to generate JWT token: " + e.getMessage(),
-                "error.jwt.generationFailed"));
+                "Failed to generate JWT token: " + e.getMessage()));
         }
     }
 
@@ -67,20 +68,16 @@ public record JwtToken(String value, Instant expiresAt) {
             return Result.success(new JwtClaims(claims));
         } catch (ExpiredJwtException e) {
             return Result.failure(ErrorDetail.of("JWT_EXPIRED",
-                "JWT token has expired",
-                "error.jwt.expired"));
+                "JWT token has expired"));
         } catch (MalformedJwtException e) {
             return Result.failure(ErrorDetail.of("JWT_MALFORMED",
-                "JWT token is malformed",
-                "error.jwt.malformed"));
+                "JWT token is malformed"));
         } catch (SignatureException e) {
             return Result.failure(ErrorDetail.of("JWT_INVALID_SIGNATURE",
-                "JWT token has invalid signature",
-                "error.jwt.invalidSignature"));
+                "JWT token has invalid signature"));
         } catch (Exception e) {
             return Result.failure(ErrorDetail.of("JWT_VALIDATION_FAILED",
-                "JWT token validation failed: " + e.getMessage(),
-                "error.jwt.validationFailed"));
+                "JWT token validation failed: " + e.getMessage()));
         }
     }
 
@@ -116,3 +113,4 @@ public record JwtToken(String value, Instant expiresAt) {
         }
     }
 }
+

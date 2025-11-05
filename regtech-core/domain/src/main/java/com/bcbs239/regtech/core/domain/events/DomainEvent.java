@@ -6,3 +6,4 @@ package com.bcbs239.regtech.core.domain.events;
 public interface DomainEvent {
     String eventType();
 }
+

@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.iam.domain.users;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.application.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 
 import java.util.UUID;
 
@@ -17,7 +17,7 @@ public record BankId(String value) {
     public static Result<BankId> fromString(String value) {
         if (value == null || value.trim().isEmpty()) {
             return Result.failure(ErrorDetail.of("INVALID_BANK_ID",
-                "Bank ID cannot be null or empty", "error.bankId.invalid"));
+                "Bank ID cannot be null or empty"));
         }
         return Result.success(new BankId(value.trim()));
     }
@@ -26,3 +26,4 @@ public record BankId(String value) {
         return value;
     }
 }
+

@@ -373,3 +373,4 @@ public class Invoice {
             id, invoiceNumber, status, totalAmount);
     }
 }
+

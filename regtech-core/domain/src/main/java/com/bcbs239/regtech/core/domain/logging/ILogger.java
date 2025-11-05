@@ -15,4 +15,7 @@ public interface ILogger {
      * @return a map representing the structured log entry
      */
     Map<String, Object> createStructuredLog(String eventType, Map<String, Object> details);
+
+    void asyncStructuredLog(String message, Map<String, Object> details);
 }
+

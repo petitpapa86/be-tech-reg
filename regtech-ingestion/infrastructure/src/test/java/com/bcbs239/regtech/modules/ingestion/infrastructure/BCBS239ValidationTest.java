@@ -446,3 +446,4 @@ class BCBS239ValidationTest extends BaseIntegrationTest {
         public boolean exceedsLimit() { return exceedsLimit; }
     }
 }
+

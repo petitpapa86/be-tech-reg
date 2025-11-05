@@ -12,6 +12,13 @@
 	<description>Presentation layer for Core module - contains REST controllers and DTOs</description>
 	
 	<dependencies>
+		<!-- Domain layer dependency -->
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-core-domain</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
 		<!-- Application layer dependency -->
 		<dependency>
 			<groupId>com.bcbs239</groupId>

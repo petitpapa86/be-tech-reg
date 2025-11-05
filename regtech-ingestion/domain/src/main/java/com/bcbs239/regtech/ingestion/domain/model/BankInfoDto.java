@@ -10,3 +10,4 @@ public record BankInfoDto(
     @JsonProperty("total_loans") int totalLoans
 ) {}
 
+

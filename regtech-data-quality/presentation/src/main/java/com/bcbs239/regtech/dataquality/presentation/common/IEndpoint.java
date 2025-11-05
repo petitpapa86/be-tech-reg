@@ -16,3 +16,4 @@ public interface IEndpoint {
      */
     RouterFunction<ServerResponse> mapEndpoints();
 }
+

@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.domain.core;
+package com.bcbs239.regtech.core.domain.shared;
 
 /**
  * Maybe type for optional values in functional programming

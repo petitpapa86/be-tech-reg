@@ -31,3 +31,4 @@ public interface TimeProvider {
      */
     Clock getClock();
 }
+

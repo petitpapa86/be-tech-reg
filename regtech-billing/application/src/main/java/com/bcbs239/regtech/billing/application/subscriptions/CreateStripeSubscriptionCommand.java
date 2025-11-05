@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.billing.application.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.core.domain.saga.SagaCommand;
-import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.saga.SagaCommand;
+import com.bcbs239.regtech.core.saga.SagaId;
 
 import java.time.Instant;
 import java.util.Map;
@@ -29,3 +29,4 @@ public class CreateStripeSubscriptionCommand extends SagaCommand {
         return (String) payload().get("userId");
     }
 }
+

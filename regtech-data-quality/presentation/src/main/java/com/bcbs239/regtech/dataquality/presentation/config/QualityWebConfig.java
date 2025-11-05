@@ -26,3 +26,4 @@ public class QualityWebConfig {
             .and(qualityHealthRoutes.createRoutes());
     }
 }
+

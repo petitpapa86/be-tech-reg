@@ -42,3 +42,4 @@ public record PaymentMethodId(String value) {
         return value;
     }
 }
+

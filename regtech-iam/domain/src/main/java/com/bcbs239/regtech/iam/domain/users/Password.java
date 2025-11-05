@@ -1,7 +1,9 @@
 package com.bcbs239.regtech.iam.domain.users;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.application.shared.Result;
+
+
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 
 import java.util.regex.Pattern;
 
@@ -20,32 +22,27 @@ public record Password(String hash) {
     public static Result<Password> create(String plainPassword) {
         if (plainPassword == null || plainPassword.length() < MIN_LENGTH) {
             return Result.failure(ErrorDetail.of("PASSWORD_TOO_SHORT",
-                "Password must be at least " + MIN_LENGTH + " characters long",
-                "error.password.tooShort"));
+                "Password must be at least " + MIN_LENGTH + " characters long"));
         }
 
         if (!UPPERCASE.matcher(plainPassword).matches()) {
             return Result.failure(ErrorDetail.of("PASSWORD_MISSING_UPPERCASE",
-                "Password must contain at least one uppercase letter",
-                "error.password.missingUppercase"));
+                "Password must contain at least one uppercase letter"));
         }
 
         if (!LOWERCASE.matcher(plainPassword).matches()) {
             return Result.failure(ErrorDetail.of("PASSWORD_MISSING_LOWERCASE",
-                "Password must contain at least one lowercase letter",
-                "error.password.missingLowercase"));
+                "Password must contain at least one lowercase letter"));
         }
 
         if (!DIGIT.matcher(plainPassword).matches()) {
             return Result.failure(ErrorDetail.of("PASSWORD_MISSING_DIGIT",
-                "Password must contain at least one number",
-                "error.password.missingDigit"));
+                "Password must contain at least one number"));
         }
 
         if (!SPECIAL_CHAR.matcher(plainPassword).matches()) {
             return Result.failure(ErrorDetail.of("PASSWORD_MISSING_SPECIAL",
-                "Password must contain at least one special character",
-                "error.password.missingSpecial"));
+                "Password must contain at least one special character"));
         }
 
         // In real implementation, hash the password here with BCrypt
@@ -80,3 +77,4 @@ public record Password(String hash) {
         return hash;
     }
 }
+

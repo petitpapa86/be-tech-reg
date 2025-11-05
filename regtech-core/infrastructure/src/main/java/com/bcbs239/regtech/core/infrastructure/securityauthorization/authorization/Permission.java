@@ -71,3 +71,4 @@ public final class Permission {
         // Utility class
     }
 }
+

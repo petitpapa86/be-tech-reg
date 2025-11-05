@@ -136,3 +136,4 @@ public record NotificationsConfiguration(
         }
     }
 }
+

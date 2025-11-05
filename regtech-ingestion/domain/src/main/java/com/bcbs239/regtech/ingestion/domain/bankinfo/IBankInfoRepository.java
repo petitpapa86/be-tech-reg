@@ -67,3 +67,4 @@ public interface IBankInfoRepository {
      */
     Result<Void> updateLastUpdated(BankId bankId, Instant timestamp);
 }
+

@@ -40,3 +40,4 @@ public record WebhookEvent(
         return type.startsWith("customer.");
     }
 }
+

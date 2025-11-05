@@ -82,3 +82,4 @@ public record GenerateInvoiceCommand(
         return BillingAccountId.fromString(billingAccountId);
     }
 }
+

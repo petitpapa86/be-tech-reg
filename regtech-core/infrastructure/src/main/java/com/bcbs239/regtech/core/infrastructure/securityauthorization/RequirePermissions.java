@@ -25,3 +25,4 @@ public @interface RequirePermissions {
      */
     boolean requireAll() default true;
 }
+

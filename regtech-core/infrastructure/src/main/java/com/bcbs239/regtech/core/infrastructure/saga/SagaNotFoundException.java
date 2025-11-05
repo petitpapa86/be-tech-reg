@@ -7,3 +7,4 @@ public class SagaNotFoundException extends RuntimeException {
         super("Saga not found with id: " + sagaId.id());
     }
 }
+

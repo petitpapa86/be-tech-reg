@@ -89,3 +89,4 @@ public class EventSerializer {
         return event.getClass().getName();
     }
 }
+

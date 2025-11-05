@@ -67,3 +67,4 @@ public record FileSplittingSuggestion(
         return "WARNING".equalsIgnoreCase(severity);
     }
 }
+

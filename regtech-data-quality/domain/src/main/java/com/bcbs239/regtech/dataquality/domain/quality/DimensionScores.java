@@ -117,3 +117,4 @@ public record DimensionScores(
         return (completeness + accuracy + consistency + timeliness + uniqueness + validity) / 6.0;
     }
 }
+

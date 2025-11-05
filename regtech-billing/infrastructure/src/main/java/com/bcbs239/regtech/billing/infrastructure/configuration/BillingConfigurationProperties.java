@@ -149,3 +149,4 @@ public record BillingConfigurationProperties(
         boolean enabled
     ) {}
 }
+

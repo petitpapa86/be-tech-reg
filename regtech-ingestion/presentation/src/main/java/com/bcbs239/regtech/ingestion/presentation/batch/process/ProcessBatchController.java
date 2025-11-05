@@ -109,3 +109,4 @@ public class ProcessBatchController extends BaseController implements IEndpoint 
         return Result.success(null);
     }
 }
+

@@ -32,3 +32,4 @@ public class StripeSubscriptionCreatedEvent extends SagaMessage {
         return subscriptionId;
     }
 }
+

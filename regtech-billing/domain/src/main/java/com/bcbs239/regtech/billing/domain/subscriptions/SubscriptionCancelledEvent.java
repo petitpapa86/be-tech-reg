@@ -65,3 +65,4 @@ public class SubscriptionCancelledEvent extends BaseEvent {
             subscriptionId, billingAccountId, userId, tier, cancellationDate, cancellationReason, getCorrelationId());
     }
 }
+

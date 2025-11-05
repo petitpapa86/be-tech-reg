@@ -29,3 +29,4 @@ public interface BaseEventHandler<T extends IntegrationEvent> {
      */
     String getHandlerName();
 }
+

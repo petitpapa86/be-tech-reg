@@ -148,3 +148,4 @@ public class RateLimitingServiceImpl implements RateLimitingService {
         public boolean isLimitExceeded() { return currentCount >= maxCount; }
     }
 }
+

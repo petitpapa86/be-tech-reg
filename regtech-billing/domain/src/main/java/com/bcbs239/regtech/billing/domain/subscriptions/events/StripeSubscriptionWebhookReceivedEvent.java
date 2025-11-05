@@ -24,3 +24,4 @@ public class StripeSubscriptionWebhookReceivedEvent extends SagaMessage {
         return stripeInvoiceId;
     }
 }
+

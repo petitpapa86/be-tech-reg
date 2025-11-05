@@ -69,3 +69,4 @@ public record DunningConfiguration(
         }
     }
 }
+

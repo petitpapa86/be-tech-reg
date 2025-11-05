@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.iam.application.authentication;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.application.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
 import org.springframework.stereotype.Component;
 
@@ -52,8 +52,7 @@ public class AuthenticateUserCommandHandler {
         // Validate command
         if (!command.isValid()) {
             return Result.failure(ErrorDetail.of("INVALID_COMMAND",
-                "Email and password are required",
-                "error.authentication.invalidCommand"));
+                "Email and password are required"));
         }
 
         // Create email value object
@@ -67,8 +66,7 @@ public class AuthenticateUserCommandHandler {
         Maybe<User> userMaybe = userLookup.apply(email);
         if (userMaybe.isEmpty()) {
             return Result.failure(ErrorDetail.of("INVALID_CREDENTIALS",
-                "Invalid email or password",
-                "error.authentication.invalidCredentials"));
+                "Invalid email or password"));
         }
 
         User user = userMaybe.getValue();
@@ -76,15 +74,13 @@ public class AuthenticateUserCommandHandler {
         // Check if user is active
         if (user.getStatus() != UserStatus.ACTIVE) {
             return Result.failure(ErrorDetail.of("USER_NOT_ACTIVE",
-                "User account is not active",
-                "error.authentication.userNotActive"));
+                "User account is not active"));
         }
 
         // Verify password
         if (!user.getPassword().matches(command.password())) {
             return Result.failure(ErrorDetail.of("INVALID_CREDENTIALS",
-                "Invalid email or password",
-                "error.authentication.invalidCredentials"));
+                "Invalid email or password"));
         }
 
         // Generate JWT token
@@ -134,3 +130,4 @@ public class AuthenticateUserCommandHandler {
         }
     }
 }
+

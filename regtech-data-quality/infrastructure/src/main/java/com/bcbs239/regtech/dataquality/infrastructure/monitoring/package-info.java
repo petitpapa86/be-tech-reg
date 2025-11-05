@@ -14,3 +14,4 @@
  * - Integrating with external monitoring systems
  */
 package com.bcbs239.regtech.dataquality.infrastructure.monitoring;
+

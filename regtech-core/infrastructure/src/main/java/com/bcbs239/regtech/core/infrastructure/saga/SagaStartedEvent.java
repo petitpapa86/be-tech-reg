@@ -21,3 +21,4 @@ public class SagaStartedEvent extends SagaMessage {
     }
 
 }
+

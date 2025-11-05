@@ -1,6 +1,4 @@
-package com.bcbs239.regtech.core.domain.core;
-
-import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+package com.bcbs239.regtech.core.domain.shared;
 
 import java.util.List;
 import java.util.Optional;

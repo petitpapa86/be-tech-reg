@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.core.domain.specifications;
 
-import com.bcbs239.regtech.core.domain.core.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 /**
  * Base interface for the Specification pattern.
@@ -47,3 +47,4 @@ public interface Specification<T> {
         return new NotSpecification<>(this);
     }
 }
+

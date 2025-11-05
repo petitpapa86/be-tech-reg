@@ -12,3 +12,4 @@ public record CreditRiskMitigation(
         Objects.requireNonNull(exposureId);
     }
 }
+

@@ -41,3 +41,4 @@ public record StripeConfiguration(
         return apiKey.startsWith("sk_live_");
     }
 }
+

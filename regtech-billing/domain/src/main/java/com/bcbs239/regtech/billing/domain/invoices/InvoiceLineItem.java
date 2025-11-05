@@ -63,3 +63,4 @@ public record InvoiceLineItem(
         return Result.success(new InvoiceLineItem(id, description, unitAmount, quantity, totalAmount));
     }
 }
+

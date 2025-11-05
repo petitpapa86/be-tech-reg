@@ -32,3 +32,4 @@ public record QualityResultsRecordedEvent(
         return "QualityResultsRecorded";
     }
 }
+

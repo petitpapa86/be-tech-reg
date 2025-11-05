@@ -120,3 +120,4 @@ public class BatchStatusController extends BaseController implements IEndpoint {
         return Result.success(null);
     }
 }
+

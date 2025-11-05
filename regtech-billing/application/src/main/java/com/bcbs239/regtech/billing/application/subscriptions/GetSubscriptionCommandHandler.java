@@ -44,3 +44,4 @@ public class GetSubscriptionCommandHandler {
         return Result.success(GetSubscriptionResponse.from(subscription));
     }
 }
+

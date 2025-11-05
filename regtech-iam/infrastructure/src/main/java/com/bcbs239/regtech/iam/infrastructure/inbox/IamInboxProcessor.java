@@ -18,3 +18,4 @@ public class IamInboxProcessor extends GenericInboxEventProcessor {
         return true;
     }
 }
+

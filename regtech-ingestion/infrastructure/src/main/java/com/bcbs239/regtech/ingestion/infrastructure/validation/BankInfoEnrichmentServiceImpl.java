@@ -66,3 +66,4 @@ public class BankInfoEnrichmentServiceImpl implements BankInfoEnrichmentService 
         return Result.success(null);
     }
 }
+

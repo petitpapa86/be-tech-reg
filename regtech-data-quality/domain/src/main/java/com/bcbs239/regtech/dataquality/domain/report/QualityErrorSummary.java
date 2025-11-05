@@ -110,3 +110,4 @@ public record QualityErrorSummary(
         return !affectedExposureIds.isEmpty();
     }
 }
+

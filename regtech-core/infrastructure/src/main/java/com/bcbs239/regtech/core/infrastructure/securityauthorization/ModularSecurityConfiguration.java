@@ -99,3 +99,4 @@ public class ModularSecurityConfiguration {
         return source;
     }
 }
+

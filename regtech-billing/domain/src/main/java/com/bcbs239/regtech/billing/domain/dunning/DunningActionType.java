@@ -49,3 +49,4 @@ public enum DunningActionType {
         return this == ACCOUNT_SUSPENSION;
     }
 }
+

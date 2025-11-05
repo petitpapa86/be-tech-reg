@@ -19,3 +19,4 @@ public record LoanExposureDto(
     @JsonProperty("country_code") String countryCode
 ) {}
 
+

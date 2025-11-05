@@ -110,3 +110,4 @@ public class QualityHealthResponseHandler {
             .body(errorResponse);
     }
 }
+

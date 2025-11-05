@@ -10,3 +10,4 @@ public record BatchStatusQuery(
     String authToken
 ) {
 }
+

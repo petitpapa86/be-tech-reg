@@ -69,3 +69,4 @@ public enum InvoiceStatus {
         return this == DRAFT;
     }
 }
+

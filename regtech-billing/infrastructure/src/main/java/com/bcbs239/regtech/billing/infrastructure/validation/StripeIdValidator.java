@@ -42,3 +42,4 @@ public class StripeIdValidator implements ConstraintValidator<ValidStripeId, Str
         return true;
     }
 }
+

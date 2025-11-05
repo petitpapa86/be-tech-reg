@@ -59,3 +59,4 @@ public interface AuthorizationService {
      */
     boolean canAccessOrganization(String organizationId);
 }
+

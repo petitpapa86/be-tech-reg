@@ -18,3 +18,4 @@ public abstract class SagaData {
     private String correlationId;
     private final Map<String, String> metadata = new HashMap<>();
 }
+

@@ -36,3 +36,4 @@ public interface QualityValidationEngine {
      */
     Result<ValidationResult> validateBatchLevel(List<ExposureRecord> exposures);
 }
+

@@ -22,3 +22,4 @@ public record BatchCompletedEvent(
         return "BatchCompleted";
     }
 }
+

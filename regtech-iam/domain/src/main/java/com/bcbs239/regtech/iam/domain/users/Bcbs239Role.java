@@ -196,3 +196,4 @@ public enum Bcbs239Role {
         return permissions.contains(operation);
     }
 }
+

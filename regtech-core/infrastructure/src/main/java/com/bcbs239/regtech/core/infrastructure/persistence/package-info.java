@@ -17,3 +17,4 @@
  * - LoggingConfiguration: Persistence operation logging and monitoring
  */
 package com.bcbs239.regtech.core.infrastructure.persistence;
+

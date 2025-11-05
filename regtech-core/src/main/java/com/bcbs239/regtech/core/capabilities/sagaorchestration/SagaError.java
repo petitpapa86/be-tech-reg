@@ -14,3 +14,4 @@ public class SagaError {
         return new SagaError(message + " (retry)", errorType, recoverable, semiRecoverable);
     }
 }
+

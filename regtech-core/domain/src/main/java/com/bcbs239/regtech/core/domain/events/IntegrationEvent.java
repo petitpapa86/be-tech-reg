@@ -33,3 +33,4 @@ public abstract class IntegrationEvent implements DomainEvent {
         return String.format("%s{id=%s, occurredOn=%s}", eventType, id, occurredOn);
     }
 }
+

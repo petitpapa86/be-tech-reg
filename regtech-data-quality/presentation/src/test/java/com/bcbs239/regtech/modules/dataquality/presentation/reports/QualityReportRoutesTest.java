@@ -45,3 +45,4 @@ class QualityReportRoutesTest {
         assertThat(routes).isNotNull();
     }
 }
+

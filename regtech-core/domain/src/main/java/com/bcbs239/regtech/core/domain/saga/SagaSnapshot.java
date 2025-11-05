@@ -61,3 +61,4 @@ public class SagaSnapshot {
         return completedAt;
     }
 }
+

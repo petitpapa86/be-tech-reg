@@ -9,3 +9,4 @@ public record CreditRiskMitigationDto(
     @JsonProperty("collateral_currency") String collateralCurrency
 ) {}
 
+

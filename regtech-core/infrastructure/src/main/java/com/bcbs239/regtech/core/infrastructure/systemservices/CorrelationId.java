@@ -12,3 +12,4 @@ public record CorrelationId(String id) {
         return new CorrelationId(id);
     }
 }
+

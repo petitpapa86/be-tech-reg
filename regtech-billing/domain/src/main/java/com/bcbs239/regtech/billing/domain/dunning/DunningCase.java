@@ -269,3 +269,4 @@ public class DunningCase {
             id, invoiceId, status, currentStep, version);
     }
 }
+

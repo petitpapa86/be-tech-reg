@@ -32,3 +32,4 @@ public interface QualityScoringEngine {
         QualityWeights customWeights
     );
 }
+

@@ -2,9 +2,9 @@ package com.bcbs239.regtech.iam.infrastructure.database.repositories;
 
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.security.authorization.Role;
-import com.bcbs239.regtech.core.application.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.application.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserBankAssignmentEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
@@ -247,3 +247,4 @@ public class JpaUserRepository {
      */
     public record UserRoleQuery(UserId userId, Role role) {}
 }
+

@@ -14,3 +14,4 @@
  * - Handling external service contracts
  */
 package com.bcbs239.regtech.dataquality.application.integration;
+

@@ -7,3 +7,4 @@ package com.bcbs239.regtech.ingestion.application.batch;
  */
 public interface IngestionSecurityService {
 }
+

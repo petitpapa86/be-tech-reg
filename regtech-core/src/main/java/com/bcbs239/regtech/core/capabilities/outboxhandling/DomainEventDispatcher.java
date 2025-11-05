@@ -84,3 +84,4 @@ public class DomainEventDispatcher {
         return this::dispatch;
     }
 }
+

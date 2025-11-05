@@ -82,3 +82,4 @@ public class BatchStatusDto {
         return Math.max(0, remaining);
     }
 }
+

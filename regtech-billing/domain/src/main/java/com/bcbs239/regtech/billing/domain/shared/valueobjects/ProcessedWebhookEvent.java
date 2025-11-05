@@ -52,3 +52,4 @@ public record ProcessedWebhookEvent(
         return result == ProcessingResult.SUCCESS;
     }
 }
+

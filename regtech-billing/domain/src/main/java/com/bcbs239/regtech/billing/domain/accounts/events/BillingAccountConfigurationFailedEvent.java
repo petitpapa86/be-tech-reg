@@ -30,3 +30,4 @@ public class BillingAccountConfigurationFailedEvent extends SagaMessage {
         return errorMessage;
     }
 }
+

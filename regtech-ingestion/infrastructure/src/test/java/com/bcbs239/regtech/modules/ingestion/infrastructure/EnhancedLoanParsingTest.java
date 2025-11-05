@@ -95,3 +95,4 @@ class EnhancedLoanParsingTest {
             .contains("IT", "DE", "CA");
     }
 }
+

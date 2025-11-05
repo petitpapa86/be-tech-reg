@@ -70,3 +70,4 @@ public enum QualityDimension {
         throw new IllegalArgumentException("Unknown quality dimension: " + displayName);
     }
 }
+

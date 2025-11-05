@@ -16,3 +16,4 @@ public final class Tags {
         // Utility class - prevent instantiation
     }
 }
+

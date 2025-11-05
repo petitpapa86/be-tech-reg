@@ -281,3 +281,4 @@ class QualityReportTest {
         return report;
     }
 }
+

@@ -212,3 +212,4 @@ public class ConsistencySpecifications {
         return value == null || value.trim().isEmpty();
     }
 }
+

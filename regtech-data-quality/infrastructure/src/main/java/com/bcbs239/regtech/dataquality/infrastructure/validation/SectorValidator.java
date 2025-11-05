@@ -237,3 +237,4 @@ public class SectorValidator {
         return Set.copyOf(VALID_COUNTERPARTY_TYPES);
     }
 }
+

@@ -27,3 +27,4 @@ public class ModularHealthIndicator implements HealthIndicator {
         return builder.build();
     }
 }
+

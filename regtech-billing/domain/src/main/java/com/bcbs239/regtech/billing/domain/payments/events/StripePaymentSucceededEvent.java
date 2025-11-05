@@ -18,3 +18,4 @@ public class StripePaymentSucceededEvent extends SagaMessage {
         return stripePaymentIntentId;
     }
 }
+

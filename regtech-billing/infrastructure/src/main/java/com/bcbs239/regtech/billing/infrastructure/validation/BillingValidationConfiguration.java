@@ -56,3 +56,4 @@ public class BillingValidationConfiguration implements WebMvcConfigurer {
                 .addPathPatterns("/api/webhooks/**");
     }
 }
+

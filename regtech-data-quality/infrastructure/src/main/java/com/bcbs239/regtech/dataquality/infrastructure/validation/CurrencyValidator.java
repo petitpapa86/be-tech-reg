@@ -95,3 +95,4 @@ public class CurrencyValidator {
         return Set.copyOf(VALID_CURRENCIES);
     }
 }
+

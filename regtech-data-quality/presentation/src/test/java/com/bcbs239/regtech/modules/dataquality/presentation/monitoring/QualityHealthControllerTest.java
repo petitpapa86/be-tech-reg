@@ -54,3 +54,4 @@ class QualityHealthControllerTest {
             .hasMessageContaining("QualityHealthRoutes");
     }
 }
+

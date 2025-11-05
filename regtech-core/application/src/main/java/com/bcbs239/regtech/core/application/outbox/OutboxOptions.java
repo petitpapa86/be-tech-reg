@@ -1,9 +1,13 @@
 package com.bcbs239.regtech.core.application.outbox;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
 
+@Setter
+@Getter
 @ConfigurationProperties(prefix = "outbox")
 public class OutboxOptions {
     private int batchSize = 10;
@@ -13,28 +17,6 @@ public class OutboxOptions {
     public OutboxOptions() {
     }
 
-    public int getBatchSize() {
-        return batchSize;
-    }
-
-    public void setBatchSize(int batchSize) {
-        this.batchSize = batchSize;
-    }
-
-    public Duration getPollInterval() {
-        return pollInterval;
-    }
-
-    public void setPollInterval(Duration pollInterval) {
-        this.pollInterval = pollInterval;
-    }
-
-    public boolean isParallelProcessingEnabled() {
-        return parallelProcessingEnabled;
-    }
-
-    public void setParallelProcessingEnabled(boolean parallelProcessingEnabled) {
-        this.parallelProcessingEnabled = parallelProcessingEnabled;
-    }
 }
+
 

@@ -188,3 +188,4 @@ public class JpaSubscriptionRepository implements SubscriptionRepository {
         return this::findByStatus;
     }
 }
+

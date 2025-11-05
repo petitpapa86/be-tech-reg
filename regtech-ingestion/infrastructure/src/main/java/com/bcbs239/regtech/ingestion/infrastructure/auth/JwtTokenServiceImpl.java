@@ -72,3 +72,4 @@ public class JwtTokenServiceImpl implements JwtTokenService {
         return "BANK001";
     }
 }
+

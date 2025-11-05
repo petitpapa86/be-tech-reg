@@ -77,3 +77,4 @@ public record FileMetadata(
         return Set.copyOf(SUPPORTED_CONTENT_TYPES);
     }
 }
+

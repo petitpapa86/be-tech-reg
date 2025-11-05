@@ -120,3 +120,4 @@ public interface IQualityReportRepository {
      */
     List<QualityReport> findNonCompliantReportsByBankId(BankId bankId);
 }
+

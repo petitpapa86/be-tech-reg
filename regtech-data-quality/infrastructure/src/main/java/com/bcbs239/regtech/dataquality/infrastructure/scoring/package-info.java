@@ -14,3 +14,4 @@
  * - Calculating compliance status and quality grades
  */
 package com.bcbs239.regtech.dataquality.infrastructure.scoring;
+

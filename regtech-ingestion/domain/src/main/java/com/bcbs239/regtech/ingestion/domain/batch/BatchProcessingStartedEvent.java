@@ -19,3 +19,4 @@ public record BatchProcessingStartedEvent(
         return "BatchProcessingStarted";
     }
 }
+

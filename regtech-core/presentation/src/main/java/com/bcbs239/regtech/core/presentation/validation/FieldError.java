@@ -9,17 +9,23 @@ public class FieldError {
     private final String field;
     private final String code;
     private final String message;
+    private final Object rejectedValue;
     private final String messageKey;
 
     public FieldError(String field, String code, String message, String messageKey) {
-        this.field = field;
-        this.code = code;
-        this.message = message;
-        this.messageKey = messageKey;
+        this(field, code, message, null, messageKey);
     }
 
     public FieldError(String field, String code, String message) {
-        this(field, code, message, null);
+        this(field, code, message, null, null);
+    }
+
+    public FieldError(String field, String code, String message, Object rejectedValue, String messageKey) {
+        this.field = field;
+        this.code = code;
+        this.message = message;
+        this.rejectedValue = rejectedValue;
+        this.messageKey = messageKey;
     }
 
     public String getField() {
@@ -38,6 +44,10 @@ public class FieldError {
         return messageKey;
     }
 
+    public Object getRejectedValue() {
+        return rejectedValue;
+    }
+
     @Override
     public String toString() {
         return "FieldError{" +
@@ -48,3 +58,4 @@ public class FieldError {
                 '}';
     }
 }
+

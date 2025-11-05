@@ -183,3 +183,4 @@ public record ExposureRecord(
                sector != null && !sector.trim().isEmpty();
     }
 }
+

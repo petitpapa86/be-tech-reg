@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.core.domain.events;
 
-import com.bcbs239.regtech.core.domain.core.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 /**
  * Functional interface for event publishing using closures.
@@ -27,3 +27,4 @@ public interface EventBus {
         return Result.success(null);
     }
 }
+

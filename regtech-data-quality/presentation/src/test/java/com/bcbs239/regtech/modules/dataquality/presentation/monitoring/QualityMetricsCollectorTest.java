@@ -76,3 +76,4 @@ class QualityMetricsCollectorTest {
         assertThat(metricsMap).containsKeys("jvm", "dataQuality");
     }
 }
+

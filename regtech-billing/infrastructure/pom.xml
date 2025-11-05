@@ -60,6 +60,13 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 		
+		<!-- Jakarta Servlet API for web components -->
+		<dependency>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		
 		<!-- Stripe SDK for payment processing -->
 		<dependency>
 			<groupId>com.stripe</groupId>

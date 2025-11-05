@@ -18,3 +18,4 @@
  * - FieldError: Field-specific validation error details
  */
 package com.bcbs239.regtech.core.domain.errorhandling;
+

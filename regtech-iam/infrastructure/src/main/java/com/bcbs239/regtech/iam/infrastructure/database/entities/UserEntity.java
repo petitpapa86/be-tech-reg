@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
-import com.bcbs239.regtech.core.application.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
 import jakarta.persistence.*;
 
@@ -173,3 +173,4 @@ public class UserEntity {
         this.bankAssignments = bankAssignments;
     }
 }
+

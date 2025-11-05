@@ -19,3 +19,4 @@ public record UserData(
         return new UserData(userId, email, name);
     }
 }
+

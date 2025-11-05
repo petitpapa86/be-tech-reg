@@ -127,3 +127,4 @@ public record QualityReportSummaryDto(
         return String.format("%s (%.1f%%)", scores.getGradeDisplay(), scores.overallScore());
     }
 }
+

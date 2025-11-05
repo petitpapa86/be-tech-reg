@@ -32,3 +32,4 @@ public abstract class SagaMessage implements DomainEvent {
         return occurredAt;
     }
 }
+

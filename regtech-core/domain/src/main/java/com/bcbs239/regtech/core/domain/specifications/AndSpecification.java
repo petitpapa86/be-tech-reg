@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.domain.specifications;
 
-import com.bcbs239.regtech.core.domain.core.Result;
-import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,3 +43,4 @@ public class AndSpecification<T> implements Specification<T> {
         return Result.failure(allErrors);
     }
 }
+

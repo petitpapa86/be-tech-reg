@@ -13,3 +13,4 @@ public interface InboxMessageRepository extends JpaRepository<InboxMessageEntity
     @Query("SELECT im FROM InboxMessageEntity im WHERE im.processingStatus = :status ORDER BY im.receivedAt ASC")
     List<InboxMessageEntity> findByProcessingStatusOrderByReceivedAt(@Param("status") InboxMessageEntity.ProcessingStatus status);
 }
+

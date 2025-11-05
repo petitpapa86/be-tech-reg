@@ -9,3 +9,4 @@ import org.springframework.web.servlet.function.ServerResponse;
 public interface IEndpoint {
     RouterFunction<ServerResponse> mapEndpoint();
 }
+

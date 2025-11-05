@@ -470,3 +470,4 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
     }
 }
 
+

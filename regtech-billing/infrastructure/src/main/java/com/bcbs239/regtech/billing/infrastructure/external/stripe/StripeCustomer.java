@@ -12,3 +12,4 @@ public record StripeCustomer(
     String name
 ) {
 }
+

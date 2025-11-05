@@ -1,10 +1,13 @@
 package com.bcbs239.regtech.iam.application.users;
 
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.infrastructure.outbox.BaseUnitOfWork;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.application.shared.Result;
+
+import com.bcbs239.regtech.core.application.BaseUnitOfWork;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ValidationUtils;
+import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
 import com.bcbs239.regtech.iam.domain.users.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,10 +45,10 @@ public class RegisterUserCommandHandler {
         long startTime = System.currentTimeMillis();
 
         try {
-            logger.info("Starting user registration", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_START", Map.of(
+            ILogger.asyncStructuredLog("user registration started", Map.of(
                 "email", command.email(),
                 "bankId", command.bankId()
-            )));
+            ));
 
             // Call the pure function with repository closures and unit of work
             Result<RegisterUserResponse> result = registerUser(
@@ -93,7 +96,7 @@ public class RegisterUserCommandHandler {
                 "duration", duration
             )), e);
 
-            return Result.failure(ErrorDetail.of("UNEXPECTED_ERROR", "An unexpected error occurred", "error.unexpected"));
+            return Result.failure(ErrorDetail.of("UNEXPECTED_ERROR", "An unexpected error occurred"));
         }
     }
 
@@ -171,7 +174,7 @@ public class RegisterUserCommandHandler {
                     "existingUserId", existingUser.getValue().getId().getValue()
                 )));
                 return Result.failure(ErrorDetail.of("EMAIL_ALREADY_EXISTS",
-                    "Email already exists", "error.email.exists"));
+                    "Email already exists"));
             }
 
             logger.debug("Email is unique", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_EMAIL_UNIQUE", Map.of(
@@ -205,25 +208,25 @@ public class RegisterUserCommandHandler {
                 "lastName", command.lastName() != null ? command.lastName() : "null"
             )));
 
-            com.bcbs239.regtech.core.shared.Maybe<String> maybeFirst = com.bcbs239.regtech.core.shared.ValidationUtils.validateName(command.firstName());
+            Maybe<String> maybeFirst = ValidationUtils.validateName(command.firstName());
             if (maybeFirst.isEmpty()) {
                 logger.warn("First name validation failed", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_FIRST_NAME_INVALID", Map.of(
                     "correlationId", correlationId,
                     "firstName", command.firstName() != null ? command.firstName() : "null"
                 )));
                 return Result.failure(ErrorDetail.of("INVALID_FIRST_NAME",
-                    "First name is required and cannot be empty", "error.firstName.required"));
+                    "First name is required and cannot be empty"));
             }
             String firstName = maybeFirst.getValue();
 
-            com.bcbs239.regtech.core.shared.Maybe<String> maybeLast = com.bcbs239.regtech.core.shared.ValidationUtils.validateName(command.lastName());
+            Maybe<String> maybeLast = ValidationUtils.validateName(command.lastName());
             if (maybeLast.isEmpty()) {
                 logger.warn("Last name validation failed", LoggingConfiguration.createStructuredLog("USER_REGISTRATION_LAST_NAME_INVALID", Map.of(
                     "correlationId", correlationId,
                     "lastName", command.lastName() != null ? command.lastName() : "null"
                 )));
                 return Result.failure(ErrorDetail.of("INVALID_LAST_NAME",
-                    "Last name is required and cannot be empty", "error.lastName.required"));
+                    "Last name is required and cannot be empty"));
             }
             String lastName = maybeLast.getValue();
 
@@ -282,7 +285,7 @@ public class RegisterUserCommandHandler {
                 )));
 
                 com.bcbs239.regtech.iam.domain.users.UserRole adminRole = com.bcbs239.regtech.iam.domain.users.UserRole.create(
-                    userId, com.bcbs239.regtech.core.security.authorization.Role.ADMIN, "default-org"
+                    userId, Bcbs239Role.SYSTEM_ADMIN, "default-org"
                 );
                 Result<String> roleSaveResult = userRoleSaver.apply(adminRole);
                 if (roleSaveResult.isFailure()) {
@@ -357,3 +360,4 @@ public class RegisterUserCommandHandler {
         RegisterUserCommand.AddressInfo address
     ) {}
 }
+

@@ -71,3 +71,4 @@ public interface S3StorageService {
      */
     Result<Long> getObjectSize(String s3Uri);
 }
+

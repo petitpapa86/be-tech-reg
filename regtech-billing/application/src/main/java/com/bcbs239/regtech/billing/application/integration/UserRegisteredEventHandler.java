@@ -215,3 +215,4 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
         return "billingUserRegisteredEventHandler";
     }
 }
+

@@ -11,3 +11,4 @@ public record OAuth2UserInfo(
     String lastName,
     String picture
 ) {}
+

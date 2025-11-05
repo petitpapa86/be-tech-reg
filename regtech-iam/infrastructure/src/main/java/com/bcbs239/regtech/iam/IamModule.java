@@ -20,3 +20,4 @@ import org.springframework.context.annotation.Configuration;
 @ComponentScan(basePackages = "com.bcbs239.regtech.iam")
 public class IamModule {
 }
+

@@ -52,3 +52,4 @@ public enum SubscriptionStatus {
         return this == PAST_DUE || this == PAUSED;
     }
 }
+

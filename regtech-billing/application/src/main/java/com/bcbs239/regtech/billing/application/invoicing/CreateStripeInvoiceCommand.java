@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.application.invoicing;
 
-import com.bcbs239.regtech.core.domain.saga.SagaCommand;
-import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.saga.SagaCommand;
+import com.bcbs239.regtech.core.saga.SagaId;
 
 import java.time.Instant;
 import java.util.Map;
@@ -40,3 +40,4 @@ public class CreateStripeInvoiceCommand extends SagaCommand {
         return (String) payload().get("description");
     }
 }
+

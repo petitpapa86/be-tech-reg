@@ -11,3 +11,4 @@ public enum OutboxMessageStatus {
     PUBLISHED,  // Successfully published to event bus
     DEAD_LETTER // Moved to dead letter after exhausting retries
 }
+

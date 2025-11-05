@@ -1,7 +1,9 @@
 package com.bcbs239.regtech.iam.domain.users;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.application.shared.Result;
+
+
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 
 import java.util.regex.Pattern;
 
@@ -15,13 +17,13 @@ public record Email(String value) {
 
     public static Result<Email> create(String email) {
         if (email == null || email.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("EMAIL_REQUIRED", "Email is required", "error.email.required"));
+            return Result.failure(ErrorDetail.of("EMAIL_REQUIRED", "Email is required"));
         }
 
         String trimmedEmail = email.trim().toLowerCase();
 
         if (!EMAIL_PATTERN.matcher(trimmedEmail).matches()) {
-            return Result.failure(ErrorDetail.of("EMAIL_INVALID", "Invalid email format", "error.email.invalid"));
+            return Result.failure(ErrorDetail.of("EMAIL_INVALID", "Invalid email format"));
         }
 
         return Result.success(new Email(trimmedEmail));
@@ -31,3 +33,4 @@ public record Email(String value) {
         return value;
     }
 }
+

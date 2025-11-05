@@ -65,3 +65,4 @@ public class IamSecurityConfiguration implements ModuleSecurityConfiguration {
         return new BCryptPasswordEncoder();
     }
 }
+

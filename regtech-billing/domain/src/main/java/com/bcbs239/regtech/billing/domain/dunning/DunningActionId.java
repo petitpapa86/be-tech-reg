@@ -25,3 +25,4 @@ public record DunningActionId(UUID value) {
         return value.toString();
     }
 }
+

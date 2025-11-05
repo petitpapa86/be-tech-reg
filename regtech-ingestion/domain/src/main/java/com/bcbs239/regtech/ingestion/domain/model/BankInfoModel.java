@@ -13,3 +13,4 @@ public record BankInfoModel(
         Objects.requireNonNull(bankName);
     }
 }
+

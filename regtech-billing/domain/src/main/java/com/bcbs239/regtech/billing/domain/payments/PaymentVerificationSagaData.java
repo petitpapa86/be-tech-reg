@@ -30,3 +30,4 @@ public class PaymentVerificationSagaData {
     
     private String failureReason;
 }
+

@@ -29,3 +29,4 @@ public record BankId(String value) {
         return value;
     }
 }
+

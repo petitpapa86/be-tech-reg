@@ -239,3 +239,4 @@ public class PermissionAuthorizationFilter extends OncePerRequestFilter {
         response.getWriter().write(errorResponse);
     }
 }
+

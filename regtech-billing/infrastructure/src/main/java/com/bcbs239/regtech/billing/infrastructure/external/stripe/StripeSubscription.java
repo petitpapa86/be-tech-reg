@@ -14,3 +14,4 @@ public record StripeSubscription(
     String status
 ) {
 }
+

@@ -30,3 +30,4 @@ public interface BillingAccountRepository {
      */
     Result<BillingAccountId> update(BillingAccount billingAccount);
 }
+

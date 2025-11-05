@@ -80,3 +80,4 @@ public class SanitizedTextValidator implements ConstraintValidator<ValidSanitize
         context.buildConstraintViolationWithTemplate(message).addConstraintViolation();
     }
 }
+

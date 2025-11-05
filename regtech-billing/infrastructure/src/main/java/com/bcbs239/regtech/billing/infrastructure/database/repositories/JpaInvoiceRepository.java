@@ -222,3 +222,4 @@ public class JpaInvoiceRepository implements InvoiceRepository {
         }
     }
 }
+

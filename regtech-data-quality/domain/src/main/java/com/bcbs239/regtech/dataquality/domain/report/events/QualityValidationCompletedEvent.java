@@ -35,3 +35,4 @@ public record QualityValidationCompletedEvent(
         return "QualityValidationCompleted";
     }
 }
+

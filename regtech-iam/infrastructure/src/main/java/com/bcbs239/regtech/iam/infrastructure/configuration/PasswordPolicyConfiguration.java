@@ -154,3 +154,4 @@ public record PasswordPolicyConfiguration(
         WEAK, MEDIUM, STRONG
     }
 }
+

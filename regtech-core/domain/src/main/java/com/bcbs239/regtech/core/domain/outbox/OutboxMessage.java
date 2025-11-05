@@ -31,4 +31,13 @@ public class OutboxMessage {
     private Instant updatedAt;
 
     private String  errorMessage;
+
+    public OutboxMessage(String type, String content, Instant now) {
+        this.type = type;
+        this.content = content;
+        this.status = OutboxMessageStatus.PENDING;
+        this.occurredOnUtc = now;
+        this.updatedAt = now;
+    }
 }
+

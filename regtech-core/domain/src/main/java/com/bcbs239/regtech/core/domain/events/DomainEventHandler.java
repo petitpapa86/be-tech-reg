@@ -20,3 +20,4 @@ public interface DomainEventHandler<T extends BaseEvent> {
      */
     Class<T> eventClass();
 }
+

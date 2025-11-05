@@ -95,3 +95,4 @@ public record InvoiceNumber(String value) {
         return value;
     }
 }
+

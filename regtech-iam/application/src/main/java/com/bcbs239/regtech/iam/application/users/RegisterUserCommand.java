@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.iam.application.users;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.FieldError;
-import com.bcbs239.regtech.core.application.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,7 +88,7 @@ public record RegisterUserCommand(
         }
 
         if (!fieldErrors.isEmpty()) {
-            return Result.failure(new ErrorDetail("VALIDATION_ERROR", "Invalid input data", "error.validation", null, fieldErrors));
+            return Result.failure(ErrorDetail.validationError(fieldErrors));
         }
 
         return Result.success(new RegisterUserCommand(
@@ -103,3 +103,4 @@ public record RegisterUserCommand(
         ));
     }
 }
+

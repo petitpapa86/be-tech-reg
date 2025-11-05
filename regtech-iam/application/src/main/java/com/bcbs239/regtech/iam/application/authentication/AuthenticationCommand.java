@@ -18,3 +18,4 @@ public record AuthenticationCommand(
                password != null && !password.trim().isEmpty();
     }
 }
+

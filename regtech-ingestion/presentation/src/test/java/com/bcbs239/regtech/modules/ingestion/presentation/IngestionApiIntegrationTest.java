@@ -149,3 +149,4 @@ class IngestionApiIntegrationTest {
                 .andExpect(jsonPath("$.parameter").value("bankId"));
     }
 }
+

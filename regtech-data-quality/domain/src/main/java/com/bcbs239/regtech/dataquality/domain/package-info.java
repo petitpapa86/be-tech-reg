@@ -11,3 +11,4 @@
  * - Domain events for quality processing
  */
 package com.bcbs239.regtech.dataquality.domain;
+

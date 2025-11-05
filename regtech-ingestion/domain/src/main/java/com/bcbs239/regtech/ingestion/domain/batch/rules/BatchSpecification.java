@@ -11,3 +11,4 @@ import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 public interface BatchSpecification extends Specification<IngestionBatch> {
     // no extra methods; uses Specification<T> defaults
 }
+

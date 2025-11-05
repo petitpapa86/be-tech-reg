@@ -105,3 +105,4 @@ public class InboxEventEntity {
         DEAD_LETTER
     }
 }
+

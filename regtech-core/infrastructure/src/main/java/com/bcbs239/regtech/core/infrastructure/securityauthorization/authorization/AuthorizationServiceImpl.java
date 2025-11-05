@@ -109,3 +109,4 @@ public class AuthorizationServiceImpl implements AuthorizationService {
         return hasRole("ADMIN") || hasRole("MANAGER");
     }
 }
+

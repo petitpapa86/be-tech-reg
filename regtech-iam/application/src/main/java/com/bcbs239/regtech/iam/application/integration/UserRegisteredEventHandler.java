@@ -55,3 +55,4 @@ public class UserRegisteredEventHandler implements DomainEventHandler<UserRegist
         return UserRegisteredEvent.class;
     }
 }
+

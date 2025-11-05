@@ -20,3 +20,4 @@ public record BatchStoredEvent(
         return "BatchStored";
     }
 }
+

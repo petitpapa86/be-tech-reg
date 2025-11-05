@@ -23,3 +23,4 @@ public class SagaCommand extends SagaMessage {
         return occurredAt;
     }
 }
+

@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.core.application.saga;
 
 import com.bcbs239.regtech.core.application.CommandDispatcher;
-import com.bcbs239.regtech.core.domain.core.Maybe;
-import com.bcbs239.regtech.core.domain.core.Result;
-import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.*;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaCompletedEvent;
@@ -260,3 +260,4 @@ public class SagaManager {
         }
     }
 }
+

@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.application.eventprocessing;
 
-import com.bcbs239.regtech.core.domain.core.Result;
-import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.events.BaseEvent;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -39,3 +39,4 @@ public class IntegrationEventDeserializer {
         }
     }
 }
+

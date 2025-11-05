@@ -30,3 +30,4 @@ public class InboxMessage {
 
     private Instant updatedAt;
 }
+

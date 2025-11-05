@@ -137,3 +137,4 @@ public record AuthorizationConfiguration(
         }
     }
 }
+

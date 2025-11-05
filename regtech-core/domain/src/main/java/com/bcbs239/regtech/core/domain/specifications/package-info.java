@@ -19,3 +19,4 @@
  * - NotSpecification: Logical NOT operation on specifications
  */
 package com.bcbs239.regtech.core.domain.specifications;
+

@@ -198,3 +198,4 @@ public interface QualityErrorSummaryJpaRepository extends JpaRepository<QualityE
            "es.batchId = :batchId GROUP BY es.severity")
     List<Object[]> getErrorCountBySeverityForBatch(@Param("batchId") String batchId);
 }
+

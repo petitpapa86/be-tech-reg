@@ -259,3 +259,4 @@ public class IngestionBatch extends Entity {
         return status == BatchStatus.COMPLETED;
     }
 }
+

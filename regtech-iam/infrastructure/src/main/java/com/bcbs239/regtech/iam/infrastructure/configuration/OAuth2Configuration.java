@@ -97,3 +97,4 @@ public record OAuth2Configuration(
         }
     }
 }
+

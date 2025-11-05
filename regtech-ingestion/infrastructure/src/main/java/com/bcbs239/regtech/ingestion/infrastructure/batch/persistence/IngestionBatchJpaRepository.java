@@ -163,3 +163,4 @@ public interface IngestionBatchJpaRepository extends JpaRepository<IngestionBatc
            "b.status IN ('PARSING', 'VALIDATED', 'STORING')")
     long countActiveProcessingBatches();
 }
+

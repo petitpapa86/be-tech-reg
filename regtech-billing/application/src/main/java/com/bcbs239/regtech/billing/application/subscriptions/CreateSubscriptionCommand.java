@@ -53,3 +53,4 @@ public record CreateSubscriptionCommand(
         return BillingAccountId.fromString(billingAccountId);
     }
 }
+

@@ -29,3 +29,4 @@ public interface SecurityConfigurationRegistry {
         int getOrder(); // For filter chain ordering
     }
 }
+

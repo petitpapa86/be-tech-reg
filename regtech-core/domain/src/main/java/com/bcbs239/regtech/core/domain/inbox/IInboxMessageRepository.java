@@ -18,3 +18,4 @@ public interface IInboxMessageRepository {
 
     void markAsProcessed(String id, Instant now);
 }
+

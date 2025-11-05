@@ -165,3 +165,4 @@ public interface QualityReportJpaRepository extends JpaRepository<QualityReportE
      */
     long countByBankIdAndComplianceStatus(String bankId, Boolean complianceStatus);
 }
+

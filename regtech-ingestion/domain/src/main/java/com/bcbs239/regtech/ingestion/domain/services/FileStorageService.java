@@ -32,3 +32,4 @@ public interface FileStorageService {
      */
     Result<Boolean> checkServiceHealth();
 }
+

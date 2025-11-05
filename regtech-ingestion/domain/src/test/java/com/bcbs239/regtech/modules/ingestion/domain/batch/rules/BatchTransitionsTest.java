@@ -37,3 +37,4 @@ class BatchTransitionsTest {
         assertThat(batch.getStatus()).isEqualTo(BatchStatus.PARSING);
     }
 }
+

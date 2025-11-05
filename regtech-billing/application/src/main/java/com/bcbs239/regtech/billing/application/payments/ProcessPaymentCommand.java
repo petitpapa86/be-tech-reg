@@ -54,3 +54,4 @@ public record ProcessPaymentCommand(
         return PaymentMethodId.fromString(paymentMethodId).getValue().get();
     }
 }
+

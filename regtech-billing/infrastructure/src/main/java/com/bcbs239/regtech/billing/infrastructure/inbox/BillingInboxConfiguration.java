@@ -22,3 +22,4 @@ public class BillingInboxConfiguration {
         return new InboxOptions(50, Duration.ofSeconds(30), "billing", true);
     }
 }
+

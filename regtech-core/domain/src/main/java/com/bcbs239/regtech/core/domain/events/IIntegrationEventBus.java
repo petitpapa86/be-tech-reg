@@ -14,3 +14,4 @@ public interface IIntegrationEventBus {
      */
     void publish(IntegrationEvent event);
 }
+

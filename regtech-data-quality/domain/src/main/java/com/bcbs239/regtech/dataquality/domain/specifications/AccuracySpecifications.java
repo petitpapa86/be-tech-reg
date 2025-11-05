@@ -170,3 +170,4 @@ public class AccuracySpecifications {
         return LEI_PATTERN.matcher(leiCode.toUpperCase()).matches();
     }
 }
+

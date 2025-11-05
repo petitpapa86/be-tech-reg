@@ -20,3 +20,4 @@
  * - configuration: Spring configuration and dependency injection
  */
 package com.bcbs239.regtech.ingestion.infrastructure;
+

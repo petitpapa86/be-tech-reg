@@ -139,3 +139,4 @@ public interface IQualityErrorSummaryRepository {
      */
     boolean existsByBatchId(BatchId batchId);
 }
+

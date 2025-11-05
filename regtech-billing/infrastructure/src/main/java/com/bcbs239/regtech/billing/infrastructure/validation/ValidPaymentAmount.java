@@ -21,3 +21,4 @@ public @interface ValidPaymentAmount {
     
     Class<? extends Payload>[] payload() default {};
 }
+

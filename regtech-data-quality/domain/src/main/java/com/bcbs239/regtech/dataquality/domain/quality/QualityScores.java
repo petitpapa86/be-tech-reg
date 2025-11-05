@@ -144,3 +144,4 @@ public record QualityScores(
         return QualityDimension.COMPLETENESS; // Fallback, should not happen
     }
 }
+

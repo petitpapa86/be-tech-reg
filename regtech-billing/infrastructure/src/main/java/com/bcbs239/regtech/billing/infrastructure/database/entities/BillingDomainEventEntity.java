@@ -158,3 +158,4 @@ public class BillingDomainEventEntity {
             id, eventId, eventType, processingStatus, retryCount);
     }
 }
+

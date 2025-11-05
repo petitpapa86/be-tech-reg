@@ -18,3 +18,4 @@ public class StripePaymentFailedEvent extends SagaMessage {
         return failureReason;
     }
 }
+

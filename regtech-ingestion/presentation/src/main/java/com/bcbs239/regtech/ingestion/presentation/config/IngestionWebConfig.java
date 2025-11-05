@@ -38,3 +38,4 @@ public class IngestionWebConfig {
             .and(healthController.mapEndpoint());
     }
 }
+

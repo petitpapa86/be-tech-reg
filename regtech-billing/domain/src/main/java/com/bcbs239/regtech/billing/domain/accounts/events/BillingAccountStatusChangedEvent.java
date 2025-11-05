@@ -57,3 +57,4 @@ public class BillingAccountStatusChangedEvent extends BaseEvent {
             billingAccountId, userId, previousStatus, newStatus, reason, getCorrelationId());
     }
 }
+

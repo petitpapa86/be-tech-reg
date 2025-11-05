@@ -102,3 +102,4 @@ class QualityHealthCheckerTest {
         assertThat(result.isHealthy()).isFalse();
     }
 }
+

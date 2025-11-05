@@ -23,3 +23,4 @@
  *   SubscriptionCancelledEvent, UserRegisteredEvent, UserRegisteredIntegrationEvent
  */
 package com.bcbs239.regtech.core.domain.events;
+

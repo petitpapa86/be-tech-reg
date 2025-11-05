@@ -13,3 +13,4 @@ public record InvoicePaymentFailedEvent(
     Money amount
 ) {
 }
+

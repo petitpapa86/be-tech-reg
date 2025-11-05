@@ -22,3 +22,4 @@ public record S3Properties(
         if (prefix == null) prefix = "raw/";
     }
 }
+

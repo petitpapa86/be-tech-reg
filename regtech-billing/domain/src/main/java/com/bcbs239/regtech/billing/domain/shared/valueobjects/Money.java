@@ -158,3 +158,4 @@ public record Money(BigDecimal amount, Currency currency) {
         return String.format("%s %s", amount.setScale(2, RoundingMode.HALF_UP), currency.getCurrencyCode());
     }
 }
+

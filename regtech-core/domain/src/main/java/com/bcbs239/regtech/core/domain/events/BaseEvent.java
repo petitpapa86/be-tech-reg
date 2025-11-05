@@ -23,3 +23,4 @@ public abstract class BaseEvent implements DomainEvent {
         return this.getClass().getSimpleName();
     }
 }
+

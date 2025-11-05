@@ -62,3 +62,4 @@ public interface JpaBillingDomainEventRepository extends JpaRepository<BillingDo
     @Query("DELETE FROM BillingDomainEventEntity e WHERE e.processingStatus = 'PROCESSED' AND e.processedAt < :threshold")
     void deleteProcessedEventsOlderThan(@Param("threshold") Instant threshold);
 }
+

@@ -9,3 +9,4 @@ public enum UserStatusEntity {
     SUSPENDED,
     CANCELLED
 }
+

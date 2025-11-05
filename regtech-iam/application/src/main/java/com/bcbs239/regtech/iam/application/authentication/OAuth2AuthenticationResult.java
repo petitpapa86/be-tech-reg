@@ -11,3 +11,4 @@ public record OAuth2AuthenticationResult(
     String accessToken,
     String refreshToken
 ) {}
+

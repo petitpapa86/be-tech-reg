@@ -33,3 +33,4 @@ public class PaymentVerifiedEvent extends BaseEvent {
             userId, billingAccountId, getCorrelationId());
     }
 }
+

@@ -40,3 +40,4 @@ public record QualityReportId(String value) {
         return value;
     }
 }
+

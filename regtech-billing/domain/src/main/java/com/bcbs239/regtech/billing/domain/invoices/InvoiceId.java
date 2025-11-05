@@ -47,3 +47,4 @@ public record InvoiceId(String value) {
         return value;
     }
 }
+

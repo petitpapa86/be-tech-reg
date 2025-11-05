@@ -27,3 +27,4 @@ public interface InvoiceRepository {
      */
     Result<InvoiceId> save(Invoice invoice);
 }
+

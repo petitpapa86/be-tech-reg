@@ -27,3 +27,4 @@ public interface SubscriptionRepository {
      */
     Result<SubscriptionId> save(Subscription subscription);
 }
+

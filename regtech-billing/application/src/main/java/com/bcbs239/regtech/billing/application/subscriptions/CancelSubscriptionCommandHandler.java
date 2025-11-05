@@ -78,3 +78,4 @@ public class CancelSubscriptionCommandHandler {
         return paymentService.cancelSubscription(subscription.getStripeSubscriptionId().value());
     }
 }
+

@@ -1,7 +1,12 @@
 package com.bcbs239.regtech.iam.domain.users;
 
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.application.shared.Result;
+
+
+
+
+
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 import java.util.List;
 import java.util.function.Function;
@@ -52,3 +57,4 @@ public interface UserRepository {
      */
     record UserOrgQuery(UserId userId, String organizationId) {}
 }
+

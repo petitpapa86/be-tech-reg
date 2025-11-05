@@ -66,3 +66,4 @@ public class CommandDispatcher {
         eventPublisher.publishEvent(command);
     }
 }
+

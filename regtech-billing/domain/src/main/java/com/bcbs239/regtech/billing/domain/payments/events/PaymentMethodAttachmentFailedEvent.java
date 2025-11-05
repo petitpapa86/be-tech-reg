@@ -24,3 +24,4 @@ public class PaymentMethodAttachmentFailedEvent extends SagaMessage {
         return errorMessage;
     }
 }
+

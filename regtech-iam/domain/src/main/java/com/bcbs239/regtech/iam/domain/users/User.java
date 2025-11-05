@@ -274,3 +274,4 @@ public class User extends Entity {
         public Instant getAssignedAt() { return assignedAt; }
     }
 }
+

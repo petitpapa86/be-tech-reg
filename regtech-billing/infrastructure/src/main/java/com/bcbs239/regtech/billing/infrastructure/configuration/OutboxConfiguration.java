@@ -89,3 +89,4 @@ public record OutboxConfiguration(
         }
     }
 }
+

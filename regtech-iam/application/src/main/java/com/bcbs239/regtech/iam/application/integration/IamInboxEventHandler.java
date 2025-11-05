@@ -4,7 +4,7 @@ package com.bcbs239.regtech.iam.application.integration;
 
 // Note: InboxEventEntity should be handled in infrastructure layer
 
-import com.bcbs239.regtech.core.events.PaymentVerifiedEvent;
+import com.bcbs239.regtech.billing.domain.payments.events.PaymentVerifiedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,3 +55,4 @@ public class IamInboxEventHandler {
         }
     }
 }
+

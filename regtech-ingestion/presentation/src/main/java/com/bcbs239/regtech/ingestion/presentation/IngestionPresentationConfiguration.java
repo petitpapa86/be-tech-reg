@@ -18,3 +18,4 @@ public class IngestionPresentationConfiguration {
     
     // Presentation-specific configuration beans will be added here
 }
+

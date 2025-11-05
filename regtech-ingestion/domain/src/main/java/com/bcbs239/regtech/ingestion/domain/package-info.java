@@ -17,3 +17,4 @@
  * - integrationevents: Contains events for cross-module communication
  */
 package com.bcbs239.regtech.ingestion.domain;
+

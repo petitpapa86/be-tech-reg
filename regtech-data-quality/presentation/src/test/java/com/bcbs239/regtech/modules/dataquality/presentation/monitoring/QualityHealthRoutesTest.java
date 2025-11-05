@@ -45,3 +45,4 @@ class QualityHealthRoutesTest {
         assertThat(routes).isNotNull();
     }
 }
+

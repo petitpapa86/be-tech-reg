@@ -27,3 +27,4 @@ public abstract class BaseIntegrationTest {
     
     // Common test setup and utilities can be added here
 }
+

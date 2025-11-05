@@ -14,3 +14,4 @@
  * - CommandDispatcher: Command routing and dispatching infrastructure
  */
 package com.bcbs239.regtech.core.infrastructure.commandprocessing;
+

@@ -38,3 +38,4 @@ public class IngestionOutboxProcessor extends GenericOutboxEventProcessor {
         return processingEnabled;
     }
 }
+

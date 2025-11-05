@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.domain.saga;
 
-import com.bcbs239.regtech.core.domain.core.Maybe;
-import com.bcbs239.regtech.core.domain.core.Result;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 /**
  * Domain interface for saga repository operations.
@@ -23,3 +23,4 @@ public interface ISagaRepository {
      */
     Maybe<SagaSnapshot> load(SagaId sagaId);
 }
+

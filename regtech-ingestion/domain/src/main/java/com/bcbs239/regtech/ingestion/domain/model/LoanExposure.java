@@ -28,3 +28,4 @@ public record LoanExposure(
         return "LoanExposure{" + "loanId='" + loanId + '\'' + ", exposureId='" + exposureId + '\'' + '}';
     }
 }
+

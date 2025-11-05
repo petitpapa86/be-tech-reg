@@ -109,3 +109,4 @@ public record IamConfigurationProperties(
         boolean auditEnabled
     ) {}
 }
+

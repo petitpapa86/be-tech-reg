@@ -58,3 +58,4 @@ public record InvoiceConfiguration(
         }
     }
 }
+

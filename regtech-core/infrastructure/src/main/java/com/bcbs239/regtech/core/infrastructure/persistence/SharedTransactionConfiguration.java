@@ -13,3 +13,4 @@ public class SharedTransactionConfiguration {
         return new TransactionTemplate(transactionManager);
     }
 }
+

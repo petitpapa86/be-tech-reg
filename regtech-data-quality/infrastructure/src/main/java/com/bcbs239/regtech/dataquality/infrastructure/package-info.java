@@ -12,3 +12,4 @@
  * - Configuration and health monitoring
  */
 package com.bcbs239.regtech.dataquality.infrastructure;
+

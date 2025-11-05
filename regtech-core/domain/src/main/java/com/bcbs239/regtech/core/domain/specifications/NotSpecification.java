@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.domain.specifications;
 
-import com.bcbs239.regtech.core.domain.core.Result;
-import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 
 /**
  * Specification that negates another specification using logical NOT.
@@ -30,3 +30,4 @@ public class NotSpecification<T> implements Specification<T> {
         return Result.success();
     }
 }
+

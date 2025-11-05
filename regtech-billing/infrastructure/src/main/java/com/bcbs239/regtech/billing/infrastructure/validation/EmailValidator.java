@@ -108,3 +108,4 @@ public class EmailValidator implements ConstraintValidator<ValidEmail, String> {
         context.buildConstraintViolationWithTemplate(message).addConstraintViolation();
     }
 }
+

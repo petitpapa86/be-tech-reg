@@ -486,3 +486,4 @@ public class IngestionLoggingService {
                   .replaceAll("(?i)(bankId|bank_id)=[^\\s,]+", "$1=[MASKED]");
     }
 }
+

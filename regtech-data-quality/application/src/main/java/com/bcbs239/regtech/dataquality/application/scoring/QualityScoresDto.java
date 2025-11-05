@@ -140,3 +140,4 @@ public record QualityScoresDto(
             .orElse("unknown");
     }
 }
+

@@ -190,3 +190,4 @@ public class GenerateInvoiceCommandHandler {
     public record UsageQuery(com.bcbs239.regtech.iam.domain.users.UserId userId, BillingPeriod billingPeriod) {}
     public record InvoiceCreationData(StripeCustomerId customerId, Money amount, String description) {}
 }
+

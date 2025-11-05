@@ -20,3 +20,4 @@ public interface IOutboxMessageRepository {
 
     List<OutboxMessage> findByStatusOrderByOccurredOnUtc(OutboxMessageStatus outboxMessageStatus);
 }
+

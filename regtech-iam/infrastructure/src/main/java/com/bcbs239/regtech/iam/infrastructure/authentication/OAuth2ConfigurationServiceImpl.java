@@ -86,3 +86,4 @@ public class OAuth2ConfigurationServiceImpl implements OAuth2ConfigurationServic
         };
     }
 }
+

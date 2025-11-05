@@ -288,3 +288,4 @@ public class BillingPerformanceMetricsService {
         return (failureCount / totalCount) * 100.0;
     }
 }
+

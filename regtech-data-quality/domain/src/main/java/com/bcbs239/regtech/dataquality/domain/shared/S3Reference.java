@@ -40,3 +40,4 @@ public record S3Reference(
         return new S3Reference(bucket, key, versionId, uri);
     }
 }
+

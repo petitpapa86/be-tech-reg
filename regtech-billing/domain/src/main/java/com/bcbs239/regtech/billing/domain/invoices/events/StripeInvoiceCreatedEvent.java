@@ -18,3 +18,4 @@ public class StripeInvoiceCreatedEvent extends SagaMessage {
         return stripeInvoiceId;
     }
 }
+

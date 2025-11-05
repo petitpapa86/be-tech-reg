@@ -30,3 +30,4 @@ public class InvoiceGeneratedEvent extends BaseEvent {
             invoiceId, billingAccountId, totalAmount, getCorrelationId());
     }
 }
+

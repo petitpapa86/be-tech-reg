@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.application.policies.createstripecustomer;
 
-import com.bcbs239.regtech.core.domain.saga.SagaCommand;
-import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.saga.SagaId;
+import com.bcbs239.regtech.core.saga.SagaCommand;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -32,3 +32,4 @@ public class CreateStripeCustomerCommand extends SagaCommand {
         return new CreateStripeCustomerCommand(sagaId, userId, email, name, null);
     }
 }
+

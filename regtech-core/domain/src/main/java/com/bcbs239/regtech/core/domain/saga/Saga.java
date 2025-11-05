@@ -52,3 +52,4 @@ public interface Saga<T extends SagaData> {
      */
     T getData();
 }
+

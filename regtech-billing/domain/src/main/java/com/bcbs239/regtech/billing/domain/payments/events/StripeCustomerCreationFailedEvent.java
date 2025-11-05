@@ -10,3 +10,4 @@ public record StripeCustomerCreationFailedEvent(
     String errorMessage
 ) {
 }
+

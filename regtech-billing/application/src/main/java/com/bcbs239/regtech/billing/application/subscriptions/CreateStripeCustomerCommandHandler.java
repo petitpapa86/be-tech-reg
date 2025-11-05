@@ -117,3 +117,4 @@ public class CreateStripeCustomerCommandHandler {
         crossModuleEventBus.publishEventSynchronously(failureEvent);
     }
 }
+

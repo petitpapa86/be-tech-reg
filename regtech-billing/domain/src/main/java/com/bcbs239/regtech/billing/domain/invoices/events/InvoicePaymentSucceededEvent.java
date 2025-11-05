@@ -13,3 +13,4 @@ public record InvoicePaymentSucceededEvent(
     Money amount
 ) {
 }
+

@@ -594,3 +594,4 @@ class IngestionFlowIntegrationTest extends BaseIntegrationTest {
         public void setReportingDelay(java.time.Duration delay) { this.reportingDelay = delay; }
     }
 }
+

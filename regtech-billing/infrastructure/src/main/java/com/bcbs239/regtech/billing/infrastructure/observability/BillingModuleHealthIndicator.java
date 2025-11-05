@@ -190,3 +190,4 @@ public class BillingModuleHealthIndicator implements ModuleHealthIndicator {
      */
     private record HealthCheckResult(boolean isHealthy, Map<String, Object> details) {}
 }
+

@@ -168,3 +168,4 @@ public class UploadFileCommandHandler {
         void logFileUploadCompleted(BatchId batchId, BankId bankId, long duration);
     }
 }
+

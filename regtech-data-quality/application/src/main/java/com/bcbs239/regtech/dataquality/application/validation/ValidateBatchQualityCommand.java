@@ -119,3 +119,4 @@ public record ValidateBatchQualityCommand(
         );
     }
 }
+

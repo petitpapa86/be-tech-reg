@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.iam.application.authentication;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.application.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.authentication.OAuth2ConfigurationService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -67,8 +67,7 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
         } catch (Exception e) {
             logger.error("OAuth2 authentication failed for provider: {}", provider, e);
             return Result.failure(ErrorDetail.of("OAUTH2_AUTH_FAILED",
-                "OAuth2 authentication failed: " + e.getMessage(),
-                "error.oauth2.authFailed"));
+                "OAuth2 authentication failed: " + e.getMessage()));
         }
     }
 
@@ -88,8 +87,7 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
         try {
             if (!oauth2ConfigService.isProviderConfigured(provider)) {
                 return Result.failure(ErrorDetail.of("OAUTH2_NOT_CONFIGURED",
-                    provider + " OAuth2 is not configured",
-                    "error.oauth2.notConfigured"));
+                    provider + " OAuth2 is not configured"));
             }
 
             OAuth2ConfigurationService.OAuth2ProviderConfig config = oauth2ConfigService.getProviderConfig(provider);
@@ -110,8 +108,7 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
                 case "facebook" -> redirectUri = "http://localhost:8080/auth/oauth2/callback/facebook"; // TODO: Make configurable
                 default -> {
                     return Result.failure(ErrorDetail.of("OAUTH2_UNSUPPORTED_PROVIDER",
-                        "Unsupported OAuth2 provider: " + provider,
-                        "error.oauth2.unsupportedProvider"));
+                        "Unsupported OAuth2 provider: " + provider));
                 }
             }
             params.add("redirect_uri", redirectUri);
@@ -126,15 +123,13 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
             } else {
                 logger.error("Token exchange failed with status: {} and body: {}", response.getStatusCode(), response.getBody());
                 return Result.failure(ErrorDetail.of("OAUTH2_TOKEN_EXCHANGE_FAILED",
-                    "Failed to exchange authorization code for token",
-                    "error.oauth2.tokenExchangeFailed"));
+                    "Failed to exchange authorization code for token"));
             }
 
         } catch (Exception e) {
             logger.error("Token exchange failed for provider: {}", provider, e);
             return Result.failure(ErrorDetail.of("OAUTH2_TOKEN_EXCHANGE_ERROR",
-                "Token exchange error: " + e.getMessage(),
-                "error.oauth2.tokenExchangeError"));
+                "Token exchange error: " + e.getMessage()));
         }
     }
 
@@ -143,8 +138,7 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
         try {
             if (!oauth2ConfigService.isProviderConfigured(provider)) {
                 return Result.failure(ErrorDetail.of("OAUTH2_NOT_CONFIGURED",
-                    provider + " OAuth2 is not configured",
-                    "error.oauth2.notConfigured"));
+                    provider + " OAuth2 is not configured"));
             }
 
             OAuth2ConfigurationService.OAuth2ProviderConfig config = oauth2ConfigService.getProviderConfig(provider);
@@ -171,15 +165,14 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
             } else {
                 logger.error("User info request failed with status: {} and body: {}", response.getStatusCode(), response.getBody());
                 return Result.failure(ErrorDetail.of("OAUTH2_USER_INFO_FAILED",
-                    "Failed to get user info from provider",
-                    "error.oauth2.userInfoFailed"));
+                    "Failed to get user info from provider"));
             }
 
         } catch (Exception e) {
             logger.error("User info request failed for provider: {}", provider, e);
             return Result.failure(ErrorDetail.of("OAUTH2_USER_INFO_ERROR",
-                "User info error: " + e.getMessage(),
-                "error.oauth2.userInfoError"));
+                "User info error: " + e.getMessage()));
         }
     }
 }
+

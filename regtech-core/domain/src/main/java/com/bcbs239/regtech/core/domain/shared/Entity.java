@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.domain.core;
+package com.bcbs239.regtech.core.domain.shared;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 

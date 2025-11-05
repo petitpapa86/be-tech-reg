@@ -359,3 +359,4 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
         }
     }
 }
+

@@ -2,8 +2,8 @@ package com.bcbs239.regtech.iam.api.users;
 
 import com.bcbs239.regtech.core.shared.ApiResponse;
 import com.bcbs239.regtech.core.shared.BaseController;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.application.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommand;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommandHandler;
 import com.bcbs239.regtech.iam.application.users.RegisterUserResponse;
@@ -92,3 +92,4 @@ public class UserController extends BaseController {
         String country
     ) {}
 }
+

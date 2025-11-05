@@ -33,3 +33,4 @@ public record UserId(UUID value) {
         return value.toString();
     }
 }
+

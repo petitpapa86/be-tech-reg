@@ -148,3 +148,4 @@ public class CreateSubscriptionCommandHandler {
     // Helper record for function parameters
     public record StripeCustomerAndTier(StripeCustomerId customerId, SubscriptionTier tier) {}
 }
+

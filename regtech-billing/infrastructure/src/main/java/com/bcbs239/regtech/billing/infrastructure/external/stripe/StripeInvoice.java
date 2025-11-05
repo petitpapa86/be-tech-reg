@@ -15,3 +15,4 @@ public record StripeInvoice(
     String hostedInvoiceUrl
 ) {
 }
+

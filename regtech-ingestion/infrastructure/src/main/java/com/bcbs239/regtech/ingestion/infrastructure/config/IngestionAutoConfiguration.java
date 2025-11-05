@@ -33,3 +33,4 @@ public class IngestionAutoConfiguration {
     // Configuration beans will be defined by individual configuration classes
     // This class serves as the main entry point for auto-configuration
 }
+

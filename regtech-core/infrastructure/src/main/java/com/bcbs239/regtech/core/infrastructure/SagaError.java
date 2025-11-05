@@ -8,3 +8,4 @@ public record SagaError(String message, ErrorType errorType, boolean recoverable
     }
 
 }
+

@@ -33,3 +33,4 @@ public record GetSubscriptionCommand(
         return SubscriptionId.fromString(subscriptionId);
     }
 }
+

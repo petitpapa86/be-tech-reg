@@ -21,3 +21,4 @@ public abstract class SagaMessageEntity extends SagaMessage {
         super(eventType, occurredAt, sagaId);
     }
 }
+
