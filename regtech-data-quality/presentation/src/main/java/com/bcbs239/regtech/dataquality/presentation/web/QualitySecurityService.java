@@ -1,11 +1,10 @@
 package com.bcbs239.regtech.dataquality.presentation.web;
 
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.security.SecurityUtils;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
-
+import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

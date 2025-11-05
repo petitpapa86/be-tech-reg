@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.modules.dataquality.domain.report;
 
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import com.bcbs239.regtech.dataquality.domain.report.events.*;

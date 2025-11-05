@@ -1,10 +1,9 @@
 package com.bcbs239.regtech.dataquality.presentation.web;
 
-import com.bcbs239.regtech.core.shared.BaseController;
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ApiResponse;
+import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-
+import com.bcbs239.regtech.core.shared.Result;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;

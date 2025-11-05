@@ -2,13 +2,12 @@ package com.bcbs239.regtech.dataquality.presentation.reports;
 
 import com.bcbs239.regtech.core.web.RouterAttributes;
 import com.bcbs239.regtech.dataquality.presentation.common.Tags;
-
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
 
-import static org.springframework.web.servlet.function.RouterFunctions.route;
 import static org.springframework.web.servlet.function.RequestPredicates.GET;
+import static org.springframework.web.servlet.function.RouterFunctions.route;
 
 /**
  * Router configuration for quality report endpoints.

@@ -4,13 +4,11 @@ import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Specification;
 import com.bcbs239.regtech.dataquality.domain.specifications.ConsistencySpecifications;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("ConsistencySpecifications Tests")
 class ConsistencySpecificationsTest {

@@ -1,10 +1,9 @@
 package com.bcbs239.regtech.dataquality.application.reporting;
 
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

@@ -11,8 +11,6 @@ import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class UniquenessSpecificationsTest {
 
     @Test

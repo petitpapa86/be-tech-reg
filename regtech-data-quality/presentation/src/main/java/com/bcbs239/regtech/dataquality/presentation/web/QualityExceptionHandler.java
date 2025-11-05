@@ -3,7 +3,6 @@ package com.bcbs239.regtech.dataquality.presentation.web;
 import com.bcbs239.regtech.core.shared.ApiResponse;
 import com.bcbs239.regtech.core.shared.FieldError;
 import com.bcbs239.regtech.core.shared.ResponseUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;

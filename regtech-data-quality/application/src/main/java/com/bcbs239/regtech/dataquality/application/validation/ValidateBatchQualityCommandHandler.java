@@ -1,18 +1,17 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.dataquality.application.scoring.QualityScoringEngine;
-import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.dataquality.application.integration.CrossModuleEventPublisher;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
+import com.bcbs239.regtech.dataquality.application.scoring.QualityScoringEngine;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
-import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
+import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

@@ -1,9 +1,8 @@
 package com.bcbs239.regtech.dataquality.presentation.monitoring;
 
-import com.bcbs239.regtech.dataquality.application.validation.QualityValidationEngine;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
+import com.bcbs239.regtech.dataquality.application.validation.QualityValidationEngine;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

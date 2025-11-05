@@ -1,20 +1,19 @@
 package com.bcbs239.regtech.dataquality.presentation.reports;
 
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.dataquality.application.reporting.QualityReportDto;
+import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrendsQuery;
+import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrendsQueryHandler;
 import com.bcbs239.regtech.dataquality.application.monitoring.QualityTrendsDto;
 import com.bcbs239.regtech.dataquality.application.reporting.GetQualityReportQuery;
-import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrendsQuery;
+import com.bcbs239.regtech.dataquality.application.reporting.QualityReportDto;
 import com.bcbs239.regtech.dataquality.application.reporting.QualityReportQueryHandler;
-import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrendsQueryHandler;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
+import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.presentation.common.IEndpoint;
-import com.bcbs239.regtech.dataquality.presentation.web.QualityResponseHandler;
-import com.bcbs239.regtech.dataquality.presentation.web.QualitySecurityService;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator.TrendsQueryParams;
-
+import com.bcbs239.regtech.dataquality.presentation.web.QualityResponseHandler;
+import com.bcbs239.regtech.dataquality.presentation.web.QualitySecurityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

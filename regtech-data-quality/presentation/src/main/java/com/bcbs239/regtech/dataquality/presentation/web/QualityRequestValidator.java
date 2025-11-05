@@ -1,10 +1,9 @@
 package com.bcbs239.regtech.dataquality.presentation.web;
 
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.FieldError;
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
-
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
 

@@ -1,8 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
-import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
-import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;

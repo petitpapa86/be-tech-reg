@@ -4,13 +4,11 @@ import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Specification;
 import com.bcbs239.regtech.dataquality.domain.specifications.AccuracySpecifications;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("Accuracy Specifications Tests")
 class AccuracySpecificationsTest {

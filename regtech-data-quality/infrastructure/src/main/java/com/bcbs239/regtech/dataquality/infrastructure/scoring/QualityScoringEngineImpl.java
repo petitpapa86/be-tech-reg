@@ -2,14 +2,10 @@ package com.bcbs239.regtech.dataquality.infrastructure.scoring;
 
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.dataquality.application.scoring.QualityScoringEngine;
-import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;
-import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
-import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
-import com.bcbs239.regtech.dataquality.domain.quality.QualityWeights;
+import com.bcbs239.regtech.dataquality.domain.quality.*;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
-import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

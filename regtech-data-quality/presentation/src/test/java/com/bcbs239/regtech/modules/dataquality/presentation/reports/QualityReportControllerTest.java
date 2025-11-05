@@ -1,12 +1,11 @@
 package com.bcbs239.regtech.modules.dataquality.presentation.reports;
 
-import com.bcbs239.regtech.dataquality.application.reporting.QualityReportQueryHandler;
 import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrendsQueryHandler;
+import com.bcbs239.regtech.dataquality.application.reporting.QualityReportQueryHandler;
 import com.bcbs239.regtech.dataquality.presentation.reports.QualityReportController;
+import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityResponseHandler;
 import com.bcbs239.regtech.dataquality.presentation.web.QualitySecurityService;
-import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
