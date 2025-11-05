@@ -31,6 +31,7 @@
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-iam</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		
 		<!-- Spring Boot Starters -->

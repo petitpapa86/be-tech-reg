@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
-import com.bcbs239.regtech.core.security.authorization.Role;
+import com.bcbs239.regtech.iam.domain.users.Bcbs239Role;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import com.bcbs239.regtech.iam.domain.users.UserRole;
 import jakarta.persistence.*;
@@ -29,7 +29,7 @@ public class UserRoleEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 50)
-    private Role role;
+    private Bcbs239Role role;
 
     @Column(name = "organization_id", nullable = false, length = 255)
     private String organizationId;
@@ -51,7 +51,7 @@ public class UserRoleEntity {
     protected UserRoleEntity() {}
 
     // Constructor for creation
-    public UserRoleEntity(String id, String userId, Role role, String organizationId, 
+    public UserRoleEntity(String id, String userId, Bcbs239Role role, String organizationId, 
                          Boolean active, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.userId = userId;
@@ -96,8 +96,8 @@ public class UserRoleEntity {
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
 
-    public Role getRole() { return role; }
-    public void setRole(Role role) { this.role = role; }
+    public Bcbs239Role getRole() { return role; }
+    public void setRole(Bcbs239Role role) { this.role = role; }
 
     public String getOrganizationId() { return organizationId; }
     public void setOrganizationId(String organizationId) { this.organizationId = organizationId; }

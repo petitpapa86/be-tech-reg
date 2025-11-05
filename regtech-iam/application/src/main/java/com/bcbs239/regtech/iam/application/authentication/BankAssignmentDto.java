@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.iam.application.authentication;
 
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.application.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.BankId;
 import com.bcbs239.regtech.iam.domain.users.Bcbs239Role;
 

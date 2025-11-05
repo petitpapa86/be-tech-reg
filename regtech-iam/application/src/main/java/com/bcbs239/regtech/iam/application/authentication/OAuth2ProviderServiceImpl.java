@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.iam.application.authentication;
 
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.application.shared.Result;
 import com.bcbs239.regtech.iam.domain.authentication.OAuth2ConfigurationService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

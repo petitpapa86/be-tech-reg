@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.capabilities.securityauthorization.authorization;
+package com.bcbs239.regtech.core.domain.security;
 
 import java.util.Set;
 import java.util.Optional;

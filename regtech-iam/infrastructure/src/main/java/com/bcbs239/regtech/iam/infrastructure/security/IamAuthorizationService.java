@@ -1,6 +1,9 @@
 package com.bcbs239.regtech.iam.infrastructure.security;
 
-import com.bcbs239.regtech.core.security.authorization.AuthorizationService;
+import com.bcbs239.regtech.core.domain.security.AuthorizationService;
+import com.bcbs239.regtech.core.security.authorization.Role;
+import com.bcbs239.regtech.iam.domain.users.Bcbs239Role;
+import com.bcbs239.regtech.iam.domain.users.RoleMapping;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import com.bcbs239.regtech.iam.domain.users.UserRole;
 import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
@@ -125,7 +128,8 @@ public class IamAuthorizationService implements AuthorizationService {
             .map(userIdVO -> userRepository.userRolesFinder().apply(userIdVO))
             .orElse(List.of())
             .stream()
-            .map(UserRole::getRole)
+            .map(UserRole::getBcbs239Role)
+            .map(RoleMapping::toCoreRole)
             .flatMap(role -> role.getPermissions().stream())
             .collect(Collectors.toSet());
     }
@@ -138,7 +142,7 @@ public class IamAuthorizationService implements AuthorizationService {
             .map(userIdVO -> userRepository.userRolesFinder().apply(userIdVO))
             .orElse(List.of())
             .stream()
-            .map(userRole -> userRole.getRole().name())
+            .map(userRole -> userRole.getBcbs239Role().name())
             .collect(Collectors.toSet());
     }
 }

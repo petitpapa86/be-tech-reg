@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.iam.application.integration;
 
 import com.bcbs239.regtech.core.events.PaymentVerifiedEvent;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.application.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.User;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import com.bcbs239.regtech.iam.domain.users.UserRepository;

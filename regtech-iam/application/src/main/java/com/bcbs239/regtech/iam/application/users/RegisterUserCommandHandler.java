@@ -4,7 +4,7 @@ import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.infrastructure.outbox.BaseUnitOfWork;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.application.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

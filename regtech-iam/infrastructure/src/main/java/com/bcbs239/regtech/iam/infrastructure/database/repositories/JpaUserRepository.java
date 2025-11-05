@@ -2,9 +2,9 @@ package com.bcbs239.regtech.iam.infrastructure.database.repositories;
 
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.security.authorization.Role;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.application.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.application.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserBankAssignmentEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
@@ -71,12 +71,12 @@ public class JpaUserRepository {
                 UserEntity entity = entityManager.find(UserEntity.class, userId.getValue());
                 if (entity == null) {
                     return Result.failure(ErrorDetail.of("USER_NOT_FOUND",
-                        "User not found with ID: " + userId, "error.user.notFound"));
+                        "User not found with ID: " + userId));
                 }
                 return Result.success(entity.toDomain());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("USER_LOAD_FAILED",
-                    "Failed to load user: " + e.getMessage(), "error.user.loadFailed"));
+                    "Failed to load user: " + e.getMessage()));
             }
         };
     }
@@ -179,7 +179,7 @@ public class JpaUserRepository {
                         "error", e.getMessage()
                     )), e);
                     return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED",
-                        "Failed to save user role: " + e.getMessage(), "error.user.role.saveFailed"));
+                        "Failed to save user role: " + e.getMessage()));
                 }
             });
          };
@@ -237,8 +237,7 @@ public class JpaUserRepository {
                 return tokenResult;
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("TOKEN_GENERATION_FAILED",
-                    "Failed to generate JWT token: " + e.getMessage(),
-                    "error.token.generationFailed"));
+                    "Failed to generate JWT token: " + e.getMessage()));
             }
         };
     }
