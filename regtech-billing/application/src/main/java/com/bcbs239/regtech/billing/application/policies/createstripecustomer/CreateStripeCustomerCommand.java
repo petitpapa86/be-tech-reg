@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.billing.application.policies.createstripecustomer;
 
-import com.bcbs239.regtech.core.saga.SagaId;
-import com.bcbs239.regtech.core.saga.SagaCommand;
+import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.saga.SagaCommand;
+import lombok.Getter;
 
 import java.time.Instant;
 import java.util.Map;
@@ -9,6 +10,7 @@ import java.util.Map;
 /**
  * Command to create a Stripe customer
  */
+@Getter
 public class CreateStripeCustomerCommand extends SagaCommand {
     private final String userId;
     private final String email;
@@ -25,23 +27,7 @@ public class CreateStripeCustomerCommand extends SagaCommand {
         this.name = name;
         this.paymentMethodId = paymentMethodId;
     }
-    
-    public String getUserId() {
-        return userId;
-    }
-    
-    public String getEmail() {
-        return email;
-    }
-    
-    public String getName() {
-        return name;
-    }
-    
-    public String getPaymentMethodId() {
-        return paymentMethodId;
-    }
-    
+
     public static CreateStripeCustomerCommand create(SagaId sagaId, String userId, String email, String name) {
         return new CreateStripeCustomerCommand(sagaId, userId, email, name, null);
     }
