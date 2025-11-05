@@ -1,6 +1,8 @@
 package com.bcbs239.regtech.core.application.integration;
 
-import com.bcbs239.regtech.core.domain.DomainEvent;
+import com.bcbs239.regtech.core.application.eventprocessing.DomainEventHandler;
+import com.bcbs239.regtech.core.domain.events.BaseEvent;
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -12,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 /**
  * Dispatcher for domain events to registered handlers.
@@ -22,7 +23,7 @@ public class DomainEventDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(DomainEventDispatcher.class);
 
-    private final Map<Class<? extends DomainEvent>, List<com.bcbs239.regtech.core.domain.DomainEventHandler<? extends DomainEvent>>> handlers = new ConcurrentHashMap<>();
+    private final Map<Class<? extends BaseEvent>, List<DomainEventHandler<? extends BaseEvent>>> handlers = new ConcurrentHashMap<>();
     private final ApplicationContext applicationContext;
 
     public DomainEventDispatcher(ApplicationContext applicationContext) {
@@ -32,10 +33,10 @@ public class DomainEventDispatcher {
     @EventListener
     public void onContextRefreshed(ContextRefreshedEvent event) {
         // Register all DomainEventHandler beans after the context is fully initialized
-        @SuppressWarnings("unchecked")
-        Map<String, com.bcbs239.regtech.core.domain.DomainEventHandler<? extends DomainEvent>> beans = (Map<String, com.bcbs239.regtech.core.domain.DomainEventHandler<? extends DomainEvent>>) (Map<String, ?>) applicationContext.getBeansOfType(com.bcbs239.regtech.core.domain.DomainEventHandler.class);
-        if (beans != null && !beans.isEmpty()) {
-            for (com.bcbs239.regtech.core.domain.DomainEventHandler<? extends DomainEvent> handler : beans.values()) {
+
+        var beans =  applicationContext.getBeansOfType(DomainEventHandler.class);
+        if (!beans.isEmpty()) {
+            for (var handler : beans.values()) {
                 try {
                     registerHandler(handler);
                 } catch (Exception e) {
@@ -47,40 +48,42 @@ public class DomainEventDispatcher {
         }
     }
 
-    public void registerHandler(com.bcbs239.regtech.core.domain.DomainEventHandler<? extends DomainEvent> handler) {
-        Class<? extends DomainEvent> eventType = handler.eventClass();
+    public void registerHandler(DomainEventHandler<? extends BaseEvent> handler) {
+        Class<? extends BaseEvent> eventType = handler.eventClass();
         handlers.computeIfAbsent(eventType, key -> new ArrayList<>()).add(handler);
         logger.info("Registered event handler {} for event type {}", handler.getClass().getSimpleName(), eventType.getSimpleName());
     }
 
-    public void dispatch(DomainEvent event) {
+    public boolean dispatch(BaseEvent event) {
         // Support subclasses and proxies by matching registered handler types that are assignable from the event's class
-        List<com.bcbs239.regtech.core.domain.DomainEventHandler<? extends DomainEvent>> matchedHandlers = new ArrayList<>();
+        List<DomainEventHandler<? extends BaseEvent>> matchedHandlers = new ArrayList<>();
 
-        for (Map.Entry<Class<? extends DomainEvent>, List<com.bcbs239.regtech.core.domain.DomainEventHandler<? extends DomainEvent>>> entry : handlers.entrySet()) {
+        for (Map.Entry<Class<? extends BaseEvent>, List<DomainEventHandler<? extends BaseEvent>>> entry : handlers.entrySet()) {
             Class<? extends DomainEvent> registeredType = entry.getKey();
             if (registeredType.isAssignableFrom(event.getClass())) {
                 matchedHandlers.addAll(entry.getValue());
             }
         }
 
-        if (!matchedHandlers.isEmpty()) {
-            for (com.bcbs239.regtech.core.domain.DomainEventHandler<? extends DomainEvent> handler : matchedHandlers) {
-                try {
-                    @SuppressWarnings("unchecked")
-                    com.bcbs239.regtech.core.domain.DomainEventHandler<DomainEvent> h = (com.bcbs239.regtech.core.domain.DomainEventHandler<DomainEvent>) handler;
-                    h.handle(event);
-                    logger.info("Dispatched event {} to handler {}", event.getClass().getSimpleName(), handler.getClass().getSimpleName());
-                } catch (Exception e) {
-                    logger.error("Failed to handle event {} with handler {}", event.getClass().getSimpleName(), handler.getClass().getSimpleName(), e);
-                }
-            }
-        } else {
+        if (matchedHandlers.isEmpty()) {
             logger.debug("No handlers found for event type {}", event.getClass().getSimpleName());
+            return false;
         }
+
+        boolean anyHandled = false;
+        for (DomainEventHandler<? extends BaseEvent> handler : matchedHandlers) {
+            try {
+                @SuppressWarnings("unchecked")
+                DomainEventHandler<BaseEvent> h = (DomainEventHandler<BaseEvent>) handler;
+                h.handle(event);
+                anyHandled = true;
+                logger.info("Dispatched event {} to handler {}", event.getClass().getSimpleName(), handler.getClass().getSimpleName());
+            } catch (Exception e) {
+                logger.error("Failed to handle event {} with handler {}", event.getClass().getSimpleName(), handler.getClass().getSimpleName(), e);
+            }
+        }
+
+        return anyHandled;
     }
 
-    public Consumer<DomainEvent> dispatchFn() {
-        return this::dispatch;
-    }
 }

@@ -214,3 +214,12 @@ logging:
     com.bcbs239.regtech.core.outbox: DEBUG
     # Ingestion module debugging in GCP
     com.bcbs239.regtech.modules.ingestion: DEBUG
+
+# Inbox processing configuration (bound to com.bcbs239.regtech.core.application.inbox.InboxOptions)
+inbox:
+  # Poll interval in milliseconds. Can also be specified as a Spring Duration (e.g. 5s, PT5S).
+  poll-interval-ms: 5000
+  # Number of messages processed per run
+  batch-size: 10
+  # Whether to enable parallel processing of messages (not yet implemented in ProcessInboxJob)
+  parallel-processing-enabled: false

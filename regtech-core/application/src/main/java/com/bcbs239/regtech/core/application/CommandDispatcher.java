@@ -1,11 +1,11 @@
 package com.bcbs239.regtech.core.application;
 
+import com.bcbs239.regtech.core.domain.saga.SagaCommand;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
 import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
-import com.bcbs239.regtech.core.infrastructure.SagaCommand;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -18,7 +18,7 @@ public class CommandDispatcher {
         // Diagnostic structured log to trace commands being dispatched
         try {
             LoggingConfiguration.createStructuredLog("SAGA_COMMAND_PUBLISHED", java.util.Map.of(
-                "sagaId", command.getSagaId(),
+                "sagaId", command.sagaId(),
                 "commandType", command.commandType()
             ));
         } catch (Exception e) {
@@ -31,13 +31,13 @@ public class CommandDispatcher {
                 public void afterCommit() {
                     try {
                         LoggingConfiguration.createStructuredLog("SAGA_COMMAND_AFTER_COMMIT", java.util.Map.of(
-                            "sagaId", command.getSagaId(),
+                            "sagaId", command.sagaId(),
                             "commandType", command.commandType()
                         ));
                         eventPublisher.publishEvent(command);
                     } catch (Exception e) {
                         LoggingConfiguration.createStructuredLog("SAGA_COMMAND_PUBLISH_FAILED", java.util.Map.of(
-                            "sagaId", command.getSagaId(),
+                            "sagaId", command.sagaId(),
                             "commandType", command.commandType(),
                             "error", e.getMessage()
                         ));
@@ -57,7 +57,7 @@ public class CommandDispatcher {
     public void dispatchNow(SagaCommand command) {
         try {
             LoggingConfiguration.createStructuredLog("SAGA_COMMAND_PUBLISHED_IMMEDIATE", java.util.Map.of(
-                "sagaId", command.getSagaId(),
+                "sagaId", command.sagaId(),
                 "commandType", command.commandType()
             ));
         } catch (Exception e) {

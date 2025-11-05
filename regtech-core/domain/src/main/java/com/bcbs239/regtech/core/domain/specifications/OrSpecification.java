@@ -33,8 +33,8 @@ public class OrSpecification<T> implements Specification<T> {
 
         // Both failed, collect all errors
         List<ErrorDetail> allErrors = new ArrayList<>();
-        allErrors.addAll(leftResult.getErrors());
-        allErrors.addAll(rightResult.getErrors());
+        allErrors.addAll(leftResult.errors());
+        allErrors.addAll(rightResult.errors());
 
         return Result.failure(allErrors);
     }

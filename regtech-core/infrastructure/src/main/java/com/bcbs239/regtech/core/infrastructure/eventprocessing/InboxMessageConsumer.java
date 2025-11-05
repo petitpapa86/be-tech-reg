@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.core.infrastructure.eventprocessing;
 
-import com.bcbs239.regtech.core.domain.eventprocessing.InboxMessageConsumer;
 import jakarta.persistence.*;
 import lombok.Getter;
 
@@ -14,7 +13,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "inbox_message_consumers",
        uniqueConstraints = @UniqueConstraint(columnNames = {"inbox_message_id", "name"}))
-public class InboxMessageConsumerEntity implements InboxMessageConsumer {
+public class InboxMessageConsumerEntity  {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

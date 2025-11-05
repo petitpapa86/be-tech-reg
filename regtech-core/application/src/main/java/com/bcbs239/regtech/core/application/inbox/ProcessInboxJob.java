@@ -1,19 +1,25 @@
-package com.bcbs239.regtech.core.application.eventprocessing;
+package com.bcbs239.regtech.core.application.inbox;
 
-import com.bcbs239.regtech.core.application.integration.EventDispatcher;
+import com.bcbs239.regtech.core.application.eventprocessing.IntegrationEventDeserializer;
+import com.bcbs239.regtech.core.application.integration.DomainEventDispatcher;
+import com.bcbs239.regtech.core.domain.events.BaseEvent;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
 import com.bcbs239.regtech.core.domain.core.Result;
-import com.bcbs239.regtech.core.infrastructure.eventprocessing.InboxMessageEntity;
-import com.bcbs239.regtech.core.infrastructure.eventprocessing.IntegrationEventDeserializer;
-import com.bcbs239.regtech.core.infrastructure.eventprocessing.InboxFunctions;
+import com.bcbs239.regtech.core.domain.inbox.IInboxMessageRepository;
+
+import com.bcbs239.regtech.core.domain.inbox.InboxMessage;
+import com.bcbs239.regtech.core.domain.inbox.InboxMessageStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * Scheduled coordinator for inbox message processing.
@@ -23,71 +29,64 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ProcessInboxJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessInboxJob.class);
-    private static final int BATCH_SIZE = 10;
 
     private final IInboxMessageRepository inboxMessageRepository;
-    private final TransactionTemplate transactionTemplate;
     private final IntegrationEventDeserializer deserializer;
-    private final EventDispatcher dispatcher;
+    private final DomainEventDispatcher dispatcher;
+    private final InboxOptions inboxOptions;
 
-    public ProcessInboxJob(InboxMessageRepository inboxMessageRepository,
-                           TransactionTemplate transactionTemplate,
+    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository,
                            IntegrationEventDeserializer deserializer,
-                           EventDispatcher dispatcher) {
+                           DomainEventDispatcher dispatcher,
+                           InboxOptions inboxOptions) {
         this.inboxMessageRepository = inboxMessageRepository;
-        this.transactionTemplate = transactionTemplate;
         this.deserializer = deserializer;
         this.dispatcher = dispatcher;
+        this.inboxOptions = inboxOptions;
     }
 
-    @Scheduled(fixedDelay = 5000) // Run every 5 seconds
+    @Scheduled(fixedDelayString = "${inbox.poll-interval-ms:5000}") // configurable via inbox.poll-interval-ms
     @Transactional
     public void processInboxMessages() {
-        List<InboxMessageEntity> pendingMessages = inboxMessageRepository.findByProcessingStatusOrderByReceivedAt(InboxMessageEntity.ProcessingStatus.PENDING);
+        List<InboxMessage> pendingMessages = inboxMessageRepository.findByProcessingStatusOrderByReceivedAt(InboxMessageStatus.PENDING);
 
         if (pendingMessages == null || pendingMessages.isEmpty()) {
             return;
         }
 
-        logger.info("Processing {} inbox messages", pendingMessages.size());
+        int batchSize = Math.max(1, inboxOptions.getBatchSize());
+        List<InboxMessage> toProcess = pendingMessages.stream().limit(batchSize).collect(Collectors.toList());
 
-        AtomicInteger processedCount = new AtomicInteger();
-        for (InboxMessageEntity message : pendingMessages) {
-            if (processedCount.get() >= BATCH_SIZE) {
-                break;
-            }
+        logger.info("Processing {} inbox messages (batch size {})", toProcess.size(), batchSize);
 
+        for (InboxMessage message : toProcess) {
 
-            // Mark message as processing to prevent concurrent processing
             try {
-                InboxFunctions.markAsProcessing(inboxMessageRepository.getEntityManager(), transactionTemplate, new InboxFunctions.MarkAsProcessingRequest(message.getId()));
+                inboxMessageRepository.markAsProcessing(message.getId());
             } catch (Exception e) {
                 logger.debug("Message {} is already being processed by another thread", message.getId());
                 continue; // Skip this message as it's being processed by another thread
             }
 
 
-            Result<IntegrationEvent> deserializeResult = deserializer.deserialize(message.getEventType(), message.getEventData());
+            Result<BaseEvent> deserializeResult = deserializer.deserialize(message.getEventType(), message.getContent());
             if (deserializeResult.isFailure()) {
                 String errorMessage = deserializeResult.getError().map(ErrorDetail::getMessage).orElse("Unknown deserialization error");
                 logger.error("Deserialization failed for message {}: {}", message.getId(), errorMessage);
-                InboxFunctions.markAsPermanentlyFailed(inboxMessageRepository.getEntityManager(), transactionTemplate, new InboxFunctions.MarkAsPermanentlyFailedRequest(message.getId(), "Deserialization failed: " + errorMessage));
+                inboxMessageRepository.markAsPermanentlyFailed(message.getId());
                 continue;
             }
 
 
-            var event = deserializeResult.getValue().get();
-            boolean success = dispatcher.dispatch(event, message.getId());
+            var event = deserializeResult.getValue().orElseThrow();
+            boolean success = dispatcher.dispatch(event);
             if (success) {
-                InboxFunctions.markAsProcessed(inboxMessageRepository.getEntityManager(), transactionTemplate, new InboxFunctions.MarkAsProcessedRequest(message.getId(), Instant.now()));
-                processedCount.getAndIncrement();
+                inboxMessageRepository.markAsProcessed(message.getId(), Instant.now());
             } else {
-                InboxFunctions.markAsPermanentlyFailed(inboxMessageRepository.getEntityManager(), transactionTemplate, new InboxFunctions.MarkAsPermanentlyFailedRequest(message.getId(), "One or more handlers failed"));
+                inboxMessageRepository.markAsPermanentlyFailed(message.getId());
                 logger.warn("One or more handlers failed for message {}", message.getId());
             }
 
         }
-
-        logger.info("Processed {} inbox messages successfully", processedCount);
     }
 }

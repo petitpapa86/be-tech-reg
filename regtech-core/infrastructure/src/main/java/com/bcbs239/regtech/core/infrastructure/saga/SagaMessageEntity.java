@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.core.infrastructure.saga;
 
+import com.bcbs239.regtech.core.domain.saga.SagaId;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
@@ -17,3 +18,7 @@ import com.bcbs239.regtech.core.domain.saga.SagaMessage;
 @ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
 public abstract class SagaMessageEntity extends SagaMessage {
+    public SagaMessageEntity(String eventType, Instant occurredAt, SagaId sagaId) {
+        super(eventType, occurredAt, sagaId);
+    }
+}

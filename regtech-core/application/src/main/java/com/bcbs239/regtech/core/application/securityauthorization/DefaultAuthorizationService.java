@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.core.application.securityauthorization;
 
-import com.bcbs239.regtech.core.infrastructure.AuthorizationService;
-import com.bcbs239.regtech.core.infrastructure.SecurityContext;
-import com.bcbs239.regtech.core.infrastructure.SecurityUtils;
+
+
+import org.springframework.boot.actuate.endpoint.SecurityContext;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;

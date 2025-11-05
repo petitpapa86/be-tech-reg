@@ -2,7 +2,6 @@ package com.bcbs239.regtech.core.presentation.controllers;
 
 import com.bcbs239.regtech.core.domain.ErrorDetail;
 import com.bcbs239.regtech.core.domain.FieldError;
-import com.bcbs239.regtech.core.domain.Result;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;

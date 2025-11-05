@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.domain.events;
+package com.bcbs239.regtech.core.domain.outbox;
 
 /**
  * Status enum for outbox messages.

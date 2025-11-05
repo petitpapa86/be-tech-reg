@@ -1,33 +1,34 @@
-package com.bcbs239.regtech.core.domain.eventprocessing;
+package com.bcbs239.regtech.core.domain.outbox;
 
-import com.bcbs239.regtech.core.domain.events.OutboxMessageStatus;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 
-/**
- * Domain interface for outbox messages implementing the transactional outbox pattern.
- * Stores events to be published reliably after successful business transactions.
- */
-public interface OutboxMessage {
+@Getter
+@Setter
+public class OutboxMessage {
+    private String id;
 
-    String getId();
-    String getType();
-    String getContent();
-    OutboxMessageStatus getStatus();
-    Instant getOccurredOnUtc();
-    Instant getProcessedOnUtc();
-    int getRetryCount();
-    Instant getNextRetryTime();
-    String getLastError();
-    Instant getDeadLetterTime();
+    private String type;
 
-    // Business methods
-    boolean isPending();
-    boolean isProcessed();
-    boolean isFailed();
-    boolean canRetry();
-    void markAsProcessing();
-    void markAsProcessed();
-    void markAsFailed(String error);
-    void incrementRetryCount();
+    private String content;
+
+    private OutboxMessageStatus status;
+
+    private Instant occurredOnUtc;
+
+    private Instant processedOnUtc;
+
+    private int retryCount = 0;
+
+    private Instant nextRetryTime;
+
+    private String lastError;
+
+    private Instant deadLetterTime;
+
+    private Instant updatedAt;
+
+    private String  errorMessage;
 }

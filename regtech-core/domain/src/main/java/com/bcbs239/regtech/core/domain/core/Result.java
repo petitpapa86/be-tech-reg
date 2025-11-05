@@ -6,15 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class Result<T> {
-
-    private final T value;
-    private final List<ErrorDetail> errors;
-
-    private Result(T value, List<ErrorDetail> errors) {
-        this.value = value;
-        this.errors = errors;
-    }
+public record Result<T>(T value, List<ErrorDetail> errors) {
 
     public static <T> Result<T> success(T value) {
         return new Result<>(value, null);
@@ -52,7 +44,8 @@ public class Result<T> {
         return errors != null && !errors.isEmpty() ? Optional.of(errors.get(0)) : Optional.empty();
     }
 
-    public List<ErrorDetail> getErrors() {
+    @Override
+    public List<ErrorDetail> errors() {
         return errors != null ? errors : List.of();
     }
 
@@ -79,8 +72,8 @@ public class Result<T> {
         if (isSuccess()) {
             return value;
         }
-        throw new IllegalStateException("Cannot get value from failed result: " + 
-            (errors != null && !errors.isEmpty() ? errors.get(0).getMessage() : "Unknown error"));
+        throw new IllegalStateException("Cannot get value from failed result: " +
+                (errors != null && !errors.isEmpty() ? errors.get(0).getMessage() : "Unknown error"));
     }
 
     /**

@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.application.integration;
 
-import com.bcbs239.regtech.core.domain.IntegrationEvent;
+
+import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 
 /**
  * Interface for dispatching integration events to registered handlers.

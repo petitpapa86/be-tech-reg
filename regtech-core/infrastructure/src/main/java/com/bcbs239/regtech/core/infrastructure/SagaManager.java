@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.core.infrastructure;
 
-import com.bcbs239.regtech.core.domain.Result;
 import com.bcbs239.regtech.core.domain.core.Maybe;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaClosures;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaId;

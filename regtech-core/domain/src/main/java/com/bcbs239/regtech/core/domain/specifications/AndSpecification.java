@@ -34,10 +34,10 @@ public class AndSpecification<T> implements Specification<T> {
         // Collect all errors from both specifications
         List<ErrorDetail> allErrors = new ArrayList<>();
         if (leftResult.isFailure()) {
-            allErrors.addAll(leftResult.getErrors());
+            allErrors.addAll(leftResult.errors());
         }
         if (rightResult.isFailure()) {
-            allErrors.addAll(rightResult.getErrors());
+            allErrors.addAll(rightResult.errors());
         }
 
         return Result.failure(allErrors);

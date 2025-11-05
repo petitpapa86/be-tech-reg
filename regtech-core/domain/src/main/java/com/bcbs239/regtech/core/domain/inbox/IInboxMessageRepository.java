@@ -1,5 +1,6 @@
-package com.bcbs239.regtech.core.domain.eventprocessing;
+package com.bcbs239.regtech.core.domain.inbox;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,13 +11,11 @@ public interface IInboxMessageRepository {
 
     InboxMessage save(InboxMessage message);
 
-    Optional<InboxMessage> findById(String id);
+    List<InboxMessage> findByProcessingStatusOrderByReceivedAt(InboxMessageStatus inboxMessageStatus);
 
-    Optional<InboxMessage> findByEventId(String eventId);
+    void markAsProcessing(String id);
 
-    List<InboxMessage> findPendingMessages();
+    void markAsPermanentlyFailed(String id);
 
-    List<InboxMessage> findByAggregateId(String aggregateId);
-
-    void deleteById(String id);
+    void markAsProcessed(String id, Instant now);
 }

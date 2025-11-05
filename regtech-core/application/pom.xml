@@ -18,13 +18,7 @@
 			<artifactId>regtech-core-domain</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-		
-		<!-- Infrastructure layer dependency -->
-		<dependency>
-			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-core-infrastructure</artifactId>
-			<version>${project.version}</version>
-		</dependency>
+
 		
 		<!-- Spring Boot starters for application services -->
 		<dependency>
@@ -83,5 +77,9 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>org.springframework.retry</groupId>
+            <artifactId>spring-retry</artifactId>
+        </dependency>
+    </dependencies>
 </project>

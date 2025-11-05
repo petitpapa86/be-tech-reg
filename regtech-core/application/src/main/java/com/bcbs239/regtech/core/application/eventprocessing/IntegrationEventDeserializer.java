@@ -1,5 +1,7 @@
-package com.bcbs239.regtech.core.infrastructure;
+package com.bcbs239.regtech.core.application.eventprocessing;
 
+import com.bcbs239.regtech.core.domain.core.Result;
+import com.bcbs239.regtech.core.domain.events.BaseEvent;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,7 +17,7 @@ public class IntegrationEventDeserializer {
         this.objectMapper = objectMapper;
     }
 
-    public Result<IntegrationEvent> deserialize(String typeName, String json)  {
+    public Result<BaseEvent> deserialize(String typeName, String json)  {
         Class<?> eventClass;
         try {
             eventClass = Class.forName(typeName);
@@ -29,7 +31,9 @@ public class IntegrationEventDeserializer {
         Class<? extends IntegrationEvent> integrationEventClass = (Class<? extends IntegrationEvent>) eventClass;
         try {
             IntegrationEvent event = objectMapper.readValue(json, integrationEventClass);
-            return Result.success(event);
+            BaseEvent baseEvent = objectMapper.convertValue(event, BaseEvent.class);
+
+            return Result.success(baseEvent);
         } catch (JsonProcessingException e) {
             return Result.failure(ErrorDetail.of("DESERIALIZATION_ERROR", "Failed to deserialize event JSON: " + e.getMessage()));
         }

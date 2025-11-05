@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.core.infrastructure.eventprocessing;
 
-import com.bcbs239.regtech.core.domain.eventprocessing.InboxMessage;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 
@@ -10,6 +10,7 @@ import java.time.Instant;
  * Shared inbox message entity for reliable event processing across bounded contexts.
  * This entity stores integration events that need to be processed by event handlers.
  */
+@Setter
 @Getter
 @Entity
 @Table(name = "inbox_messages", indexes = {
@@ -18,7 +19,7 @@ import java.time.Instant;
     @Index(name = "idx_inbox_messages_aggregate_id", columnList = "aggregate_id"),
     @Index(name = "idx_inbox_messages_event_id", columnList = "event_id")
 })
-public class InboxMessageEntity implements InboxMessage {
+public class InboxMessageEntity  {
 
     public enum ProcessingStatus {
         PENDING,
@@ -81,50 +82,6 @@ public class InboxMessageEntity implements InboxMessage {
         this.eventData = eventData;
         this.aggregateId = aggregateId;
         this.receivedAt = Instant.now();
-    }
-
-    public void setId(String id) {
-        this.id = id;
-    }
-
-    public void setEventId(String eventId) {
-        this.eventId = eventId;
-    }
-
-    public void setEventType(String eventType) {
-        this.eventType = eventType;
-    }
-
-    public void setEventData(String eventData) {
-        this.eventData = eventData;
-    }
-
-    public void setReceivedAt(Instant receivedAt) {
-        this.receivedAt = receivedAt;
-    }
-
-    public void setProcessedAt(Instant processedAt) {
-        this.processedAt = processedAt;
-    }
-
-    public void setProcessingStatus(ProcessingStatus processingStatus) {
-        this.processingStatus = processingStatus;
-    }
-
-    public void setAggregateId(String aggregateId) {
-        this.aggregateId = aggregateId;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-
-    public void setRetryCount(int retryCount) {
-        this.retryCount = retryCount;
-    }
-
-    public void setNextRetryAt(Instant nextRetryAt) {
-        this.nextRetryAt = nextRetryAt;
     }
 
     // Domain interface implementation
