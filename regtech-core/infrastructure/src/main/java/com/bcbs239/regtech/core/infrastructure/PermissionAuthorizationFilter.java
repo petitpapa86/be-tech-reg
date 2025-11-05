@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.infrastructure;
 
 import com.bcbs239.regtech.core.infrastructure.securityauthorization.PermissionService;
+import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

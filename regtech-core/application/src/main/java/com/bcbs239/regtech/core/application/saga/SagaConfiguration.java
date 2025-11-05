@@ -1,7 +1,6 @@
-package com.bcbs239.regtech.core.infrastructure.saga;
+package com.bcbs239.regtech.core.application.saga;
 
-import com.bcbs239.regtech.core.domain.core.Result;
-import com.bcbs239.regtech.core.domain.core.Maybe;
+import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.springframework.context.annotation.Bean;
@@ -37,7 +36,7 @@ public class SagaConfiguration {
     }
 
     @Bean
-    public SagaClosures.TimeoutScheduler timeoutScheduler(ScheduledExecutorService executor) {
-        return SagaClosures.timeoutScheduler(executor);
+    public TimeoutScheduler timeoutScheduler(ScheduledExecutorService executor) {
+        return new com.bcbs239.regtech.core.infrastructure.saga.TimeoutSchedulerService(executor);
     }
 }

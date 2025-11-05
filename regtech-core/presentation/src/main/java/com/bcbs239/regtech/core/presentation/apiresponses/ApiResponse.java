@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.core.presentation.apiresponses;
 
-import com.bcbs239.regtech.core.domain.ErrorType;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 

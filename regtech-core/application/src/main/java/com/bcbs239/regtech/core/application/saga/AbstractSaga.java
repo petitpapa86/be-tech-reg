@@ -1,18 +1,17 @@
-package com.bcbs239.regtech.core.domain.saga;
+package com.bcbs239.regtech.core.application.saga;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.bcbs239.regtech.core.domain.errorhandling.ErrorType;
+import com.bcbs239.regtech.core.domain.saga.*;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
-
-import com.bcbs239.regtech.core.domain.errorhandling.ErrorType;
-import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 
 @Getter
 @Slf4j
@@ -30,12 +29,13 @@ public abstract class AbstractSaga<T> {
     private static final int MAX_RETRIES = 3;
     
     // Inject the timeout scheduler (for retries and timeouts)
-    protected final SagaClosures.TimeoutScheduler timeoutScheduler;
-    protected void setStatus(SagaStatus status) {
+    protected final TimeoutScheduler timeoutScheduler;
+    protected final ILogger logger;
+    public void setStatus(SagaStatus status) {
         this.status = status;
     }
     
-    protected void setCompletedAt(Instant completedAt) {
+    public void setCompletedAt(Instant completedAt) {
         this.completedAt = completedAt;
     }
     
@@ -43,13 +43,14 @@ public abstract class AbstractSaga<T> {
     private final List<SagaMessage> processedEvents = new ArrayList<>();
     private final Map<Class<? extends SagaMessage>, Consumer<SagaMessage>> eventHandlers = new HashMap<>();
 
-    protected AbstractSaga(SagaId id, String sagaType, T data, SagaClosures.TimeoutScheduler timeoutScheduler) {
+    protected AbstractSaga(SagaId id, String sagaType, T data, TimeoutScheduler timeoutScheduler, ILogger logger) {
         this.id = id;
         this.sagaType = sagaType;
         this.data = data;
         this.status = SagaStatus.STARTED;
         this.startedAt = Instant.now();
         this.timeoutScheduler = timeoutScheduler;
+        this.logger = logger;
     }
 
     // Functional handler registration - pure closure approach
@@ -59,7 +60,7 @@ public abstract class AbstractSaga<T> {
             E typedEvent = (E) event;
             handler.accept(typedEvent);
         });
-        LoggingConfiguration.createStructuredLog("SAGA_EVENT_HANDLER_REGISTERED", Map.of(
+        logger.createStructuredLog("SAGA_EVENT_HANDLER_REGISTERED", Map.of(
             "sagaId", id,
             "sagaType", sagaType,
             "eventType", eventType.getSimpleName()
@@ -69,7 +70,7 @@ public abstract class AbstractSaga<T> {
     // Handle incoming events
     public void handle(SagaMessage event) {
         if (isCompleted()) {
-            LoggingConfiguration.createStructuredLog("SAGA_EVENT_IGNORED", Map.of(
+            logger.createStructuredLog("SAGA_EVENT_IGNORED", Map.of(
                 "sagaId", id,
                 "sagaType", sagaType,
                 "eventType", event.eventType()
@@ -86,7 +87,7 @@ public abstract class AbstractSaga<T> {
             }
         }
          if (handler != null) {
-             LoggingConfiguration.createStructuredLog("SAGA_EVENT_PROCESSED", Map.of(
+             logger.createStructuredLog("SAGA_EVENT_PROCESSED", Map.of(
                  "sagaId", id,
                  "sagaType", sagaType,
                  "eventType", event.eventType()
@@ -95,7 +96,7 @@ public abstract class AbstractSaga<T> {
              processedEvents.add(event);
              updateStatus();
          } else {
-             LoggingConfiguration.createStructuredLog("SAGA_EVENT_IGNORED", Map.of(
+             logger.createStructuredLog("SAGA_EVENT_IGNORED", Map.of(
                  "sagaId", id,
                  "sagaType", sagaType,
                  "eventType", event.eventType()
@@ -108,7 +109,7 @@ public abstract class AbstractSaga<T> {
     // Command dispatching
     protected void dispatchCommand(SagaCommand command) {
         commandsToDispatch.add(command);
-        LoggingConfiguration.createStructuredLog("SAGA_COMMAND_DISPATCHED", Map.of(
+        logger.createStructuredLog("SAGA_COMMAND_DISPATCHED", Map.of(
             "sagaId", id,
             "sagaType", sagaType,
             "commandType", command.commandType(),
@@ -137,7 +138,7 @@ public abstract class AbstractSaga<T> {
     protected void complete() {
         this.status = SagaStatus.COMPLETED;
         this.completedAt = Instant.now();
-        LoggingConfiguration.createStructuredLog("SAGA_COMPLETED", Map.of(
+        logger.createStructuredLog("SAGA_COMPLETED", Map.of(
             "sagaId", id,
             "sagaType", sagaType,
             "completedAt", completedAt.toString()
@@ -211,7 +212,7 @@ public abstract class AbstractSaga<T> {
     protected void fail(String reason) {
         this.status = SagaStatus.FAILED;
         this.completedAt = Instant.now();
-        LoggingConfiguration.createStructuredLog("SAGA_FAILED", Map.of(
+        logger.createStructuredLog("SAGA_FAILED", Map.of(
             "sagaId", id,
             "sagaType", sagaType,
             "completedAt", completedAt.toString(),
@@ -221,6 +222,23 @@ public abstract class AbstractSaga<T> {
 
     protected boolean hasProcessedEvent(Class<? extends SagaMessage> eventClass) {
         return processedEvents.stream().anyMatch(eventClass::isInstance);
+    }
+
+    public SagaSnapshot toSnapshot(ObjectMapper objectMapper) throws Exception {
+        String sagaDataJson = objectMapper.writeValueAsString(data);
+        String processedEventsJson = objectMapper.writeValueAsString(processedEvents);
+        String pendingCommandsJson = objectMapper.writeValueAsString(commandsToDispatch);
+        
+        return new SagaSnapshot(
+            id,
+            sagaType,
+            status,
+            startedAt,
+            sagaDataJson,
+            processedEventsJson,
+            pendingCommandsJson,
+            completedAt
+        );
     }
     
 }

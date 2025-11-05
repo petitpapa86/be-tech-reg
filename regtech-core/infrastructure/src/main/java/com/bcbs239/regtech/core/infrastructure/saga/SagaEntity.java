@@ -2,6 +2,7 @@ package com.bcbs239.regtech.core.infrastructure.saga;
 
 import java.time.Instant;
 
+import com.bcbs239.regtech.core.domain.saga.SagaStatus;
 import com.bcbs239.regtech.core.infrastructure.systemservices.SystemTimeProvider;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

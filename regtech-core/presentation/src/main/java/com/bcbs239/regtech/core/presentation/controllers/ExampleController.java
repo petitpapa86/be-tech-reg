@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.core.presentation.controllers;
 
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

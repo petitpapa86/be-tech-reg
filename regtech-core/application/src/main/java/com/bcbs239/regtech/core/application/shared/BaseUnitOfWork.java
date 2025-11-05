@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.core.application.shared;
 
-import com.bcbs239.regtech.core.domain.DomainEvent;
-import com.bcbs239.regtech.core.domain.Entity;
-import com.bcbs239.regtech.core.infrastructure.OutboxMessageEntity;
+import com.bcbs239.regtech.core.domain.core.Entity;
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
+import com.bcbs239.regtech.core.infrastructure.eventprocessing.OutboxMessageEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;

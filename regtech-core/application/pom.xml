@@ -18,8 +18,13 @@
 			<artifactId>regtech-core-domain</artifactId>
 			<version>${project.version}</version>
 		</dependency>
-
 		
+		<!-- Infrastructure layer dependency -->
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-core-infrastructure</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 		<!-- Spring Boot starters for application services -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

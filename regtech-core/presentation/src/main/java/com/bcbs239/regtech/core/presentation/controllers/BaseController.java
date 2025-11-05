@@ -1,7 +1,10 @@
 package com.bcbs239.regtech.core.presentation.controllers;
 
-import com.bcbs239.regtech.core.domain.ErrorDetail;
-import com.bcbs239.regtech.core.domain.FieldError;
+import com.bcbs239.regtech.core.application.shared.ErrorDetail;
+import com.bcbs239.regtech.core.application.shared.FieldError;
+import com.bcbs239.regtech.core.application.shared.Result;
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
+import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;

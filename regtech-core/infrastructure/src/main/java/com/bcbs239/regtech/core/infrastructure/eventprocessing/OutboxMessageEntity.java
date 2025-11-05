@@ -61,4 +61,12 @@ public class OutboxMessageEntity  {
     // Constructors
     public OutboxMessageEntity() {}
 
+    public OutboxMessageEntity(String type, String content, Instant occurredOnUtc) {
+        this.type = type;
+        this.content = content;
+        this.occurredOnUtc = occurredOnUtc;
+        this.status = OutboxMessageStatus.PENDING;
+        this.updatedAt = Instant.now();
+    }
+
 }
