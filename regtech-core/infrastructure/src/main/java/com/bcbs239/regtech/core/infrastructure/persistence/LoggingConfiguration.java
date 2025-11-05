@@ -82,7 +82,7 @@ public class LoggingConfiguration implements WebMvcConfigurer {
         public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
             String correlationId = request.getHeader("X-Correlation-ID");
             if (correlationId == null || correlationId.isEmpty()) {
-                correlationId = CorrelationId.generate().getId();
+                correlationId = CorrelationId.generate().id();
             }
             
             final String finalCorrelationId = correlationId;

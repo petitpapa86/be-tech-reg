@@ -10,9 +10,9 @@ import java.util.function.Supplier;
  * Time provider using functional closures (suppliers) for better testability.
  */
 public class SystemTimeProvider {
-    private Supplier<Instant> nowInstant;
-    private Supplier<LocalDateTime> nowLocalDateTime;
-    private Supplier<ZonedDateTime> nowZonedDateTime;
+    private final Supplier<Instant> nowInstant;
+    private final Supplier<LocalDateTime> nowLocalDateTime;
+    private final Supplier<ZonedDateTime> nowZonedDateTime;
 
     // Default constructor uses system clock
     public SystemTimeProvider() {

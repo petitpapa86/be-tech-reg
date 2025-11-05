@@ -1,6 +1,5 @@
-package com.bcbs239.regtech.core.infrastructure.saga;
+package com.bcbs239.regtech.core.application.saga;
 
-import com.bcbs239.regtech.core.domain.core.Result;
 import com.bcbs239.regtech.core.domain.core.Maybe;
 import com.bcbs239.regtech.core.domain.saga.SagaCommand;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
