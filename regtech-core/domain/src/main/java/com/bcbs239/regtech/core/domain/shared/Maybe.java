@@ -33,3 +33,4 @@ public sealed interface Maybe<T> {
         @Override public T getValue() { throw new IllegalStateException("None has no value"); }
     }
 }
+

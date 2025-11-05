@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.core.domain.core;
 
-import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 
 import java.util.List;
 import java.util.Optional;
@@ -90,3 +90,4 @@ public record Result<T>(T value, List<ErrorDetail> errors) {
         return getValue();
     }
 }
+

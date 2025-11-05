@@ -18,3 +18,4 @@
  * - Result: Functional result type for handling success/failure operations
  */
 package com.bcbs239.regtech.core.domain.core;
+
