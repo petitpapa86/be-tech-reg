@@ -2,7 +2,9 @@ package com.bcbs239.regtech.core.infrastructure.saga;
 
 import com.bcbs239.regtech.core.domain.core.Result;
 import com.bcbs239.regtech.core.domain.core.Maybe;
+import com.bcbs239.regtech.core.domain.saga.SagaCommand;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.saga.SagaMessage;
 import com.bcbs239.regtech.core.infrastructure.commandprocessing.CommandDispatcher;
 import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
 import lombok.RequiredArgsConstructor;
@@ -81,9 +83,9 @@ public class SagaManager {
 
     @Transactional
     public void processEvent(SagaMessage event) {
-        Maybe<AbstractSaga<?>> maybeSaga = jpaSagaRepository.load(event.getSagaId());
+        Maybe<AbstractSaga<?>> maybeSaga = jpaSagaRepository.load(event.sagaId());
         if (maybeSaga.isEmpty()) {
-            throw new SagaNotFoundException(event.getSagaId());
+            throw new SagaNotFoundException(event.sagaId());
         }
 
         AbstractSaga<?> saga = maybeSaga.getValue();
