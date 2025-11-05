@@ -1,8 +1,11 @@
 package com.bcbs239.regtech.core.application;
 
-import com.bcbs239.regtech.core.domain.DomainEvent;
-import com.bcbs239.regtech.core.infrastructure.OutboxMessageEntity;
-import com.bcbs239.regtech.core.infrastructure.OutboxMessageStatus;
+
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
+import com.bcbs239.regtech.core.domain.outbox.IOutboxMessageRepository;
+import com.bcbs239.regtech.core.domain.outbox.OutboxMessage;
+import com.bcbs239.regtech.core.domain.outbox.OutboxMessageStatus;
+import com.bcbs239.regtech.core.infrastructure.eventprocessing.OutboxMessageRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Scheduled processor for outbox messages.
@@ -22,7 +26,7 @@ public class OutboxProcessor {
     private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
     private static final int BATCH_SIZE = 10;
 
-    private final OutboxMessageRepository outboxMessageRepository;
+    private final IOutboxMessageRepository outboxMessageRepository;
     private final Consumer<DomainEvent> dispatchFn;
     private final ObjectMapper objectMapper;
 
@@ -38,7 +42,7 @@ public class OutboxProcessor {
     @Scheduled(fixedDelay = 5000) // Run every 5 seconds
     @Transactional
     public void processOutboxMessages() {
-        List<OutboxMessageEntity> pendingMessages = outboxMessageRepository.findByStatusOrderByOccurredOnUtc(OutboxMessageStatus.PENDING);
+        List<OutboxMessage> pendingMessages = outboxMessageRepository.findByStatusOrderByOccurredOnUtc(OutboxMessageStatus.PENDING);
 
         if (pendingMessages.isEmpty()) {
             return;
@@ -47,7 +51,7 @@ public class OutboxProcessor {
         logger.info("Processing {} outbox messages", pendingMessages.size());
 
         int processedCount = 0;
-        for (OutboxMessageEntity message : pendingMessages) {
+        for (OutboxMessage message : pendingMessages) {
             if (processedCount >= BATCH_SIZE) {
                 break;
             }
@@ -66,7 +70,7 @@ public class OutboxProcessor {
     }
 
     private void markAsProcessed(String messageId) {
-        OutboxMessageEntity entity = outboxMessageRepository.findByStatusOrderByOccurredOnUtc(OutboxMessageStatus.PENDING)
+        OutboxMessage entity = outboxMessageRepository.findByStatusOrderByOccurredOnUtc(OutboxMessageStatus.PENDING)
             .stream()
             .filter(msg -> msg.getId().equals(messageId))
             .findFirst()

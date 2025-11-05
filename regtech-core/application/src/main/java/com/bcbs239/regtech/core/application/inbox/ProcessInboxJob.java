@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.core.application.eventprocessing;
 
+import com.bcbs239.regtech.core.application.integration.EventDispatcher;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
 import com.bcbs239.regtech.core.domain.core.Result;
@@ -24,7 +25,7 @@ public class ProcessInboxJob {
     private static final Logger logger = LoggerFactory.getLogger(ProcessInboxJob.class);
     private static final int BATCH_SIZE = 10;
 
-    private final InboxMessageRepository inboxMessageRepository;
+    private final IInboxMessageRepository inboxMessageRepository;
     private final TransactionTemplate transactionTemplate;
     private final IntegrationEventDeserializer deserializer;
     private final EventDispatcher dispatcher;
