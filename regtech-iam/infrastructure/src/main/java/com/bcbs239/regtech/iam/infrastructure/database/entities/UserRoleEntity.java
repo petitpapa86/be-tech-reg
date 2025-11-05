@@ -1,9 +1,10 @@
 package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
 import com.bcbs239.regtech.core.security.authorization.Role;
-import com.bcbs239.regtech.iam.domain.users.UserRole;
 import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.iam.domain.users.UserRole;
 import jakarta.persistence.*;
+
 import java.time.Instant;
 
 /**

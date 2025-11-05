@@ -1,10 +1,10 @@
 package com.bcbs239.regtech.iam.infrastructure.security;
 
 import com.bcbs239.regtech.core.security.authorization.AuthorizationService;
-import com.bcbs239.regtech.core.security.authorization.Role;
-import com.bcbs239.regtech.iam.domain.users.UserRole;
 import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.iam.domain.users.UserRole;
 import com.bcbs239.regtech.iam.infrastructure.database.repositories.JpaUserRepository;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -13,8 +13,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import org.springframework.context.annotation.Primary;
 
 /**
  * IAM implementation of the authorization service.

@@ -2,6 +2,7 @@ package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
 import com.bcbs239.regtech.iam.domain.users.*;
 import jakarta.persistence.*;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;

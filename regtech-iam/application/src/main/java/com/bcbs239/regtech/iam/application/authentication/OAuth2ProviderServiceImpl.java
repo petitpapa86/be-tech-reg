@@ -14,8 +14,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Base64;
-
 /**
  * Implementation of OAuth2ProviderService for Google and Facebook authentication
  */

@@ -3,9 +3,9 @@ package com.bcbs239.regtech.iam.application.integration;
 
 
 // Note: InboxEventEntity should be handled in infrastructure layer
+
 import com.bcbs239.regtech.core.events.PaymentVerifiedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
-// TODO: Remove JPA imports from application layer
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;

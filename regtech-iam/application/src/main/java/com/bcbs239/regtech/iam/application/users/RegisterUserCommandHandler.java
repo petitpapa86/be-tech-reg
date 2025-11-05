@@ -1,12 +1,11 @@
 package com.bcbs239.regtech.iam.application.users;
 
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.infrastructure.outbox.BaseUnitOfWork;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.iam.domain.users.*;
-import com.bcbs239.regtech.iam.domain.users.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

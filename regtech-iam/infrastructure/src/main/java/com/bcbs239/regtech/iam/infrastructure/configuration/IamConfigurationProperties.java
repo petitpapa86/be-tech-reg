@@ -3,7 +3,6 @@ package com.bcbs239.regtech.iam.infrastructure.configuration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
-import java.util.Map;
 
 /**
  * Main configuration properties for the IAM module.

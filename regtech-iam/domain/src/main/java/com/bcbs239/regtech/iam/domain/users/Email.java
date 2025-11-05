@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.iam.domain.users;
 
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.FieldError;
 import com.bcbs239.regtech.core.shared.Result;
 
 import java.util.regex.Pattern;

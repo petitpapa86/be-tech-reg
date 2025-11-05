@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.iam.domain.users;
 
 import com.bcbs239.regtech.core.security.authorization.Permission;
+
 import java.util.Set;
 
 /**

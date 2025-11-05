@@ -2,14 +2,13 @@ package com.bcbs239.regtech.iam.infrastructure.security;
 
 import com.bcbs239.regtech.core.security.SecurityConfigurationRegistry;
 import com.bcbs239.regtech.core.security.SecurityConfigurationRegistry.ModuleSecurityConfiguration;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
-import jakarta.annotation.PostConstruct;
 
 /**
  * IAM module security configuration.
