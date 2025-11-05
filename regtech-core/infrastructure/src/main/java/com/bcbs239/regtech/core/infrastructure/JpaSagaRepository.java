@@ -126,7 +126,7 @@ public class JpaSagaRepository {
             try {
                 var ctor3 = sagaClass.getDeclaredConstructor(SagaId.class, dataClass, SagaClosures.TimeoutScheduler.class);
                 ctor3.setAccessible(true);
-                AbstractSaga<?> saga = (AbstractSaga<?>) ctor3.newInstance(
+                AbstractSaga<?> saga = ctor3.newInstance(
                         SagaId.of(entity.getSagaId()),
                         sagaData,
                         // use the provided timeout scheduler from the Spring context
@@ -143,7 +143,7 @@ public class JpaSagaRepository {
             try {
                 var ctor2 = sagaClass.getDeclaredConstructor(SagaId.class, dataClass);
                 ctor2.setAccessible(true);
-                AbstractSaga<?> saga = (AbstractSaga<?>) ctor2.newInstance(
+                AbstractSaga<?> saga = ctor2.newInstance(
                         SagaId.of(entity.getSagaId()),
                         sagaData
                 );
