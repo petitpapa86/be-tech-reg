@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.infrastructure.saga;
 
 import com.bcbs239.regtech.core.domain.saga.SagaMessage;
+import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,13 +10,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class SagaClosures {
-
-    public static interface TimeoutScheduler {
-        void schedule(String key, long delayMillis, Runnable task);
-
-        void cancel(String key);
-    }
-
 
     public static TimeoutScheduler timeoutScheduler(ScheduledExecutorService executor) {
         Map<String, ScheduledFuture<?>> scheduledTasks = new ConcurrentHashMap<>();

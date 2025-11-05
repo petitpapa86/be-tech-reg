@@ -22,12 +22,10 @@ public class JpaSagaRepository implements ISagaRepository {
 
     private final EntityManager entityManager;
     private final ObjectMapper objectMapper;
-    private final TimeoutScheduler timeoutScheduler;
 
-    public JpaSagaRepository(EntityManager entityManager, ObjectMapper objectMapper, TimeoutScheduler timeoutScheduler) {
+    public JpaSagaRepository(EntityManager entityManager, ObjectMapper objectMapper) {
         this.entityManager = entityManager;
         this.objectMapper = objectMapper;
-        this.timeoutScheduler = timeoutScheduler;
     }
 
     @Override
