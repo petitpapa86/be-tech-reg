@@ -1,0 +1,166 @@
+package com.bcbs239.regtech.core.infrastructure.eventprocessing;
+
+import com.bcbs239.regtech.core.domain.eventprocessing.InboxMessage;
+import jakarta.persistence.*;
+import lombok.Getter;
+
+import java.time.Instant;
+
+/**
+ * Shared inbox message entity for reliable event processing across bounded contexts.
+ * This entity stores integration events that need to be processed by event handlers.
+ */
+@Getter
+@Entity
+@Table(name = "inbox_messages", indexes = {
+    @Index(name = "idx_inbox_messages_status_received", columnList = "processing_status, received_at"),
+    @Index(name = "idx_inbox_messages_event_type", columnList = "event_type"),
+    @Index(name = "idx_inbox_messages_aggregate_id", columnList = "aggregate_id"),
+    @Index(name = "idx_inbox_messages_event_id", columnList = "event_id")
+})
+public class InboxMessageEntity implements InboxMessage {
+
+    public enum ProcessingStatus {
+        PENDING,
+        PROCESSING,
+        PROCESSED,
+        FAILED
+    }
+
+    // Getters and setters
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
+
+    @Column(name = "event_id", length = 100, unique = true)
+    private String eventId; // new: original integration event id for idempotency
+
+    @Column(name = "event_type", nullable = false, length = 100)
+    private String eventType;
+
+    @Column(name = "event_data", nullable = false, columnDefinition = "TEXT")
+    private String eventData;
+
+    @Column(name = "received_at", nullable = false)
+    private Instant receivedAt;
+
+    @Column(name = "processed_at")
+    private Instant processedAt;
+
+    @Column(name = "processing_status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private ProcessingStatus processingStatus = ProcessingStatus.PENDING;
+
+    @Column(name = "aggregate_id")
+    private String aggregateId;
+
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
+
+    @Column(name = "retry_count", nullable = false)
+    private int retryCount = 0;
+
+    @Column(name = "next_retry_at")
+    private Instant nextRetryAt;
+
+    // Default constructor
+    public InboxMessageEntity() {}
+
+    // Constructor for creating new inbox messages (backwards compatible)
+    public InboxMessageEntity(String eventType, String eventData, String aggregateId) {
+        this.eventType = eventType;
+        this.eventData = eventData;
+        this.aggregateId = aggregateId;
+        this.receivedAt = Instant.now();
+    }
+
+    // New constructor including eventId for idempotency
+    public InboxMessageEntity(String eventId, String eventType, String eventData, String aggregateId) {
+        this.eventId = eventId;
+        this.eventType = eventType;
+        this.eventData = eventData;
+        this.aggregateId = aggregateId;
+        this.receivedAt = Instant.now();
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setEventId(String eventId) {
+        this.eventId = eventId;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
+
+    public void setEventData(String eventData) {
+        this.eventData = eventData;
+    }
+
+    public void setReceivedAt(Instant receivedAt) {
+        this.receivedAt = receivedAt;
+    }
+
+    public void setProcessedAt(Instant processedAt) {
+        this.processedAt = processedAt;
+    }
+
+    public void setProcessingStatus(ProcessingStatus processingStatus) {
+        this.processingStatus = processingStatus;
+    }
+
+    public void setAggregateId(String aggregateId) {
+        this.aggregateId = aggregateId;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
+    public void setRetryCount(int retryCount) {
+        this.retryCount = retryCount;
+    }
+
+    public void setNextRetryAt(Instant nextRetryAt) {
+        this.nextRetryAt = nextRetryAt;
+    }
+
+    // Domain interface implementation
+    @Override
+    public boolean isPending() {
+        return processingStatus == ProcessingStatus.PENDING;
+    }
+
+    @Override
+    public boolean isProcessing() {
+        return processingStatus == ProcessingStatus.PROCESSING;
+    }
+
+    @Override
+    public boolean isProcessed() {
+        return processingStatus == ProcessingStatus.PROCESSED;
+    }
+
+    @Override
+    public boolean isFailed() {
+        return processingStatus == ProcessingStatus.FAILED;
+    }
+
+    @Override
+    public void markAsProcessing() {
+        this.processingStatus = ProcessingStatus.PROCESSING;
+    }
+
+    @Override
+    public void markAsProcessed() {
+        this.processingStatus = ProcessingStatus.PROCESSED;
+        this.processedAt = Instant.now();
+    }
+
+    @Override
+    public void markAsFailed() {
+        this.processingStatus = ProcessingStatus.FAILED;
+    }
+}

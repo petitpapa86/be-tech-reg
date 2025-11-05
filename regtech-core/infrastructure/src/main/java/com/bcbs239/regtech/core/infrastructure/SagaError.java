@@ -1,0 +1,32 @@
+package com.bcbs239.regtech.core.infrastructure;
+
+import com.bcbs239.regtech.core.domain.errorhandling.ErrorType;
+import lombok.Value;
+
+@Value
+public class SagaError {
+    String message;
+    ErrorType errorType;
+    boolean recoverable;
+    boolean semiRecoverable;
+
+    public SagaError withRetry() {
+        return new SagaError(message + " (retry)", errorType, recoverable, semiRecoverable);
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public ErrorType getErrorType() {
+        return errorType;
+    }
+
+    public boolean isRecoverable() {
+        return recoverable;
+    }
+
+    public boolean isSemiRecoverable() {
+        return semiRecoverable;
+    }
+}
