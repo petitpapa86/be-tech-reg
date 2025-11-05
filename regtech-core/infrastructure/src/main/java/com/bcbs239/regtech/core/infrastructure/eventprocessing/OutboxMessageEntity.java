@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.core.infrastructure.eventprocessing;
 
-import com.bcbs239.regtech.core.domain.outbox.OutboxMessage;
 import com.bcbs239.regtech.core.domain.outbox.OutboxMessageStatus;
 import jakarta.persistence.*;
 import lombok.Getter;

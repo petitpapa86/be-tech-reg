@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.core.application.eventprocessing;
 
 import com.bcbs239.regtech.core.domain.core.Result;
+import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
 import com.bcbs239.regtech.core.domain.events.BaseEvent;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
-import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;

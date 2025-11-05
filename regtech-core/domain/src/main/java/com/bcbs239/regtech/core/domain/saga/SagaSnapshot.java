@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.core.domain.saga;
 
 import java.time.Instant;
-import java.util.List;
 
 /**
  * Snapshot of saga state for persistence and reconstruction.

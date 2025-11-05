@@ -3,7 +3,6 @@ package com.bcbs239.regtech.core.domain.saga;
 import com.bcbs239.regtech.core.domain.errorhandling.ErrorType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.Value;
 
 @Getter
 @AllArgsConstructor

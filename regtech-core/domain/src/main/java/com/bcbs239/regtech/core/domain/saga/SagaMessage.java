@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.core.domain.saga;
 
-import java.time.Instant;
-
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
+
+import java.time.Instant;
 
 /**
  * Message exchanged between saga participants in different bounded contexts.

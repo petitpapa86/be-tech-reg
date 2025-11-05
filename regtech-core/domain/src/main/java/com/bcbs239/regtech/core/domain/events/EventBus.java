@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.core.domain.events;
 
-import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.core.Result;
 
 /**

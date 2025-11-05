@@ -5,7 +5,6 @@ import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityCon
 import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityUtils;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 

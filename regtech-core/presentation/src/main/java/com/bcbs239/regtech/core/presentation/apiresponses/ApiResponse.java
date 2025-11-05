@@ -3,7 +3,6 @@ package com.bcbs239.regtech.core.presentation.apiresponses;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 

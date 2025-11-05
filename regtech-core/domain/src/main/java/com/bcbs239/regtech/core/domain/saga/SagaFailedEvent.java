@@ -1,11 +1,11 @@
 package com.bcbs239.regtech.core.domain.saga;
 
-import java.time.Instant;
-import java.util.function.Supplier;
-
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+
+import java.time.Instant;
+import java.util.function.Supplier;
 
 @Getter
 @EqualsAndHashCode(callSuper = true)

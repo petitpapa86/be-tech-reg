@@ -1,10 +1,9 @@
 package com.bcbs239.regtech.core.domain.events;
 
+import lombok.Getter;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
-
-import com.bcbs239.regtech.core.domain.events.DomainEvent;
-import lombok.Getter;
 
 /**
  * Base class for all integration events that are published across bounded contexts.

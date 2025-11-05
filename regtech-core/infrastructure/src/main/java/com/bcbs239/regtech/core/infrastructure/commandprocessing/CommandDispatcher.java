@@ -2,10 +2,9 @@ package com.bcbs239.regtech.core.infrastructure.commandprocessing;
 
 import com.bcbs239.regtech.core.domain.saga.SagaCommand;
 import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
-
-import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 

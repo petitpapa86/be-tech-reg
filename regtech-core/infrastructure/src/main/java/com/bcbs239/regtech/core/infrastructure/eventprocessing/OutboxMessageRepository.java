@@ -3,13 +3,10 @@ package com.bcbs239.regtech.core.infrastructure.eventprocessing;
 import com.bcbs239.regtech.core.domain.outbox.IOutboxMessageRepository;
 import com.bcbs239.regtech.core.domain.outbox.OutboxMessage;
 import com.bcbs239.regtech.core.domain.outbox.OutboxMessageStatus;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Repository for outbox messages using EntityManager.

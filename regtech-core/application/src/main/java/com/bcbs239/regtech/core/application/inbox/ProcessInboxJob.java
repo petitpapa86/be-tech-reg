@@ -2,12 +2,10 @@ package com.bcbs239.regtech.core.application.inbox;
 
 import com.bcbs239.regtech.core.application.eventprocessing.IntegrationEventDeserializer;
 import com.bcbs239.regtech.core.application.integration.DomainEventDispatcher;
-import com.bcbs239.regtech.core.domain.events.BaseEvent;
-import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
-import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
 import com.bcbs239.regtech.core.domain.core.Result;
+import com.bcbs239.regtech.core.domain.errorhandling.ErrorDetail;
+import com.bcbs239.regtech.core.domain.events.BaseEvent;
 import com.bcbs239.regtech.core.domain.inbox.IInboxMessageRepository;
-
 import com.bcbs239.regtech.core.domain.inbox.InboxMessage;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessageStatus;
 import org.slf4j.Logger;
@@ -18,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 /**

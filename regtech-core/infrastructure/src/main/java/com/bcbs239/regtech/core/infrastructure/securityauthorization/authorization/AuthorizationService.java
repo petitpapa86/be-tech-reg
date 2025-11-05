@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.infrastructure.securityauthorization;
 
-import java.util.Set;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Core authorization service that provides cross-module permission checking.

@@ -1,7 +1,11 @@
 package com.bcbs239.regtech.core.infrastructure.persistence;
 
+import com.bcbs239.regtech.core.infrastructure.systemservices.CorrelationId;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import jakarta.annotation.PreDestroy;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -11,16 +15,11 @@ import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import jakarta.annotation.PreDestroy;
-import java.util.HashMap;
-import java.util.Map;
-import java.lang.ScopedValue;
-import com.bcbs239.regtech.core.infrastructure.systemservices.CorrelationId;
 
 /**
  * Enhanced logging configuration for GCP deployment with structured JSON logging.
