@@ -7,6 +7,7 @@ import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.outbox.IOutboxMessageRepository;
 import com.bcbs239.regtech.core.domain.outbox.OutboxMessage;
 import com.bcbs239.regtech.core.domain.outbox.OutboxMessageStatus;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.function.Consumer;
 
+
 /**
  * Scheduled processor for outbox messages.
  * Deserializes and dispatches events to internal handlers.
@@ -28,34 +30,37 @@ import java.util.function.Consumer;
 public class OutboxProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
-    private static final int BATCH_SIZE = 10;
 
     private final IOutboxMessageRepository outboxMessageRepository;
     private final DomainEventDispatcher domainEventDispatcher;
     private final ObjectMapper objectMapper;
+    private final OutboxOptions outboxOptions;
 
     public OutboxProcessor(
             IOutboxMessageRepository outboxMessageRepository, DomainEventDispatcher domainEventDispatcher,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper, OutboxOptions outboxOptions) {
         this.outboxMessageRepository = outboxMessageRepository;
         this.domainEventDispatcher = domainEventDispatcher;
         this.objectMapper = objectMapper;
+        this.outboxOptions = outboxOptions;
     }
 
-    @Scheduled(fixedDelay = 5000) // Run every 5 seconds
+    @Scheduled(fixedDelayString = "#{@outboxOptions.getPollInterval().toMillis()}") // Run according to configured poll interval
     @Transactional
     public void processOutboxMessages() {
         List<OutboxMessage> pendingMessages = outboxMessageRepository.findByStatusOrderByOccurredOnUtc(OutboxMessageStatus.PENDING);
 
-        if (pendingMessages.isEmpty()) {
+        if (pendingMessages == null || pendingMessages.isEmpty()) {
             return;
         }
 
-        logger.info("Processing {} outbox messages", pendingMessages.size());
+        int batchSize = Math.max(1, outboxOptions.getBatchSize());
+
+        logger.info("Processing {} outbox messages (batch size {})", pendingMessages.size(), batchSize);
 
         int processedCount = 0;
         for (OutboxMessage message : pendingMessages) {
-            if (processedCount >= BATCH_SIZE) {
+            if (processedCount >= batchSize) {
                 break;
             }
 
@@ -74,10 +79,10 @@ public class OutboxProcessor {
 
     private void markAsProcessed(String messageId) {
         OutboxMessage outboxMessage = outboxMessageRepository.findByStatusOrderByOccurredOnUtc(OutboxMessageStatus.PENDING)
-            .stream()
-            .filter(msg -> msg.getId().equals(messageId))
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("Message not found: " + messageId));
+                .stream()
+                .filter(msg -> msg.getId().equals(messageId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Message not found: " + messageId));
 
         outboxMessage.setStatus(OutboxMessageStatus.PROCESSED);
         outboxMessage.setProcessedOnUtc(java.time.Instant.now());
@@ -86,44 +91,37 @@ public class OutboxProcessor {
 
     private void markAsFailed(String messageId, String errorMessage) {
         OutboxMessage outboxMessage = outboxMessageRepository.findByStatusOrderByOccurredOnUtc(OutboxMessageStatus.PENDING)
-            .stream()
-            .filter(msg -> msg.getId().equals(messageId))
-            .findFirst()
-            .orElseThrow(() -> new RuntimeException("Message not found: " + messageId));
+                .stream()
+                .filter(msg -> msg.getId().equals(messageId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Message not found: " + messageId));
 
         outboxMessage.setStatus(OutboxMessageStatus.FAILED);
         outboxMessage.setErrorMessage(errorMessage);
         outboxMessageRepository.save(outboxMessage);
     }
 
-    private void publishMessage(OutboxMessage message) {
-        try {
-            String typeName = message.getType();
-            Class<?> eventClass = Class.forName(typeName);
+    private void publishMessage(OutboxMessage message) throws ClassNotFoundException, JsonProcessingException {
 
-            if (!DomainEvent.class.isAssignableFrom(eventClass)) {
-                throw new ClassNotFoundException("Event class does not implement DomainEvent: " + typeName);
-            }
+        String typeName = message.getType();
+        Class<?> eventClass = Class.forName(typeName);
 
-            @SuppressWarnings("unchecked")
-            Class<? extends BaseEvent> domainEventClass = (Class<? extends BaseEvent>) eventClass;
-
-            BaseEvent event = objectMapper.readValue(message.getContent(), domainEventClass);
-
-            domainEventDispatcher.dispatch(event);
-
-            logger.info("Dispatched domain event from outbox: type={}, id={}", typeName, message.getId());
-
-        } catch (ClassNotFoundException e) {
-            logger.error("Domain event class not found for outbox message {}: {}", message.getId(), e.getMessage());
-            throw new RuntimeException("Domain event class not found", e);
-        } catch (Exception e) {
-            logger.error("Failed to dispatch message {}: {}", message.getId(), e.getMessage());
-            throw new RuntimeException("Failed to dispatch message", e);
+        if (!DomainEvent.class.isAssignableFrom(eventClass)) {
+            throw new ClassNotFoundException("Event class does not implement DomainEvent: " + typeName);
         }
+
+        @SuppressWarnings("unchecked")
+        Class<? extends BaseEvent> domainEventClass = (Class<? extends BaseEvent>) eventClass;
+
+        BaseEvent event = objectMapper.readValue(message.getContent(), domainEventClass);
+
+        domainEventDispatcher.dispatch(event);
+
+        logger.info("Dispatched domain event from outbox: type={}, id={}", typeName, message.getId());
+
     }
 
-    @Scheduled(fixedDelay = 120000, initialDelay = 60000)
+    @Scheduled(fixedDelayString = "#{@outboxOptions.getPollInterval().toMillis()}", initialDelayString = "#{@outboxOptions.getPollInterval().toMillis()}")
     @Async
     @Transactional
     public void retryFailedEvents() {

@@ -1,6 +1,4 @@
-package com.bcbs239.regtech.core.application.eventprocessing;
-
-import com.bcbs239.regtech.core.domain.events.BaseEvent;
+package com.bcbs239.regtech.core.domain.events;
 
 /**
  * Handler contract for typed domain events. Implementations should be Spring components so they

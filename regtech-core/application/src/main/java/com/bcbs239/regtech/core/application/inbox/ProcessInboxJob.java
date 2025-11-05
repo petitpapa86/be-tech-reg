@@ -45,7 +45,8 @@ public class ProcessInboxJob {
         this.inboxOptions = inboxOptions;
     }
 
-    @Scheduled(fixedDelayString = "${inbox.poll-interval-ms:5000}") // configurable via inbox.poll-interval-ms
+    // Use the configured Duration from InboxOptions (bean) and convert to millis via SpEL
+    @Scheduled(fixedDelayString = "#{@inboxOptions.getPollInterval().toMillis()}")
     @Transactional
     public void processInboxMessages() {
         List<InboxMessage> pendingMessages = inboxMessageRepository.findByProcessingStatusOrderByReceivedAt(InboxMessageStatus.PENDING);

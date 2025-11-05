@@ -4,7 +4,7 @@ package com.bcbs239.regtech.core.domain.events;
  * Interface for handling integration events received from other bounded contexts.
  * Implementations should process the events and perform any necessary business logic.
  */
-public interface IIntegrationEventHandler<T extends IntegrationEvent> {
+public interface BaseEventHandler<T extends IntegrationEvent> {
 
     /**
      * Handles the integration event.

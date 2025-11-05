@@ -217,9 +217,18 @@ logging:
 
 # Inbox processing configuration (bound to com.bcbs239.regtech.core.application.inbox.InboxOptions)
 inbox:
-  # Poll interval in milliseconds. Can also be specified as a Spring Duration (e.g. 5s, PT5S).
-  poll-interval-ms: 5000
+  # Poll interval as a Spring Duration. Example: 5s, PT5S
+  poll-interval: 5s
   # Number of messages processed per run
   batch-size: 10
   # Whether to enable parallel processing of messages (not yet implemented in ProcessInboxJob)
+  parallel-processing-enabled: false
+
+# Outbox processing configuration (bound to com.bcbs239.regtech.core.application.eventprocessing.OutboxOptions)
+outbox:
+  # Poll interval as a Spring Duration. Example: 30s
+  poll-interval: 30s
+  # Number of messages processed per run
+  batch-size: 10
+  # Toggle parallel processing (not yet implemented)
   parallel-processing-enabled: false

@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.core.infrastructure;
 
+import com.bcbs239.regtech.core.domain.saga.SagaMessage;
 import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaCommand;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaNotFoundException;

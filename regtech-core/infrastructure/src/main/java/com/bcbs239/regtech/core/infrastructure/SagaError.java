@@ -14,19 +14,4 @@ public class SagaError {
         return new SagaError(message + " (retry)", errorType, recoverable, semiRecoverable);
     }
 
-    public String getMessage() {
-        return message;
-    }
-
-    public ErrorType getErrorType() {
-        return errorType;
-    }
-
-    public boolean isRecoverable() {
-        return recoverable;
-    }
-
-    public boolean isSemiRecoverable() {
-        return semiRecoverable;
-    }
 }

@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.application.integration;
 
 
-import com.bcbs239.regtech.core.domain.events.IIntegrationEventHandler;
+import com.bcbs239.regtech.core.domain.events.BaseEventHandler;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,7 @@ public class IntegrationEventHandlerRegistry {
 
     private static final Logger logger = LoggerFactory.getLogger(IntegrationEventHandlerRegistry.class);
 
-    private final Map<Class<? extends IntegrationEvent>, List<IIntegrationEventHandler<? extends IntegrationEvent>>> handlers = new ConcurrentHashMap<>();
+    private final Map<Class<? extends IntegrationEvent>, List<BaseEventHandler<? extends IntegrationEvent>>> handlers = new ConcurrentHashMap<>();
     private final ApplicationContext applicationContext;
 
     public IntegrationEventHandlerRegistry(ApplicationContext applicationContext) {
@@ -35,9 +35,9 @@ public class IntegrationEventHandlerRegistry {
     public void onContextRefreshed(ContextRefreshedEvent event) {
         // Register all IIntegrationEventHandler beans after the context is fully initialized
         @SuppressWarnings("unchecked")
-        Map<String, IIntegrationEventHandler<? extends IntegrationEvent>> beans = (Map<String, IIntegrationEventHandler<? extends IntegrationEvent>>) (Map<String, ?>) applicationContext.getBeansOfType(IIntegrationEventHandler.class);
+        Map<String, BaseEventHandler<? extends IntegrationEvent>> beans = (Map<String, BaseEventHandler<? extends IntegrationEvent>>) (Map<String, ?>) applicationContext.getBeansOfType(BaseEventHandler.class);
         if (!beans.isEmpty()) {
-            for (IIntegrationEventHandler<? extends IntegrationEvent> handler : beans.values()) {
+            for (BaseEventHandler<? extends IntegrationEvent> handler : beans.values()) {
                 try {
                     registerHandler(handler);
                 } catch (Exception e) {
@@ -49,13 +49,13 @@ public class IntegrationEventHandlerRegistry {
         }
     }
 
-    public void registerHandler(IIntegrationEventHandler<? extends IntegrationEvent> handler) {
+    public void registerHandler(BaseEventHandler<? extends IntegrationEvent> handler) {
         Class<? extends IntegrationEvent> eventType = handler.getEventClass();
         handlers.computeIfAbsent(eventType, k -> new ArrayList<>()).add(handler);
         logger.info("Registered integration event handler: {} for event type: {}", handler.getHandlerName(), eventType.getName());
     }
 
-    public List<IIntegrationEventHandler<? extends IntegrationEvent>> getHandlers(Class<? extends IntegrationEvent> eventType) {
+    public List<BaseEventHandler<? extends IntegrationEvent>> getHandlers(Class<? extends IntegrationEvent> eventType) {
         return handlers.getOrDefault(eventType, new ArrayList<>());
     }
 }
