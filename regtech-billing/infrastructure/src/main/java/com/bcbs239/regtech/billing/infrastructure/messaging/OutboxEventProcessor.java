@@ -1,7 +1,5 @@
 package com.bcbs239.regtech.billing.infrastructure.messaging;
 
-import com.bcbs239.regtech.core.events.GenericOutboxEventProcessor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 

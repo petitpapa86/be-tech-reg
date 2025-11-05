@@ -3,15 +3,15 @@ package com.bcbs239.regtech.billing.infrastructure.services;
 
 import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.shared.events.WebhookEvent;
-import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer;
+import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeSubscription;
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.stripe.model.Event;
-import org.springframework.stereotype.Service;
+import com.bcbs239.regtech.core.shared.Result;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stripe.model.Event;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.Currency;

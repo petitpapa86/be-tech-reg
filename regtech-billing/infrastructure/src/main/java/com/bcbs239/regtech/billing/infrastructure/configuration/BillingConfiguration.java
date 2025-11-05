@@ -1,7 +1,5 @@
 package com.bcbs239.regtech.billing.infrastructure.configuration;
 
-import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
-import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
 import org.slf4j.Logger;

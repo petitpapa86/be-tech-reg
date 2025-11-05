@@ -1,32 +1,30 @@
 package com.bcbs239.regtech.billing.application.integration;
 
 import com.bcbs239.regtech.billing.application.policies.PaymentVerificationSaga;
-
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.payments.PaymentVerificationSagaData;
-import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.core.application.IIntegrationEventHandler;
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaManager;
 import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.Map;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.stereotype.Component;
 
 /**
  * Event handler for UserRegisteredIntegrationEvent.

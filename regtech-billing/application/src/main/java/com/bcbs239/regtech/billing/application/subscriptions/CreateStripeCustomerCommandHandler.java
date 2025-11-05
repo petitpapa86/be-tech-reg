@@ -7,19 +7,19 @@ import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreatedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreationFailedEvent;
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import com.bcbs239.regtech.core.events.CrossModuleEventBus;
 import com.bcbs239.regtech.core.saga.AbstractSaga;
 import com.bcbs239.regtech.core.saga.SagaId;
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.events.CrossModuleEventBus;
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import com.bcbs239.regtech.core.shared.Result;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-import java.util.function.Function;
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Command handler for creating Stripe customers.

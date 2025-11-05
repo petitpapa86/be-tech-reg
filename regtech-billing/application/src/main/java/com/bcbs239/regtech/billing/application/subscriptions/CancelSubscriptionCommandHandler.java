@@ -1,15 +1,13 @@
 package com.bcbs239.regtech.billing.application.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.payments.PaymentService;
+import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.shared.Result;
 import org.springframework.stereotype.Component;
-
-import java.util.function.Function;
 
 /**
  * Command handler for cancelling subscriptions.

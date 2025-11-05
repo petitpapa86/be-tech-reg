@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.dunning.DunningCase;
 import com.bcbs239.regtech.billing.domain.dunning.DunningCaseId;
-import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.dunning.DunningCaseStatus;
 import com.bcbs239.regtech.billing.domain.dunning.DunningStep;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
@@ -13,9 +13,9 @@ import com.bcbs239.regtech.core.shared.Result;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;

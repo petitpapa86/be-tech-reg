@@ -1,30 +1,20 @@
 package com.bcbs239.regtech.billing.infrastructure.external.stripe;
 
+import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
 import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
-import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.billing.infrastructure.configuration.BillingConfiguration;
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
 import com.stripe.Stripe;
-import com.stripe.exception.StripeException;
-import com.stripe.model.Customer;
-import com.stripe.model.PaymentMethod;
-import com.stripe.model.Subscription;
-import com.stripe.model.Invoice;
-import com.stripe.model.Event;
-import com.stripe.param.CustomerCreateParams;
-import com.stripe.param.PaymentMethodAttachParams;
-import com.stripe.param.CustomerUpdateParams;
-import com.stripe.param.SubscriptionCreateParams;
-import com.stripe.param.InvoiceCreateParams;
-// import com.stripe.param.InvoiceRetrieveParams;
-import com.stripe.param.InvoiceFinalizeInvoiceParams;
-import com.stripe.net.Webhook;
 import com.stripe.exception.SignatureVerificationException;
+import com.stripe.exception.StripeException;
+import com.stripe.model.*;
+import com.stripe.net.Webhook;
+import com.stripe.param.*;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.billing.application.payments;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 
 /**

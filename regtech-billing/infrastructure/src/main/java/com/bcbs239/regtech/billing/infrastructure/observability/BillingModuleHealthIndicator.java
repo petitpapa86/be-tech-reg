@@ -8,7 +8,6 @@ import com.bcbs239.regtech.core.shared.Result;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.Status;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

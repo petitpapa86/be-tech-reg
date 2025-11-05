@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.billing.domain.accounts;
 
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
+
 import java.util.Objects;
 import java.util.regex.Pattern;
 

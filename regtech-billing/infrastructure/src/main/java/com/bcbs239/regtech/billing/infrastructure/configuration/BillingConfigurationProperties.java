@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.billing.infrastructure.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-// import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 import java.math.BigDecimal;
 import java.time.ZoneId;

@@ -1,27 +1,28 @@
 package com.bcbs239.regtech.billing.application.subscriptions;
+
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.payments.PaymentService;
+import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
+import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
-import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import com.bcbs239.regtech.core.events.CrossModuleEventBus;
+import com.bcbs239.regtech.core.saga.AbstractSaga;
+import com.bcbs239.regtech.core.saga.SagaId;
+import com.bcbs239.regtech.core.saga.SagaManager;
 import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
-
-import java.util.function.Function;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import com.bcbs239.regtech.core.saga.AbstractSaga;
-import com.bcbs239.regtech.core.saga.SagaId;
-import com.bcbs239.regtech.core.events.CrossModuleEventBus;
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.saga.SagaManager;
+
 import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Command handler for creating Stripe subscriptions.

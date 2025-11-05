@@ -3,14 +3,13 @@ package com.bcbs239.regtech.billing.infrastructure.security;
 import com.bcbs239.regtech.core.security.SecurityConfigurationRegistry;
 import com.bcbs239.regtech.core.security.SecurityConfigurationRegistry.ModuleSecurityConfiguration;
 import com.bcbs239.regtech.core.security.authorization.Permission;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
-import jakarta.annotation.PostConstruct;
 
 /**
  * Billing module security configuration.

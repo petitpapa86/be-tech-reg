@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.billing.domain.shared.valueobjects;
 
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
+import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;

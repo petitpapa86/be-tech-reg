@@ -1,12 +1,11 @@
 package com.bcbs239.regtech.billing.infrastructure.database.entities;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.*;
+import com.bcbs239.regtech.core.shared.Maybe;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import com.bcbs239.regtech.core.shared.Maybe;
 
 import java.time.Instant;
 import java.time.LocalDate;

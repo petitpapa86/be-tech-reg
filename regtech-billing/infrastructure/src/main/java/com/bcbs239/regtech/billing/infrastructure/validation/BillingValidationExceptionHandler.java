@@ -1,12 +1,9 @@
 package com.bcbs239.regtech.billing.infrastructure.validation;
 
 import com.bcbs239.regtech.core.shared.ApiResponse;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

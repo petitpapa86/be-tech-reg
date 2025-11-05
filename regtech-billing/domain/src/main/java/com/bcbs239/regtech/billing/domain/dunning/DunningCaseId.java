@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.domain.dunning;
 
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
 
 import java.util.UUID;
 

@@ -8,9 +8,9 @@ import com.bcbs239.regtech.billing.domain.invoices.events.InvoicePaymentSucceede
 import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.domain.shared.events.WebhookEvent;
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.shared.Result;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
