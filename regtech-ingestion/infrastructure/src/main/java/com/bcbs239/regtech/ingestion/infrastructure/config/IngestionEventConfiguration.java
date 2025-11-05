@@ -1,17 +1,18 @@
 package com.bcbs239.regtech.ingestion.infrastructure.config;
 
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQueryHandler;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommandHandler;
-import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
-import com.bcbs239.regtech.ingestion.infrastructure.events.IngestionOutboxEventPublisher;
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
+import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
+import com.bcbs239.regtech.ingestion.infrastructure.events.IngestionOutboxEventPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import java.util.Map;
 
 /**

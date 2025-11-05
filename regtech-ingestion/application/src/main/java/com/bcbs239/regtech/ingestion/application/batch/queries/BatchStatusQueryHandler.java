@@ -1,12 +1,12 @@
 package com.bcbs239.regtech.ingestion.application.batch.queries;
 
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
-import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
-import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;

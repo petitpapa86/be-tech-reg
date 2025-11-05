@@ -1,20 +1,12 @@
 package com.bcbs239.regtech.modules.ingestion.infrastructure;
 
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
-import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
-import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
-import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
+import com.bcbs239.regtech.ingestion.domain.batch.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.core.io.ClassPathResource;
 import org.testcontainers.containers.localstack.LocalStackContainer;
-import org.junit.jupiter.api.Assumptions;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;

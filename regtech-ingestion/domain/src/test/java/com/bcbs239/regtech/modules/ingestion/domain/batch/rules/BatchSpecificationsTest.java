@@ -1,19 +1,13 @@
 package com.bcbs239.regtech.modules.ingestion.domain.batch.rules;
 
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
-import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
-import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
-import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.domain.batch.*;
 import com.bcbs239.regtech.ingestion.domain.batch.rules.BatchSpecifications;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("BatchSpecifications unit tests")
 class BatchSpecificationsTest {

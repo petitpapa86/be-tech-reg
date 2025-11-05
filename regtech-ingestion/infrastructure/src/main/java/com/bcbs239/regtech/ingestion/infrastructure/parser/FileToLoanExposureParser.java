@@ -1,10 +1,6 @@
 package com.bcbs239.regtech.ingestion.infrastructure.parser;
 
-import com.bcbs239.regtech.ingestion.domain.model.CreditRiskMitigation;
-import com.bcbs239.regtech.ingestion.domain.model.CreditRiskMitigationDto;
-import com.bcbs239.regtech.ingestion.domain.model.DomainMapper;
-import com.bcbs239.regtech.ingestion.domain.model.LoanExposure;
-import com.bcbs239.regtech.ingestion.domain.model.LoanExposureDto;
+import com.bcbs239.regtech.ingestion.domain.model.*;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;

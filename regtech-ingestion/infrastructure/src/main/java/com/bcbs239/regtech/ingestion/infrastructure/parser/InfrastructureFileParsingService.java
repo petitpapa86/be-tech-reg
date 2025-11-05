@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.ingestion.infrastructure.parser;
 
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler;
 import com.bcbs239.regtech.ingestion.application.model.ParsedFileData;
 import com.bcbs239.regtech.ingestion.domain.model.CreditRiskMitigation;

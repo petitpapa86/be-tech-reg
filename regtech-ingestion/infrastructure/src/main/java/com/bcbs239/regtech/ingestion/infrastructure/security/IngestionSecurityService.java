@@ -1,10 +1,10 @@
 package com.bcbs239.regtech.ingestion.infrastructure.security;
 
+import com.bcbs239.regtech.core.security.PermissionService;
 import com.bcbs239.regtech.core.security.SecurityContext;
 import com.bcbs239.regtech.core.security.SecurityUtils;
-import com.bcbs239.regtech.core.security.PermissionService;
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.infrastructure.monitoring.IngestionLoggingService;

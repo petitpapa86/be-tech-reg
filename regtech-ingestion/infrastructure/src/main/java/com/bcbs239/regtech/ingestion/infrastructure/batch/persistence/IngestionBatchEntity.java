@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.batch.persistence;
 
-import com.bcbs239.regtech.ingestion.domain.batch.*;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
+import com.bcbs239.regtech.ingestion.domain.batch.*;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

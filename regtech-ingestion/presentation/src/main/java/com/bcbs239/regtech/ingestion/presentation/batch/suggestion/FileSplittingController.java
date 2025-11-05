@@ -2,23 +2,22 @@ package com.bcbs239.regtech.ingestion.presentation.batch.suggestion;
 
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.ingestion.application.files.SuggestFileSplittingCommandHandler;
 import com.bcbs239.regtech.ingestion.application.files.SuggestFileSplittingCommand;
+import com.bcbs239.regtech.ingestion.application.files.SuggestFileSplittingCommandHandler;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import jakarta.servlet.ServletException;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.function.RouterFunction;
-import org.springframework.web.servlet.function.ServerRequest;
-import org.springframework.web.servlet.function.ServerResponse;
-
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PositiveOrZero;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.function.RouterFunction;
+import org.springframework.web.servlet.function.ServerRequest;
+import org.springframework.web.servlet.function.ServerResponse;
 
 import java.io.IOException;
 

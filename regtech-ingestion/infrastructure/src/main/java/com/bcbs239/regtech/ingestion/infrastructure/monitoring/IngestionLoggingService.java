@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.monitoring;
 
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import org.springframework.stereotype.Service;
 

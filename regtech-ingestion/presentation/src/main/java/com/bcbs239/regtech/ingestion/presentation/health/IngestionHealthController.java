@@ -14,8 +14,8 @@ import org.springframework.web.servlet.function.ServerResponse;
 
 import java.util.Map;
 
-import static org.springframework.web.servlet.function.RouterFunctions.route;
 import static org.springframework.web.servlet.function.RequestPredicates.GET;
+import static org.springframework.web.servlet.function.RouterFunctions.route;
 
 /**
  * Health check controller for the ingestion module.

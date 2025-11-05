@@ -2,8 +2,6 @@ package com.bcbs239.regtech.ingestion.presentation.compliance.reports;
 
 import com.bcbs239.regtech.core.shared.BaseController;
 import com.bcbs239.regtech.core.shared.ResponseUtils;
-// import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.ComplianceReportData;
-// import com.bcbs239.regtech.modules.ingestion.infrastructure.compliance.DataRetentionService;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

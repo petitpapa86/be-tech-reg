@@ -1,14 +1,14 @@
 package com.bcbs239.regtech.ingestion.application.batch.process;
 
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
-import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.ingestion.application.model.ParsedFileData;
-import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
-import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
-import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
+import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
+import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
+import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
+import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
 import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

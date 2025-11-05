@@ -1,10 +1,10 @@
 package com.bcbs239.regtech.ingestion.infrastructure.storage;
 
-import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
+import com.bcbs239.regtech.core.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
+import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
 import com.bcbs239.regtech.ingestion.infrastructure.config.S3Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
