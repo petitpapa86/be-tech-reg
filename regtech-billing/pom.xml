@@ -60,18 +60,6 @@
 				<version>${project.version}</version>
 			</dependency>
 			
-			<!-- IAM module for user management -->
-			<dependency>
-				<groupId>com.bcbs239</groupId>
-				<artifactId>regtech-iam</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.bcbs239</groupId>
-				<artifactId>regtech-iam-domain</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-			
 			<!-- Stripe SDK for payment processing -->
 			<dependency>
 				<groupId>com.stripe</groupId>
