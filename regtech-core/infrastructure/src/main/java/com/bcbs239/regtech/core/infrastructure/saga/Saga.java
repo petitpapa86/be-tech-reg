@@ -1,5 +1,9 @@
 package com.bcbs239.regtech.core.infrastructure.saga;
 
+import com.bcbs239.regtech.core.domain.saga.SagaCommand;
+import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.saga.SagaMessage;
+
 /**
  * Interface for saga implementations.
  * Sagas orchestrate complex business processes with compensation capabilities.

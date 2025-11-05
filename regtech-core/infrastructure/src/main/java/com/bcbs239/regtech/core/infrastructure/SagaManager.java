@@ -1,16 +1,12 @@
 package com.bcbs239.regtech.core.infrastructure;
 
 import com.bcbs239.regtech.core.domain.core.Maybe;
+import com.bcbs239.regtech.core.domain.saga.SagaCommand;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.saga.SagaMessage;
 import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaClosures;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaMessage;
+import com.bcbs239.regtech.core.infrastructure.saga.*;
 import com.bcbs239.regtech.core.infrastructure.saga.AbstractSaga;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaStatus;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaCompletedEvent;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaFailedEvent;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaCreationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
@@ -89,7 +85,7 @@ public class SagaManager {
     public void processEvent(SagaMessage event) {
         Maybe<AbstractSaga<?>> maybeSaga = jpaSagaRepository.load(event.getSagaId());
         if (maybeSaga.isEmpty()) {
-            throw new SagaNotFoundException(event.getSagaId());
+            throw new SagaNotFoundException(event.sagaId());
         }
 
         AbstractSaga<?> saga = maybeSaga.getValue();
