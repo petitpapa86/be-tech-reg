@@ -22,7 +22,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 import java.io.IOException;
 import java.util.List;
 
-import static com.bcbs239.regtech.core.capabilities.sharedinfrastructure.RouterAttributes.withAttributes;
+import static com.bcbs239.regtech.core.presentation.routing.RouterAttributes.withAttributes;
 import static org.springframework.web.servlet.function.RequestPredicates.POST;
 import static org.springframework.web.servlet.function.RouterFunctions.route;
 

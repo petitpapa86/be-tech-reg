@@ -2,7 +2,7 @@ package com.bcbs239.regtech.core.capabilities.sagaorchestration;
 
 import java.time.Instant;
 
-import com.bcbs239.regtech.core.capabilities.sharedinfrastructure.SystemTimeProvider;
+import com.bcbs239.regtech.core.infrastructure.systemservices.SystemTimeProvider;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

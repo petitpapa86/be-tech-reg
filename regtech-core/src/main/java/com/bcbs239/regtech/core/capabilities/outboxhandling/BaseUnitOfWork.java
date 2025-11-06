@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.core.capabilities.outboxhandling;
 
 import com.bcbs239.regtech.core.capabilities.eventmanagement.DomainEvent;
-import com.bcbs239.regtech.core.capabilities.sharedinfrastructure.Result;
+import com.bcbs239.regtech.core.domain.shared.Entity;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
@@ -39,7 +40,7 @@ public class BaseUnitOfWork {
     /**
      * Collect domain events from an entity.
      */
-    protected void collectDomainEvents(com.bcbs239.regtech.core.capabilities.sharedinfrastructure.Entity entity) {
+    protected void collectDomainEvents(Entity entity) {
         domainEvents.addAll(entity.getDomainEvents());
         entity.clearDomainEvents();
     }
@@ -47,7 +48,7 @@ public class BaseUnitOfWork {
     /**
      * Register an entity whose domain events should be collected.
      */
-    public void registerEntity(com.bcbs239.regtech.core.capabilities.sharedinfrastructure.Entity entity) {
+    public void registerEntity(Entity entity) {
         collectDomainEvents(entity);
     }
 

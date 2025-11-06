@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.core.capabilities.sagaorchestration;
 
-import com.bcbs239.regtech.core.capabilities.sharedinfrastructure.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import lombok.Value;
 
 @Value

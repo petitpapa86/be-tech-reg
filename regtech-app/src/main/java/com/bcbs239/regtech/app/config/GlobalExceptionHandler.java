@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.app.config;
 
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.shared.ApiResponse;
-import com.bcbs239.regtech.core.shared.ResponseUtils;
+
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
+import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -34,11 +34,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleGlobalException(Exception ex, WebRequest request) {
         String path = request.getDescription(false).replace("uri=", "");
         
-        LoggingConfiguration.logStructured("UNHANDLED_EXCEPTION", Map.of(
-            "exception", ex.getClass().getSimpleName(),
-            "message", ex.getMessage(),
-            "path", path
-        ));
+//        LoggingConfiguration.logStructured("UNHANDLED_EXCEPTION", Map.of(
+//            "exception", ex.getClass().getSimpleName(),
+//            "message", ex.getMessage(),
+//            "path", path
+//        ));
 
         String message = "An unexpected error occurred. Please try again or contact support if the problem persists.";
         

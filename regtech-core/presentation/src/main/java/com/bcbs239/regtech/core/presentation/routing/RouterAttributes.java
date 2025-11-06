@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.capabilities.sharedinfrastructure;
+package com.bcbs239.regtech.core.presentation.routing;
 
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;

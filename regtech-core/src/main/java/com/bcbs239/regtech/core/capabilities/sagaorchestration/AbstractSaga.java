@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-import com.bcbs239.regtech.core.capabilities.sharedinfrastructure.ErrorType;
-import com.bcbs239.regtech.core.capabilities.sharedinfrastructure.LoggingConfiguration;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 

@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.core.capabilities.inboxprocessing;
 
 import com.bcbs239.regtech.core.capabilities.eventmanagement.IntegrationEvent;
-import com.bcbs239.regtech.core.capabilities.sharedinfrastructure.ErrorDetail;
-import com.bcbs239.regtech.core.capabilities.sharedinfrastructure.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.support.TransactionTemplate;
