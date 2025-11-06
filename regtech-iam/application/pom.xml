@@ -21,13 +21,7 @@
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-core</artifactId>
 		</dependency>
-		
-		<dependency>
-			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-billing-domain</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		
+
 		<!-- Spring Boot Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

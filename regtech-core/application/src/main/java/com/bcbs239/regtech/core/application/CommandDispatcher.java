@@ -17,7 +17,7 @@ public class CommandDispatcher {
     public void dispatch(SagaCommand command) {
         // Diagnostic structured log to trace commands being dispatched
         try {
-            logger.createStructuredLog("SAGA_COMMAND_PUBLISHED", java.util.Map.of(
+            logger.asyncStructuredLog("SAGA_COMMAND_PUBLISHED", java.util.Map.of(
                 "sagaId", command.sagaId(),
                 "commandType", command.commandType()
             ));
@@ -30,13 +30,13 @@ public class CommandDispatcher {
                 @Override
                 public void afterCommit() {
                     try {
-                        logger.createStructuredLog("SAGA_COMMAND_AFTER_COMMIT", java.util.Map.of(
+                        logger.asyncStructuredLog("SAGA_COMMAND_AFTER_COMMIT", java.util.Map.of(
                             "sagaId", command.sagaId(),
                             "commandType", command.commandType()
                         ));
                         eventPublisher.publishEvent(command);
                     } catch (Exception e) {
-                        logger.createStructuredLog("SAGA_COMMAND_PUBLISH_FAILED", java.util.Map.of(
+                        logger.asyncStructuredLog("SAGA_COMMAND_PUBLISH_FAILED", java.util.Map.of(
                             "sagaId", command.sagaId(),
                             "commandType", command.commandType(),
                             "error", e.getMessage()
@@ -56,7 +56,7 @@ public class CommandDispatcher {
      */
     public void dispatchNow(SagaCommand command) {
         try {
-            logger.createStructuredLog("SAGA_COMMAND_PUBLISHED_IMMEDIATE", java.util.Map.of(
+            logger.asyncStructuredLog("SAGA_COMMAND_PUBLISHED_IMMEDIATE", java.util.Map.of(
                 "sagaId", command.sagaId(),
                 "commandType", command.commandType()
             ));

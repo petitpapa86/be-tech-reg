@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.presentation.apiresponses;
+package com.bcbs239.regtech.core.domain.shared;
 
 /**
  * Enumeration of error types for API responses.

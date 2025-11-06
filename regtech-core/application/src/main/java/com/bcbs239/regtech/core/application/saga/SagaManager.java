@@ -49,7 +49,7 @@ public class SagaManager {
         SagaSnapshot snapshot = createSnapshot(saga);
         sagaRepository.save(snapshot);
 
-        logger.createStructuredLog("SAGA_STARTED", Map.of(
+        logger.asyncStructuredLog("SAGA_STARTED", Map.of(
             "sagaId", sagaId,
             "sagaType", sagaClass.getSimpleName()
         ));
@@ -66,7 +66,7 @@ public class SagaManager {
                         // Publish lifecycle event for saga started
                         eventPublisher.publishEvent(startEvent);
                     } catch (Exception e) {
-                        logger.createStructuredLog("SAGA_POST_COMMIT_ACTION_FAILED", Map.of(
+                        logger.asyncStructuredLog("SAGA_POST_COMMIT_ACTION_FAILED", Map.of(
                             "sagaId", sagaId,
                             "error", e.getMessage()
                         ));
@@ -79,7 +79,7 @@ public class SagaManager {
                 saga.getCommandsToDispatch().forEach(commandDispatcher::dispatch);
                 eventPublisher.publishEvent(startEvent);
             } catch (Exception e) {
-                logger.createStructuredLog("SAGA_POST_COMMIT_ACTION_FAILED", Map.of(
+                logger.asyncStructuredLog("SAGA_POST_COMMIT_ACTION_FAILED", Map.of(
                     "sagaId", sagaId,
                     "error", e.getMessage()
                 ));
@@ -111,12 +111,12 @@ public class SagaManager {
 
         // Diagnostic log of snapshot
         try {
-            logger.createStructuredLog("SAGA_COMMANDS_SNAPSHOT", Map.of(
+            logger.asyncStructuredLog("SAGA_COMMANDS_SNAPSHOT", Map.of(
                 "sagaId", saga.getId(),
                 "snapshotSize", commandsSnapshot.size()
             ));
             for (var cmd : commandsSnapshot) {
-                logger.createStructuredLog("SAGA_COMMAND_SNAPSHOT_ITEM", Map.of(
+                logger.asyncStructuredLog("SAGA_COMMAND_SNAPSHOT_ITEM", Map.of(
                     "sagaId", saga.getId(),
                     "commandType", cmd.commandType()
                 ));
@@ -129,13 +129,13 @@ public class SagaManager {
         try {
             Result<SagaId> saveResult = sagaRepository.save(saga.toSnapshot(objectMapper));
             if (saveResult.isFailure()) {
-                logger.createStructuredLog("SAGA_SAVE_FAILED", Map.of(
+                logger.asyncStructuredLog("SAGA_SAVE_FAILED", Map.of(
                     "sagaId", saga.getId(),
                     "error", saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error")
                 ));
             }
         } catch (Exception e) {
-            logger.createStructuredLog("SAGA_SNAPSHOT_FAILED", Map.of(
+            logger.asyncStructuredLog("SAGA_SNAPSHOT_FAILED", Map.of(
                 "sagaId", saga.getId(),
                 "error", e.getMessage()
             ));
@@ -148,14 +148,14 @@ public class SagaManager {
         if (!commandsSnapshot.isEmpty()) {
             try {
                 for (var cmd : commandsSnapshot) {
-                    logger.createStructuredLog("SAGA_DISPATCHING_SNAPSHOT_COMMAND", Map.of(
+                    logger.asyncStructuredLog("SAGA_DISPATCHING_SNAPSHOT_COMMAND", Map.of(
                         "sagaId", saga.getId(),
                         "commandType", cmd.commandType()
                     ));
                     commandDispatcher.dispatch(cmd);
                 }
             } catch (Exception e) {
-                logger.createStructuredLog("SAGA_DISPATCH_SNAPSHOT_FAILED", Map.of(
+                logger.asyncStructuredLog("SAGA_DISPATCH_SNAPSHOT_FAILED", Map.of(
                     "sagaId", saga.getId(),
                     "error", e.getMessage()
                 ));

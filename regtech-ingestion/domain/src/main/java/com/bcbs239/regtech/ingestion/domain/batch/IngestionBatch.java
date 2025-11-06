@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.ingestion.domain.batch;
 
-import com.bcbs239.regtech.core.shared.Entity;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.Entity;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
 import com.bcbs239.regtech.ingestion.domain.batch.rules.BatchSpecifications;
@@ -97,7 +98,7 @@ public class IngestionBatch extends Entity {
     public Result<Void> markAsValidated(int exposureCount) {
         // Validate exposure count
         if (exposureCount < 0) {
-            return Result.failure(new ErrorDetail("INVALID_EXPOSURE_COUNT", "Exposure count cannot be negative"));
+            return Result.failure(ErrorDetail.of("INVALID_EXPOSURE_COUNT", "Exposure count cannot be negative", "ingestion.batch.invalidExposureCount"));
         }
 
         // Transition validation
@@ -177,19 +178,19 @@ public class IngestionBatch extends Entity {
     /**
      * Mark the batch as failed with an error message.
      */
-    public Result<Void> markAsFailed(String errorMessage) {
+    public void markAsFailed(String errorMessage) {
         Objects.requireNonNull(errorMessage, "Error message cannot be null");
         
         // Allow failing from non-terminal states
         Result<Void> vt = BatchTransitions.validateTransition(this, BatchStatus.FAILED);
-        if (vt.isFailure()) return vt;
+        if (vt.isFailure()) return;
 
         BatchTransitions.applyTransition(this, BatchStatus.FAILED);
         this.errorMessage = errorMessage;
         this.completedAt = Instant.now();
         this.processingDurationMs = completedAt.toEpochMilli() - uploadedAt.toEpochMilli();
 
-        return Result.success(null);
+        Result.success(null);
     }
     
     /**
@@ -246,11 +247,6 @@ public class IngestionBatch extends Entity {
     public boolean isTerminal() {
         return status == BatchStatus.COMPLETED || status == BatchStatus.FAILED;
     }
-
-    // Explicit getters (in addition to Lombok) to ensure compilation when annotation processing is not available
-    public BatchStatus getStatus() { return this.status; }
-    public S3Reference getS3Reference() { return this.s3Reference; }
-    public Integer getTotalExposures() { return this.totalExposures; }
 
     /**
      * Check if the batch processing was successful.

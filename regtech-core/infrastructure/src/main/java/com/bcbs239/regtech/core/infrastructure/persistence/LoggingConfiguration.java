@@ -241,11 +241,10 @@ public class LoggingConfiguration implements WebMvcConfigurer {
     /**
      * Log errors with full context
      */
-    public static void logError(String operation, String errorType, String message, Throwable throwable,
+    public static void logError(String message, Throwable throwable,
                               Map<String, Object> context) {
         Map<String, Object> details = new HashMap<>();
-        details.put("operation", operation);
-        details.put("errorType", errorType);
+
         details.put("message", message);
 
         if (context != null) {
@@ -253,7 +252,7 @@ public class LoggingConfiguration implements WebMvcConfigurer {
         }
 
         Logger errorLogger = LoggerFactory.getLogger("com.bcbs239.regtech.errors");
-        errorLogger.error("Error occurred: {} - {} - {}", operation, errorType, message, throwable);
+        errorLogger.error("Error occurred: {} ", message, throwable);
         logStructured("Error occurred", details, throwable);
     }
 
@@ -354,7 +353,7 @@ public class LoggingConfiguration implements WebMvcConfigurer {
                             MDC.put("lineNumber", String.valueOf(lineNumber));
                             MDC.put("version", version);
                             
-                            if (capturedDetails != null && !capturedDetails.isEmpty()) {
+                            if (!capturedDetails.isEmpty()) {
                                 capturedDetails.forEach((key, value) -> 
                                     MDC.put(key, value != null ? value.toString() : "null"));
                             }

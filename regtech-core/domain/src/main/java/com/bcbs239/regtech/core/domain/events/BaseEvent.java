@@ -1,20 +1,19 @@
 package com.bcbs239.regtech.core.domain.events;
 
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 @Getter
+@Setter
 public abstract class BaseEvent implements DomainEvent {
 
-    private final String correlationId;
+    private String correlationId;
     private final LocalDateTime timestamp;
-    private final String sourceModule;
 
-    protected BaseEvent(String correlationId, String sourceModule) {
-        this.correlationId = correlationId;
+    protected BaseEvent() {
         this.timestamp = LocalDateTime.now();
-        this.sourceModule = sourceModule;
     }
 
     @Override

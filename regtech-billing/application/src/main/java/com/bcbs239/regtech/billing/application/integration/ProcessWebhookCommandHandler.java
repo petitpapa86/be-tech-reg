@@ -115,7 +115,7 @@ public class ProcessWebhookCommandHandler {
         // Publish domain event
         InvoicePaymentSucceededEvent domainEvent = new InvoicePaymentSucceededEvent(
             saveResult.getValue().get(),
-            invoice.getBillingAccountId().orElse(null),
+            invoice.getBillingAccountId().isPresent() ? invoice.getBillingAccountId().getValue() : null,
             invoice.getTotalAmount()
         );
         applicationEventPublisher.publishEvent(domainEvent);
@@ -154,7 +154,7 @@ public class ProcessWebhookCommandHandler {
         // Publish domain event
         InvoicePaymentFailedEvent domainEvent = new InvoicePaymentFailedEvent(
             saveResult.getValue().get(),
-            invoice.getBillingAccountId().orElse(null),
+            invoice.getBillingAccountId().isPresent() ? invoice.getBillingAccountId().getValue() : null,
             invoice.getTotalAmount()
         );
         applicationEventPublisher.publishEvent(domainEvent);

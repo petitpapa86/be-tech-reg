@@ -9,13 +9,18 @@ import java.util.Map;
 public interface ILogger {
 
     /**
-     * Create a structured log entry with the given event type and details.
-     * @param eventType the type of event being logged
+     * Log a structured message asynchronously.
+     * @param message the log message
      * @param details additional details to include in the log entry
-     * @return a map representing the structured log entry
      */
-    Map<String, Object> createStructuredLog(String eventType, Map<String, Object> details);
-
     void asyncStructuredLog(String message, Map<String, Object> details);
+
+    /**
+     * Log a structured error message asynchronously.
+     * @param message the log message
+     * @param throwable the exception that occurred
+     * @param details additional details to include in the log entry
+     */
+    void asyncStructuredErrorLog(String message, Throwable throwable, Map<String, Object> details);
 }
 

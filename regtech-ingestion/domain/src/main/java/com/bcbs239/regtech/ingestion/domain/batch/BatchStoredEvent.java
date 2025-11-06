@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.ingestion.domain.batch;
 
-import com.bcbs239.regtech.core.events.DomainEvent;
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 
 import java.time.Instant;

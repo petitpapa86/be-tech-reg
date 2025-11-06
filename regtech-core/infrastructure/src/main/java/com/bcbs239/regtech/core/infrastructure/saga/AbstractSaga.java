@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.application.saga;
+package com.bcbs239.regtech.core.infrastructure.saga;
 
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.*;

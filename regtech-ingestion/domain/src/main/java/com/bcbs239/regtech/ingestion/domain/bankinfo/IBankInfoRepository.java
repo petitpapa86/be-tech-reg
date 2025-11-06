@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.ingestion.domain.bankinfo;
 
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 import java.time.Instant;
 import java.util.List;

@@ -1,42 +1,44 @@
 package com.bcbs239.regtech.core.domain.shared;
 
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 import java.util.Map;
 
 @Getter
+@Setter
 public class ErrorDetail {
     private final String code;
     private final String message;
-    private final Map<String, Object> details;
-    private final List<FieldError> fieldErrors;
+    private  String messageKey;;
+    private  List<FieldError> fieldErrors;
+    private final ErrorType errorType;
 
-    private ErrorDetail(String code, String message, Map<String, Object> details, List<FieldError> fieldErrors) {
+    private ErrorDetail(String code, ErrorType errorType,String message, String messageKey) {
         this.code = code;
         this.message = message;
-        this.details = details;
+        this.messageKey = messageKey;
+        this.errorType = errorType;
+    }
+    private ErrorDetail(String code, ErrorType errorType,String message, List<FieldError> fieldErrors) {
+        this.code = code;
+        this.message = message;
+        this.errorType = errorType;
         this.fieldErrors = fieldErrors;
     }
 
-    public static ErrorDetail of(String code, String message) {
-        return new ErrorDetail(code, message, null, null);
+    public static ErrorDetail of(String code, ErrorType errorType, String message, String messageKey) {
+        return new ErrorDetail(code, errorType, message, messageKey);
     }
 
     public static ErrorDetail validationError(List<FieldError> fieldErrors) {
-        return new ErrorDetail("VALIDATION_ERROR", "Validation failed", null, fieldErrors);
+        return new ErrorDetail("VALIDATION_ERROR", ErrorType.VALIDATION_ERROR, "Validation failed", fieldErrors);
     }
 
-    public static ErrorDetail validationError(List<FieldError> fieldErrors, String message) {
-        return new ErrorDetail("VALIDATION_ERROR", message, null, fieldErrors);
-    }
 
     public boolean hasFieldErrors() {
         return fieldErrors != null && !fieldErrors.isEmpty();
-    }
-
-    public String getMessageKey() {
-        return code; // For now, use code as message key
     }
 }
 

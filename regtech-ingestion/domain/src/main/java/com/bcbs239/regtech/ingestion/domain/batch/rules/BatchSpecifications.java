@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.ingestion.domain.batch.rules;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.Specification;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.specifications.Specification;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 
@@ -16,7 +17,8 @@ public final class BatchSpecifications {
         return batch -> {
             Objects.requireNonNull(batch);
             if (batch.isTerminal()) {
-                return Result.failure(new ErrorDetail("BATCH_TERMINAL", "Batch is in a terminal state and cannot be modified"));
+                return Result.failure(ErrorDetail.of("BATCH_TERMINAL", "Batch is in a terminal state and cannot be modified","" +
+                        "batch.terminal"));
             }
             return Result.success(null);
         };

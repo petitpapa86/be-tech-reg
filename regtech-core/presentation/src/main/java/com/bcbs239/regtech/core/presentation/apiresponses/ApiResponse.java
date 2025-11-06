@@ -1,7 +1,10 @@
 package com.bcbs239.regtech.core.presentation.apiresponses;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 
 import java.util.List;
 import java.util.Map;
@@ -10,9 +13,11 @@ import java.util.Map;
  * Unified API response envelope for both success and error responses.
  * Provides consistent structure across all bounded contexts.
  */
+@Getter
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T> {
 
+    // Getters
     @JsonProperty("success")
     private final boolean success;
 
@@ -43,35 +48,6 @@ public class ApiResponse<T> {
         this.type = type;
         this.errors = errors;
         this.meta = meta;
-    }
-
-    // Getters
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public String getMessageKey() {
-        return messageKey;
-    }
-
-    public T getData() {
-        return data;
-    }
-
-    public ErrorType getType() {
-        return type;
-    }
-
-    public List<FieldError> getErrors() {
-        return errors;
-    }
-
-    public Map<String, Object> getMeta() {
-        return meta;
     }
 
     /**

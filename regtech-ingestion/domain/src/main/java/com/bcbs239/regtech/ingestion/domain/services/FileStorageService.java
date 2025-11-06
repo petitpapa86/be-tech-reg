@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.ingestion.domain.services;
 
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
 
@@ -22,8 +22,8 @@ public interface FileStorageService {
      * @param exposureCount number of exposures in the file
      * @return Result containing S3Reference on success or ErrorDetail on failure
      */
-    Result<S3Reference> storeFile(InputStream fileStream, FileMetadata fileMetadata, 
-                                 String batchId, String bankId, int exposureCount);
+    Result<S3Reference> storeFile(InputStream fileStream, FileMetadata fileMetadata,
+                                  String batchId, String bankId, int exposureCount);
     
     /**
      * Checks if the storage service is available and healthy.

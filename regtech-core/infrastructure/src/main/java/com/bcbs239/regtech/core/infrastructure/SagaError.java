@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.infrastructure;
 
-import com.bcbs239.regtech.core.domain.errorhandling.ErrorType;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 
 public record SagaError(String message, ErrorType errorType, boolean recoverable, boolean semiRecoverable) {
     public SagaError withRetry() {

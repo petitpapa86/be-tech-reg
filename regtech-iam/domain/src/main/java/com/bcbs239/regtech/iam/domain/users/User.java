@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.iam.domain.users;
 
-import com.bcbs239.regtech.core.events.UserRegisteredEvent;
-import com.bcbs239.regtech.core.shared.Entity;
+import com.bcbs239.regtech.core.domain.shared.Entity;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -61,12 +60,8 @@ public class User extends Entity {
         UserRegisteredEvent event = new UserRegisteredEvent(
             user.id,
             email.getValue(),
-            firstName + " " + lastName,
             bankId,
-            paymentMethodId, // paymentMethodId
-            null, // phone
-            null, // address
-            null  // correlationId
+            paymentMethodId
         );
         user.addDomainEvent(event);
 
@@ -274,4 +269,3 @@ public class User extends Entity {
         public Instant getAssignedAt() { return assignedAt; }
     }
 }
-

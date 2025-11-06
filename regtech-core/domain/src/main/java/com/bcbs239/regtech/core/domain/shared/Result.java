@@ -22,8 +22,8 @@ public record Result<T>(T value, List<ErrorDetail> errors) {
         return new Result<>(null, errors);
     }
 
-    public static <T> Result<T> failure(String errorCode, String message) {
-        return failure(ErrorDetail.of(errorCode, message));
+    public static <T> Result<T> failure(String errorCode, ErrorType errorType, String message, String messageKey) {
+        return failure(ErrorDetail.of(errorCode, errorType, message, messageKey));
     }
 
     public boolean isSuccess() {

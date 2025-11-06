@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.core.domain.specifications;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 
@@ -22,8 +23,8 @@ public class NotSpecification<T> implements Specification<T> {
 
         // If the wrapped specification is satisfied, this NOT specification fails
         if (result.isSuccess()) {
-            return Result.failure(ErrorDetail.of("NOT_SPECIFICATION_FAILED", 
-                "Negated specification should not be satisfied"));
+            return Result.failure(ErrorDetail.of("NOT_SPECIFICATION_FAILED", ErrorType.BUSINESS_RULE_ERROR,
+                "Negated specification should not be satisfied", "not.specification.failed"));
         }
 
         // If the wrapped specification fails, this NOT specification succeeds

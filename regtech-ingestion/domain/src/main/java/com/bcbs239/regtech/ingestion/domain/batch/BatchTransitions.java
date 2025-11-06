@@ -1,16 +1,17 @@
 package com.bcbs239.regtech.ingestion.domain.batch;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.TransitionMetricsHolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
+
 
 public final class BatchTransitions {
 
-    private static final Logger log = LoggerFactory.getLogger(BatchTransitions.class);
-
-    private BatchTransitions() {}
+    private final ILogger aasyncLogger;
+    private BatchTransitions(ILogger aasyncLogger) {
+        this.aasyncLogger = aasyncLogger;
+    }
 
     public static Result<Void> validateTransition(IngestionBatch batch, BatchStatus target) {
         long start = System.currentTimeMillis();

@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.iam.api.users;
 
-import com.bcbs239.regtech.core.shared.ApiResponse;
-import com.bcbs239.regtech.core.shared.BaseController;
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
+import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommand;

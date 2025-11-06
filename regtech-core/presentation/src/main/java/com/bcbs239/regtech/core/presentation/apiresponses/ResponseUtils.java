@@ -1,5 +1,8 @@
 package com.bcbs239.regtech.core.presentation.apiresponses;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
+
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;

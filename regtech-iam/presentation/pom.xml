@@ -27,6 +27,12 @@
 			<artifactId>regtech-core</artifactId>
 		</dependency>
 		
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-core-presentation</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		
 		<!-- Spring Boot Web Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

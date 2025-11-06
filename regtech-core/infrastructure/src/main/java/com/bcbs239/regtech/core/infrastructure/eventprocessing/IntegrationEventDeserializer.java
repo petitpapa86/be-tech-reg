@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.core.infrastructure.eventprocessing;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
@@ -21,10 +22,12 @@ public class IntegrationEventDeserializer {
         try {
             eventClass = Class.forName(typeName);
         } catch (ClassNotFoundException e) {
-            return Result.failure(ErrorDetail.of("EVENT_CLASS_NOT_FOUND", "Event class not found: " + typeName));
+            return Result.failure(ErrorDetail.of("EVENT_CLASS_NOT_FOUND", ErrorType.SYSTEM_ERROR, "Event class not found: " + typeName,"" +
+                    "internal.server.error"));
         }
         if (!IntegrationEvent.class.isAssignableFrom(eventClass)) {
-            return Result.failure(ErrorDetail.of("INVALID_EVENT_TYPE", "Event class does not implement IntegrationEvent: " + typeName));
+            return Result.failure(ErrorDetail.of("INVALID_EVENT_TYPE", ErrorType.SYSTEM_ERROR,"Event class does not implement IntegrationEvent: " + typeName,
+                    "internal.server.error"));
         }
         @SuppressWarnings("unchecked")
         Class<? extends IntegrationEvent> integrationEventClass = (Class<? extends IntegrationEvent>) eventClass;
@@ -32,7 +35,8 @@ public class IntegrationEventDeserializer {
             IntegrationEvent event = objectMapper.readValue(json, integrationEventClass);
             return Result.success(event);
         } catch (JsonProcessingException e) {
-            return Result.failure(ErrorDetail.of("DESERIALIZATION_ERROR", "Failed to deserialize event JSON: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("DESERIALIZATION_ERROR", ErrorType.SYSTEM_ERROR,"Failed to deserialize event JSON: " + e.getMessage(),
+                    "internal.server.error"));
         }
     }
 }
