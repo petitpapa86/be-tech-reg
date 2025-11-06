@@ -58,3 +58,4 @@ public interface UserRepository {
     record UserOrgQuery(UserId userId, String organizationId) {}
 }
 
+

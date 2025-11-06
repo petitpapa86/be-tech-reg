@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.application.batch.upload;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
@@ -102,7 +103,7 @@ public class UploadFileCommandHandler {
         Result<IngestionBatch> saveResult = ingestionBatchRepository.save(batch);
         if (saveResult.isFailure()) {
             return Result.failure(saveResult.getError().orElse(
-                    new ErrorDetail("DATABASE_ERROR", "Failed to save batch record")
+                    ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to save batch record", "database.error")
             ));
         }
 

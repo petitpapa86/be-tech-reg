@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.iam.api.users;
+package com.bcbs239.regtech.iam.presentation.users;
 
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.controllers.BaseController;

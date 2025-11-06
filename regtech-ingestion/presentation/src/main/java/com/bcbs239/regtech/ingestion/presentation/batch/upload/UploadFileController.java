@@ -1,6 +1,12 @@
 package com.bcbs239.regtech.ingestion.presentation.batch.upload;
 
-import com.bcbs239.regtech.core.shared.*;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.presentation.controllers.BaseController;
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
+import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommand;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommandHandler;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
@@ -16,6 +22,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 import java.io.IOException;
 import java.util.List;
 
+import static com.bcbs239.regtech.core.capabilities.sharedinfrastructure.RouterAttributes.withAttributes;
 import static com.bcbs239.regtech.core.web.RouterAttributes.*;
 import static org.springframework.web.servlet.function.RequestPredicates.POST;
 import static org.springframework.web.servlet.function.RouterFunctions.route;
@@ -65,7 +72,7 @@ public class UploadFileController extends BaseController implements IEndpoint {
             
             // Handle file too large case with HTTP 413
             if (error.hasFieldErrors() && error.getFieldErrors().stream()
-                .anyMatch(fe -> "FILE_TOO_LARGE".equals(fe.getCode()))) {
+                .anyMatch(fe -> "FILE_TOO_LARGE".equals(fe.field()))) {
                 return ServerResponse.status(413)
                     .body(ResponseUtils.validationError(error.getFieldErrors(), error.getMessage()));
             }
@@ -128,8 +135,8 @@ public class UploadFileController extends BaseController implements IEndpoint {
             if (file.getSize() > maxFileSize) {
                 List<FieldError> sizeErrors = List.of(new FieldError("file", "FILE_TOO_LARGE", 
                     "File size exceeds maximum limit of 500MB. Consider splitting the file into smaller chunks."));
-                return Result.failure(ErrorDetail.validationError(sizeErrors, 
-                    "File size exceeds maximum allowed limit"));
+                return Result.failure(ErrorDetail.of("FILE_TOO_LARGE", ErrorType.VALIDATION_ERROR,
+                    "File size exceeds maximum allowed limit", "file.upload.size.exceeded"));
             }
 
             // Validate content type

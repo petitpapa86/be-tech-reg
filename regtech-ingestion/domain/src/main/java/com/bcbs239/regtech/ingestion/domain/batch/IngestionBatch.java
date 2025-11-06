@@ -3,6 +3,7 @@ package com.bcbs239.regtech.ingestion.domain.batch;
 
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
@@ -98,7 +99,7 @@ public class IngestionBatch extends Entity {
     public Result<Void> markAsValidated(int exposureCount) {
         // Validate exposure count
         if (exposureCount < 0) {
-            return Result.failure(ErrorDetail.of("INVALID_EXPOSURE_COUNT", "Exposure count cannot be negative", "ingestion.batch.invalidExposureCount"));
+            return Result.failure(ErrorDetail.of("INVALID_EXPOSURE_COUNT", ErrorType.VALIDATION_ERROR, "Exposure count cannot be negative", "ingestion.batch.invalidExposureCount"));
         }
 
         // Transition validation
@@ -120,13 +121,11 @@ public class IngestionBatch extends Entity {
         Objects.requireNonNull(bankInfo, "Bank info cannot be null");
         
         if (!bankInfo.bankId().equals(this.bankId)) {
-            return Result.failure(new ErrorDetail("BANK_ID_MISMATCH", 
-                "Bank info does not match batch bank ID"));
+            return Result.failure(ErrorDetail.of("BANK_ID_MISMATCH", ErrorType.VALIDATION_ERROR, "Bank info does not match batch bank ID", "ingestion.batch.bankIdMismatch"));
         }
         
         if (!bankInfo.isActive()) {
-            return Result.failure(new ErrorDetail("BANK_INACTIVE", 
-                "Cannot process batch for inactive bank"));
+            return Result.failure(ErrorDetail.of("BANK_INACTIVE", ErrorType.BUSINESS_RULE_ERROR, "Cannot process batch for inactive bank", "ingestion.batch.bankInactive"));
         }
         
         this.bankInfo = bankInfo;

@@ -3,8 +3,9 @@ package com.bcbs239.regtech.ingestion.infrastructure.security;
 import com.bcbs239.regtech.core.security.PermissionService;
 import com.bcbs239.regtech.core.security.SecurityContext;
 import com.bcbs239.regtech.core.security.SecurityUtils;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.infrastructure.monitoring.IngestionLoggingService;
@@ -53,7 +54,7 @@ public class IngestionSecurityService {
             if (!permissionService.isValidToken(authToken)) {
                 long duration = System.currentTimeMillis() - startTime;
                 logAccessAttempt("TOKEN_VALIDATION", authToken, clientIp, "failed", "Invalid token", duration, null);
-                return Result.failure(new ErrorDetail("AUTHENTICATION_ERROR", "Invalid or expired JWT token"));
+                return Result.failure(ErrorDetail.of("AUTHENTICATION_ERROR", ErrorType.SYSTEM_ERROR, "Invalid or expired JWT token", "generic.error"));
             }
             
             // Extract bank ID
@@ -61,7 +62,7 @@ public class IngestionSecurityService {
             if (bankIdValue == null || bankIdValue.trim().isEmpty()) {
                 long duration = System.currentTimeMillis() - startTime;
                 logAccessAttempt("TOKEN_VALIDATION", authToken, clientIp, "failed", "Missing bank ID in token", duration, null);
-                return Result.failure(new ErrorDetail("AUTHENTICATION_ERROR", "Bank ID not found in JWT token"));
+                return Result.failure(ErrorDetail.of("AUTHENTICATION_ERROR", ErrorType.SYSTEM_ERROR, "Bank ID not found in JWT token", "generic.error"));
             }
             
             BankId bankId = BankId.of(bankIdValue);
@@ -76,7 +77,7 @@ public class IngestionSecurityService {
             long duration = System.currentTimeMillis() - startTime;
             logAccessAttempt("TOKEN_VALIDATION", authToken, clientIp, "error", e.getMessage(), duration, null);
             logger.error("Error during token validation: {}", e.getMessage(), e);
-            return Result.failure(new ErrorDetail("SYSTEM_ERROR", "Token validation failed: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("SYSTEM_ERROR", ErrorType.AUTHENTICATION_ERROR, "Token validation failed: " + e.getMessage(), "security.token.validation.error"));
         }
     }
 
@@ -97,8 +98,7 @@ public class IngestionSecurityService {
                 long duration = System.currentTimeMillis() - startTime;
                 logPermissionCheck("BANK_ACCESS", requestedBankId.value(), currentUser, "denied", duration);
                 
-                return Result.failure(new ErrorDetail("AUTHORIZATION_ERROR", 
-                    "Access denied. You can only access resources for your own bank."));
+                return Result.failure(ErrorDetail.of("AUTHORIZATION_ERROR", ErrorType.SYSTEM_ERROR, "Access denied. You can only access resources for your own bank.", "generic.error"));
             }
             
             long duration = System.currentTimeMillis() - startTime;
@@ -110,7 +110,7 @@ public class IngestionSecurityService {
             long duration = System.currentTimeMillis() - startTime;
             logPermissionCheck("BANK_ACCESS", requestedBankId.value(), currentUser, "error", duration, e.getMessage());
             logger.error("Error during bank permission check: {}", e.getMessage(), e);
-            return Result.failure(new ErrorDetail("SYSTEM_ERROR", "Permission check failed: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("SYSTEM_ERROR", ErrorType.AUTHENTICATION_ERROR, "Permission check failed: " + e.getMessage(), "security.permission.check.error"));
         }
     }
 
@@ -136,8 +136,8 @@ public class IngestionSecurityService {
                 long duration = System.currentTimeMillis() - startTime;
                 logPermissionCheck("INGESTION_OPERATION", operation, currentUser, "denied", duration);
                 
-                return Result.failure(new ErrorDetail("AUTHORIZATION_ERROR", 
-                    String.format("Access denied. Required permission for operation: %s", operation)));
+                return Result.failure(ErrorDetail.of("AUTHORIZATION_ERROR", ErrorType.AUTHENTICATION_ERROR,
+                    String.format("Access denied. Required permission for operation: %s", operation), "security.access.denied"));
             }
             
             long duration = System.currentTimeMillis() - startTime;
@@ -149,7 +149,7 @@ public class IngestionSecurityService {
             long duration = System.currentTimeMillis() - startTime;
             logPermissionCheck("INGESTION_OPERATION", operation, currentUser, "error", duration, e.getMessage());
             logger.error("Error during ingestion permission check: {}", e.getMessage(), e);
-            return Result.failure(new ErrorDetail("SYSTEM_ERROR", "Permission check failed: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("SYSTEM_ERROR", ErrorType.AUTHENTICATION_ERROR, "Permission check failed: " + e.getMessage(), "security.permission.check.error"));
         }
     }
 
@@ -169,8 +169,7 @@ public class IngestionSecurityService {
                 long duration = System.currentTimeMillis() - startTime;
                 logBatchAccessAttempt(batchId, batchBankId, currentUser, "denied", duration);
                 
-                return Result.failure(new ErrorDetail("AUTHORIZATION_ERROR", 
-                    "Access denied. You can only access batches from your own bank."));
+                return Result.failure(ErrorDetail.of("AUTHORIZATION_ERROR", ErrorType.SYSTEM_ERROR, "Access denied. You can only access batches from your own bank.", "generic.error"));
             }
             
             long duration = System.currentTimeMillis() - startTime;
@@ -182,7 +181,7 @@ public class IngestionSecurityService {
             long duration = System.currentTimeMillis() - startTime;
             logBatchAccessAttempt(batchId, batchBankId, currentUser, "error", duration, e.getMessage());
             logger.error("Error during batch access check: {}", e.getMessage(), e);
-            return Result.failure(new ErrorDetail("SYSTEM_ERROR", "Batch access check failed: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("SYSTEM_ERROR", ErrorType.AUTHENTICATION_ERROR, "Batch access check failed: " + e.getMessage(), "security.batch.access.error"));
         }
     }
 
@@ -319,4 +318,6 @@ public class IngestionSecurityService {
         return "unknown";
     }
 }
+
+
 

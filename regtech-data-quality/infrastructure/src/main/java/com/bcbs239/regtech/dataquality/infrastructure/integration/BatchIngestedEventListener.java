@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.dataquality.infrastructure.integration;
 
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommand;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommandHandler;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;

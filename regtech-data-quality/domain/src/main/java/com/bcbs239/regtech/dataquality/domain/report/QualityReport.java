@@ -3,6 +3,7 @@ package com.bcbs239.regtech.dataquality.domain.report;
 
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.events.*;
@@ -78,8 +79,9 @@ public class QualityReport extends Entity {
         if (!canStartValidation()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
+                ErrorType.VALIDATION_ERROR,
                 "Cannot start validation from status: " + status,
-                "status"
+                "quality.report.invalid.state.transition"
             ));
         }
         
@@ -101,16 +103,18 @@ public class QualityReport extends Entity {
         if (!canRecordResults()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
+                ErrorType.VALIDATION_ERROR,
                 "Cannot record results from status: " + status,
-                "status"
+                "quality.report.invalid.state.transition"
             ));
         }
         
         if (validationResult == null) {
             return Result.failure(ErrorDetail.of(
                 "VALIDATION_RESULT_NULL",
+                ErrorType.VALIDATION_ERROR,
                 "Validation result cannot be null",
-                "validationResult"
+                "quality.report.validation.result.null"
             ));
         }
         
@@ -132,16 +136,18 @@ public class QualityReport extends Entity {
         if (!canCalculateScores()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
+                ErrorType.VALIDATION_ERROR,
                 "Cannot calculate scores from status: " + status,
-                "status"
+                "quality.report.invalid.state.transition"
             ));
         }
         
         if (qualityScores == null) {
             return Result.failure(ErrorDetail.of(
                 "QUALITY_SCORES_NULL",
+                ErrorType.VALIDATION_ERROR,
                 "Quality scores cannot be null",
-                "qualityScores"
+                "quality.report.quality.scores.null"
             ));
         }
         
@@ -163,16 +169,18 @@ public class QualityReport extends Entity {
         if (!isInProgress()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
+                ErrorType.VALIDATION_ERROR,
                 "Cannot store detailed results from status: " + status,
-                "status"
+                "quality.report.invalid.state.transition"
             ));
         }
         
         if (s3Reference == null) {
             return Result.failure(ErrorDetail.of(
                 "S3_REFERENCE_NULL",
+                ErrorType.VALIDATION_ERROR,
                 "S3 reference cannot be null",
-                "s3Reference"
+                "quality.report.s3.reference.null"
             ));
         }
         
@@ -190,24 +198,27 @@ public class QualityReport extends Entity {
         if (!isInProgress()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
+                ErrorType.VALIDATION_ERROR,
                 "Cannot complete validation from status: " + status,
-                "status"
+                "quality.report.invalid.state.transition"
             ));
         }
         
         if (scores == null) {
             return Result.failure(ErrorDetail.of(
                 "SCORES_NOT_CALCULATED",
+                ErrorType.VALIDATION_ERROR,
                 "Quality scores must be calculated before completion",
-                "scores"
+                "quality.report.scores.not.calculated"
             ));
         }
         
         if (detailsReference == null) {
             return Result.failure(ErrorDetail.of(
                 "DETAILS_NOT_STORED",
+                ErrorType.VALIDATION_ERROR,
                 "Detailed results must be stored before completion",
-                "detailsReference"
+                "quality.report.details.not.stored"
             ));
         }
         
@@ -229,16 +240,18 @@ public class QualityReport extends Entity {
         if (isTerminal()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
+                ErrorType.VALIDATION_ERROR,
                 "Cannot mark as failed from terminal status: " + status,
-                "status"
+                "quality.report.invalid.state.transition"
             ));
         }
         
         if (errorMessage == null || errorMessage.trim().isEmpty()) {
             return Result.failure(ErrorDetail.of(
                 "ERROR_MESSAGE_REQUIRED",
+                ErrorType.VALIDATION_ERROR,
                 "Error message is required when marking as failed",
-                "errorMessage"
+                "quality.report.error.message.required"
             ));
         }
         

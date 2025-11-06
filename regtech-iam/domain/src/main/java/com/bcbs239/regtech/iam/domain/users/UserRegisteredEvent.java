@@ -18,3 +18,4 @@ public class UserRegisteredEvent extends BaseEvent {
         this.paymentMethodId = paymentMethodId;
     }
 }
+

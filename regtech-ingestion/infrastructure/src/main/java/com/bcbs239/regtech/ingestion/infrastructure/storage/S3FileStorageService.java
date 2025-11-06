@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.storage;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
 import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
@@ -108,13 +109,13 @@ public class S3FileStorageService implements FileStorageService {
 
         } catch (S3Exception e) {
             logger.error("S3 error while storing file {} for batch {}: {}", fileMetadata.fileName(), batchId, e.getMessage(), e);
-            return Result.failure(ErrorDetail.of("S3_STORAGE_ERROR", "Failed to store file in S3: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("S3_STORAGE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to store file in S3: " + e.getMessage(), "storage.s3.upload.error"));
         } catch (IOException e) {
             logger.error("IO error while storing file {} for batch {}: {}", fileMetadata.fileName(), batchId, e.getMessage(), e);
-            return Result.failure(ErrorDetail.of("FILE_READ_ERROR", "Failed to read file content: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("FILE_READ_ERROR", ErrorType.SYSTEM_ERROR, "Failed to read file content: " + e.getMessage(), "storage.file.read.error"));
         } catch (Exception e) {
             logger.error("Unexpected error while storing file {} for batch {}: {}", fileMetadata.fileName(), batchId, e.getMessage(), e);
-            return Result.failure(ErrorDetail.of("STORAGE_ERROR", "Unexpected error during file storage: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("STORAGE_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error during file storage: " + e.getMessage(), "storage.unexpected.error"));
         }
     }
 
@@ -133,10 +134,10 @@ public class S3FileStorageService implements FileStorageService {
 
         } catch (S3Exception e) {
             logger.warn("S3 service health check failed: {}", e.getMessage());
-            return Result.failure(ErrorDetail.of("S3_HEALTH_CHECK_FAILED", "S3 service is not available: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("S3_HEALTH_CHECK_FAILED", ErrorType.SYSTEM_ERROR, "S3 service is not available: " + e.getMessage(), "storage.s3.health.check.failed"));
         } catch (Exception e) {
             logger.warn("Unexpected error during S3 health check: {}", e.getMessage());
-            return Result.failure(ErrorDetail.of("S3_HEALTH_CHECK_ERROR", "Unexpected error during S3 health check: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("S3_HEALTH_CHECK_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error during S3 health check: " + e.getMessage(), "storage.s3.health.check.error"));
         }
     }
 
@@ -154,4 +155,6 @@ public class S3FileStorageService implements FileStorageService {
                 fileName);
     }
 }
+
+
 

@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.validation;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommandHandler.FileUploadValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,32 +35,29 @@ public class FileUploadValidationServiceImpl implements FileUploadValidationServ
 
         // Validate file name
         if (fileName == null || fileName.trim().isEmpty()) {
-            return Result.failure(new ErrorDetail("INVALID_FILE_NAME", 
-                "File name cannot be null or empty"));
+            return Result.failure(ErrorDetail.of("INVALID_FILE_NAME", ErrorType.SYSTEM_ERROR, "File name cannot be null or empty", "generic.error"));
         }
 
         // Validate content type
         if (contentType == null || contentType.trim().isEmpty()) {
-            return Result.failure(new ErrorDetail("INVALID_CONTENT_TYPE", 
-                "Content type cannot be null or empty"));
+            return Result.failure(ErrorDetail.of("INVALID_CONTENT_TYPE", ErrorType.SYSTEM_ERROR, "Content type cannot be null or empty", "generic.error"));
         }
 
         if (!SUPPORTED_CONTENT_TYPES.contains(contentType)) {
-            return Result.failure(new ErrorDetail("UNSUPPORTED_CONTENT_TYPE", 
+            return Result.failure(ErrorDetail.of("UNSUPPORTED_CONTENT_TYPE", ErrorType.VALIDATION_ERROR,
                 String.format("Content type '%s' is not supported. Supported types: %s", 
-                    contentType, SUPPORTED_CONTENT_TYPES)));
+                    contentType, SUPPORTED_CONTENT_TYPES), "file.unsupported.content.type"));
         }
 
         // Validate file size
         if (fileSizeBytes <= 0) {
-            return Result.failure(new ErrorDetail("INVALID_FILE_SIZE", 
-                "File size must be positive"));
+            return Result.failure(ErrorDetail.of("INVALID_FILE_SIZE", ErrorType.SYSTEM_ERROR, "File size must be positive", "generic.error"));
         }
 
         if (fileSizeBytes > maxFileSizeBytes) {
-            return Result.failure(new ErrorDetail("FILE_TOO_LARGE", 
+            return Result.failure(ErrorDetail.of("FILE_TOO_LARGE", ErrorType.VALIDATION_ERROR,
                 String.format("File size (%d bytes) exceeds maximum allowed size (%d bytes)", 
-                    fileSizeBytes, maxFileSizeBytes)));
+                    fileSizeBytes, maxFileSizeBytes), "file.size.exceeded"));
         }
 
         // Additional validations based on content type
@@ -76,8 +74,7 @@ public class FileUploadValidationServiceImpl implements FileUploadValidationServ
     private Result<Void> validateJsonFile(String fileName, long fileSizeBytes) {
         // Validate JSON file extension
         if (!fileName.toLowerCase().endsWith(".json")) {
-            return Result.failure(new ErrorDetail("INVALID_FILE_EXTENSION", 
-                "JSON files must have .json extension"));
+            return Result.failure(ErrorDetail.of("INVALID_FILE_EXTENSION", ErrorType.SYSTEM_ERROR, "JSON files must have .json extension", "generic.error"));
         }
 
         // JSON files should be reasonably sized for parsing
@@ -92,8 +89,7 @@ public class FileUploadValidationServiceImpl implements FileUploadValidationServ
         // Validate Excel file extension
         String lowerFileName = fileName.toLowerCase();
         if (!lowerFileName.endsWith(".xlsx") && !lowerFileName.endsWith(".xls")) {
-            return Result.failure(new ErrorDetail("INVALID_FILE_EXTENSION", 
-                "Excel files must have .xlsx or .xls extension"));
+            return Result.failure(ErrorDetail.of("INVALID_FILE_EXTENSION", ErrorType.SYSTEM_ERROR, "Excel files must have .xlsx or .xls extension", "generic.error"));
         }
 
         // Excel files can be larger due to formatting overhead
@@ -104,4 +100,6 @@ public class FileUploadValidationServiceImpl implements FileUploadValidationServ
         return Result.success(null);
     }
 }
+
+
 

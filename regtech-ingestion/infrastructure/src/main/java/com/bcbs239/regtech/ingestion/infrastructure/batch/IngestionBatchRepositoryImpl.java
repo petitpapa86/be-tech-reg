@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.batch;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
@@ -57,8 +58,8 @@ public class IngestionBatchRepositoryImpl implements IIngestionBatchRepository {
             
         } catch (DataAccessException e) {
             log.error("Error saving batch: {}", batch.getBatchId().value(), e);
-            return Result.failure(new ErrorDetail("DATABASE_ERROR", 
-                "Failed to save ingestion batch: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR,
+                "Failed to save ingestion batch: " + e.getMessage(), "database.save.failed"));
         }
     }
     
@@ -173,8 +174,8 @@ public class IngestionBatchRepositoryImpl implements IIngestionBatchRepository {
     public Result<Void> delete(BatchId batchId) {
         try {
             if (!jpaRepository.existsByBatchId(batchId.value())) {
-                return Result.failure(new ErrorDetail("BATCH_NOT_FOUND", 
-                    "Batch not found: " + batchId.value()));
+                return Result.failure(ErrorDetail.of("BATCH_NOT_FOUND", ErrorType.NOT_FOUND_ERROR,
+                    "Batch not found: " + batchId.value(), "batch.not.found"));
             }
             
             jpaRepository.deleteByBatchId(batchId.value());
@@ -183,8 +184,8 @@ public class IngestionBatchRepositoryImpl implements IIngestionBatchRepository {
             
         } catch (DataAccessException e) {
             log.error("Error deleting batch: {}", batchId.value(), e);
-            return Result.failure(new ErrorDetail("DATABASE_ERROR", 
-                "Failed to delete batch: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR,
+                "Failed to delete batch: " + e.getMessage(), "database.delete.failed"));
         }
     }
     
@@ -252,4 +253,6 @@ public class IngestionBatchRepositoryImpl implements IIngestionBatchRepository {
         }
     }
 }
+
+
 

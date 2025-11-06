@@ -1,6 +1,11 @@
 package com.bcbs239.regtech.ingestion.presentation.batch.process;
 
-import com.bcbs239.regtech.core.shared.*;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
+import com.bcbs239.regtech.core.presentation.controllers.BaseController;
+import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommand;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
@@ -52,6 +57,7 @@ public class ProcessBatchController extends BaseController implements IEndpoint 
             if (validationResult.isFailure()) {
                 ErrorDetail error = validationResult.getError().orElseThrow();
                 ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
+                assert responseEntity.getBody() != null;
                 return ServerResponse.status(responseEntity.getStatusCode())
                     .body(responseEntity.getBody());
             }
@@ -74,6 +80,7 @@ public class ProcessBatchController extends BaseController implements IEndpoint 
             } else {
                 ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(result, 
                     "Batch processing completed", "ingestion.process.success");
+                assert responseEntity.getBody() != null;
                 return ServerResponse.status(responseEntity.getStatusCode())
                     .body(responseEntity.getBody());
             }

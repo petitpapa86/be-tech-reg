@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.dataquality.application.reporting;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import org.slf4j.Logger;
@@ -42,8 +43,9 @@ public class QualityReportQueryHandler {
                 logger.debug("Quality report not found for batch {}", query.batchId().value());
                 return Result.failure(ErrorDetail.of(
                     "QUALITY_REPORT_NOT_FOUND",
+                    ErrorType.NOT_FOUND_ERROR,
                     "Quality report not found for batch: " + query.batchId().value(),
-                    "batchId"
+                    "query.report.not_found"
                 ));
             }
             
@@ -59,16 +61,18 @@ public class QualityReportQueryHandler {
             logger.warn("Invalid query parameters: {}", e.getMessage());
             return Result.failure(ErrorDetail.of(
                 "INVALID_QUERY_PARAMETERS",
+                ErrorType.VALIDATION_ERROR,
                 e.getMessage(),
-                "query"
+                "query.validation.parameters"
             ));
         } catch (Exception e) {
             logger.error("Failed to retrieve quality report for batch {}: {}", 
                 query.batchId().value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "QUERY_EXECUTION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to retrieve quality report: " + e.getMessage(),
-                "query"
+                "query.execution.report"
             ));
         }
     }
@@ -90,16 +94,18 @@ public class QualityReportQueryHandler {
             logger.warn("Invalid query parameters: {}", e.getMessage());
             return Result.failure(ErrorDetail.of(
                 "INVALID_QUERY_PARAMETERS",
+                ErrorType.VALIDATION_ERROR,
                 e.getMessage(),
-                "query"
+                "query.validation.parameters"
             ));
         } catch (Exception e) {
             logger.error("Failed to check quality report existence for batch {}: {}", 
                 query.batchId().value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "QUERY_EXECUTION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to check quality report existence: " + e.getMessage(),
-                "query"
+                "query.execution.exists"
             ));
         }
     }

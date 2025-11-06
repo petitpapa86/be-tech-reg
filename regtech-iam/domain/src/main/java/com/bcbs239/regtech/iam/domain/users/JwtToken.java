@@ -4,6 +4,7 @@ package com.bcbs239.regtech.iam.domain.users;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import io.jsonwebtoken.*;
 
 import java.time.Duration;
@@ -50,8 +51,7 @@ public record JwtToken(String value, Instant expiresAt) {
 
             return Result.success(new JwtToken(token, expiresAt));
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("JWT_GENERATION_FAILED",
-                "Failed to generate JWT token: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("JWT_GENERATION_FAILED", ErrorType.SYSTEM_ERROR, "Failed to generate JWT token: " + e.getMessage(), "jwt.generation.failed"));
         }
     }
 
@@ -67,17 +67,13 @@ public record JwtToken(String value, Instant expiresAt) {
 
             return Result.success(new JwtClaims(claims));
         } catch (ExpiredJwtException e) {
-            return Result.failure(ErrorDetail.of("JWT_EXPIRED",
-                "JWT token has expired"));
+            return Result.failure(ErrorDetail.of("JWT_EXPIRED", ErrorType.AUTHENTICATION_ERROR, "JWT token has expired", "jwt.expired"));
         } catch (MalformedJwtException e) {
-            return Result.failure(ErrorDetail.of("JWT_MALFORMED",
-                "JWT token is malformed"));
+            return Result.failure(ErrorDetail.of("JWT_MALFORMED", ErrorType.AUTHENTICATION_ERROR, "JWT token is malformed", "jwt.malformed"));
         } catch (SignatureException e) {
-            return Result.failure(ErrorDetail.of("JWT_INVALID_SIGNATURE",
-                "JWT token has invalid signature"));
+            return Result.failure(ErrorDetail.of("JWT_INVALID_SIGNATURE", ErrorType.AUTHENTICATION_ERROR, "JWT token has invalid signature", "jwt.invalid_signature"));
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("JWT_VALIDATION_FAILED",
-                "JWT token validation failed: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("JWT_VALIDATION_FAILED", ErrorType.AUTHENTICATION_ERROR, "JWT token validation failed: " + e.getMessage(), "jwt.validation.failed"));
         }
     }
 
@@ -113,4 +109,6 @@ public record JwtToken(String value, Instant expiresAt) {
         }
     }
 }
+
+
 

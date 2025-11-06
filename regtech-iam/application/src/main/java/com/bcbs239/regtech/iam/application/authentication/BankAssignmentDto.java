@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.iam.application.authentication;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.BankId;
 import com.bcbs239.regtech.iam.domain.users.Bcbs239Role;
@@ -30,8 +31,7 @@ public record BankAssignmentDto(
                 bcbsRole
             ));
         } catch (IllegalArgumentException e) {
-            return Result.failure(ErrorDetail.of("INVALID_ROLE",
-                "Invalid role: " + role));
+            return Result.failure(ErrorDetail.of("INVALID_ROLE", ErrorType.VALIDATION_ERROR, "Invalid role: " + role, "authentication.invalid.role"));
         }
     }
 }

@@ -3,6 +3,7 @@ package com.bcbs239.regtech.iam.application.users;
 
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ValidationUtils;
@@ -104,8 +105,7 @@ public class RegisterUserCommandHandler {
             // Step 2: Check email uniqueness
             Maybe<User> existingUser = emailLookup.apply(email);
             if (existingUser.isPresent()) {
-                return Result.failure(ErrorDetail.of("EMAIL_ALREADY_EXISTS",
-                    "Email already exists"));
+                return Result.failure(ErrorDetail.of("EMAIL_ALREADY_EXISTS", ErrorType.VALIDATION_ERROR, "Email already exists", "user.email.already.exists"));
             }
 
             // Step 3: Validate and create password
@@ -118,15 +118,13 @@ public class RegisterUserCommandHandler {
             // Step 4: Validate names using Maybe to avoid nulls
             Maybe<String> maybeFirst = ValidationUtils.validateName(command.firstName());
             if (maybeFirst.isEmpty()) {
-                return Result.failure(ErrorDetail.of("INVALID_FIRST_NAME",
-                    "First name is required and cannot be empty"));
+                return Result.failure(ErrorDetail.of("INVALID_FIRST_NAME", ErrorType.VALIDATION_ERROR, "First name is required and cannot be empty", "user.invalid.first.name"));
             }
             String firstName = maybeFirst.getValue();
 
             Maybe<String> maybeLast = ValidationUtils.validateName(command.lastName());
             if (maybeLast.isEmpty()) {
-                return Result.failure(ErrorDetail.of("INVALID_LAST_NAME",
-                    "Last name is required and cannot be empty"));
+                return Result.failure(ErrorDetail.of("INVALID_LAST_NAME", ErrorType.VALIDATION_ERROR, "Last name is required and cannot be empty", "user.invalid.last.name"));
             }
             String lastName = maybeLast.getValue();
 

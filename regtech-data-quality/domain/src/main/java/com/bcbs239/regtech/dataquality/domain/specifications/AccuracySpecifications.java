@@ -74,7 +74,8 @@ public class AccuracySpecifications {
             if (exposure.currency() != null && 
                 !isValidISO4217Currency(exposure.currency())) {
                 return Result.failure(ErrorDetail.of("ACCURACY_INVALID_CURRENCY", 
-                    "Currency must be valid ISO 4217 code", "currency"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Currency must be valid ISO 4217 code", "accuracy.invalid.currency"));
             }
             return Result.success();
         };
@@ -91,7 +92,8 @@ public class AccuracySpecifications {
             if (exposure.country() != null && 
                 !isValidISO3166Country(exposure.country())) {
                 return Result.failure(ErrorDetail.of("ACCURACY_INVALID_COUNTRY", 
-                    "Country must be valid ISO 3166-1 alpha-2 code", "country"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Country must be valid ISO 3166-1 alpha-2 code", "accuracy.invalid.country"));
             }
             return Result.success();
         };
@@ -108,7 +110,8 @@ public class AccuracySpecifications {
             if (exposure.leiCode() != null && 
                 !isValidLeiFormat(exposure.leiCode())) {
                 return Result.failure(ErrorDetail.of("ACCURACY_INVALID_LEI_FORMAT", 
-                    "LEI code must be 20 alphanumeric characters", "lei_code"));
+                    ErrorType.VALIDATION_ERROR,
+                    "LEI code must be 20 alphanumeric characters", "accuracy.invalid.lei.format"));
             }
             return Result.success();
         };
@@ -125,7 +128,8 @@ public class AccuracySpecifications {
             if (exposure.amount() != null && 
                 exposure.amount().compareTo(MAX_REASONABLE_AMOUNT) >= 0) {
                 return Result.failure(ErrorDetail.of("ACCURACY_AMOUNT_UNREASONABLE", 
-                    "Amount exceeds reasonable bounds (10B EUR)", "amount"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Amount exceeds reasonable bounds (10B EUR)", "accuracy.amount.unreasonable"));
             }
             return Result.success();
         };

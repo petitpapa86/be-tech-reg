@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.validation;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler.BankInfoEnrichmentService;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
@@ -26,7 +27,7 @@ public class BankInfoEnrichmentServiceImpl implements BankInfoEnrichmentService 
         log.debug("Enriching bank info for bankId: {}", bankId);
 
         if (bankId == null) {
-            return Result.failure(new ErrorDetail("NULL_BANK_ID", "Bank ID cannot be null"));
+            return Result.failure(ErrorDetail.of("NULL_BANK_ID", ErrorType.SYSTEM_ERROR, "Bank ID cannot be null", "generic.error"));
         }
 
         // For now, create a basic BankInfo with the bankId
@@ -48,13 +49,13 @@ public class BankInfoEnrichmentServiceImpl implements BankInfoEnrichmentService 
         log.debug("Validating bank status for: {}", bankInfo);
 
         if (bankInfo == null) {
-            return Result.failure(new ErrorDetail("NULL_BANK_INFO", "Bank info cannot be null"));
+            return Result.failure(ErrorDetail.of("NULL_BANK_INFO", ErrorType.SYSTEM_ERROR, "Bank info cannot be null", "generic.error"));
         }
 
         // Check if bank is active using the isActive() method
         if (!bankInfo.isActive()) {
-            return Result.failure(new ErrorDetail("INACTIVE_BANK",
-                String.format("Bank status '%s' is not active", bankInfo.bankStatus())));
+            return Result.failure(ErrorDetail.of("INACTIVE_BANK", ErrorType.BUSINESS_RULE_ERROR,
+                String.format("Bank status '%s' is not active", bankInfo.bankStatus()), "bank.inactive"));
         }
 
         // Additional validation could include:
@@ -66,4 +67,6 @@ public class BankInfoEnrichmentServiceImpl implements BankInfoEnrichmentService 
         return Result.success(null);
     }
 }
+
+
 

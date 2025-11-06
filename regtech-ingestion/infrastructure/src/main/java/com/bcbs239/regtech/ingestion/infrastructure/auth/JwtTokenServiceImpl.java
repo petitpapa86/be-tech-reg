@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.auth;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommandHandler.JwtTokenService;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import org.slf4j.Logger;
@@ -22,8 +23,8 @@ public class JwtTokenServiceImpl implements JwtTokenService {
         log.debug("Validating JWT token and extracting bank ID");
 
         if (token == null || token.trim().isEmpty()) {
-            return Result.failure(new ErrorDetail("INVALID_TOKEN", 
-                "JWT token cannot be null or empty"));
+            return Result.failure(ErrorDetail.of("INVALID_TOKEN", ErrorType.VALIDATION_ERROR,
+                "JWT token cannot be null or empty", "jwt.invalid.token"));
         }
 
         // Remove Bearer prefix if present
@@ -35,8 +36,8 @@ public class JwtTokenServiceImpl implements JwtTokenService {
             
             // Validate token format (basic check)
             if (!cleanToken.contains(".")) {
-                return Result.failure(new ErrorDetail("INVALID_TOKEN_FORMAT", 
-                    "Invalid JWT token format"));
+                return Result.failure(ErrorDetail.of("INVALID_TOKEN_FORMAT", ErrorType.VALIDATION_ERROR,
+                    "Invalid JWT token format", "jwt.invalid.format"));
             }
 
             // Extract bank ID from token (placeholder implementation)
@@ -44,8 +45,8 @@ public class JwtTokenServiceImpl implements JwtTokenService {
             String bankIdValue = extractBankIdFromToken(cleanToken);
             
             if (bankIdValue == null || bankIdValue.trim().isEmpty()) {
-                return Result.failure(new ErrorDetail("MISSING_BANK_ID", 
-                    "Bank ID not found in JWT token"));
+                return Result.failure(ErrorDetail.of("MISSING_BANK_ID", ErrorType.VALIDATION_ERROR,
+                    "Bank ID not found in JWT token", "jwt.missing.bank.id"));
             }
 
             BankId bankId = new BankId(bankIdValue);
@@ -55,8 +56,8 @@ public class JwtTokenServiceImpl implements JwtTokenService {
 
         } catch (Exception e) {
             log.error("Error validating JWT token", e);
-            return Result.failure(new ErrorDetail("TOKEN_VALIDATION_ERROR", 
-                "Failed to validate JWT token: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("TOKEN_VALIDATION_ERROR", ErrorType.AUTHENTICATION_ERROR,
+                "Failed to validate JWT token: " + e.getMessage(), "jwt.validation.error"));
         }
     }
 
@@ -72,4 +73,6 @@ public class JwtTokenServiceImpl implements JwtTokenService {
         return "BANK001";
     }
 }
+
+
 

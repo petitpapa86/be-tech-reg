@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.application.batch.process;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.model.ParsedFileData;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
@@ -63,8 +64,7 @@ public class ProcessBatchCommandHandler {
                 .orElse(null);
             
             if (batch == null) {
-                return Result.failure(new ErrorDetail("BATCH_NOT_FOUND", 
-                    "Batch not found: " + command.batchId().value()));
+                return Result.failure(ErrorDetail.of("BATCH_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, "Batch not found: " + command.batchId().value(), "batch.not.found"));
             }
             
             // 2. Start processing - update batch status
@@ -77,7 +77,7 @@ public class ProcessBatchCommandHandler {
             Result<IngestionBatch> saveResult = ingestionBatchRepository.save(batch);
             if (saveResult.isFailure()) {
                 return Result.failure(saveResult.getError().orElse(
-                    new ErrorDetail("DATABASE_ERROR", "Failed to update batch status to PARSING")));
+                    ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to update batch status to PARSING", "database.error")));
             }
             
             // 3. Parse file content
@@ -109,7 +109,7 @@ public class ProcessBatchCommandHandler {
             saveResult = ingestionBatchRepository.save(batch);
             if (saveResult.isFailure()) {
                 return Result.failure(saveResult.getError().orElse(
-                    new ErrorDetail("DATABASE_ERROR", "Failed to update batch status to VALIDATED")));
+                    ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to update batch status to VALIDATED", "database.error")));
             }
             
             // 6. Enrich with bank information
@@ -172,7 +172,7 @@ public class ProcessBatchCommandHandler {
             saveResult = ingestionBatchRepository.save(batch);
             if (saveResult.isFailure()) {
                 return Result.failure(saveResult.getError().orElse(
-                    new ErrorDetail("DATABASE_ERROR", "Failed to save completed batch")));
+                    ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to save completed batch", "database.error")));
             }
             
             // 11. Publish events using existing CrossModuleEventBus
@@ -190,8 +190,7 @@ public class ProcessBatchCommandHandler {
             return Result.success(null);
             
         } catch (Exception e) {
-            return Result.failure(new ErrorDetail("PROCESS_HANDLER_ERROR", 
-                "Unexpected error during batch processing: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("PROCESS_HANDLER_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error during batch processing: " + e.getMessage(), "process.handler.error"));
         }
     }
     
@@ -204,8 +203,7 @@ public class ProcessBatchCommandHandler {
         } else if (contentType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {
             return fileParsingService.parseExcelFile(command.fileStream(), fileName);
         } else {
-            return Result.failure(new ErrorDetail("UNSUPPORTED_CONTENT_TYPE", 
-                "Unsupported content type for parsing: " + contentType));
+            return Result.failure(ErrorDetail.of("UNSUPPORTED_CONTENT_TYPE", ErrorType.VALIDATION_ERROR, "Unsupported content type for parsing: " + contentType, "unsupported.content.type"));
         }
     }
     

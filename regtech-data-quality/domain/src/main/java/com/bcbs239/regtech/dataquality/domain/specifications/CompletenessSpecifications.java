@@ -29,27 +29,32 @@ public class CompletenessSpecifications {
             
             if (isBlank(exposure.exposureId())) {
                 errors.add(ErrorDetail.of("COMPLETENESS_EXPOSURE_ID_MISSING", 
-                    "Exposure ID is required", "exposure_id"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Exposure ID is required", "completeness.exposure.id.missing"));
             }
             
             if (exposure.amount() == null) {
                 errors.add(ErrorDetail.of("COMPLETENESS_AMOUNT_MISSING", 
-                    "Amount is required", "amount"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Amount is required", "completeness.amount.missing"));
             }
             
             if (isBlank(exposure.currency())) {
                 errors.add(ErrorDetail.of("COMPLETENESS_CURRENCY_MISSING", 
-                    "Currency is required", "currency"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Currency is required", "completeness.currency.missing"));
             }
             
             if (isBlank(exposure.country())) {
                 errors.add(ErrorDetail.of("COMPLETENESS_COUNTRY_MISSING", 
-                    "Country is required", "country"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Country is required", "completeness.country.missing"));
             }
             
             if (isBlank(exposure.sector())) {
                 errors.add(ErrorDetail.of("COMPLETENESS_SECTOR_MISSING", 
-                    "Sector is required", "sector"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Sector is required", "completeness.sector.missing"));
             }
             
             return errors.isEmpty() ? Result.success() : Result.failure(errors);
@@ -66,7 +71,8 @@ public class CompletenessSpecifications {
         return exposure -> {
             if (exposure.isCorporateExposure() && isBlank(exposure.leiCode())) {
                 return Result.failure(ErrorDetail.of("COMPLETENESS_LEI_MISSING", 
-                    "LEI code required for corporate exposures", "lei_code"));
+                    ErrorType.VALIDATION_ERROR,
+                    "LEI code required for corporate exposures", "completeness.lei.missing"));
             }
             return Result.success();
         };
@@ -82,7 +88,8 @@ public class CompletenessSpecifications {
         return exposure -> {
             if (exposure.isTermExposure() && exposure.maturityDate() == null) {
                 return Result.failure(ErrorDetail.of("COMPLETENESS_MATURITY_MISSING", 
-                    "Maturity date required for term exposures", "maturity_date"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Maturity date required for term exposures", "completeness.maturity.missing"));
             }
             return Result.success();
         };
@@ -98,7 +105,8 @@ public class CompletenessSpecifications {
         return exposure -> {
             if (isBlank(exposure.internalRating())) {
                 return Result.failure(ErrorDetail.of("COMPLETENESS_INTERNAL_RATING_MISSING", 
-                    "Internal rating is required for risk assessment", "internal_rating"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Internal rating is required for risk assessment", "completeness.internal.rating.missing"));
             }
             return Result.success();
         };

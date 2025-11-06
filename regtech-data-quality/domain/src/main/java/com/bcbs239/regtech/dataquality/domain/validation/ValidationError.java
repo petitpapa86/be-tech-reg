@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.dataquality.domain.validation;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 
 /**
@@ -87,7 +88,7 @@ public record ValidationError(
      * Converts this ValidationError to a core ErrorDetail
      */
     public ErrorDetail toErrorDetail() {
-        return ErrorDetail.of(code, message, fieldName);
+        return ErrorDetail.of(code, ErrorType.VALIDATION_ERROR, message, fieldName != null ? "validation.error.field" : "validation.error");
     }
     
     /**

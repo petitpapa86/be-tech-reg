@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.presentation.batch.suggestion;
 
-import com.bcbs239.regtech.core.shared.BaseController;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
+import com.bcbs239.regtech.core.presentation.controllers.BaseController;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.files.SuggestFileSplittingCommand;
 import com.bcbs239.regtech.ingestion.application.files.SuggestFileSplittingCommandHandler;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
@@ -58,13 +59,13 @@ public class FileSplittingController extends BaseController implements IEndpoint
             FileSplittingSuggestion suggestion = result.getValue().orElseThrow();
             FileSplittingSuggestionDto out = FileSplittingMapper.toDto(suggestion);
             // Build a Result for DTO and use BaseController to create consistent response
-            ResponseEntity<? extends com.bcbs239.regtech.core.shared.ApiResponse<?>> resp =
+            ResponseEntity<? extends ApiResponse<?>> resp =
                     handleResult(Result.success(out), "Splitting suggestion generated", "ingestion.splitting.generated");
             assert resp.getBody() != null;
             return ServerResponse.status(resp.getStatusCode()).body(resp.getBody());
         } else {
             // Delegate failure handling to BaseController
-            ResponseEntity<? extends com.bcbs239.regtech.core.shared.ApiResponse<?>> resp =
+            ResponseEntity<? extends ApiResponse<?>> resp =
                     handleResult(result, "Splitting suggestion generated", "ingestion.splitting.generated");
             assert resp.getBody() != null;
             return ServerResponse.status(resp.getStatusCode()).body(resp.getBody());

@@ -162,7 +162,7 @@ public class ResponseUtils {
      * Creates a field error with message key for validation responses
      */
     public static FieldError fieldError(String field, String code, String message, String messageKey) {
-        return new FieldError(field, code, message, messageKey);
+        return new FieldError(field, message, messageKey);
     }
 }
 

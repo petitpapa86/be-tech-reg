@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.integration.CrossModuleEventPublisher;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.application.scoring.QualityScoringEngine;
@@ -76,20 +77,20 @@ public class ValidateBatchQualityCommandHandler {
             
             // Railway pattern: clean sequential operations
             var reportResult = createQualityReport(command);
-            if (reportResult.isFailure()) return Result.failure(reportResult.getErrors());
+            if (reportResult.isFailure()) return Result.failure(reportResult.errors());
             var report = reportResult.getValueOrThrow();
             
             var exposuresResult = downloadExposureData(command);
             if (exposuresResult.isFailure()) {
                 handleValidationFailure(report, "Failed to download exposure data");
-                return Result.failure(exposuresResult.getErrors());
+                return Result.failure(exposuresResult.errors());
             }
             var exposures = exposuresResult.getValueOrThrow();
             
             var validationResult = validateQuality(exposures);
             if (validationResult.isFailure()) {
                 handleValidationFailure(report, "Quality validation failed");
-                return Result.failure(validationResult.getErrors());
+                return Result.failure(validationResult.errors());
             }
             var validation = validationResult.getValueOrThrow();
             
@@ -102,7 +103,7 @@ public class ValidateBatchQualityCommandHandler {
             var scoresResult = calculateQualityScores(validation);
             if (scoresResult.isFailure()) {
                 handleValidationFailure(report, "Failed to calculate quality scores");
-                return Result.failure(scoresResult.getErrors());
+                return Result.failure(scoresResult.errors());
             }
             var scores = scoresResult.getValueOrThrow();
             
@@ -115,7 +116,7 @@ public class ValidateBatchQualityCommandHandler {
             var s3Result = storeDetailedResults(command.batchId(), validation, scores);
             if (s3Result.isFailure()) {
                 handleValidationFailure(report, "Failed to store detailed results");
-                return Result.failure(s3Result.getErrors());
+                return Result.failure(s3Result.errors());
             }
             var detailsReference = s3Result.getValueOrThrow();
             
@@ -134,7 +135,7 @@ public class ValidateBatchQualityCommandHandler {
             var saveResult = saveReport(report);
             if (saveResult.isFailure()) {
                 logger.error("Failed to save completed quality report for batch {}", command.batchId().value());
-                return Result.failure(saveResult.getErrors());
+                return Result.failure(saveResult.errors());
             }
             
             return finalizeWorkflow(command, scores, detailsReference);
@@ -144,8 +145,9 @@ public class ValidateBatchQualityCommandHandler {
                 command.batchId().value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "VALIDATION_UNEXPECTED_ERROR",
+                ErrorType.SYSTEM_ERROR,
                 "Unexpected error during quality validation: " + e.getMessage(),
-                "validation"
+                "validation.unexpected"
             ));
         }
     }
@@ -184,8 +186,9 @@ public class ValidateBatchQualityCommandHandler {
                 command.batchId().value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "REPORT_CREATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to create quality report: " + e.getMessage(),
-                "report"
+                "report.creation"
             ));
         }
     }
@@ -209,8 +212,9 @@ public class ValidateBatchQualityCommandHandler {
                 command.batchId().value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "S3_DOWNLOAD_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to download exposure data: " + e.getMessage(),
-                "s3Download"
+                "s3.download"
             ));
         }
     }
@@ -230,8 +234,9 @@ public class ValidateBatchQualityCommandHandler {
             logger.error("Failed to validate exposure quality: {}", e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "VALIDATION_ENGINE_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Quality validation engine failed: " + e.getMessage(),
-                "validation"
+                "validation.engine"
             ));
         }
     }
@@ -255,8 +260,9 @@ public class ValidateBatchQualityCommandHandler {
             logger.error("Failed to calculate quality scores: {}", e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "SCORING_ENGINE_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Quality scoring engine failed: " + e.getMessage(),
-                "scoring"
+                "scoring.engine"
             ));
         }
     }
@@ -295,8 +301,9 @@ public class ValidateBatchQualityCommandHandler {
                 batchId.value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "S3_STORAGE_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to store detailed results: " + e.getMessage(),
-                "s3Storage"
+                "s3.storage"
             ));
         }
     }
@@ -343,8 +350,9 @@ public class ValidateBatchQualityCommandHandler {
                 command.batchId().value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "EVENT_PUBLISHING_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to publish completion event: " + e.getMessage(),
-                "eventPublishing"
+                "event.publishing"
             ));
         }
     }

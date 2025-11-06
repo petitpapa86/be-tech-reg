@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.iam.application.authentication;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
@@ -51,8 +52,7 @@ public class AuthenticateUserCommandHandler {
     ) {
         // Validate command
         if (!command.isValid()) {
-            return Result.failure(ErrorDetail.of("INVALID_COMMAND",
-                "Email and password are required"));
+            return Result.failure(ErrorDetail.of("INVALID_COMMAND", ErrorType.VALIDATION_ERROR, "Email and password are required", "authentication.invalid.command"));
         }
 
         // Create email value object
@@ -65,22 +65,19 @@ public class AuthenticateUserCommandHandler {
         // Find user by email
         Maybe<User> userMaybe = userLookup.apply(email);
         if (userMaybe.isEmpty()) {
-            return Result.failure(ErrorDetail.of("INVALID_CREDENTIALS",
-                "Invalid email or password"));
+            return Result.failure(ErrorDetail.of("INVALID_CREDENTIALS", ErrorType.AUTHENTICATION_ERROR, "Invalid email or password", "authentication.invalid.credentials"));
         }
 
         User user = userMaybe.getValue();
 
         // Check if user is active
         if (user.getStatus() != UserStatus.ACTIVE) {
-            return Result.failure(ErrorDetail.of("USER_NOT_ACTIVE",
-                "User account is not active"));
+            return Result.failure(ErrorDetail.of("USER_NOT_ACTIVE", ErrorType.AUTHENTICATION_ERROR, "User account is not active", "authentication.user.not.active"));
         }
 
         // Verify password
         if (!user.getPassword().matches(command.password())) {
-            return Result.failure(ErrorDetail.of("INVALID_CREDENTIALS",
-                "Invalid email or password"));
+            return Result.failure(ErrorDetail.of("INVALID_CREDENTIALS", ErrorType.AUTHENTICATION_ERROR, "Invalid email or password", "authentication.invalid.credentials"));
         }
 
         // Generate JWT token

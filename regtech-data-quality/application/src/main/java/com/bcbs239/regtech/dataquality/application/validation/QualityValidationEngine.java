@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 

@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.validation;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler.S3StorageService;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
@@ -31,24 +32,23 @@ public class S3StorageServiceImpl implements S3StorageService {
             batchId, bankId, exposureCount);
 
         if (fileStream == null) {
-            return Result.failure(new ErrorDetail("NULL_FILE_STREAM", "File stream cannot be null"));
+            return Result.failure(ErrorDetail.of("NULL_FILE_STREAM", ErrorType.SYSTEM_ERROR, "File stream cannot be null", "generic.error"));
         }
 
         if (fileMetadata == null) {
-            return Result.failure(new ErrorDetail("NULL_FILE_METADATA", "File metadata cannot be null"));
+            return Result.failure(ErrorDetail.of("NULL_FILE_METADATA", ErrorType.SYSTEM_ERROR, "File metadata cannot be null", "generic.error"));
         }
 
         if (batchId == null || batchId.trim().isEmpty()) {
-            return Result.failure(new ErrorDetail("INVALID_BATCH_ID", "Batch ID cannot be null or empty"));
+            return Result.failure(ErrorDetail.of("INVALID_BATCH_ID", ErrorType.SYSTEM_ERROR, "Batch ID cannot be null or empty", "generic.error"));
         }
 
         if (bankId == null || bankId.trim().isEmpty()) {
-            return Result.failure(new ErrorDetail("INVALID_BANK_ID", "Bank ID cannot be null or empty"));
+            return Result.failure(ErrorDetail.of("INVALID_BANK_ID", ErrorType.SYSTEM_ERROR, "Bank ID cannot be null or empty", "generic.error"));
         }
 
         if (exposureCount < 0) {
-            return Result.failure(new ErrorDetail("INVALID_EXPOSURE_COUNT",
-                "Exposure count cannot be negative"));
+            return Result.failure(ErrorDetail.of("INVALID_EXPOSURE_COUNT", ErrorType.SYSTEM_ERROR, "Exposure count cannot be negative", "generic.error"));
         }
 
         try {
@@ -72,9 +72,11 @@ public class S3StorageServiceImpl implements S3StorageService {
 
         } catch (Exception e) {
             log.error("Failed to store file to S3 for batchId: {}, bankId: {}", batchId, bankId, e);
-            return Result.failure(new ErrorDetail("S3_STORAGE_ERROR",
-                String.format("Failed to store file to S3: %s", e.getMessage())));
+            return Result.failure(ErrorDetail.of("S3_STORAGE_ERROR", ErrorType.SYSTEM_ERROR,
+                String.format("Failed to store file to S3: %s", e.getMessage()), "storage.s3.upload.error"));
         }
     }
 }
+
+
 

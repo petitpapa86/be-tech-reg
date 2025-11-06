@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.dataquality.application.monitoring;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.reporting.QualityReportSummaryDto;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
@@ -68,16 +69,18 @@ public class BatchQualityTrendsQueryHandler {
             logger.warn("Invalid query parameters: {}", e.getMessage());
             return Result.failure(ErrorDetail.of(
                 "INVALID_QUERY_PARAMETERS",
+                ErrorType.VALIDATION_ERROR,
                 e.getMessage(),
-                "query"
+                "query.validation.parameters"
             ));
         } catch (Exception e) {
             logger.error("Failed to retrieve quality trends for bank {}: {}", 
                 query.bankId().value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "QUERY_EXECUTION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to retrieve quality trends: " + e.getMessage(),
-                "query"
+                "query.execution.trends"
             ));
         }
     }
@@ -111,8 +114,9 @@ public class BatchQualityTrendsQueryHandler {
                 bankId.value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "QUERY_EXECUTION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to retrieve reports below threshold: " + e.getMessage(),
-                "query"
+                "query.execution.threshold"
             ));
         }
     }
@@ -132,8 +136,9 @@ public class BatchQualityTrendsQueryHandler {
                 logger.debug("No quality reports found for bank {}", bankId.value());
                 return Result.failure(ErrorDetail.of(
                     "NO_REPORTS_FOUND",
+                    ErrorType.NOT_FOUND_ERROR,
                     "No quality reports found for bank: " + bankId.value(),
-                    "bankId"
+                    "query.reports.not_found"
                 ));
             }
             
@@ -149,8 +154,9 @@ public class BatchQualityTrendsQueryHandler {
                 bankId.value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "QUERY_EXECUTION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to retrieve most recent report: " + e.getMessage(),
-                "query"
+                "query.execution.recent"
             ));
         }
     }

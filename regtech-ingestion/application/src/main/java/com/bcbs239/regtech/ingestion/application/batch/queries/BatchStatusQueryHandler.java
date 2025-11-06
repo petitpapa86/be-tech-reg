@@ -1,7 +1,9 @@
 package com.bcbs239.regtech.ingestion.application.batch.queries;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
@@ -22,7 +24,6 @@ import java.util.Map;
 public class BatchStatusQueryHandler {
     
     private final IIngestionBatchRepository ingestionBatchRepository;
-    private final JwtTokenService jwtTokenService;
     private final IngestionSecurityService securityService;
     private final IngestionLoggingService loggingService;
     
@@ -39,7 +40,6 @@ public class BatchStatusQueryHandler {
             IngestionSecurityService securityService,
             IngestionLoggingService loggingService) {
         this.ingestionBatchRepository = ingestionBatchRepository;
-        this.jwtTokenService = jwtTokenService;
         this.securityService = securityService;
         this.loggingService = loggingService;
     }
@@ -77,8 +77,8 @@ public class BatchStatusQueryHandler {
                 );
                 loggingService.logRequestFlowStep("BATCH_STATUS_QUERY", "BATCH_NOT_FOUND", context);
                 
-                return Result.failure(new ErrorDetail("BATCH_NOT_FOUND", 
-                    "Batch not found: " + query.batchId().value()));
+                return Result.failure(ErrorDetail.of("BATCH_NOT_FOUND", ErrorType.NOT_FOUND_ERROR,
+                    "Batch not found: " + query.batchId().value(), "batch.status.not.found"));
             }
             
             // 3. Verify batch access permissions using existing security infrastructure
@@ -131,8 +131,8 @@ public class BatchStatusQueryHandler {
             return Result.success(statusDto);
             
         } catch (Exception e) {
-            return Result.failure(new ErrorDetail("STATUS_QUERY_HANDLER_ERROR", 
-                "Unexpected error retrieving batch status: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("STATUS_QUERY_HANDLER_ERROR", ErrorType.SYSTEM_ERROR,
+                "Unexpected error retrieving batch status: " + e.getMessage(), "batch.status.query.error"));
         }
     }
     

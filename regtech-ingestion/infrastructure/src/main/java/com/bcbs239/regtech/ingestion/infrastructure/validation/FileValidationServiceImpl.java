@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.validation;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler.FileValidationService;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler.ValidationResult;
 import com.bcbs239.regtech.ingestion.application.model.ParsedFileData;
@@ -26,42 +27,42 @@ public class FileValidationServiceImpl implements FileValidationService {
         log.debug("Validating structure of parsed file data");
 
         if (parsedData == null) {
-            return Result.failure(new ErrorDetail("NULL_DATA", "Parsed data cannot be null"));
+            return Result.failure(ErrorDetail.of("NULL_DATA", ErrorType.SYSTEM_ERROR, "Parsed data cannot be null", "generic.error"));
         }
 
         // Validate exposures list
         List<LoanExposure> exposures = parsedData.exposures();
         if (exposures == null) {
-            return Result.failure(new ErrorDetail("NULL_EXPOSURES", "Exposures list cannot be null"));
+            return Result.failure(ErrorDetail.of("NULL_EXPOSURES", ErrorType.SYSTEM_ERROR, "Exposures list cannot be null", "generic.error"));
         }
 
         // Validate that we have at least one exposure
         if (exposures.isEmpty()) {
-            return Result.failure(new ErrorDetail("EMPTY_EXPOSURES", "File must contain at least one loan exposure"));
+            return Result.failure(ErrorDetail.of("EMPTY_EXPOSURES", ErrorType.SYSTEM_ERROR, "File must contain at least one loan exposure", "generic.error"));
         }
 
         // Validate each exposure has required fields
         for (int i = 0; i < exposures.size(); i++) {
             LoanExposure exposure = exposures.get(i);
             if (exposure == null) {
-                return Result.failure(new ErrorDetail("NULL_EXPOSURE",
-                    String.format("Exposure at index %d cannot be null", i)));
+                return Result.failure(ErrorDetail.of("NULL_EXPOSURE", ErrorType.VALIDATION_ERROR,
+                    String.format("Exposure at index %d cannot be null", i), "validation.null.exposure"));
             }
 
             // Basic structural validation
             if (exposure.loanId() == null || exposure.loanId().trim().isEmpty()) {
-                return Result.failure(new ErrorDetail("MISSING_LOAN_ID",
-                    String.format("Loan ID is required for exposure at index %d", i)));
+                return Result.failure(ErrorDetail.of("MISSING_LOAN_ID", ErrorType.VALIDATION_ERROR,
+                    String.format("Loan ID is required for exposure at index %d", i), "validation.missing.loan.id"));
             }
 
             if (exposure.loanAmount() < 0) {
-                return Result.failure(new ErrorDetail("INVALID_LOAN_AMOUNT",
-                    String.format("Loan amount must be non-negative for exposure at index %d", i)));
+                return Result.failure(ErrorDetail.of("INVALID_LOAN_AMOUNT", ErrorType.VALIDATION_ERROR,
+                    String.format("Loan amount must be non-negative for exposure at index %d", i), "validation.invalid.loan.amount"));
             }
 
             if (exposure.grossExposureAmount() < 0) {
-                return Result.failure(new ErrorDetail("INVALID_GROSS_EXPOSURE",
-                    String.format("Gross exposure amount must be non-negative for exposure at index %d", i)));
+                return Result.failure(ErrorDetail.of("INVALID_GROSS_EXPOSURE", ErrorType.VALIDATION_ERROR,
+                    String.format("Gross exposure amount must be non-negative for exposure at index %d", i), "validation.invalid.gross.exposure"));
             }
         }
 
@@ -73,7 +74,7 @@ public class FileValidationServiceImpl implements FileValidationService {
         log.debug("Validating business rules of parsed file data");
 
         if (parsedData == null || parsedData.exposures() == null) {
-            return Result.failure(new ErrorDetail("INVALID_DATA", "Parsed data or exposures cannot be null"));
+            return Result.failure(ErrorDetail.of("INVALID_DATA", ErrorType.SYSTEM_ERROR, "Parsed data or exposures cannot be null", "generic.error"));
         }
 
         List<LoanExposure> exposures = parsedData.exposures();
@@ -85,8 +86,7 @@ public class FileValidationServiceImpl implements FileValidationService {
             .count();
 
         if (uniqueLoanIds != exposures.size()) {
-            return Result.failure(new ErrorDetail("DUPLICATE_LOAN_IDS",
-                "Loan IDs must be unique within the file"));
+            return Result.failure(ErrorDetail.of("DUPLICATE_LOAN_IDS", ErrorType.SYSTEM_ERROR, "Loan IDs must be unique within the file", "generic.error"));
         }
 
         // Business rule: Total exposure amount should be reasonable (not zero or excessively high)
@@ -95,8 +95,7 @@ public class FileValidationServiceImpl implements FileValidationService {
             .sum();
 
         if (totalExposure == 0) {
-            return Result.failure(new ErrorDetail("ZERO_TOTAL_EXPOSURE",
-                "Total gross exposure across all exposures cannot be zero"));
+            return Result.failure(ErrorDetail.of("ZERO_TOTAL_EXPOSURE", ErrorType.SYSTEM_ERROR, "Total gross exposure across all exposures cannot be zero", "generic.error"));
         }
 
         // Warning for very high total exposure (this might be configurable)
@@ -107,4 +106,6 @@ public class FileValidationServiceImpl implements FileValidationService {
         return Result.success(new ValidationResult(exposures.size()));
     }
 }
+
+
 

@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.iam.application.authentication;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.authentication.OAuth2ConfigurationService;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -66,8 +67,7 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
 
         } catch (Exception e) {
             logger.error("OAuth2 authentication failed for provider: {}", provider, e);
-            return Result.failure(ErrorDetail.of("OAUTH2_AUTH_FAILED",
-                "OAuth2 authentication failed: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("OAUTH2_AUTH_FAILED", ErrorType.AUTHENTICATION_ERROR, "OAuth2 authentication failed: " + e.getMessage(), "oauth2.auth.failed"));
         }
     }
 
@@ -86,8 +86,7 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
     public Result<String> exchangeCodeForToken(String provider, String authorizationCode) {
         try {
             if (!oauth2ConfigService.isProviderConfigured(provider)) {
-                return Result.failure(ErrorDetail.of("OAUTH2_NOT_CONFIGURED",
-                    provider + " OAuth2 is not configured"));
+                return Result.failure(ErrorDetail.of("OAUTH2_NOT_CONFIGURED", ErrorType.SYSTEM_ERROR, provider + " OAuth2 is not configured", "oauth2.not.configured"));
             }
 
             OAuth2ConfigurationService.OAuth2ProviderConfig config = oauth2ConfigService.getProviderConfig(provider);
@@ -107,8 +106,7 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
                 case "google" -> redirectUri = "http://localhost:8080/auth/oauth2/callback/google"; // TODO: Make configurable
                 case "facebook" -> redirectUri = "http://localhost:8080/auth/oauth2/callback/facebook"; // TODO: Make configurable
                 default -> {
-                    return Result.failure(ErrorDetail.of("OAUTH2_UNSUPPORTED_PROVIDER",
-                        "Unsupported OAuth2 provider: " + provider));
+                    return Result.failure(ErrorDetail.of("OAUTH2_UNSUPPORTED_PROVIDER", ErrorType.VALIDATION_ERROR, "Unsupported OAuth2 provider: " + provider, "oauth2.unsupported.provider"));
                 }
             }
             params.add("redirect_uri", redirectUri);
@@ -122,14 +120,12 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
                 return Result.success(accessToken);
             } else {
                 logger.error("Token exchange failed with status: {} and body: {}", response.getStatusCode(), response.getBody());
-                return Result.failure(ErrorDetail.of("OAUTH2_TOKEN_EXCHANGE_FAILED",
-                    "Failed to exchange authorization code for token"));
+                return Result.failure(ErrorDetail.of("OAUTH2_TOKEN_EXCHANGE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to exchange authorization code for token", "oauth2.token.exchange.failed"));
             }
 
         } catch (Exception e) {
             logger.error("Token exchange failed for provider: {}", provider, e);
-            return Result.failure(ErrorDetail.of("OAUTH2_TOKEN_EXCHANGE_ERROR",
-                "Token exchange error: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("OAUTH2_TOKEN_EXCHANGE_ERROR", ErrorType.SYSTEM_ERROR, "Token exchange error: " + e.getMessage(), "oauth2.token.exchange.error"));
         }
     }
 
@@ -137,8 +133,7 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
     public Result<OAuth2UserInfo> getUserInfo(String provider, String accessToken) {
         try {
             if (!oauth2ConfigService.isProviderConfigured(provider)) {
-                return Result.failure(ErrorDetail.of("OAUTH2_NOT_CONFIGURED",
-                    provider + " OAuth2 is not configured"));
+                return Result.failure(ErrorDetail.of("OAUTH2_NOT_CONFIGURED", ErrorType.SYSTEM_ERROR, provider + " OAuth2 is not configured", "oauth2.not.configured"));
             }
 
             OAuth2ConfigurationService.OAuth2ProviderConfig config = oauth2ConfigService.getProviderConfig(provider);
@@ -164,14 +159,12 @@ public class OAuth2ProviderServiceImpl implements OAuth2ProviderService {
                 return Result.success(userInfo);
             } else {
                 logger.error("User info request failed with status: {} and body: {}", response.getStatusCode(), response.getBody());
-                return Result.failure(ErrorDetail.of("OAUTH2_USER_INFO_FAILED",
-                    "Failed to get user info from provider"));
+                return Result.failure(ErrorDetail.of("OAUTH2_USER_INFO_FAILED", ErrorType.SYSTEM_ERROR, "Failed to get user info from provider", "oauth2.user.info.failed"));
             }
 
         } catch (Exception e) {
             logger.error("User info request failed for provider: {}", provider, e);
-            return Result.failure(ErrorDetail.of("OAUTH2_USER_INFO_ERROR",
-                "User info error: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("OAUTH2_USER_INFO_ERROR", ErrorType.SYSTEM_ERROR, "User info error: " + e.getMessage(), "oauth2.user.info.error"));
         }
     }
 }

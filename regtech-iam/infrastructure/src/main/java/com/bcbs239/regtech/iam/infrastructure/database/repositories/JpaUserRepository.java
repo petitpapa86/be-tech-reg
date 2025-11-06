@@ -3,6 +3,7 @@ package com.bcbs239.regtech.iam.infrastructure.database.repositories;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.security.authorization.Role;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
@@ -70,13 +71,11 @@ public class JpaUserRepository {
             try {
                 UserEntity entity = entityManager.find(UserEntity.class, userId.getValue());
                 if (entity == null) {
-                    return Result.failure(ErrorDetail.of("USER_NOT_FOUND",
-                        "User not found with ID: " + userId));
+                    return Result.failure(ErrorDetail.of("USER_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, "User not found with ID: " + userId, "user.not.found"));
                 }
                 return Result.success(entity.toDomain());
             } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("USER_LOAD_FAILED",
-                    "Failed to load user: " + e.getMessage()));
+                return Result.failure(ErrorDetail.of("USER_LOAD_FAILED", ErrorType.SYSTEM_ERROR, "Failed to load user: " + e.getMessage(), "user.load.failed"));
             }
         };
     }
@@ -178,8 +177,7 @@ public class JpaUserRepository {
                         "organizationId", userRole.getOrganizationId(),
                         "error", e.getMessage()
                     )), e);
-                    return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED",
-                        "Failed to save user role: " + e.getMessage()));
+                    return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to save user role: " + e.getMessage(), "user.role.save.failed"));
                 }
             });
          };
@@ -236,8 +234,7 @@ public class JpaUserRepository {
                 );
                 return tokenResult;
             } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("TOKEN_GENERATION_FAILED",
-                    "Failed to generate JWT token: " + e.getMessage()));
+                return Result.failure(ErrorDetail.of("TOKEN_GENERATION_FAILED", ErrorType.SYSTEM_ERROR, "Failed to generate JWT token: " + e.getMessage(), "token.generation.failed"));
             }
         };
     }

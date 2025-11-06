@@ -59,32 +59,32 @@ public record RegisterUserCommand(
 
         // Validate email
         if (email == null || email.trim().isEmpty()) {
-            fieldErrors.add(new FieldError("email", "REQUIRED", "Email is required", "error.email.required"));
+            fieldErrors.add(new FieldError("email", "Email is required", "error.email.required"));
         }
 
         // Validate password
         if (password == null || password.trim().isEmpty()) {
-            fieldErrors.add(new FieldError("password", "REQUIRED", "Password is required", "error.password.required"));
+            fieldErrors.add(new FieldError("password", "Password is required", "error.password.required"));
         }
 
         // Validate firstName
         if (firstName == null || firstName.trim().isEmpty()) {
-            fieldErrors.add(new FieldError("firstName", "REQUIRED", "First name is required", "error.firstName.required"));
+            fieldErrors.add(new FieldError("firstName", "First name is required", "error.firstName.required"));
         }
 
         // Validate lastName
         if (lastName == null || lastName.trim().isEmpty()) {
-            fieldErrors.add(new FieldError("lastName", "REQUIRED", "Last name is required", "error.lastName.required"));
+            fieldErrors.add(new FieldError("lastName", "Last name is required", "error.lastName.required"));
         }
 
         // Validate bankId
         if (bankId == null || bankId.trim().isEmpty()) {
-            fieldErrors.add(new FieldError("bankId", "REQUIRED", "Bank ID is required", "error.bankId.required"));
+            fieldErrors.add(new FieldError("bankId", "Bank ID is required", "error.bankId.required"));
         }
 
         // Validate paymentMethodId
         if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) {
-            fieldErrors.add(new FieldError("paymentMethodId", "REQUIRED", "Payment method ID is required", "error.paymentMethodId.required"));
+            fieldErrors.add(new FieldError("paymentMethodId", "Payment method ID is required", "error.paymentMethodId.required"));
         }
 
         if (!fieldErrors.isEmpty()) {

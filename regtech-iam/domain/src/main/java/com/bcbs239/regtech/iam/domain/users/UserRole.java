@@ -60,3 +60,4 @@ public class UserRole {
     public boolean isActive() { return active; }
 }
 
+

@@ -55,7 +55,8 @@ public class UniquenessSpecifications {
                 }
                 
                 return Result.failure(ErrorDetail.of("UNIQUENESS_DUPLICATE_EXPOSURE_IDS", 
-                    "Duplicate exposure IDs found: " + duplicateList, "exposure_id"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Duplicate exposure IDs found: " + duplicateList, "uniqueness.duplicate.exposure.ids"));
             }
             
             return Result.success();
@@ -98,7 +99,8 @@ public class UniquenessSpecifications {
                 }
                 
                 return Result.failure(ErrorDetail.of("UNIQUENESS_DUPLICATE_COUNTERPARTY_EXPOSURE", 
-                    "Duplicate counterparty-exposure pairs found: " + duplicateList, "counterparty_id"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Duplicate counterparty-exposure pairs found: " + duplicateList, "uniqueness.duplicate.counterparty.exposure"));
             }
             
             return Result.success();
@@ -139,7 +141,8 @@ public class UniquenessSpecifications {
                 }
                 
                 return Result.failure(ErrorDetail.of("UNIQUENESS_DUPLICATE_REFERENCE_NUMBERS", 
-                    "Duplicate reference numbers found: " + duplicateList, "reference_number"));
+                    ErrorType.VALIDATION_ERROR,
+                    "Duplicate reference numbers found: " + duplicateList, "uniqueness.duplicate.reference.numbers"));
             }
             
             return Result.success();

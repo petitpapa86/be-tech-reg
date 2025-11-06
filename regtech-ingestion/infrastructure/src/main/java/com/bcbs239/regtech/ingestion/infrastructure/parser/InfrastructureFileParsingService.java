@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.parser;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler;
 import com.bcbs239.regtech.ingestion.application.model.ParsedFileData;
 import com.bcbs239.regtech.ingestion.domain.model.CreditRiskMitigation;
@@ -50,7 +51,7 @@ public class InfrastructureFileParsingService implements ProcessBatchCommandHand
             return Result.success(data);
         } catch (Exception e) {
             log.error("Failed to parse JSON file {}: {}", fileName, e.getMessage(), e);
-            return Result.failure(new ErrorDetail("PARSING_ERROR", "Failed to parse JSON file: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("PARSING_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse JSON file: " + e.getMessage(), "file.parse.json.failed"));
         }
     }
 
@@ -68,7 +69,7 @@ public class InfrastructureFileParsingService implements ProcessBatchCommandHand
             return Result.success(data);
         } catch (Exception e) {
             log.error("Failed to parse Excel file {}: {}", fileName, e.getMessage(), e);
-            return Result.failure(new ErrorDetail("PARSING_ERROR", "Failed to parse Excel file: " + e.getMessage()));
+            return Result.failure(ErrorDetail.of("PARSING_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse Excel file: " + e.getMessage(), "file.parse.excel.failed"));
         }
     }
 
@@ -81,5 +82,7 @@ public class InfrastructureFileParsingService implements ProcessBatchCommandHand
         }
     }
 }
+
+
 
 

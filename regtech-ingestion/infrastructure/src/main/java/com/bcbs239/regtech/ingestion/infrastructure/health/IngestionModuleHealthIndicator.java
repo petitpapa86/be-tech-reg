@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.ingestion.infrastructure.health;
 
 import com.bcbs239.regtech.core.health.ModuleHealthIndicator;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
 import com.bcbs239.regtech.ingestion.infrastructure.batch.persistence.IngestionBatchEntity;
@@ -233,4 +233,6 @@ public class IngestionModuleHealthIndicator implements ModuleHealthIndicator {
         }
     }
 }
+
+
 

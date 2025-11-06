@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.auth;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommandHandler.RateLimitingService;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import lombok.Getter;
@@ -57,10 +58,10 @@ public class RateLimitingServiceImpl implements RateLimitingService {
             log.warn("Rate limit exceeded for bank: {} (count: {}, limit: {})", 
                 bankIdValue, currentCount, maxUploadsPerHour);
             
-            return Result.failure(new ErrorDetail("RATE_LIMIT_EXCEEDED", 
+            return Result.failure(ErrorDetail.of("RATE_LIMIT_EXCEEDED", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Upload rate limit exceeded. Maximum %d uploads per %d minutes. " +
-                    "Rate limit resets in %d minutes.", 
-                    maxUploadsPerHour, timeWindowMinutes, resetTimeMinutes)));
+                    "Rate limit resets in %d minutes.",
+                    maxUploadsPerHour, timeWindowMinutes, resetTimeMinutes), "rate.limit.exceeded"));
         }
 
         // Increment counter
@@ -148,4 +149,6 @@ public class RateLimitingServiceImpl implements RateLimitingService {
         public boolean isLimitExceeded() { return currentCount >= maxCount; }
     }
 }
+
+
 

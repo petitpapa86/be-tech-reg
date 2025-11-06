@@ -2,6 +2,7 @@ package com.bcbs239.regtech.dataquality.domain.specifications;
 
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.specifications.Specification;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
@@ -50,8 +51,9 @@ public class ConsistencySpecifications {
                 Set<String> validCountries = CURRENCY_COUNTRY_MAPPINGS.get(currency);
                 if (validCountries != null && !validCountries.contains(country)) {
                     return Result.failure(ErrorDetail.of("CONSISTENCY_CURRENCY_COUNTRY_MISMATCH", 
+                        ErrorType.VALIDATION_ERROR,
                         String.format("Currency %s is not typically used in country %s", currency, country), 
-                        "currency"));
+                        "consistency.currency.country.mismatch"));
                 }
             }
             return Result.success();
@@ -73,8 +75,9 @@ public class ConsistencySpecifications {
                 Set<String> validCounterpartyTypes = SECTOR_COUNTERPARTY_MAPPINGS.get(sector);
                 if (validCounterpartyTypes != null && !validCounterpartyTypes.contains(counterpartyType)) {
                     return Result.failure(ErrorDetail.of("CONSISTENCY_SECTOR_COUNTERPARTY_MISMATCH", 
+                        ErrorType.VALIDATION_ERROR,
                         String.format("Sector %s is inconsistent with counterparty type %s", sector, counterpartyType), 
-                        "sector"));
+                        "consistency.sector.counterparty.mismatch"));
                 }
             }
             return Result.success();
@@ -99,8 +102,9 @@ public class ConsistencySpecifications {
                 Set<String> validRiskCategories = RATING_RISK_MAPPINGS.get(baseRating);
                 if (validRiskCategories != null && !validRiskCategories.contains(riskCategory)) {
                     return Result.failure(ErrorDetail.of("CONSISTENCY_RATING_RISK_MISMATCH",
+                        ErrorType.VALIDATION_ERROR,
                         String.format("Internal rating %s is inconsistent with risk category %s", rating, riskCategory), 
-                        "internal_rating"));
+                        "consistency.rating.risk.mismatch"));
                 }
             }
             return Result.success();
@@ -122,15 +126,17 @@ public class ConsistencySpecifications {
                 // Products that should have maturity dates
                 if (PRODUCTS_REQUIRING_MATURITY.contains(productType) && !hasMaturity) {
                     return Result.failure(ErrorDetail.of("CONSISTENCY_PRODUCT_MATURITY_MISSING", 
+                        ErrorType.VALIDATION_ERROR,
                         String.format("Product type %s requires a maturity date", productType), 
-                        "maturity_date"));
+                        "consistency.product.maturity.missing"));
                 }
                 
                 // Products that should not have maturity dates
                 if (PRODUCTS_WITHOUT_MATURITY.contains(productType) && hasMaturity) {
                     return Result.failure(ErrorDetail.of("CONSISTENCY_PRODUCT_MATURITY_UNEXPECTED", 
+                        ErrorType.VALIDATION_ERROR,
                         String.format("Product type %s should not have a maturity date", productType), 
-                        "maturity_date"));
+                        "consistency.product.maturity.unexpected"));
                 }
             }
             return Result.success();

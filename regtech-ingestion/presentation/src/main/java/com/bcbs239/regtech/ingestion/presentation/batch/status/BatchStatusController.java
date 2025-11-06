@@ -1,6 +1,10 @@
 package com.bcbs239.regtech.ingestion.presentation.batch.status;
 
-import com.bcbs239.regtech.core.shared.*;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
+import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusDto;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQuery;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQueryHandler;
@@ -54,6 +58,7 @@ public class BatchStatusController extends BaseController implements IEndpoint {
         if (bankIdResult.isFailure()) {
             ErrorDetail error = bankIdResult.getError().orElseThrow();
             ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
+            assert responseEntity.getBody() != null;
             return ServerResponse.status(responseEntity.getStatusCode())
                 .body(responseEntity.getBody());
         }
@@ -65,6 +70,7 @@ public class BatchStatusController extends BaseController implements IEndpoint {
         if (permissionResult.isFailure()) {
             ErrorDetail error = permissionResult.getError().orElseThrow();
             ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
+            assert responseEntity.getBody() != null;
             return ServerResponse.status(responseEntity.getStatusCode())
                 .body(responseEntity.getBody());
         }
@@ -90,7 +96,8 @@ public class BatchStatusController extends BaseController implements IEndpoint {
         // Handle result using BaseController infrastructure
         ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(result, 
             "Batch status retrieved successfully", "ingestion.status.success");
-        
+
+        assert responseEntity.getBody() != null;
         return ServerResponse.status(responseEntity.getStatusCode())
             .body(responseEntity.getBody());
     }

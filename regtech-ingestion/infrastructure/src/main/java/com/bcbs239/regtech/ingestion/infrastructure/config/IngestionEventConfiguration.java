@@ -1,6 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.config;
 
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQueryHandler;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommandHandler;
@@ -53,8 +55,8 @@ public class IngestionEventConfiguration {
                     // Simple mock implementation - extract bank ID from token
                     // In a real implementation, this would validate the JWT and extract claims
                     if (token == null || token.trim().isEmpty()) {
-                        return Result.failure(com.bcbs239.regtech.core.shared.ErrorDetail.of(
-                            "INVALID_TOKEN", "Token is null or empty", "auth.invalid_token"));
+                        return Result.failure(ErrorDetail.of(
+                            "INVALID_TOKEN", ErrorType.AUTHENTICATION_ERROR, "Token is null or empty", "auth.invalid_token"));
                     }
 
                     // For development, we'll use a simple format: "bank-{bankId}"
@@ -71,8 +73,8 @@ public class IngestionEventConfiguration {
 
                 } catch (Exception e) {
                     logger.error("Failed to validate token and extract bank ID: {}", e.getMessage(), e);
-                    return Result.failure(com.bcbs239.regtech.core.shared.ErrorDetail.of(
-                        "TOKEN_VALIDATION_FAILED", "Failed to validate token: " + e.getMessage(), "auth.token_validation"));
+                    return Result.failure(ErrorDetail.of(
+                        "TOKEN_VALIDATION_FAILED", ErrorType.AUTHENTICATION_ERROR, "Failed to validate token: " + e.getMessage(), "auth.token_validation"));
                 }
             }
         };
@@ -97,8 +99,8 @@ public class IngestionEventConfiguration {
                     // Simple mock implementation - in a real system this would check
                     // if the bank has access to the specific batch
                     if (batchId == null || bankId == null) {
-                        return Result.failure(com.bcbs239.regtech.core.shared.ErrorDetail.of(
-                            "INVALID_ACCESS_REQUEST", "Batch ID and Bank ID cannot be null", "auth.invalid_request"));
+                        return Result.failure(ErrorDetail.of(
+                            "INVALID_ACCESS_REQUEST", ErrorType.AUTHENTICATION_ERROR, "Batch ID and Bank ID cannot be null", "auth.invalid_request"));
                     }
 
                     // For development, we'll allow access if the batch ID contains the bank ID
@@ -109,13 +111,13 @@ public class IngestionEventConfiguration {
                     }
 
                     logger.warn("Access denied for bank {} to batch {}", bankId.value(), batchId.value());
-                    return Result.failure(com.bcbs239.regtech.core.shared.ErrorDetail.of(
-                        "ACCESS_DENIED", "Bank does not have access to this batch", "auth.access_denied"));
+                    return Result.failure(ErrorDetail.of(
+                        "ACCESS_DENIED", ErrorType.AUTHENTICATION_ERROR, "Bank does not have access to this batch", "auth.access_denied"));
 
                 } catch (Exception e) {
                     logger.error("Failed to verify batch access for batchId: {}, bankId: {}", batchId, bankId, e);
-                    return Result.failure(com.bcbs239.regtech.core.shared.ErrorDetail.of(
-                        "ACCESS_VERIFICATION_FAILED", "Failed to verify batch access: " + e.getMessage(), "auth.verification_error"));
+                    return Result.failure(ErrorDetail.of(
+                        "ACCESS_VERIFICATION_FAILED", ErrorType.AUTHENTICATION_ERROR, "Failed to verify batch access: " + e.getMessage(), "auth.verification_error"));
                 }
             }
         };
@@ -156,4 +158,6 @@ public class IngestionEventConfiguration {
         };
     }
 }
+
+
 
