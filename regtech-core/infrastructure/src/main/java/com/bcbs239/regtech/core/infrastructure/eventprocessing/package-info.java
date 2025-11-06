@@ -13,6 +13,7 @@
  * Components:
  * - InboxMessageEntity, InboxMessageRepository: Inbox message persistence
  * - OutboxMessageEntity, OutboxMessageRepository, OutboxMessageStatus: Outbox message persistence
+ * - JpaInboxMessageRepository, JpaOutboxMessageRepository: Domain repository implementations
  * - InboxMessageConsumer, InboxMessageOperations: Inbox processing logic
  * - OutboxEventBus, CrossModuleEventBus: Event bus implementations
  * - IntegrationEventConsumer, IntegrationEventDeserializer: External event handling

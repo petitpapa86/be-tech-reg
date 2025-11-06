@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.core.infrastructure.authorization;
 
+import com.bcbs239.regtech.core.domain.security.AuthorizationService;
 import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityContext;
 import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityUtils;
 import org.springframework.context.annotation.Primary;

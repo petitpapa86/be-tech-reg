@@ -92,7 +92,10 @@ regtech:
     max-retries: 3
     cleanup-interval: 86400000 # 24 hours
     cleanup-retention-days: 30
-
+  inbox:
+    parallel-processing-enabled: false
+    processing-interval: 10000 # 10 seconds
+    batch-size: 20
 # Billing Module Configuration
 billing:
   stripe:

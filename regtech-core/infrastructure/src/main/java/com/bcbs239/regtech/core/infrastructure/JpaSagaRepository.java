@@ -6,6 +6,7 @@ import com.bcbs239.regtech.core.domain.saga.ISagaRepository;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.SagaSnapshot;
 import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
+import com.bcbs239.regtech.core.infrastructure.saga.SagaEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 import jakarta.persistence.EntityManager;
