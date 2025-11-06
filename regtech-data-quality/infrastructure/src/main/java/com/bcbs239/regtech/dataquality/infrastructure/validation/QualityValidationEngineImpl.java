@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.validation;
 
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.Specification;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.specifications.Specification;
 import com.bcbs239.regtech.dataquality.application.validation.QualityValidationEngine;
 import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
@@ -239,7 +239,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         
         Result<Void> result = completenessSpec.isSatisfiedBy(exposure);
         if (!result.isSuccess()) {
-            errors.addAll(result.getErrors().stream()
+            errors.addAll(result.errors().stream()
                 .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.COMPLETENESS, exposure.exposureId()))
                 .collect(Collectors.toList()));
         }
@@ -262,7 +262,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         
         Result<Void> result = accuracySpec.isSatisfiedBy(exposure);
         if (!result.isSuccess()) {
-            errors.addAll(result.getErrors().stream()
+            errors.addAll(result.errors().stream()
                 .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.ACCURACY, exposure.exposureId()))
                 .collect(Collectors.toList()));
         }
@@ -284,7 +284,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         
         Result<Void> result = consistencySpec.isSatisfiedBy(exposure);
         if (!result.isSuccess()) {
-            errors.addAll(result.getErrors().stream()
+            errors.addAll(result.errors().stream()
                 .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.CONSISTENCY, exposure.exposureId()))
                 .collect(Collectors.toList()));
         }
@@ -306,7 +306,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         
         Result<Void> result = timelinessSpec.isSatisfiedBy(exposure);
         if (!result.isSuccess()) {
-            errors.addAll(result.getErrors().stream()
+            errors.addAll(result.errors().stream()
                 .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.TIMELINESS, exposure.exposureId()))
                 .collect(Collectors.toList()));
         }
@@ -340,7 +340,7 @@ public class QualityValidationEngineImpl implements QualityValidationEngine {
         
         Result<Void> result = uniquenessSpec.isSatisfiedBy(exposures);
         if (!result.isSuccess()) {
-            errors.addAll(result.getErrors().stream()
+            errors.addAll(result.errors().stream()
                 .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.UNIQUENESS, null))
                 .collect(Collectors.toList()));
         }

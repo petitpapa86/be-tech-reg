@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.dataquality.presentation.reports;
 
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrendsQuery;
 import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrendsQueryHandler;
 import com.bcbs239.regtech.dataquality.application.monitoring.QualityTrendsDto;

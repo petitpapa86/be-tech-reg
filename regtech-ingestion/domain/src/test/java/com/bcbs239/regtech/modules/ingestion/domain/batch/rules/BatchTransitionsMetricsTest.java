@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.modules.ingestion.domain.batch.rules;
 
-import com.bcbs239.regtech.core.shared.InMemoryTransitionMetrics;
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.TransitionMetricsHolder;
+
+import com.bcbs239.regtech.core.application.monitoring.InMemoryTransitionMetrics;
+import com.bcbs239.regtech.core.application.monitoring.TransitionMetricsHolder;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.*;
 import org.junit.jupiter.api.AfterEach;

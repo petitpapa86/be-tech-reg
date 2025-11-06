@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
@@ -78,25 +79,13 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
             
         } catch (DataIntegrityViolationException e) {
             logger.error("Data integrity violation saving quality report: {}", report.getReportId().value(), e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_REPORT_SAVE_CONSTRAINT_VIOLATION",
-                "Quality report violates database constraints: " + e.getMessage(),
-                "report_id"
-            ));
+            return Result.failure("QUALITY_REPORT_SAVE_CONSTRAINT_VIOLATION", ErrorType.SYSTEM_ERROR, "Quality report violates database constraints: " + e.getMessage(), "report_id");
         } catch (DataAccessException e) {
             logger.error("Database error saving quality report: {}", report.getReportId().value(), e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_REPORT_SAVE_ERROR",
-                "Failed to save quality report: " + e.getMessage(),
-                "database"
-            ));
+            return Result.failure("QUALITY_REPORT_SAVE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to save quality report: " + e.getMessage(), "database");
         } catch (Exception e) {
             logger.error("Unexpected error saving quality report: {}", report.getReportId().value(), e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_REPORT_SAVE_UNEXPECTED_ERROR",
-                "Unexpected error saving quality report: " + e.getMessage(),
-                "system"
-            ));
+            return Result.failure("QUALITY_REPORT_SAVE_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error saving quality report: " + e.getMessage(), "system");
         }
     }
     
@@ -266,11 +255,7 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     public Result<Void> delete(QualityReportId reportId) {
         try {
             if (!jpaRepository.existsById(reportId.value())) {
-                return Result.failure(ErrorDetail.of(
-                    "QUALITY_REPORT_NOT_FOUND",
-                    "Quality report not found for deletion: " + reportId.value(),
-                    "report_id"
-                ));
+                return Result.failure("QUALITY_REPORT_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, "Quality report not found for deletion: " + reportId.value(), "report_id");
             }
             
             jpaRepository.deleteById(reportId.value());
@@ -279,18 +264,10 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
             
         } catch (DataAccessException e) {
             logger.error("Database error deleting quality report: {}", reportId.value(), e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_REPORT_DELETE_ERROR",
-                "Failed to delete quality report: " + e.getMessage(),
-                "database"
-            ));
+            return Result.failure("QUALITY_REPORT_DELETE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to delete quality report: " + e.getMessage(), "database");
         } catch (Exception e) {
             logger.error("Unexpected error deleting quality report: {}", reportId.value(), e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_REPORT_DELETE_UNEXPECTED_ERROR",
-                "Unexpected error deleting quality report: " + e.getMessage(),
-                "system"
-            ));
+            return Result.failure("QUALITY_REPORT_DELETE_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error deleting quality report: " + e.getMessage(), "system");
         }
     }
     

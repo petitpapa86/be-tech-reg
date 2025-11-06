@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.application.monitoring;
+package com.bcbs239.regtech.core.domain.monitoring;
 
 import org.springframework.boot.actuate.health.Health;
 

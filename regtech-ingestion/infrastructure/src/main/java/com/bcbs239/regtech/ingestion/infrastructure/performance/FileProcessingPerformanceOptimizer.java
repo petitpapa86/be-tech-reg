@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.performance;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;
 import org.slf4j.Logger;
@@ -71,7 +72,7 @@ public class FileProcessingPerformanceOptimizer {
                         return task.getProcessor().apply(task);
                     } catch (Exception e) {
                         log.error("Error processing file: {}", task.getFileName(), e);
-                        return Result.<T>failure(ErrorDetail.of("PROCESSING_ERROR", 
+                        return Result.<T>failure(ErrorDetail.of("PROCESSING_ERROR",
                             "Failed to process file: " + e.getMessage()));
                     } finally {
                         int remaining = activeProcessingCount.decrementAndGet();

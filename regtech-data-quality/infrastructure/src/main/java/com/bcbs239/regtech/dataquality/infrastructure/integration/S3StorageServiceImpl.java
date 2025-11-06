@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.dataquality.infrastructure.integration;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
@@ -81,11 +82,7 @@ public class S3StorageServiceImpl implements S3StorageService {
             // Parse S3 URI
             S3Reference s3Reference = parseS3Uri(s3Uri);
             if (s3Reference == null) {
-                return Result.failure(ErrorDetail.of(
-                    "S3_URI_INVALID",
-                    "Invalid S3 URI format: " + s3Uri,
-                    "s3_uri"
-                ));
+                return Result.failure("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI format: " + s3Uri, "s3_uri");
             }
             
             // Download and parse with streaming
@@ -98,25 +95,13 @@ public class S3StorageServiceImpl implements S3StorageService {
             
         } catch (S3Exception e) {
             logger.error("S3 error downloading exposures from: {}", s3Uri, e);
-            return Result.failure(ErrorDetail.of(
-                "S3_DOWNLOAD_ERROR",
-                "Failed to download from S3: " + e.getMessage(),
-                "s3_download"
-            ));
+            return Result.failure("S3_DOWNLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to download from S3: " + e.getMessage(), "s3_download");
         } catch (IOException e) {
             logger.error("IO error parsing exposures from: {}", s3Uri, e);
-            return Result.failure(ErrorDetail.of(
-                "S3_PARSE_ERROR",
-                "Failed to parse JSON from S3: " + e.getMessage(),
-                "json_parsing"
-            ));
+            return Result.failure("S3_PARSE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse JSON from S3: " + e.getMessage(), "json_parsing");
         } catch (Exception e) {
             logger.error("Unexpected error downloading exposures from: {}", s3Uri, e);
-            return Result.failure(ErrorDetail.of(
-                "S3_DOWNLOAD_UNEXPECTED_ERROR",
-                "Unexpected error downloading exposures: " + e.getMessage(),
-                "system"
-            ));
+            return Result.failure("S3_DOWNLOAD_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error downloading exposures: " + e.getMessage(), "system");
         }
     }
     
@@ -150,25 +135,13 @@ public class S3StorageServiceImpl implements S3StorageService {
             
         } catch (S3Exception e) {
             logger.error("S3 error storing detailed results for batch: {}", batchId.value(), e);
-            return Result.failure(ErrorDetail.of(
-                "S3_UPLOAD_ERROR",
-                "Failed to upload to S3: " + e.getMessage(),
-                "s3_upload"
-            ));
+            return Result.failure("S3_UPLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to upload to S3: " + e.getMessage(), "s3_upload");
         } catch (IOException e) {
             logger.error("IO error serializing results for batch: {}", batchId.value(), e);
-            return Result.failure(ErrorDetail.of(
-                "S3_SERIALIZE_ERROR",
-                "Failed to serialize validation results: " + e.getMessage(),
-                "json_serialization"
-            ));
+            return Result.failure("S3_SERIALIZE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to serialize validation results: " + e.getMessage(), "json_serialization");
         } catch (Exception e) {
             logger.error("Unexpected error storing results for batch: {}", batchId.value(), e);
-            return Result.failure(ErrorDetail.of(
-                "S3_UPLOAD_UNEXPECTED_ERROR",
-                "Unexpected error storing detailed results: " + e.getMessage(),
-                "system"
-            ));
+            return Result.failure("S3_UPLOAD_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error storing detailed results: " + e.getMessage(), "system");
         }
     }
     
@@ -202,25 +175,13 @@ public class S3StorageServiceImpl implements S3StorageService {
 
         } catch (S3Exception e) {
             logger.error("S3 error storing detailed results for batch: {}", batchId.value(), e);
-            return Result.failure(ErrorDetail.of(
-                "S3_UPLOAD_ERROR",
-                "Failed to upload to S3: " + e.getMessage(),
-                "s3_upload"
-            ));
+            return Result.failure("S3_UPLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to upload to S3: " + e.getMessage(), "s3_upload");
         } catch (IOException e) {
             logger.error("IO error serializing results for batch: {}", batchId.value(), e);
-            return Result.failure(ErrorDetail.of(
-                "S3_SERIALIZE_ERROR",
-                "Failed to serialize validation results: " + e.getMessage(),
-                "json_serialization"
-            ));
+            return Result.failure("S3_SERIALIZE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to serialize validation results: " + e.getMessage(), "json_serialization");
         } catch (Exception e) {
             logger.error("Unexpected error storing results for batch: {}", batchId.value(), e);
-            return Result.failure(ErrorDetail.of(
-                "S3_UPLOAD_UNEXPECTED_ERROR",
-                "Unexpected error storing detailed results: " + e.getMessage(),
-                "system"
-            ));
+            return Result.failure("S3_UPLOAD_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error storing detailed results: " + e.getMessage(), "system");
         }
     }
 
@@ -461,7 +422,7 @@ public class S3StorageServiceImpl implements S3StorageService {
                     references.add(result.getValue().orElse(null));
                 } else {
                     references.add(null); // ensure list size matches
-                    return Result.failure(result.getError().orElse(ErrorDetail.of("S3_UPLOAD_ERROR","Failed to upload one result")));
+                    return Result.failure(result.getError().orElse(ErrorDetail.of("S3_UPLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to upload one result", "s3_upload")));
                 }
             }
 
@@ -520,7 +481,7 @@ public class S3StorageServiceImpl implements S3StorageService {
     public Result<Boolean> objectExists(String s3Uri) {
         S3Reference ref = parseS3Uri(s3Uri);
         if (ref == null) {
-            return Result.failure(ErrorDetail.of("S3_URI_INVALID", "Invalid S3 URI: " + s3Uri));
+            return Result.failure(ErrorDetail.of("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI: " + s3Uri, "s3.uri.invalid"));
         }
 
         try {
@@ -536,10 +497,10 @@ public class S3StorageServiceImpl implements S3StorageService {
             return Result.success(false);
         } catch (S3Exception e) {
             logger.error("S3 error checking object existence: s3://{}/{}", ref.bucket(), ref.key(), e);
-            return Result.failure(ErrorDetail.of("S3_HEAD_ERROR", "Failed to check object: " + e.getMessage()));
+            return Result.failure("S3_HEAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to check object: " + e.getMessage(), "s3_head");
         } catch (Exception e) {
             logger.error("Error checking S3 object existence: s3://{}/{}", ref.bucket(), ref.key(), e);
-            return Result.failure(ErrorDetail.of("S3_HEAD_ERROR", "Failed to check object: " + e.getMessage()));
+            return Result.failure("S3_HEAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to check object: " + e.getMessage(), "s3_head");
         }
     }
 
@@ -547,7 +508,7 @@ public class S3StorageServiceImpl implements S3StorageService {
     public Result<Long> getObjectSize(String s3Uri) {
         S3Reference ref = parseS3Uri(s3Uri);
         if (ref == null) {
-            return Result.failure(ErrorDetail.of("S3_URI_INVALID", "Invalid S3 URI: " + s3Uri));
+            return Result.failure("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI: " + s3Uri, "s3_uri");
         }
 
         try {
@@ -559,13 +520,13 @@ public class S3StorageServiceImpl implements S3StorageService {
             HeadObjectResponse response = s3Client.headObject(headObjectRequest);
             return Result.success(response.contentLength());
         } catch (NoSuchKeyException e) {
-            return Result.failure(ErrorDetail.of("S3_OBJECT_NOT_FOUND", "Object not found: " + s3Uri));
+            return Result.failure("S3_OBJECT_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, "Object not found: " + s3Uri, "s3_object");
         } catch (S3Exception e) {
             logger.error("S3 error getting object size for s3://{}/{}", ref.bucket(), ref.key(), e);
-            return Result.failure(ErrorDetail.of("S3_HEAD_ERROR", "Failed to get object size: " + e.getMessage()));
+            return Result.failure("S3_HEAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to get object size: " + e.getMessage(), "s3_head");
         } catch (Exception e) {
             logger.error("Unexpected error getting object size for s3://{}/{}", ref.bucket(), ref.key(), e);
-            return Result.failure(ErrorDetail.of("S3_HEAD_UNEXPECTED", "Unexpected error: " + e.getMessage()));
+            return Result.failure("S3_HEAD_UNEXPECTED", ErrorType.SYSTEM_ERROR, "Unexpected error: " + e.getMessage(), "system");
         }
     }
 
@@ -576,11 +537,7 @@ public class S3StorageServiceImpl implements S3StorageService {
 
         List<ExposureRecord> exposures = result.getValue().orElse(List.of());
         if (expectedCount >= 0 && exposures.size() != expectedCount) {
-            return Result.failure(ErrorDetail.of(
-                "S3_EXPOSURE_COUNT_MISMATCH",
-                String.format("Expected %d exposures but found %d in %s", expectedCount, exposures.size(), s3Uri),
-                "validation"
-            ));
+            return Result.failure("S3_EXPOSURE_COUNT_MISMATCH", ErrorType.VALIDATION_ERROR, String.format("Expected %d exposures but found %d in %s", expectedCount, exposures.size(), s3Uri), "exposure_count");
         }
 
         return Result.success(exposures);

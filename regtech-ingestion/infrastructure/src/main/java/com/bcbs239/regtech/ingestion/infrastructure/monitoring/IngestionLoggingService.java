@@ -1,9 +1,10 @@
 package com.bcbs239.regtech.ingestion.infrastructure.monitoring;
 
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -16,7 +17,9 @@ import java.util.Map;
  * Masks PII and provides detailed trace information for request flows.
  */
 @Service
+@RequiredArgsConstructor
 public class IngestionLoggingService {
+    private final ILogger asyncLogger;
 
     // File processing logging
     public void logFileUploadStarted(BatchId batchId, BankId bankId, String fileName, long fileSizeBytes, String contentType) {
@@ -29,8 +32,7 @@ public class IngestionLoggingService {
         details.put("contentType", contentType);
         details.put("phase", "upload");
         details.put("status", "started");
-        
-        LoggingConfiguration.logStructured("FILE_UPLOAD_STARTED", details);
+        asyncLogger.asyncStructuredLog("FILE_UPLOAD_STARTED", details);
     }
     
     public void logFileUploadCompleted(BatchId batchId, BankId bankId, long durationMs) {
@@ -40,8 +42,7 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "upload");
         details.put("status", "completed");
-        
-        LoggingConfiguration.logStructured("FILE_UPLOAD_COMPLETED", details);
+        asyncLogger.asyncStructuredLog("FILE_UPLOAD_COMPLETED", details);
     }
     
     public void logFileProcessingStarted(BatchId batchId, BankId bankId, BatchStatus fromStatus, BatchStatus toStatus) {
@@ -52,9 +53,8 @@ public class IngestionLoggingService {
         details.put("toStatus", toStatus.name());
         details.put("phase", "processing");
         details.put("status", "started");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
-        
-        LoggingConfiguration.logStructured("FILE_PROCESSING_STARTED", details);
+       // details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
+        asyncLogger.asyncStructuredLog("FILE_PROCESSING_STARTED", details);
     }
     
     public void logFileProcessingCompleted(BatchId batchId, BankId bankId, BatchStatus status, 
@@ -66,7 +66,7 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "processing");
         details.put("result", "completed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
+       // details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
         if (exposureCount != null) {
             details.put("exposureCount", exposureCount);
@@ -75,8 +75,7 @@ public class IngestionLoggingService {
                 details.put("exposuresPerSecond", Math.round(exposuresPerSecond * 100.0) / 100.0);
             }
         }
-        
-        LoggingConfiguration.logStructured("FILE_PROCESSING_COMPLETED", details);
+        asyncLogger.asyncStructuredLog("FILE_PROCESSING_COMPLETED", details);
     }
     
     public void logFileProcessingFailed(BatchId batchId, BankId bankId, String errorType, 
@@ -89,7 +88,7 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "processing");
         details.put("result", "failed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
+      //  details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
         LoggingConfiguration.logError("file_processing", errorType, errorMessage, throwable, details);
     }

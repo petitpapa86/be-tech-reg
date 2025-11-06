@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.scoring;
 
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.scoring.QualityScoringEngine;
 import com.bcbs239.regtech.dataquality.domain.quality.*;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureValidationResult;
@@ -34,7 +35,7 @@ public class QualityScoringEngineImpl implements QualityScoringEngine {
     public Result<QualityScores> calculateScoresWithWeights(ValidationResult validationResult, QualityWeights weights) {
         try {
             if (validationResult == null) {
-                return Result.failure(com.bcbs239.regtech.core.shared.ErrorDetail.of("VALIDATION_RESULT_NULL", "Validation result cannot be null"));
+                return Result.failure("VALIDATION_RESULT_NULL", ErrorType.VALIDATION_ERROR, "Validation result cannot be null", "validation_result");
             }
 
             logger.debug("Calculating quality scores for {} exposures with {} total errors",
@@ -64,7 +65,7 @@ public class QualityScoringEngineImpl implements QualityScoringEngine {
             return Result.success(scores);
         } catch (Exception e) {
             logger.error("Failed to calculate quality scores", e);
-            return Result.failure(com.bcbs239.regtech.core.shared.ErrorDetail.of("SCORE_CALCULATION_ERROR", "Failed to calculate scores: " + e.getMessage()));
+            return Result.failure("SCORE_CALCULATION_ERROR", ErrorType.SYSTEM_ERROR, "Failed to calculate scores: " + e.getMessage(), "score_calculation");
         }
     }
     

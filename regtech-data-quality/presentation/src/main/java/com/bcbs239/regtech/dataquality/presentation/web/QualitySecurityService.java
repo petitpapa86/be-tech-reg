@@ -1,8 +1,10 @@
 package com.bcbs239.regtech.dataquality.presentation.web;
 
-import com.bcbs239.regtech.core.security.SecurityUtils;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityContext;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import org.slf4j.Logger;
@@ -23,10 +25,11 @@ public class QualitySecurityService {
      */
     public Result<BankId> getCurrentBankId() {
         try {
-            String currentBankId = SecurityUtils.getCurrentBankId();
+            String currentBankId = SecurityContext.getCurrentBankId();
             if (currentBankId == null || currentBankId.trim().isEmpty()) {
                 return Result.failure(ErrorDetail.of(
                     "AUTHENTICATION_ERROR",
+                    ErrorType.VALIDATION_ERROR,
                     "Bank ID not found in security context",
                     "authentication"
                 ));
@@ -39,6 +42,7 @@ public class QualitySecurityService {
             logger.warn("Invalid bank ID in security context: {}", e.getMessage());
             return Result.failure(ErrorDetail.of(
                 "AUTHENTICATION_ERROR",
+                ErrorType.VALIDATION_ERROR,
                 "Invalid bank ID in security context: " + e.getMessage(),
                 "authentication"
             ));
@@ -46,6 +50,7 @@ public class QualitySecurityService {
             logger.error("Error extracting bank ID from security context: {}", e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "SYSTEM_ERROR",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to extract bank ID from security context: " + e.getMessage(),
                 "system"
             ));
@@ -58,10 +63,11 @@ public class QualitySecurityService {
      */
     public Result<Void> verifyBatchAccess(BatchId batchId) {
         try {
-            String currentBankId = SecurityUtils.getCurrentBankId();
+            String currentBankId = SecurityContext.getCurrentBankId();
             if (currentBankId == null) {
                 return Result.failure(ErrorDetail.of(
                     "AUTHENTICATION_ERROR",
+                    ErrorType.VALIDATION_ERROR,
                     "Bank ID not found in security context",
                     "authentication"
                 ));
@@ -69,10 +75,12 @@ public class QualitySecurityService {
             
             // In a real implementation, we would query the batch to get its bank ID
             // and verify it matches the current user's bank ID
-            // For now, we'll use the existing security utilities
-            if (!SecurityUtils.canAccessBatch(currentBankId)) {
+            // For now, we'll check if user has admin permissions or can access their own bank
+            if (!SecurityContext.hasPermission("admin:all") && 
+                (SecurityContext.getCurrentBankId() == null || !SecurityContext.getCurrentBankId().equals(currentBankId))) {
                 return Result.failure(ErrorDetail.of(
                     "AUTHORIZATION_ERROR",
+                    ErrorType.VALIDATION_ERROR,
                     "Access denied. You can only access batches from your own bank.",
                     "authorization"
                 ));
@@ -88,6 +96,7 @@ public class QualitySecurityService {
                 batchId.value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "SYSTEM_ERROR",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to verify batch access: " + e.getMessage(),
                 "system"
             ));
@@ -99,9 +108,10 @@ public class QualitySecurityService {
      */
     public Result<Void> verifyReportViewPermission() {
         try {
-            if (!SecurityUtils.hasPermission("data-quality:reports:view")) {
+            if (!SecurityContext.hasPermission("data-quality:reports:view")) {
                 return Result.failure(ErrorDetail.of(
                     "AUTHORIZATION_ERROR",
+                    ErrorType.VALIDATION_ERROR,
                     "Access denied. Required permission: data-quality:reports:view",
                     "authorization"
                 ));
@@ -113,6 +123,7 @@ public class QualitySecurityService {
             logger.error("Error verifying report view permission: {}", e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "SYSTEM_ERROR",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to verify report view permission: " + e.getMessage(),
                 "system"
             ));
@@ -124,9 +135,10 @@ public class QualitySecurityService {
      */
     public Result<Void> verifyTrendsViewPermission() {
         try {
-            if (!SecurityUtils.hasPermission("data-quality:trends:view")) {
+            if (!SecurityContext.hasPermission("data-quality:trends:view")) {
                 return Result.failure(ErrorDetail.of(
                     "AUTHORIZATION_ERROR",
+                    ErrorType.VALIDATION_ERROR,
                     "Access denied. Required permission: data-quality:trends:view",
                     "authorization"
                 ));
@@ -138,6 +150,7 @@ public class QualitySecurityService {
             logger.error("Error verifying trends view permission: {}", e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "SYSTEM_ERROR",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to verify trends view permission: " + e.getMessage(),
                 "system"
             ));

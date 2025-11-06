@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityErrorSummaryRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityErrorSummary;
@@ -58,27 +59,15 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
         } catch (DataIntegrityViolationException e) {
             logger.error("Data integrity violation saving quality error summary: batch {} rule {}", 
                 errorSummary.batchId().value(), errorSummary.ruleCode(), e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_ERROR_SUMMARY_SAVE_CONSTRAINT_VIOLATION",
-                "Quality error summary violates database constraints: " + e.getMessage(),
-                "error_summary"
-            ));
+            return Result.failure("QUALITY_ERROR_SUMMARY_SAVE_CONSTRAINT_VIOLATION", ErrorType.SYSTEM_ERROR, "Quality error summary violates database constraints: " + e.getMessage(), "error_summary");
         } catch (DataAccessException e) {
             logger.error("Database error saving quality error summary: batch {} rule {}", 
                 errorSummary.batchId().value(), errorSummary.ruleCode(), e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_ERROR_SUMMARY_SAVE_ERROR",
-                "Failed to save quality error summary: " + e.getMessage(),
-                "database"
-            ));
+            return Result.failure("QUALITY_ERROR_SUMMARY_SAVE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to save quality error summary: " + e.getMessage(), "database");
         } catch (Exception e) {
             logger.error("Unexpected error saving quality error summary: batch {} rule {}", 
                 errorSummary.batchId().value(), errorSummary.ruleCode(), e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_ERROR_SUMMARY_SAVE_UNEXPECTED_ERROR",
-                "Unexpected error saving quality error summary: " + e.getMessage(),
-                "system"
-            ));
+            return Result.failure("QUALITY_ERROR_SUMMARY_SAVE_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error saving quality error summary: " + e.getMessage(), "system");
         }
     }
     
@@ -106,25 +95,13 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
             
         } catch (DataIntegrityViolationException e) {
             logger.error("Data integrity violation saving quality error summaries", e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_ERROR_SUMMARIES_SAVE_CONSTRAINT_VIOLATION",
-                "Quality error summaries violate database constraints: " + e.getMessage(),
-                "error_summaries"
-            ));
+            return Result.failure("QUALITY_ERROR_SUMMARIES_SAVE_CONSTRAINT_VIOLATION", ErrorType.SYSTEM_ERROR, "Quality error summaries violate database constraints: " + e.getMessage(), "error_summaries");
         } catch (DataAccessException e) {
             logger.error("Database error saving quality error summaries", e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_ERROR_SUMMARIES_SAVE_ERROR",
-                "Failed to save quality error summaries: " + e.getMessage(),
-                "database"
-            ));
+            return Result.failure("QUALITY_ERROR_SUMMARIES_SAVE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to save quality error summaries: " + e.getMessage(), "database");
         } catch (Exception e) {
             logger.error("Unexpected error saving quality error summaries", e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_ERROR_SUMMARIES_SAVE_UNEXPECTED_ERROR",
-                "Unexpected error saving quality error summaries: " + e.getMessage(),
-                "system"
-            ));
+            return Result.failure("QUALITY_ERROR_SUMMARIES_SAVE_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error saving quality error summaries: " + e.getMessage(), "system");
         }
     }
     
@@ -405,18 +382,10 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
             
         } catch (DataAccessException e) {
             logger.error("Database error deleting quality error summaries by batch ID: {}", batchId.value(), e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_ERROR_SUMMARIES_DELETE_ERROR",
-                "Failed to delete quality error summaries: " + e.getMessage(),
-                "database"
-            ));
+            return Result.failure("QUALITY_ERROR_SUMMARIES_DELETE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to delete quality error summaries: " + e.getMessage(), "database");
         } catch (Exception e) {
             logger.error("Unexpected error deleting quality error summaries by batch ID: {}", batchId.value(), e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_ERROR_SUMMARIES_DELETE_UNEXPECTED_ERROR",
-                "Unexpected error deleting quality error summaries: " + e.getMessage(),
-                "system"
-            ));
+            return Result.failure("QUALITY_ERROR_SUMMARIES_DELETE_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error deleting quality error summaries: " + e.getMessage(), "system");
         }
     }
     
@@ -429,18 +398,10 @@ public class QualityErrorSummaryRepositoryImpl implements IQualityErrorSummaryRe
             
         } catch (DataAccessException e) {
             logger.error("Database error deleting quality error summaries older than: {}", cutoffTime, e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_ERROR_SUMMARIES_DELETE_OLD_ERROR",
-                "Failed to delete old quality error summaries: " + e.getMessage(),
-                "database"
-            ));
+            return Result.failure("QUALITY_ERROR_SUMMARIES_DELETE_OLD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to delete old quality error summaries: " + e.getMessage(), "database");
         } catch (Exception e) {
             logger.error("Unexpected error deleting quality error summaries older than: {}", cutoffTime, e);
-            return Result.failure(ErrorDetail.of(
-                "QUALITY_ERROR_SUMMARIES_DELETE_OLD_UNEXPECTED_ERROR",
-                "Unexpected error deleting old quality error summaries: " + e.getMessage(),
-                "system"
-            ));
+            return Result.failure("QUALITY_ERROR_SUMMARIES_DELETE_OLD_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error deleting old quality error summaries: " + e.getMessage(), "system");
         }
     }
     

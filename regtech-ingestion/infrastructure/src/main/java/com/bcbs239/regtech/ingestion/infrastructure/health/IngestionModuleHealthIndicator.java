@@ -1,12 +1,11 @@
 package com.bcbs239.regtech.ingestion.infrastructure.health;
 
-import com.bcbs239.regtech.core.health.ModuleHealthIndicator;
+import com.bcbs239.regtech.core.domain.monitoring.ModuleHealthIndicator;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
 import com.bcbs239.regtech.ingestion.infrastructure.batch.persistence.IngestionBatchEntity;
 import com.bcbs239.regtech.ingestion.infrastructure.batch.persistence.IngestionBatchJpaRepository;
-import com.bcbs239.regtech.ingestion.infrastructure.events.IngestionOutboxProcessor;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.stereotype.Component;
@@ -28,17 +27,14 @@ public class IngestionModuleHealthIndicator implements ModuleHealthIndicator {
 
     private final DataSource dataSource;
     private final FileStorageService fileStorageService;
-    private final IngestionOutboxProcessor outboxProcessor;
     private final IngestionBatchJpaRepository batchRepository;
 
     public IngestionModuleHealthIndicator(
             DataSource dataSource,
             FileStorageService fileStorageService,
-            IngestionOutboxProcessor outboxProcessor,
             IngestionBatchJpaRepository batchRepository) {
         this.dataSource = dataSource;
         this.fileStorageService = fileStorageService;
-        this.outboxProcessor = outboxProcessor;
         this.batchRepository = batchRepository;
     }
 
@@ -67,11 +63,11 @@ public class IngestionModuleHealthIndicator implements ModuleHealthIndicator {
         }
         
         // Check outbox processor status
-        Health.Builder outboxHealth = checkOutboxProcessorHealth();
-        details.put("outboxProcessor", outboxHealth.build());
-        if (outboxHealth.build().getStatus() != Status.UP) {
-            allHealthy = false;
-        }
+//        Health.Builder outboxHealth = checkOutboxProcessorHealth();
+//        details.put("outboxProcessor", outboxHealth.build());
+//        if (outboxHealth.build().getStatus() != Status.UP) {
+//            allHealthy = false;
+//        }
         
         // Check ingestion-specific metrics
         Health.Builder ingestionHealth = checkIngestionHealth();
@@ -154,35 +150,35 @@ public class IngestionModuleHealthIndicator implements ModuleHealthIndicator {
         }
     }
     
-    private Health.Builder checkOutboxProcessorHealth() {
-        try {
-            // Check if outbox processor is enabled and functioning
-            boolean isEnabled = outboxProcessor.isProcessingEnabled();
-            
-            if (isEnabled) {
-                // Get processing statistics from the event publisher
-                // Note: We access the event publisher through the processor's protected method
-                // For now, we'll just check if it's enabled and running
-                
-                return Health.up()
-                        .withDetail("status", "UP")
-                        .withDetail("enabled", true)
-                        .withDetail("contextName", "ingestion")
-                        .withDetail("checkTime", Instant.now().toString());
-            } else {
-                return Health.down()
-                        .withDetail("status", "DOWN")
-                        .withDetail("enabled", false)
-                        .withDetail("error", "Outbox processor is disabled")
-                        .withDetail("checkTime", Instant.now().toString());
-            }
-        } catch (Exception e) {
-            return Health.down()
-                    .withDetail("status", "DOWN")
-                    .withDetail("error", "Exception checking outbox processor health: " + e.getMessage())
-                    .withDetail("checkTime", Instant.now().toString());
-        }
-    }
+//    private Health.Builder checkOutboxProcessorHealth() {
+//        try {
+//            // Check if outbox processor is enabled and functioning
+//            boolean isEnabled = outboxProcessor.isProcessingEnabled();
+//
+//            if (isEnabled) {
+//                // Get processing statistics from the event publisher
+//                // Note: We access the event publisher through the processor's protected method
+//                // For now, we'll just check if it's enabled and running
+//
+//                return Health.up()
+//                        .withDetail("status", "UP")
+//                        .withDetail("enabled", true)
+//                        .withDetail("contextName", "ingestion")
+//                        .withDetail("checkTime", Instant.now().toString());
+//            } else {
+//                return Health.down()
+//                        .withDetail("status", "DOWN")
+//                        .withDetail("enabled", false)
+//                        .withDetail("error", "Outbox processor is disabled")
+//                        .withDetail("checkTime", Instant.now().toString());
+//            }
+//        } catch (Exception e) {
+//            return Health.down()
+//                    .withDetail("status", "DOWN")
+//                    .withDetail("error", "Exception checking outbox processor health: " + e.getMessage())
+//                    .withDetail("checkTime", Instant.now().toString());
+//        }
+//    }
     
     private Health.Builder checkIngestionHealth() {
         try {

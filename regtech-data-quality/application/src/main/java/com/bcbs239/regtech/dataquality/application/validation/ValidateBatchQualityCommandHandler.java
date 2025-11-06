@@ -3,12 +3,16 @@ package com.bcbs239.regtech.dataquality.application.validation;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.dataquality.application.integration.CrossModuleEventPublisher;
+import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.application.scoring.QualityScoringEngine;
+import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityCompletedEvent;
+import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityFailedEvent;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
+import java.util.Map;
+import java.util.HashMap;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
@@ -39,20 +43,20 @@ public class ValidateBatchQualityCommandHandler {
     private final QualityValidationEngine validationEngine;
     private final QualityScoringEngine scoringEngine;
     private final S3StorageService s3StorageService;
-    private final CrossModuleEventPublisher eventPublisher;
+    private final IIntegrationEventBus eventBus;
     
     public ValidateBatchQualityCommandHandler(
         IQualityReportRepository qualityReportRepository,
         QualityValidationEngine validationEngine,
         QualityScoringEngine scoringEngine,
         S3StorageService s3StorageService,
-        CrossModuleEventPublisher eventPublisher
+        IIntegrationEventBus eventBus
     ) {
         this.qualityReportRepository = qualityReportRepository;
         this.validationEngine = validationEngine;
         this.scoringEngine = scoringEngine;
         this.s3StorageService = s3StorageService;
-        this.eventPublisher = eventPublisher;
+        this.eventBus = eventBus;
     }
     
     /**
@@ -332,19 +336,28 @@ public class ValidateBatchQualityCommandHandler {
     ) {
         try {
             logger.debug("Publishing batch quality completed event for batch {}", command.batchId().value());
-            
-            return eventPublisher.publishBatchQualityCompleted(
+
+            Map<String, Object> validationSummary = new HashMap<>();
+            Map<String, Object> processingMetadata = new HashMap<>();
+            if (command.correlationId() != null) {
+                processingMetadata.put("correlationId", command.correlationId());
+            }
+
+            BatchQualityCompletedEvent event = new BatchQualityCompletedEvent(
                 command.batchId(),
                 command.bankId(),
                 scores,
                 detailsReference,
-                command.correlationId()
-            ).map(ignored -> {
-                logger.info("Successfully published batch quality completed event for batch {}", 
-                    command.batchId().value());
-                return null;
-            });
-            
+                validationSummary,
+                processingMetadata
+            );
+
+            eventBus.publish(event);
+
+            logger.info("Successfully published batch quality completed event for batch {}",
+                command.batchId().value());
+            return Result.success();
+
         } catch (Exception e) {
             logger.error("Failed to publish completion event for batch {}: {}", 
                 command.batchId().value(), e.getMessage(), e);
@@ -371,15 +384,23 @@ public class ValidateBatchQualityCommandHandler {
                     saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
             }
             
-            // Attempt to publish failure event
-            Result<Void> publishResult = eventPublisher.publishBatchQualityFailed(
-                report.getBatchId(),
-                report.getBankId(),
-                errorMessage
-            );
-            if (publishResult.isFailure()) {
-                logger.warn("Failed to publish failure event: {}", 
-                    publishResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+            // Attempt to publish failure event (non-fatal if it fails)
+            try {
+                Map<String, Object> errorDetails = new HashMap<>();
+                Map<String, Object> processingMetadata = new HashMap<>();
+
+                BatchQualityFailedEvent event = new BatchQualityFailedEvent(
+                    report.getBatchId(),
+                    report.getBankId(),
+                    errorMessage,
+                    errorDetails,
+                    processingMetadata
+                );
+
+                eventBus.publish(event);
+                logger.info("Published batch quality failed event for batch {}", report.getBatchId().value());
+            } catch (Exception pubEx) {
+                logger.warn("Failed to publish failure event: {}", pubEx.getMessage(), pubEx);
             }
             
         } catch (Exception e) {
