@@ -1,8 +1,10 @@
-package com.bcbs239.regtech.core.infrastructure.securityauthorization;
+package com.bcbs239.regtech.core.infrastructure.securityauthorization.authorization;
 
+import com.bcbs239.regtech.core.domain.security.AuthorizationService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.Set;
@@ -13,6 +15,7 @@ import java.util.stream.Collectors;
  * This provides a basic authorization service that can be extended by modules.
  * Note: This is not registered as a bean - modules should provide their own implementations.
  */
+@Service
 public class AuthorizationServiceImpl implements AuthorizationService {
 
     @Override

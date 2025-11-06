@@ -1,5 +1,6 @@
-package com.bcbs239.regtech.core.infrastructure.securityauthorization;
+package com.bcbs239.regtech.core.infrastructure.securityauthorization.authorization;
 
+import com.bcbs239.regtech.core.domain.security.AuthorizationService;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;

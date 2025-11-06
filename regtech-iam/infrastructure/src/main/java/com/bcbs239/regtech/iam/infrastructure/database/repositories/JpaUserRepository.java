@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.iam.infrastructure.database.repositories;
 
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.security.authorization.Role;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.core.domain.security.authorization.Role;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
@@ -13,9 +13,7 @@ import com.bcbs239.regtech.iam.infrastructure.database.entities.UserRoleEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -28,15 +26,16 @@ import java.util.function.Function;
  * Follows the established architecture patterns with proper domain/persistence separation.
  */
 @Repository
+@RequiredArgsConstructor
 public class JpaUserRepository {
 
-    private static final Logger logger = LoggerFactory.getLogger(JpaUserRepository.class);
+    private final ILogger asyncLogger;
 
     @PersistenceContext
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
 
-    @Autowired
-    private TransactionTemplate transactionTemplate;
+    private final TransactionTemplate transactionTemplate;
+
 
     /**
      * Closure to find user by email
@@ -53,10 +52,12 @@ public class JpaUserRepository {
             } catch (NoResultException e) {
                 return Maybe.none();
             } catch (Exception e) {
-                logger.error("Failed to lookup user by email", LoggingConfiguration.createStructuredLog("REPO_EMAIL_LOOKUP_FAILED", Map.of(
-                    "email", email.getValue(),
-                    "error", e.getMessage()
-                )), e);
+                asyncLogger.asyncStructuredErrorLog("Failed to lookup user by email", e,
+                        Map.of(
+                                "email", email.getValue(),
+                                "error", e.getMessage()
+                        ));
+
                 return Maybe.none();
             }
         };
@@ -100,10 +101,6 @@ public class JpaUserRepository {
                     entityManager.flush();
                     return Result.success(user.getId());
                 } catch (Exception e) {
-                    logger.error("Failed to save user", LoggingConfiguration.createStructuredLog("REPO_USER_SAVE_FAILED", Map.of(
-                        "email", user.getEmail().getValue(),
-                        "error", e.getMessage()
-                    )), e);
                     throw new RuntimeException("USER_SAVE_FAILED: Failed to save user: " + e.getMessage(), e);
                 }
             });
@@ -171,12 +168,7 @@ public class JpaUserRepository {
                     entityManager.flush();
                     return Result.success(entity.getId());
                 } catch (Exception e) {
-                    logger.error("Failed to save user role", LoggingConfiguration.createStructuredLog("REPO_USER_ROLE_SAVE_FAILED", Map.of(
-                        "userId", userRole.getUserId(),
-                        "role", userRole.getRole().name(),
-                        "organizationId", userRole.getOrganizationId(),
-                        "error", e.getMessage()
-                    )), e);
+
                     return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to save user role: " + e.getMessage(), "user.role.save.failed"));
                 }
             });
@@ -227,12 +219,11 @@ public class JpaUserRepository {
         return user -> {
             try {
                 // Create JWT token with user information
-                Result<JwtToken> tokenResult = JwtToken.generate(
+                return JwtToken.generate(
                     user,
                     jwtSecretKey,
                     java.time.Duration.ofHours(24)
                 );
-                return tokenResult;
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("TOKEN_GENERATION_FAILED", ErrorType.SYSTEM_ERROR, "Failed to generate JWT token: " + e.getMessage(), "token.generation.failed"));
             }

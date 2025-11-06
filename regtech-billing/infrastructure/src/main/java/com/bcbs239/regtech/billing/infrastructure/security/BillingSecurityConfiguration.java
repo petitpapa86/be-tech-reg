@@ -76,13 +76,8 @@ public class BillingSecurityConfiguration implements ModuleSecurityConfiguration
                 // Disable CSRF for webhook endpoints (they use signature validation)
                 .ignoringRequestMatchers("/api/v1/billing/webhooks/**")
             )
-            .addFilterBefore(webhookSignatureValidationFilter(), UsernamePasswordAuthenticationFilter.class)
+            // .addFilterBefore(webhookSignatureValidationFilter(), UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(billingRateLimitingFilter(), UsernamePasswordAuthenticationFilter.class);
-    }
-
-    @Bean
-    public WebhookSignatureValidationFilter webhookSignatureValidationFilter() {
-        return new WebhookSignatureValidationFilter(stripeWebhookSecret);
     }
 
     @Bean

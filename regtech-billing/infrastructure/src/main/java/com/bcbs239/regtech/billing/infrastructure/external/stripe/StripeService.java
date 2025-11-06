@@ -10,7 +10,6 @@ import com.bcbs239.regtech.billing.infrastructure.configuration.BillingConfigura
 import com.bcbs239.regtech.core.shared.ErrorDetail;
 import com.bcbs239.regtech.core.shared.Result;
 import com.stripe.Stripe;
-import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
 import com.stripe.net.Webhook;
@@ -379,17 +378,11 @@ public class StripeService {
             Event event = Webhook.constructEvent(payload, sigHeader, billingConfiguration.stripeConfiguration().webhookSecret());
             return Result.success(event);
             
-        } catch (SignatureVerificationException e) {
+        } catch (Exception e) {
             return Result.failure(new ErrorDetail(
                 "WEBHOOK_SIGNATURE_VERIFICATION_FAILED",
                 "Failed to verify webhook signature: " + e.getMessage(),
                 "webhook.signature.verification.failed"
-            ));
-        } catch (Exception e) {
-            return Result.failure(new ErrorDetail(
-                "WEBHOOK_EVENT_CONSTRUCTION_FAILED",
-                "Failed to construct webhook event: " + e.getMessage(),
-                "webhook.event.construction.failed"
             ));
         }
     }

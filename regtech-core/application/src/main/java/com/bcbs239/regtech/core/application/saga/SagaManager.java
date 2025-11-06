@@ -1,11 +1,11 @@
 package com.bcbs239.regtech.core.application.saga;
 
-import com.bcbs239.regtech.core.application.CommandDispatcher;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.*;
+import com.bcbs239.regtech.core.infrastructure.commandprocessing.CommandDispatcher;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaCompletedEvent;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaCreationException;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaNotFoundException;

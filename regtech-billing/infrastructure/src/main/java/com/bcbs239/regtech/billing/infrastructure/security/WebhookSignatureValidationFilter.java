@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.billing.infrastructure.security;
 
-import com.stripe.exception.SignatureVerificationException;
 import com.stripe.net.Webhook;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -72,7 +71,7 @@ public class WebhookSignatureValidationFilter extends OncePerRequestFilter {
             try {
                 Webhook.constructEvent(payload, signatureHeader, webhookSecret);
                 logger.debug("Webhook signature validation successful");
-            } catch (SignatureVerificationException e) {
+            } catch (Exception e) {
                 logger.warn("Webhook signature validation failed: {}", e.getMessage());
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("{\"error\":\"Invalid webhook signature\"}");

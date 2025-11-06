@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.infrastructure;
+package com.bcbs239.regtech.core.infrastructure.saga;
 
 
 import com.bcbs239.regtech.core.domain.shared.ErrorType;

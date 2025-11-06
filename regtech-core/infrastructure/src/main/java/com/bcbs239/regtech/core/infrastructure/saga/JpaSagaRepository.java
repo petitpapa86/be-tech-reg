@@ -11,14 +11,15 @@ import com.bcbs239.regtech.core.domain.saga.ISagaRepository;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
-import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
+import org.springframework.context.annotation.Primary;
 
 @Repository
+@Primary
 public class JpaSagaRepository implements ISagaRepository {
 
     private final EntityManager entityManager;

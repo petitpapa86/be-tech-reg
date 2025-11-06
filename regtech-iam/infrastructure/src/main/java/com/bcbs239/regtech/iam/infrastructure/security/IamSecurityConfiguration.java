@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.iam.infrastructure.security;
 
-import com.bcbs239.regtech.core.security.SecurityConfigurationRegistry;
-import com.bcbs239.regtech.core.security.SecurityConfigurationRegistry.ModuleSecurityConfiguration;
+
+import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityConfigurationRegistry;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * Handles authentication and authorization for user management endpoints.
  */
 @Configuration
-public class IamSecurityConfiguration implements ModuleSecurityConfiguration {
+public class IamSecurityConfiguration implements SecurityConfigurationRegistry.ModuleSecurityConfiguration {
 
     @Autowired
     private SecurityConfigurationRegistry securityConfigurationRegistry;

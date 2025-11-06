@@ -1,11 +1,14 @@
 package com.bcbs239.regtech.core.domain.security.authorization;
 
+import lombok.Getter;
+
 import java.util.Set;
 
 /**
  * Standard roles with their associated permissions.
  * Roles are defined centrally but can be extended by modules.
  */
+@Getter
 public enum Role {
     
     // Basic user roles
@@ -217,15 +220,7 @@ public enum Role {
         this.displayName = displayName;
         this.permissions = permissions;
     }
-    
-    public String getDisplayName() {
-        return displayName;
-    }
-    
-    public Set<String> getPermissions() {
-        return permissions;
-    }
-    
+
     public boolean hasPermission(String permission) {
         return permissions.contains(permission);
     }

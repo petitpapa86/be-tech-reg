@@ -142,9 +142,9 @@ public abstract class AbstractSaga<T> {
 
     // Enhanced failure method
     protected void fail(SagaError error) {
-        if (error.isRecoverable() && retryCount < MAX_RETRIES) {
+        if (error.recoverable() && retryCount < MAX_RETRIES) {
             scheduleRetry(error);
-        } else if (error.isSemiRecoverable()) {
+        } else if (error.semiRecoverable()) {
             handleSemiRecoverableError(error);
         } else {
             completeWithFailure(error);
@@ -156,7 +156,7 @@ public abstract class AbstractSaga<T> {
         this.errors.add(error.withRetry());
         
         log.warn("Scheduling retry {}/{} for saga {} due to: {}", 
-                retryCount, MAX_RETRIES, id, error.getMessage());
+                retryCount, MAX_RETRIES, id, error.message());
         
         // Schedule retry with exponential backoff using the timeout scheduler
         long delayMillis = calculateBackoffDelay().toMillis();
@@ -171,7 +171,7 @@ public abstract class AbstractSaga<T> {
         this.errors.add(error);
         
         // For payment issues, we might try a different payment method
-        if (error.getErrorType() == ErrorType.BUSINESS_RULE_ERROR) {
+        if (error.errorType() == ErrorType.BUSINESS_RULE_ERROR) {
         } else {
             completeWithFailure(error);
         }
@@ -182,7 +182,7 @@ public abstract class AbstractSaga<T> {
         this.completedAt = Instant.now();
         this.errors.add(error);
         
-        log.error("Saga {} failed permanently: {}", id, error.getMessage());
+        log.error("Saga {} failed permanently: {}", id, error.message());
         
         // Compensate for completed steps
         compensate();
@@ -200,7 +200,7 @@ public abstract class AbstractSaga<T> {
     
     public boolean canRetry() {
         return retryCount < MAX_RETRIES && 
-               getLastError().map(SagaError::isRecoverable).orElse(false);
+               getLastError().map(SagaError::recoverable).orElse(false);
     }
 
     protected void fail(String reason) {
