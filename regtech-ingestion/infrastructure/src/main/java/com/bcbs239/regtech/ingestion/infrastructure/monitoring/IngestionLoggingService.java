@@ -13,7 +13,7 @@ import java.util.Map;
 
 /**
  * Service for structured logging in the ingestion module.
- * Uses existing LoggingConfiguration patterns with ingestion-specific context.
+ * Uses asyncLogger (ILogger) for structured logging with ingestion-specific context.
  * Masks PII and provides detailed trace information for request flows.
  */
 @Service
@@ -88,9 +88,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "processing");
         details.put("result", "failed");
-      //  details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logError("file_processing", errorType, errorMessage, throwable, details);
+        asyncLogger.asyncStructuredErrorLog("FILE_PROCESSING_FAILED", throwable, details);
     }
     
     // File parsing logging
@@ -101,9 +100,8 @@ public class IngestionLoggingService {
         details.put("fileSizeBytes", fileSizeBytes);
         details.put("phase", "parsing");
         details.put("status", "started");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logStructured("FILE_PARSING_STARTED", details);
+        asyncLogger.asyncStructuredLog("FILE_PARSING_STARTED", details);
     }
     
     public void logFileParsingCompleted(BatchId batchId, String fileType, int recordCount, 
@@ -115,7 +113,6 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "parsing");
         details.put("status", "completed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
         if (parseMetrics != null) {
             details.putAll(parseMetrics);
@@ -126,7 +123,7 @@ public class IngestionLoggingService {
             details.put("recordsPerSecond", Math.round(recordsPerSecond * 100.0) / 100.0);
         }
         
-        LoggingConfiguration.logStructured("FILE_PARSING_COMPLETED", details);
+        asyncLogger.asyncStructuredLog("FILE_PARSING_COMPLETED", details);
     }
     
     public void logFileParsingFailed(BatchId batchId, String fileType, String errorType, 
@@ -139,9 +136,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "parsing");
         details.put("status", "failed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logError("file_parsing", errorType, errorMessage, throwable, details);
+        asyncLogger.asyncStructuredErrorLog("FILE_PARSING_FAILED", throwable, details);
     }
     
     // File validation logging
@@ -152,9 +148,8 @@ public class IngestionLoggingService {
         details.put("recordCount", recordCount);
         details.put("phase", "validation");
         details.put("status", "started");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logStructured("FILE_VALIDATION_STARTED", details);
+        asyncLogger.asyncStructuredLog("FILE_VALIDATION_STARTED", details);
     }
     
     public void logFileValidationCompleted(BatchId batchId, String validationType, int validRecords, 
@@ -170,9 +165,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "validation");
         details.put("status", "completed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logStructured("FILE_VALIDATION_COMPLETED", details);
+        asyncLogger.asyncStructuredLog("FILE_VALIDATION_COMPLETED", details);
     }
     
     public void logFileValidationFailed(BatchId batchId, String validationType, String errorType, 
@@ -185,9 +179,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "validation");
         details.put("status", "failed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logError("file_validation", errorType, errorMessage, throwable, details);
+        asyncLogger.asyncStructuredErrorLog("FILE_VALIDATION_FAILED", throwable, details);
     }
     
     // S3 operations logging
@@ -201,9 +194,8 @@ public class IngestionLoggingService {
         details.put("fileSizeBytes", fileSizeBytes);
         details.put("phase", "s3_operation");
         details.put("status", "started");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logStructured("S3_OPERATION_STARTED", details);
+        asyncLogger.asyncStructuredLog("S3_OPERATION_STARTED", details);
     }
     
     public void logS3OperationCompleted(BatchId batchId, BankId bankId, String operation, 
@@ -217,9 +209,8 @@ public class IngestionLoggingService {
         details.put("etag", etag != null ? etag.substring(0, Math.min(8, etag.length())) + "..." : null);
         details.put("phase", "s3_operation");
         details.put("status", "completed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logStructured("S3_OPERATION_COMPLETED", details);
+        asyncLogger.asyncStructuredLog("S3_OPERATION_COMPLETED", details);
     }
     
     public void logS3OperationFailed(BatchId batchId, BankId bankId, String operation, 
@@ -233,9 +224,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "s3_operation");
         details.put("status", "failed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logError("s3_operation", errorType, errorMessage, throwable, details);
+        asyncLogger.asyncStructuredErrorLog("S3_OPERATION_FAILED", throwable, details);
     }
     
     // Database operations logging
@@ -245,7 +235,6 @@ public class IngestionLoggingService {
         details.put("queryType", queryType);
         details.put("phase", "database_operation");
         details.put("status", "started");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
         // Mask sensitive parameters
         if (parameters != null) {
@@ -260,7 +249,7 @@ public class IngestionLoggingService {
             details.put("parameters", maskedParams);
         }
         
-        LoggingConfiguration.logStructured("DATABASE_OPERATION_STARTED", details);
+        asyncLogger.asyncStructuredLog("DATABASE_OPERATION_STARTED", details);
     }
     
     public void logDatabaseOperationCompleted(String operation, String queryType, int recordCount, long durationMs) {
@@ -271,9 +260,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "database_operation");
         details.put("status", "completed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logStructured("DATABASE_OPERATION_COMPLETED", details);
+        asyncLogger.asyncStructuredLog("DATABASE_OPERATION_COMPLETED", details);
     }
     
     public void logDatabaseOperationFailed(String operation, String queryType, String errorType, 
@@ -286,9 +274,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "database_operation");
         details.put("status", "failed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logError("database_operation", errorType, errorMessage, throwable, details);
+        asyncLogger.asyncStructuredErrorLog("DATABASE_OPERATION_FAILED", throwable, details);
     }
     
     // Bank enrichment logging
@@ -299,9 +286,8 @@ public class IngestionLoggingService {
         details.put("useCache", useCache);
         details.put("phase", "bank_enrichment");
         details.put("status", "started");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logStructured("BANK_ENRICHMENT_STARTED", details);
+        asyncLogger.asyncStructuredLog("BANK_ENRICHMENT_STARTED", details);
     }
     
     public void logBankEnrichmentCompleted(BatchId batchId, BankId bankId, boolean fromCache, 
@@ -315,9 +301,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "bank_enrichment");
         details.put("status", "completed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logStructured("BANK_ENRICHMENT_COMPLETED", details);
+        asyncLogger.asyncStructuredLog("BANK_ENRICHMENT_COMPLETED", details);
     }
     
     public void logBankEnrichmentFailed(BatchId batchId, BankId bankId, String errorType, 
@@ -330,9 +315,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "bank_enrichment");
         details.put("status", "failed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logError("bank_enrichment", errorType, errorMessage, throwable, details);
+        asyncLogger.asyncStructuredErrorLog("BANK_ENRICHMENT_FAILED", throwable, details);
     }
     
     // Event publishing logging
@@ -342,7 +326,6 @@ public class IngestionLoggingService {
         details.put("eventType", eventType);
         details.put("phase", "event_publishing");
         details.put("status", "started");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
         // Include non-sensitive payload information
         if (eventPayload != null) {
@@ -359,7 +342,7 @@ public class IngestionLoggingService {
             details.put("eventPayload", maskedPayload);
         }
         
-        LoggingConfiguration.logStructured("EVENT_PUBLISHING_STARTED", details);
+        asyncLogger.asyncStructuredLog("EVENT_PUBLISHING_STARTED", details);
     }
     
     public void logEventPublishingCompleted(BatchId batchId, String eventType, String outboxMessageId, long durationMs) {
@@ -370,9 +353,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "event_publishing");
         details.put("status", "completed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logStructured("EVENT_PUBLISHING_COMPLETED", details);
+        asyncLogger.asyncStructuredLog("EVENT_PUBLISHING_COMPLETED", details);
     }
     
     public void logEventPublishingFailed(BatchId batchId, String eventType, String errorType, 
@@ -385,9 +367,8 @@ public class IngestionLoggingService {
         details.put("durationMs", durationMs);
         details.put("phase", "event_publishing");
         details.put("status", "failed");
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
-        LoggingConfiguration.logError("event_publishing", errorType, errorMessage, throwable, details);
+        asyncLogger.asyncStructuredErrorLog("EVENT_PUBLISHING_FAILED", throwable, details);
     }
     
     // Request flow tracing
@@ -396,7 +377,6 @@ public class IngestionLoggingService {
         details.put("step", step);
         details.put("operation", operation);
         details.put("timestamp", Instant.now().toString());
-        details.put("correlationId", LoggingConfiguration.getCurrentCorrelationId());
         
         if (context != null) {
             // Mask sensitive context data
@@ -413,7 +393,7 @@ public class IngestionLoggingService {
             details.put("context", maskedContext);
         }
         
-        LoggingConfiguration.logStructured("REQUEST_FLOW_STEP", details);
+        asyncLogger.asyncStructuredLog("REQUEST_FLOW_STEP", details);
     }
     
     // PII masking methods

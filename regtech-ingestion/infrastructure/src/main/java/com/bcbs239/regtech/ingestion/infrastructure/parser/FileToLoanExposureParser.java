@@ -44,7 +44,7 @@ public class FileToLoanExposureParser {
         try (JsonParser jp = jf.createParser(is)) {
             // Traverse until we find the loan_portfolio field
             while (jp.nextToken() != null) {
-                if (jp.currentToken() == JsonToken.FIELD_NAME && "loan_portfolio".equals(jp.getCurrentName())) {
+                if (jp.currentToken() == JsonToken.FIELD_NAME && "loan_portfolio".equals(jp.currentName())) {
                     jp.nextToken(); // move to START_ARRAY
                     if (jp.currentToken() != JsonToken.START_ARRAY) {
                         log.warn("Expected loan_portfolio to be an array");
@@ -76,7 +76,7 @@ public class FileToLoanExposureParser {
         JsonFactory jf = objectMapper.getFactory();
         try (JsonParser jp = jf.createParser(is)) {
             while (jp.nextToken() != null) {
-                if (jp.currentToken() == JsonToken.FIELD_NAME && "credit_risk_mitigation".equals(jp.getCurrentName())) {
+                if (jp.currentToken() == JsonToken.FIELD_NAME && "credit_risk_mitigation".equals(jp.currentName())) {
                     jp.nextToken(); // move to START_ARRAY
                     if (jp.currentToken() != JsonToken.START_ARRAY) {
                         log.warn("Expected credit_risk_mitigation to be an array");

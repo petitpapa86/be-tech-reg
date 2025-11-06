@@ -1,8 +1,10 @@
 package com.bcbs239.regtech.ingestion.presentation.exception;
 
-import com.bcbs239.regtech.core.shared.ApiResponse;
-import com.bcbs239.regtech.core.shared.FieldError;
-import com.bcbs239.regtech.core.shared.ResponseUtils;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
+import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
@@ -40,14 +42,12 @@ public class IngestionExceptionHandler {
         for (org.springframework.validation.FieldError error : ex.getBindingResult().getFieldErrors()) {
             errors.add(new FieldError(
                 error.getField(),
-                "VALIDATION_ERROR",
-                error.getDefaultMessage(),
-                "ingestion.validation.field.error"
-            ));
+                error.getDefaultMessage(), "ingestion.validation.invalid."+error.getField())
+            );
         }
 
         String message = errors.size() == 1
-            ? errors.get(0).getMessage()
+            ? errors.getFirst().message()
             : String.format("Validation failed for %d fields", errors.size());
 
         return ResponseEntity.badRequest().body(
@@ -68,7 +68,7 @@ public class IngestionExceptionHandler {
             .collect(Collectors.toList());
 
         String message = errors.size() == 1
-            ? errors.get(0).getMessage()
+            ? errors.getFirst().message()
             : String.format("Validation failed for %d constraints", errors.size());
 
         return ResponseEntity.badRequest().body(
@@ -86,7 +86,6 @@ public class IngestionExceptionHandler {
         
         FieldError error = new FieldError(
             "argument",
-            "INVALID_ARGUMENT",
             ex.getMessage(),
             "ingestion.validation.invalid.argument"
         );
@@ -106,7 +105,6 @@ public class IngestionExceptionHandler {
         
         FieldError error = new FieldError(
             "file",
-            "FILE_TOO_LARGE",
             "File size exceeds maximum limit of 500MB. Consider splitting the file into smaller chunks.",
             "ingestion.validation.file.too.large"
         );
@@ -139,7 +137,6 @@ public class IngestionExceptionHandler {
 
         return new FieldError(
             propertyPath,
-            "CONSTRAINT_VIOLATION",
             message,
             "ingestion.validation.constraint.violation"
         );

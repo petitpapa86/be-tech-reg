@@ -2,6 +2,7 @@ package com.bcbs239.regtech.ingestion.infrastructure.performance;
 
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;
@@ -73,7 +74,8 @@ public class FileProcessingPerformanceOptimizer {
                     } catch (Exception e) {
                         log.error("Error processing file: {}", task.getFileName(), e);
                         return Result.<T>failure(ErrorDetail.of("PROCESSING_ERROR",
-                            "Failed to process file: " + e.getMessage()));
+                            ErrorType.SYSTEM_ERROR,
+                            "Failed to process file: " + e.getMessage(), "internal.server.error"));
                     } finally {
                         int remaining = activeProcessingCount.decrementAndGet();
                         log.debug("Completed file processing task: {} (active: {})", 

@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.ingestion.presentation.health;
 
-import com.bcbs239.regtech.core.shared.BaseController;
-import com.bcbs239.regtech.core.web.RouterAttributes;
+
+import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.ingestion.infrastructure.health.IngestionModuleHealthIndicator;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import com.bcbs239.regtech.ingestion.presentation.constants.Tags;
@@ -32,7 +32,7 @@ public class IngestionHealthController extends BaseController implements IEndpoi
 
     @Override
     public RouterFunction<ServerResponse> mapEndpoint() {
-        return RouterAttributes.withAttributes(
+        return com.bcbs239.regtech.core.capabilities.sharedinfrastructure.RouterAttributes.withAttributes(
             route(GET("/api/v1/ingestion/health"), this::getIngestionHealth),
             null, // No permissions required for health checks
             new String[]{Tags.INGESTION, "Health"},
