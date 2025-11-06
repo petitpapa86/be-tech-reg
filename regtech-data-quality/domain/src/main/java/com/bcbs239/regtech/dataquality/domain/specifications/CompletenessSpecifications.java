@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.dataquality.domain.specifications;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.Specification;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.specifications.Specification;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 
 import java.util.ArrayList;

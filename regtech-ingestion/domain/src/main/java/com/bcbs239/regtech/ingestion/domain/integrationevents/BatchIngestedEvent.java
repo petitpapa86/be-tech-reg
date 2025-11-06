@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.ingestion.domain.integrationevents;
 
-import com.bcbs239.regtech.core.application.IntegrationEvent;
+import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import lombok.Getter;
 
 import java.time.Instant;

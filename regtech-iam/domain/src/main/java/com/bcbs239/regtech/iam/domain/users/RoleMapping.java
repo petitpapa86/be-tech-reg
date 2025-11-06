@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.iam.domain.users;
 
-import com.bcbs239.regtech.core.security.authorization.Role;
+
+import com.bcbs239.regtech.core.domain.security.authorization.Role;
 
 /**
  * Maps business-specific BCBS239 roles to core system roles.

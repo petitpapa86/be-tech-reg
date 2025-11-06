@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.dataquality.domain.specifications;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.Specification;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.specifications.Specification;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 
 import java.time.LocalDate;
@@ -42,7 +43,7 @@ public class TimelinessSpecifications {
             
             // Check if reporting date is in the future
             if (reportingDate.isAfter(now)) {
-                return Result.failure(ErrorDetail.of("TIMELINESS_FUTURE_REPORTING_DATE", 
+                return Result.failure(ErrorDetail.of("TIMELINESS_FUTURE_REPORTING_DATE",
                     "Reporting date cannot be in the future"));
             }
             

@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.dataquality.domain.validation;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 
 /**

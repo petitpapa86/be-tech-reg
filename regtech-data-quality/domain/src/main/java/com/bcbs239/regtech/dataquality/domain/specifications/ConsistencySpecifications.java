@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.dataquality.domain.specifications;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.Specification;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.specifications.Specification;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 
 import java.util.Map;
@@ -97,7 +98,7 @@ public class ConsistencySpecifications {
                 
                 Set<String> validRiskCategories = RATING_RISK_MAPPINGS.get(baseRating);
                 if (validRiskCategories != null && !validRiskCategories.contains(riskCategory)) {
-                    return Result.failure(ErrorDetail.of("CONSISTENCY_RATING_RISK_MISMATCH", 
+                    return Result.failure(ErrorDetail.of("CONSISTENCY_RATING_RISK_MISMATCH",
                         String.format("Internal rating %s is inconsistent with risk category %s", rating, riskCategory), 
                         "internal_rating"));
                 }

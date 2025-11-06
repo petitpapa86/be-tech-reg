@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.ingestion.domain.batch.rules;
 
-import com.bcbs239.regtech.core.shared.Specification;
+import com.bcbs239.regtech.core.domain.specifications.Specification;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 
 /**
