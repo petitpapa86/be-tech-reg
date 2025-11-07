@@ -18,9 +18,9 @@ public abstract class DomainEvent {
     private final Maybe<String> causationId;
     private final Instant timestamp = Instant.now();
 
-    protected DomainEvent(String correlationId, String causationId) {
+    protected DomainEvent(String correlationId, Maybe<String> causationId) {
         this.correlationId = correlationId;
-        this.causationId = causationId != null ? Maybe.some(causationId) : Maybe.none();
+        this.causationId = causationId;
     }
 
     /**
@@ -28,7 +28,7 @@ public abstract class DomainEvent {
      * CausationId defaults to none since these events are not caused by other events.
      */
     protected DomainEvent(String correlationId) {
-        this(correlationId, null);
+        this(correlationId, Maybe.none());
     }
 
     public abstract String eventType();
