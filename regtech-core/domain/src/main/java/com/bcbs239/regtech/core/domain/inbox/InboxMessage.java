@@ -4,8 +4,10 @@ import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
@@ -13,6 +15,8 @@ import java.time.Instant;
 @Getter
 @Setter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class InboxMessage {
     private String id;
 
@@ -26,6 +30,7 @@ public class InboxMessage {
 
     private Instant processedOnUtc;
 
+    @Builder.Default
     private int retryCount = 0;
 
     private Instant nextRetryTime;
@@ -41,15 +46,15 @@ public class InboxMessage {
     private String causationId;
 
     public static InboxMessage fromIntegrationEvent(IntegrationEvent event, ObjectMapper mapper) {
-        return new InboxMessageBuilder()
-                .withId(event.getEventId())
-                .withEventType(event.eventType())
-                .withContent(serializeEventContent(event, mapper))
-                .withStatus(InboxMessageStatus.PENDING)
-                .withOccurredOnUtc(Instant.now())
-                .withUpdatedAt(Instant.now())
-                .withCorrelationId(event.getCorrelationId())
-                .withCausationId(event.getCausationId().orElse(null))
+        return InboxMessage.builder()
+                .id(event.getEventId())
+                .eventType(event.eventType())
+                .content(serializeEventContent(event, mapper))
+                .status(InboxMessageStatus.PENDING)
+                .occurredOnUtc(Instant.now())
+                .updatedAt(Instant.now())
+                .correlationId(event.getCorrelationId())
+                .causationId(event.getCausationId().orElse(null))
                 .build();
     }
 
