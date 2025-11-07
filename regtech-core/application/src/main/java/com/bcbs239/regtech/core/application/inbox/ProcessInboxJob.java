@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.application.inbox;
 
 import com.bcbs239.regtech.core.application.eventprocessing.IntegrationEventDeserializer;
-import com.bcbs239.regtech.core.application.integration.DomainEventDispatcher;
+import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
@@ -28,19 +28,17 @@ public class ProcessInboxJob {
     private static final Logger logger = LoggerFactory.getLogger(ProcessInboxJob.class);
 
     private final IInboxMessageRepository inboxMessageRepository;
-    private final IntegrationEventDeserializer deserializer;
-    private final DomainEventDispatcher dispatcher;
+    private final DomainEventBus dispatcher;
     private final InboxOptions inboxOptions;
+    private final IntegrationEventDeserializer deserializer;
 
-    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository,
-                           IntegrationEventDeserializer deserializer,
-                           DomainEventDispatcher dispatcher,
-                           InboxOptions inboxOptions) {
+    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository, DomainEventBus dispatcher, InboxOptions inboxOptions, IntegrationEventDeserializer deserializer) {
         this.inboxMessageRepository = inboxMessageRepository;
-        this.deserializer = deserializer;
         this.dispatcher = dispatcher;
         this.inboxOptions = inboxOptions;
+        this.deserializer = deserializer;
     }
+
 
     // Use the configured Duration from InboxOptions (bean) and convert to millis via SpEL
     @Scheduled(fixedDelayString = "#{@inboxOptions.getPollInterval().toMillis()}")
@@ -76,8 +74,8 @@ public class ProcessInboxJob {
             }
 
 
-            var event = deserializeResult.getValue().orElseThrow();
-            boolean success = dispatcher.dispatch(event);
+            DomainEvent event = deserializeResult.getValue().orElseThrow();
+            boolean success = dispatcher.publish(event);
             if (success) {
                 inboxMessageRepository.markAsProcessed(message.getId(), Instant.now());
             } else {

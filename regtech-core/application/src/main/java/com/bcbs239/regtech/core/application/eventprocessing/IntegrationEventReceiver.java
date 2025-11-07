@@ -1,11 +1,11 @@
-package com.bcbs239.regtech.core.application.integration;
+package com.bcbs239.regtech.core.application.eventprocessing;
 
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.inbox.IInboxMessageRepository;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
 public class IntegrationEventReceiver {
@@ -17,7 +17,7 @@ public class IntegrationEventReceiver {
         this.mapper = mapper;
     }
 
-    @EventListener
+    @TransactionalEventListener
     public void onIntegrationEvent(IntegrationEvent event) {
         // check for existing message to ensure idempotency could be added here
 

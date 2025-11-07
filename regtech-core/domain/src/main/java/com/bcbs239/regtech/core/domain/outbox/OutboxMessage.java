@@ -32,6 +32,10 @@ public class OutboxMessage {
 
     private String  errorMessage;
 
+    private String correlationId;
+
+    private String causationId;
+
     public OutboxMessage(String type, String content, Instant now) {
         this.type = type;
         this.content = content;

@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.domain.saga;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 
 import java.time.Instant;
 
@@ -14,7 +15,7 @@ public abstract class SagaMessage extends DomainEvent {
     protected final String eventType;
 
     public SagaMessage(String eventType, Instant occurredAt, SagaId sagaId, String correlationId, String causationId) {
-        super(correlationId, causationId);
+        super(correlationId, Maybe.some(causationId));
         this.eventType = eventType;
         this.occurredAt = occurredAt;
         this.sagaId = sagaId;

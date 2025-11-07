@@ -1,8 +1,6 @@
 package com.bcbs239.regtech.core.application.outbox;
 
 
-import com.bcbs239.regtech.core.application.integration.DomainEventDispatcher;
-import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.outbox.IOutboxMessageRepository;
 import com.bcbs239.regtech.core.domain.outbox.OutboxMessage;
