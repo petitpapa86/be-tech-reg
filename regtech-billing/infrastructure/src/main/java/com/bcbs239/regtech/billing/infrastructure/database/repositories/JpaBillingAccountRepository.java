@@ -5,9 +5,10 @@ import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.BillingAccountEntity;
 import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import jakarta.persistence.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,7 +69,7 @@ public class JpaBillingAccountRepository implements BillingAccountRepository {
     @Override
     public Result<BillingAccountId> save(BillingAccount billingAccount) {
         if (billingAccount.getId() != null) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_SAVE_FAILED",
+            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_SAVE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Cannot save billing account with existing ID", "billing.account.save.existing.id"));
         }
         
@@ -89,7 +90,7 @@ public class JpaBillingAccountRepository implements BillingAccountRepository {
     @Override
     public Result<BillingAccountId> update(BillingAccount billingAccount) {
         if (billingAccount.getId() == null) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_FAILED",
+            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Cannot update billing account without ID", "billing.account.update.missing.id"));
         }
 
@@ -102,7 +103,7 @@ public class JpaBillingAccountRepository implements BillingAccountRepository {
                         BillingAccountEntity.class, billingAccount.getId().value(), LockModeType.OPTIMISTIC);
 
                     if (managed == null) {
-                        return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND",
+                        return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", ErrorType.BUSINESS_RULE_ERROR,
                             "Billing account not found: " + billingAccount.getId().value(), "billing.account.not.found"));
                     }
 
@@ -129,7 +130,7 @@ public class JpaBillingAccountRepository implements BillingAccountRepository {
                     LoggingConfiguration.logStructured("Optimistic lock on billing account update",
                         Map.of("billingAccountId", billingAccount.getId().value(), 
                                "eventType", "BILLING_ACCOUNT_UPDATE_CONFLICT", "attempt", currentAttempt), ole);
-                    return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_CONFLICT", 
+                    return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_CONFLICT", ErrorType.BUSINESS_RULE_ERROR,
                         ole.getMessage(), "billing.account.update.conflict"));
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to update billing account: " + e.getMessage(), e);
@@ -137,7 +138,7 @@ public class JpaBillingAccountRepository implements BillingAccountRepository {
             });
 
             if (result == null) {
-                return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_FAILED", 
+                return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                     "Transaction failed during update", "billing.account.update.transaction.failed"));
             }
 
@@ -161,7 +162,7 @@ public class JpaBillingAccountRepository implements BillingAccountRepository {
             return result;
         }
 
-        return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_FAILED", 
+        return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_UPDATE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
             "Failed to update billing account after retries", "billing.account.update.failed"));
     }
 

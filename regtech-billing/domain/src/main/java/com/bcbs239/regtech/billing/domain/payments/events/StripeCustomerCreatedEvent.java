@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.billing.domain.payments.events;
 
-import com.bcbs239.regtech.core.saga.SagaId;
-import com.bcbs239.regtech.core.saga.SagaMessage;
+
+import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.saga.SagaMessage;
 import lombok.Getter;
 
 import java.time.Instant;

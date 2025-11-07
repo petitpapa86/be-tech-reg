@@ -2,8 +2,9 @@ package com.bcbs239.regtech.billing.domain.dunning;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -78,6 +79,7 @@ public class DunningCase {
         
         if (this.status != DunningCaseStatus.IN_PROGRESS) {
             return Result.failure(ErrorDetail.of("INVALID_CASE_STATUS", 
+                ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot execute step for dunning case with status: %s. Expected: %s", 
                     this.status, DunningCaseStatus.IN_PROGRESS), 
                 "error.dunning.invalid_case_status"));
@@ -109,6 +111,7 @@ public class DunningCase {
             // Action failed - retry logic could be implemented here
             // For now, we'll keep the case in progress but not advance the step
             return Result.failure(ErrorDetail.of("DUNNING_ACTION_FAILED", 
+                ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Failed to execute dunning action: %s. Details: %s", 
                     actionType, actionDetails), 
                 "error.dunning.action_failed"));
@@ -129,6 +132,7 @@ public class DunningCase {
         
         if (this.status != DunningCaseStatus.IN_PROGRESS) {
             return Result.failure(ErrorDetail.of("INVALID_CASE_STATUS", 
+                ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot resolve dunning case with status: %s. Expected: %s", 
                     this.status, DunningCaseStatus.IN_PROGRESS), 
                 "error.dunning.invalid_case_status"));
@@ -163,6 +167,7 @@ public class DunningCase {
         
         if (this.status != DunningCaseStatus.IN_PROGRESS) {
             return Result.failure(ErrorDetail.of("INVALID_CASE_STATUS", 
+                ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot cancel dunning case with status: %s. Expected: %s", 
                     this.status, DunningCaseStatus.IN_PROGRESS), 
                 "error.dunning.invalid_case_status"));

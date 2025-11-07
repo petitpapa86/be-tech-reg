@@ -9,9 +9,10 @@ import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import lombok.Getter;
 import lombok.Setter;
@@ -160,9 +161,9 @@ public class BillingAccount {
         Objects.requireNonNull(paymentMethodId, "PaymentMethodId cannot be null");
         
         if (this.status != BillingAccountStatus.PENDING_VERIFICATION) {
-            return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
+            return Result.failure("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot activate account from status: %s. Expected: %s", 
-                    this.status, BillingAccountStatus.PENDING_VERIFICATION), "billing.account.invalid.status.transition"));
+                    this.status, BillingAccountStatus.PENDING_VERIFICATION), "billing.account.invalid.status.transition");
         }
         
         this.status = BillingAccountStatus.ACTIVE;
@@ -184,13 +185,13 @@ public class BillingAccount {
         Objects.requireNonNull(reason, "Suspension reason cannot be null");
         
         if (this.status == BillingAccountStatus.CANCELLED) {
-            return Result.failure(ErrorDetail.of("ACCOUNT_CANCELLED", 
-                "Cannot suspend cancelled account", "billing.account.cancelled"));
+            return Result.failure("ACCOUNT_CANCELLED", ErrorType.BUSINESS_RULE_ERROR,
+                "Cannot suspend cancelled account", "billing.account.cancelled");
         }
         
         if (this.status == BillingAccountStatus.SUSPENDED) {
-            return Result.failure(ErrorDetail.of("ALREADY_SUSPENDED", 
-                "Account is already suspended", "billing.account.already.suspended"));
+            return Result.failure("ALREADY_SUSPENDED", ErrorType.BUSINESS_RULE_ERROR,
+                "Account is already suspended", "billing.account.already.suspended");
         }
         
         this.status = BillingAccountStatus.SUSPENDED;
@@ -208,9 +209,9 @@ public class BillingAccount {
      */
     public Result<Void> markAsPastDue() {
         if (this.status != BillingAccountStatus.ACTIVE) {
-            return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
+            return Result.failure("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot mark as past due from status: %s. Expected: %s", 
-                    this.status, BillingAccountStatus.ACTIVE), "billing.account.invalid.status.transition"));
+                    this.status, BillingAccountStatus.ACTIVE), "billing.account.invalid.status.transition");
         }
         
         this.status = BillingAccountStatus.PAST_DUE;
@@ -228,8 +229,8 @@ public class BillingAccount {
      */
     public Result<Void> cancel() {
         if (this.status == BillingAccountStatus.CANCELLED) {
-            return Result.failure(ErrorDetail.of("ALREADY_CANCELLED", 
-                "Account is already cancelled", "billing.account.already.cancelled"));
+            return Result.failure("ALREADY_CANCELLED", ErrorType.BUSINESS_RULE_ERROR,
+                "Account is already cancelled", "billing.account.already.cancelled");
         }
         
         this.status = BillingAccountStatus.CANCELLED;
@@ -247,9 +248,9 @@ public class BillingAccount {
     public Result<Void> reactivate() {
         if (this.status != BillingAccountStatus.PAST_DUE && 
             this.status != BillingAccountStatus.SUSPENDED) {
-            return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
+            return Result.failure("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot reactivate account from status: %s. Expected: %s or %s", 
-                    this.status, BillingAccountStatus.PAST_DUE, BillingAccountStatus.SUSPENDED), "billing.account.invalid.status.transition"));
+                    this.status, BillingAccountStatus.PAST_DUE, BillingAccountStatus.SUSPENDED), "billing.account.invalid.status.transition");
         }
         
         this.status = BillingAccountStatus.ACTIVE;
@@ -282,8 +283,8 @@ public class BillingAccount {
         Objects.requireNonNull(tier, "SubscriptionTier cannot be null");
         
         if (!canCreateSubscription()) {
-            return Result.failure(ErrorDetail.of("ACCOUNT_NOT_ACTIVE", 
-                "Cannot create subscription for non-active account", "billing.account.not.active"));
+            return Result.failure("ACCOUNT_NOT_ACTIVE", ErrorType.BUSINESS_RULE_ERROR,
+                "Cannot create subscription for non-active account", "billing.account.not.active");
         }
         
         Subscription subscription = Subscription.create(
@@ -305,8 +306,8 @@ public class BillingAccount {
         Objects.requireNonNull(stripeCustomerId, "StripeCustomerId cannot be null");
         
         if (this.stripeCustomerId.isPresent()) {
-            return Result.failure(ErrorDetail.of("CUSTOMER_ID_ALREADY_SET", 
-                "Stripe customer ID is already set for this account", "billing.account.customer.id.already.set"));
+            return Result.failure("CUSTOMER_ID_ALREADY_SET", ErrorType.BUSINESS_RULE_ERROR,
+                "Stripe customer ID is already set for this account", "billing.account.customer.id.already.set");
         }
         
         this.stripeCustomerId = Maybe.some(stripeCustomerId);
@@ -326,10 +327,10 @@ public class BillingAccount {
         Objects.requireNonNull(newBalance, "Balance cannot be null");
         
         if (!newBalance.currency().equals(this.accountBalance.currency())) {
-            return Result.failure(ErrorDetail.of("CURRENCY_MISMATCH", 
+            return Result.failure("CURRENCY_MISMATCH", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Balance currency %s does not match account currency %s", 
                     newBalance.currency().getCurrencyCode(), 
-                    this.accountBalance.currency().getCurrencyCode()), "billing.account.currency.mismatch"));
+                    this.accountBalance.currency().getCurrencyCode()), "billing.account.currency.mismatch");
         }
         
         this.accountBalance = newBalance;

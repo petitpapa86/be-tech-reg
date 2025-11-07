@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.billing.application.integration;
 
 import com.bcbs239.regtech.billing.domain.shared.validation.BillingValidationUtils;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -51,7 +52,7 @@ public record ProcessWebhookCommand(
         
         // Validate event type
         if (sanitizedEventType == null || sanitizedEventType.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("EVENT_TYPE_REQUIRED", 
+            return Result.failure(ErrorDetail.of("EVENT_TYPE_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                 "Event type is required", "webhook.event.type.required"));
         }
         

@@ -14,9 +14,10 @@ import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.saga.*;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 
 import java.math.BigDecimal;
@@ -132,7 +133,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
         BillingAccount billingAccount = billingAccountResult.getValue().get();
 
         // Create Stripe invoice
-        com.bcbs239.regtech.core.shared.Maybe<StripeCustomerId> customerIdMaybe = billingAccount.getStripeCustomerId();
+        Maybe<StripeCustomerId> customerIdMaybe = billingAccount.getStripeCustomerId();
         if (customerIdMaybe.isEmpty()) {
             String errorMsg = "Billing account has no Stripe customer ID";
             data.markStepFailed(errorMsg);
@@ -309,13 +310,13 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
             .getValue().orElse(null);
 
         if (mockBillingAccountId == null) {
-            return Result.failure(ErrorDetail.of("INVALID_BILLING_ACCOUNT_ID",
+            return Result.failure(ErrorDetail.of("INVALID_BILLING_ACCOUNT_ID", ErrorType.BUSINESS_RULE_ERROR,
                 "Could not create billing account ID for user: " + userId, "billing.account.id.invalid"));
         }
 
         Maybe<BillingAccount> billingAccountMaybe = billingAccountFinder.apply(mockBillingAccountId);
         if (billingAccountMaybe.isEmpty()) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND",
+            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", ErrorType.BUSINESS_RULE_ERROR,
                 "Billing account not found for user: " + userId, "billing.account.not.found"));
         }
 

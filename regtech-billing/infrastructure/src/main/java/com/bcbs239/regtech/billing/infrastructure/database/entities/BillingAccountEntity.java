@@ -6,7 +6,7 @@ import com.bcbs239.regtech.billing.domain.accounts.BillingAccountStatus;
 import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
 import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import jakarta.persistence.*;
 import lombok.Getter;

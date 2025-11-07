@@ -7,9 +7,10 @@ import com.bcbs239.regtech.billing.domain.invoices.InvoiceStatus;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.InvoiceEntity;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
@@ -81,7 +82,7 @@ public class JpaInvoiceRepository implements InvoiceRepository {
                 entityManager.flush();
                 return Result.success(InvoiceId.fromString(entity.getId()).getValue().orElseThrow());
             } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED",
+                return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                     "Failed to save invoice: " + e.getMessage(), "invoice.save.failed"));
             }
         });
@@ -163,7 +164,7 @@ public class JpaInvoiceRepository implements InvoiceRepository {
     public Function<Invoice, Result<InvoiceId>> invoiceSaver() {
         return invoice -> {
             if (invoice.getId() != null) {
-                return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED",
+                return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                     "Cannot save invoice with existing ID", "invoice.save.existing.id"));
             }
             return transactionTemplate.execute(status -> {
@@ -173,7 +174,7 @@ public class JpaInvoiceRepository implements InvoiceRepository {
                     entityManager.flush(); // Ensure the entity is persisted
                     return Result.success(InvoiceId.fromString(entity.getId()).getValue().orElseThrow());
                 } catch (Exception e) {
-                    return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED",
+                    return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                         "Failed to save invoice: " + e.getMessage(), "invoice.save.failed"));
                 }
             });
@@ -183,7 +184,7 @@ public class JpaInvoiceRepository implements InvoiceRepository {
     public Function<Invoice, Result<InvoiceId>> invoiceUpdater() {
         return invoice -> {
             if (invoice.getId() == null) {
-                return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED",
+                return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                     "Cannot update invoice without ID", "invoice.update.missing.id"));
             }
             return transactionTemplate.execute(status -> {
@@ -193,7 +194,7 @@ public class JpaInvoiceRepository implements InvoiceRepository {
                     entityManager.flush(); // Ensure the entity is updated
                     return Result.success(InvoiceId.fromString(entity.getId()).getValue().orElseThrow());
                 } catch (Exception e) {
-                    return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED",
+                    return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                         "Failed to update invoice: " + e.getMessage(), "invoice.update.failed"));
                 }
             });

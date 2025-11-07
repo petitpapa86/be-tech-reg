@@ -8,9 +8,10 @@ import com.bcbs239.regtech.billing.domain.invoices.events.InvoicePaymentSucceede
 import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.domain.shared.events.WebhookEvent;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
@@ -76,7 +77,7 @@ public class ProcessWebhookCommandHandler {
                 }
             }
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("WEBHOOK_PROCESSING_ERROR",
+            return Result.failure(ErrorDetail.of("WEBHOOK_PROCESSING_ERROR", ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to process webhook event: " + e.getMessage(),
                 "webhook.processing.error"));
         }

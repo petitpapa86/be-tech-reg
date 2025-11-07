@@ -4,9 +4,11 @@ package com.bcbs239.regtech.billing.domain.invoices;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -64,40 +66,39 @@ public class Invoice {
      * Factory method to create a new invoice with automatic line item generation
      */
     public static Result<Invoice> create(Maybe<BillingAccountId> billingAccountId,
-                                       StripeInvoiceId stripeInvoiceId,
-                                       Money subscriptionAmount,
-                                       Money overageAmount,
-                                       BillingPeriod billingPeriod,
-                                       Supplier<Instant> clock,
-                                       Supplier<LocalDate> dateSupplier) {
+                                         StripeInvoiceId stripeInvoiceId,
+                                         Money subscriptionAmount,
+                                         Money overageAmount,
+                                         BillingPeriod billingPeriod,
+                                         Supplier<Instant> clock,
+                                         Supplier<LocalDate> dateSupplier) {
         
         // Validate inputs
         if (billingAccountId == null || billingAccountId.isEmpty()) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE", "BillingAccountId cannot be null or empty"));
+            return Result.failure("INVALID_INVOICE", ErrorType.VALIDATION_ERROR, "BillingAccountId cannot be null or empty", null);
         }
         if (stripeInvoiceId == null) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE", "StripeInvoiceId cannot be null"));
+            return Result.failure("INVALID_INVOICE", ErrorType.VALIDATION_ERROR, "StripeInvoiceId cannot be null", null);
         }
         if (subscriptionAmount == null) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE", "Subscription amount cannot be null"));
+            return Result.failure("INVALID_INVOICE", ErrorType.VALIDATION_ERROR, "Subscription amount cannot be null", null);
         }
         if (overageAmount == null) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE", "Overage amount cannot be null"));
+            return Result.failure("INVALID_INVOICE", ErrorType.VALIDATION_ERROR, "Overage amount cannot be null", null);
         }
         if (billingPeriod == null) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE", "Billing period cannot be null"));
+            return Result.failure("INVALID_INVOICE", ErrorType.VALIDATION_ERROR, "Billing period cannot be null", null);
         }
         if (clock == null) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE", "Clock supplier cannot be null"));
+            return Result.failure("INVALID_INVOICE", ErrorType.VALIDATION_ERROR, "Clock supplier cannot be null", null);
         }
         if (dateSupplier == null) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE", "Date supplier cannot be null"));
+            return Result.failure("INVALID_INVOICE", ErrorType.VALIDATION_ERROR, "Date supplier cannot be null", null);
         }
 
         // Validate currency consistency
         if (!subscriptionAmount.currency().equals(overageAmount.currency())) {
-            return Result.failure(new ErrorDetail("CURRENCY_MISMATCH", 
-                "Subscription and overage amounts must have the same currency"));
+            return Result.failure("CURRENCY_MISMATCH", ErrorType.BUSINESS_RULE_ERROR, "Subscription and overage amounts must have the same currency", null);
         }
 
         Invoice invoice = new Invoice(clock, dateSupplier);
@@ -139,10 +140,10 @@ public class Invoice {
                                                Supplier<LocalDate> dateSupplier) {
         
         if (monthlySubscriptionAmount == null) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE", "Monthly subscription amount cannot be null"));
+            return Result.failure("INVALID_INVOICE", ErrorType.BUSINESS_RULE_ERROR, "Monthly subscription amount cannot be null", null);
         }
         if (serviceStartDate == null) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE", "Service start date cannot be null"));
+            return Result.failure("INVALID_INVOICE", ErrorType.BUSINESS_RULE_ERROR, "Service start date cannot be null", null);
         }
 
         // Calculate pro-rated subscription amount
@@ -159,18 +160,18 @@ public class Invoice {
      */
     public Result<Void> markAsPaid(Instant paidAt, Supplier<Instant> clock) {
         if (paidAt == null) {
-            return Result.failure(new ErrorDetail("INVALID_PAYMENT", "Paid timestamp cannot be null"));
+            return Result.failure("INVALID_PAYMENT", ErrorType.BUSINESS_RULE_ERROR, "Paid timestamp cannot be null", null);
         }
         if (clock == null) {
-            return Result.failure(new ErrorDetail("INVALID_PAYMENT", "Clock supplier cannot be null"));
+            return Result.failure("INVALID_PAYMENT", ErrorType.BUSINESS_RULE_ERROR, "Clock supplier cannot be null", null);
         }
         
         if (this.status == InvoiceStatus.PAID) {
-            return Result.failure(new ErrorDetail("ALREADY_PAID", "Invoice is already marked as paid"));
+            return Result.failure("ALREADY_PAID", ErrorType.BUSINESS_RULE_ERROR, "Invoice is already marked as paid", null);
         }
         
         if (this.status == InvoiceStatus.VOIDED) {
-            return Result.failure(new ErrorDetail("INVALID_STATUS_TRANSITION", "Cannot mark voided invoice as paid"));
+            return Result.failure("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR, "Cannot mark voided invoice as paid", null);
         }
         
         this.status = InvoiceStatus.PAID;
@@ -209,12 +210,11 @@ public class Invoice {
      */
     public Result<Void> markAsOverdue(Supplier<Instant> clock) {
         if (clock == null) {
-            return Result.failure(new ErrorDetail("INVALID_OPERATION", "Clock supplier cannot be null"));
+            return Result.failure("INVALID_OPERATION", ErrorType.BUSINESS_RULE_ERROR, "Clock supplier cannot be null", null);
         }
         
         if (this.status != InvoiceStatus.PENDING) {
-            return Result.failure(new ErrorDetail("INVALID_STATUS_TRANSITION", 
-                "Cannot mark as overdue from status: " + this.status));
+            return Result.failure("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR, "Cannot mark as overdue from status: " + this.status, null);
         }
         
         this.status = InvoiceStatus.OVERDUE;
@@ -229,12 +229,11 @@ public class Invoice {
      */
     public Result<Void> markAsFailed(Supplier<Instant> clock) {
         if (clock == null) {
-            return Result.failure(new ErrorDetail("INVALID_OPERATION", "Clock supplier cannot be null"));
+            return Result.failure("INVALID_OPERATION", ErrorType.BUSINESS_RULE_ERROR, "Clock supplier cannot be null", null);
         }
         
         if (this.status == InvoiceStatus.PAID || this.status == InvoiceStatus.VOIDED) {
-            return Result.failure(new ErrorDetail("INVALID_STATUS_TRANSITION", 
-                "Cannot mark paid or voided invoice as failed"));
+            return Result.failure("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR, "Cannot mark paid or voided invoice as failed", null);
         }
         
         this.status = InvoiceStatus.FAILED;
@@ -249,12 +248,11 @@ public class Invoice {
      */
     public Result<Void> voidInvoice(Supplier<Instant> clock) {
         if (clock == null) {
-            return Result.failure(new ErrorDetail("INVALID_OPERATION", "Clock supplier cannot be null"));
+            return Result.failure("INVALID_OPERATION", ErrorType.BUSINESS_RULE_ERROR, "Clock supplier cannot be null", null);
         }
         
         if (this.status == InvoiceStatus.PAID) {
-            return Result.failure(new ErrorDetail("INVALID_STATUS_TRANSITION", 
-                "Cannot void a paid invoice"));
+            return Result.failure("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR, "Cannot void a paid invoice", null);
         }
         
         this.status = InvoiceStatus.VOIDED;
@@ -269,10 +267,10 @@ public class Invoice {
      */
     public Result<Void> markAsSent(Instant sentAt, Supplier<Instant> clock) {
         if (sentAt == null) {
-            return Result.failure(new ErrorDetail("INVALID_SENT_DATE", "Sent timestamp cannot be null"));
+            return Result.failure("INVALID_SENT_DATE", ErrorType.BUSINESS_RULE_ERROR, "Sent timestamp cannot be null", null);
         }
         if (clock == null) {
-            return Result.failure(new ErrorDetail("INVALID_OPERATION", "Clock supplier cannot be null"));
+            return Result.failure("INVALID_OPERATION", ErrorType.BUSINESS_RULE_ERROR, "Clock supplier cannot be null", null);
         }
         
         if (this.status == InvoiceStatus.DRAFT) {

@@ -2,9 +2,11 @@ package com.bcbs239.regtech.billing.domain.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -100,12 +102,12 @@ public class Subscription {
         Objects.requireNonNull(cancellationDate, "Cancellation date cannot be null");
         
         if (this.status == SubscriptionStatus.CANCELLED) {
-            return Result.failure(ErrorDetail.of("ALREADY_CANCELLED", 
+            return Result.failure(ErrorDetail.of("ALREADY_CANCELLED", ErrorType.BUSINESS_RULE_ERROR,
                 "Subscription is already cancelled", "subscription.already.cancelled"));
         }
         
         if (cancellationDate.isBefore(this.startDate)) {
-            return Result.failure(ErrorDetail.of("INVALID_CANCELLATION_DATE", 
+            return Result.failure(ErrorDetail.of("INVALID_CANCELLATION_DATE", ErrorType.BUSINESS_RULE_ERROR,
                 "Cancellation date cannot be before start date", "subscription.invalid.cancellation.date"));
         }
         
@@ -134,7 +136,7 @@ public class Subscription {
      */
     public Result<Void> markAsPastDue() {
         if (this.status != SubscriptionStatus.ACTIVE) {
-            return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
+            return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot mark as past due from status: %s. Expected: %s", 
                     this.status, SubscriptionStatus.ACTIVE), "subscription.invalid.status.transition"));
         }
@@ -154,7 +156,7 @@ public class Subscription {
      */
     public Result<Void> pause() {
         if (this.status != SubscriptionStatus.ACTIVE) {
-            return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
+            return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot pause subscription from status: %s. Expected: %s", 
                     this.status, SubscriptionStatus.ACTIVE), "subscription.invalid.status.transition"));
         }
@@ -173,7 +175,7 @@ public class Subscription {
      */
     public Result<Void> reactivate() {
         if (!this.status.canBeReactivated()) {
-            return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", 
+            return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot reactivate subscription from status: %s", this.status), "subscription.invalid.status.transition"));
         }
         
@@ -195,12 +197,12 @@ public class Subscription {
         Objects.requireNonNull(newTier, "New tier cannot be null");
         
         if (this.status != SubscriptionStatus.ACTIVE) {
-            return Result.failure(ErrorDetail.of("SUBSCRIPTION_NOT_ACTIVE", 
+            return Result.failure(ErrorDetail.of("SUBSCRIPTION_NOT_ACTIVE", ErrorType.BUSINESS_RULE_ERROR,
                 "Can only change tier for active subscriptions", "subscription.not.active"));
         }
         
         if (this.tier == newTier) {
-            return Result.failure(ErrorDetail.of("SAME_TIER", 
+            return Result.failure(ErrorDetail.of("SAME_TIER", ErrorType.BUSINESS_RULE_ERROR,
                 "New tier is the same as current tier", "subscription.same.tier"));
         }
         

@@ -10,7 +10,7 @@ import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBilli
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaManager;
-import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

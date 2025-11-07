@@ -27,11 +27,9 @@ public class PermissionAuthorizationFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(PermissionAuthorizationFilter.class);
     
     private final PermissionService permissionService;
-    private final ObjectMapper objectMapper;
 
-    public PermissionAuthorizationFilter(PermissionService permissionService, ObjectMapper objectMapper) {
+    public PermissionAuthorizationFilter(PermissionService permissionService) {
         this.permissionService = permissionService;
-        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -54,7 +52,7 @@ public class PermissionAuthorizationFilter extends OncePerRequestFilter {
 
             // Get required permissions for this endpoint
             String[] requiredPermissions = getRequiredPermissions(request);
-            if (requiredPermissions == null || requiredPermissions.length == 0) {
+            if (requiredPermissions.length == 0) {
                 // No specific permissions required, but token must be valid
                 if (!permissionService.isValidToken(authToken)) {
                     sendUnauthorizedResponse(response, "Invalid authorization token");
@@ -158,10 +156,17 @@ public class PermissionAuthorizationFilter extends OncePerRequestFilter {
         }
 
         // IAM module permissions
-        if (path.startsWith("/api/v1/users/")) {
+        if (path.startsWith("/api/v1/users/register")) {
             if ("POST".equals(method)) {
                 return new String[]{"users:create"};
             }
+            if ("GET".equals(method)) {
+                return new String[]{"users:read"};
+            }
+        }
+
+        // User profile endpoint permissions
+        if (path.startsWith("/api/v1/users/profile")) {
             if ("GET".equals(method)) {
                 return new String[]{"users:read"};
             }
@@ -189,6 +194,11 @@ public class PermissionAuthorizationFilter extends OncePerRequestFilter {
 
         // Static resources
         if (path.startsWith("/static/") || path.startsWith("/css/") || path.startsWith("/js/")) {
+            return true;
+        }
+
+        // User management endpoints (public)
+        if (path.equals("/api/v1/users/register") || path.equals("/api/v1/users/profile")) {
             return true;
         }
 

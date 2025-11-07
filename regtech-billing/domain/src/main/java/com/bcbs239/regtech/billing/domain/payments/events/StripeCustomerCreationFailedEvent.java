@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.billing.domain.payments.events;
 
-import com.bcbs239.regtech.core.saga.SagaId;
+
+import com.bcbs239.regtech.core.domain.saga.SagaId;
 
 /**
  * Domain event published when Stripe customer creation fails

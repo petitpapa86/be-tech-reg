@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.domain.payments.events;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
-import com.bcbs239.regtech.core.events.BaseEvent;
+import com.bcbs239.regtech.core.domain.events.BaseEvent;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 
 /**
@@ -14,7 +14,6 @@ public class PaymentVerifiedEvent extends BaseEvent {
     private final BillingAccountId billingAccountId;
     
     public PaymentVerifiedEvent(UserId userId, BillingAccountId billingAccountId, String correlationId) {
-        super(correlationId, "billing");
         this.userId = userId;
         this.billingAccountId = billingAccountId;
     }

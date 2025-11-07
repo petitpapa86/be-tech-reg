@@ -3,8 +3,8 @@ package com.bcbs239.regtech.billing.domain.repositories;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 /**
  * Domain repository interface for Invoice aggregate operations.

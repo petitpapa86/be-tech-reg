@@ -7,9 +7,10 @@ import com.bcbs239.regtech.billing.domain.dunning.DunningCaseStatus;
 import com.bcbs239.regtech.billing.domain.dunning.DunningStep;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.DunningCaseEntity;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
@@ -144,7 +145,7 @@ public class JpaDunningCaseRepository {
                     return Result.success(DunningCaseId.fromString(entity.getId()).getValue().orElseThrow());
                 } catch (Exception e) {
                     return Result.failure(ErrorDetail.of("DUNNING_CASE_SAVE_FAILED",
-                        "Failed to save dunning case: " + e.getMessage(), "dunning.case.save.failed"));
+                        ErrorType.BUSINESS_RULE_ERROR, "Failed to save dunning case: " + e.getMessage(), "dunning.case.save.failed"));
                 }
             });
          };

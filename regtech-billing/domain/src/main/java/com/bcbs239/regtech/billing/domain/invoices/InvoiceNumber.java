@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.billing.domain.invoices;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -45,14 +46,14 @@ public record InvoiceNumber(String value) {
      */
     public static Result<InvoiceNumber> fromString(String value) {
         if (value == null) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE_NUMBER", "InvoiceNumber value cannot be null"));
+            return Result.failure("INVALID_INVOICE_NUMBER", ErrorType.BUSINESS_RULE_ERROR, "InvoiceNumber value cannot be null", null);
         }
         if (value.trim().isEmpty()) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE_NUMBER", "InvoiceNumber value cannot be empty"));
+            return Result.failure("INVALID_INVOICE_NUMBER", ErrorType.BUSINESS_RULE_ERROR, "InvoiceNumber value cannot be empty", null);
         }
         if (!value.matches("^INV-\\d{8}-\\d{4}$")) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE_NUMBER", 
-                "InvoiceNumber must follow format INV-YYYYMMDD-NNNN"));
+            return Result.failure("INVALID_INVOICE_NUMBER", ErrorType.BUSINESS_RULE_ERROR,
+                "InvoiceNumber must follow format INV-YYYYMMDD-NNNN", null);
         }
         return Result.success(new InvoiceNumber(value));
     }
@@ -65,8 +66,8 @@ public record InvoiceNumber(String value) {
             String datePart = value.substring(4, 12); // Extract YYYYMMDD part
             return Result.success(LocalDate.parse(datePart, DATE_FORMAT));
         } catch (Exception e) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE_NUMBER_FORMAT", 
-                "Cannot extract date from invoice number: " + value));
+            return Result.failure("INVALID_INVOICE_NUMBER_FORMAT", ErrorType.BUSINESS_RULE_ERROR,
+                "Cannot extract date from invoice number: " + value, null);
         }
     }
     
@@ -78,8 +79,8 @@ public record InvoiceNumber(String value) {
             String sequencePart = value.substring(13); // Extract NNNN part
             return Result.success(Integer.parseInt(sequencePart));
         } catch (Exception e) {
-            return Result.failure(new ErrorDetail("INVALID_INVOICE_NUMBER_FORMAT", 
-                "Cannot extract sequence from invoice number: " + value));
+            return Result.failure("INVALID_INVOICE_NUMBER_FORMAT", ErrorType.BUSINESS_RULE_ERROR,
+                "Cannot extract sequence from invoice number: " + value, null);
         }
     }
     

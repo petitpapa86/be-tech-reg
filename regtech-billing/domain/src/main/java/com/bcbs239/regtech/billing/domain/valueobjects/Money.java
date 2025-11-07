@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.billing.domain.valueobjects;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -146,9 +147,9 @@ public record Money(BigDecimal amount, Currency currency) {
      */
     private Result<Void> validateCurrency(Money other) {
         if (!this.currency.equals(other.currency)) {
-            return Result.failure(new ErrorDetail("CURRENCY_MISMATCH",
+            return Result.failure("CURRENCY_MISMATCH", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot perform operation on different currencies: %s and %s",
-                    this.currency.getCurrencyCode(), other.currency.getCurrencyCode())));
+                    this.currency.getCurrencyCode(), other.currency.getCurrencyCode()), null);
         }
         return Result.success(null);
     }

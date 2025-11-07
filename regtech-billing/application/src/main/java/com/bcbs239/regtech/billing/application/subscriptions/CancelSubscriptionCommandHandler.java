@@ -4,9 +4,10 @@ import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import org.springframework.stereotype.Component;
 
 /**
@@ -40,7 +41,7 @@ public class CancelSubscriptionCommandHandler {
         // Step 2: Find subscription
         Maybe<Subscription> subscriptionMaybe = subscriptionRepository.findById(subscriptionId);
         if (subscriptionMaybe.isEmpty()) {
-            return Result.failure(ErrorDetail.of("SUBSCRIPTION_NOT_FOUND", 
+            return Result.failure(ErrorDetail.of("SUBSCRIPTION_NOT_FOUND", ErrorType.BUSINESS_RULE_ERROR,
                 "Subscription not found: " + subscriptionId, "subscription.not.found"));
         }
         Subscription subscription = subscriptionMaybe.getValue();

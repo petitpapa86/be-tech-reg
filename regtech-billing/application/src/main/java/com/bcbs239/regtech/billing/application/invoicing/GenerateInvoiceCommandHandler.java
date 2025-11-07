@@ -13,9 +13,10 @@ import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -58,7 +59,7 @@ public class GenerateInvoiceCommandHandler {
         // Step 2: Find and validate billing account
         Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository.findById(billingAccountId);
         if (billingAccountMaybe.isEmpty()) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", 
+            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", ErrorType.BUSINESS_RULE_ERROR,
                 "Billing account not found: " + billingAccountId, "invoice.billing.account.not.found"));
         }
         BillingAccount billingAccount = billingAccountMaybe.getValue();
@@ -66,7 +67,7 @@ public class GenerateInvoiceCommandHandler {
         // Step 3: Find active subscription
         Maybe<Subscription> subscriptionMaybe = subscriptionRepository.findActiveByBillingAccountId(billingAccountId);
         if (subscriptionMaybe.isEmpty()) {
-            return Result.failure(ErrorDetail.of("NO_ACTIVE_SUBSCRIPTION", 
+            return Result.failure(ErrorDetail.of("NO_ACTIVE_SUBSCRIPTION", ErrorType.BUSINESS_RULE_ERROR,
                 "No active subscription found for billing account: " + billingAccountId, "invoice.no.active.subscription"));
         }
         Subscription subscription = subscriptionMaybe.getValue();
@@ -169,7 +170,7 @@ public class GenerateInvoiceCommandHandler {
             
             return Result.success(metrics);
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("USAGE_METRICS_QUERY_FAILED", 
+            return Result.failure(ErrorDetail.of("USAGE_METRICS_QUERY_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to query usage metrics: " + e.getMessage(), "invoice.usage.metrics.query.failed"));
         }
     }

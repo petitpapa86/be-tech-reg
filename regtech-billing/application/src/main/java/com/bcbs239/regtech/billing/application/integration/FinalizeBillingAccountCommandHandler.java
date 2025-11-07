@@ -3,9 +3,10 @@ package com.bcbs239.regtech.billing.application.integration;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -32,7 +33,7 @@ public class FinalizeBillingAccountCommandHandler {
                 return Result.failure(saveResult.getError().get());
             }
         } else {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", "Billing account not found: " + billingAccountIdStr, "billing.account.not.found"));
+            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", ErrorType.BUSINESS_RULE_ERROR, "Billing account not found: " + billingAccountIdStr, "billing.account.not.found"));
         }
     }
 }

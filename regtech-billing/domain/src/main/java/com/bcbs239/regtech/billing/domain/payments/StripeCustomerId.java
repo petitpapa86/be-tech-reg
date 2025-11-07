@@ -1,7 +1,9 @@
 package com.bcbs239.regtech.billing.domain.payments;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+
+
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 import java.util.Objects;
 
@@ -19,13 +21,13 @@ public record StripeCustomerId(String value) {
      */
     public static Result<StripeCustomerId> fromString(String value) {
         if (value == null) {
-            return Result.failure(new ErrorDetail("INVALID_STRIPE_CUSTOMER_ID", "StripeCustomerId value cannot be null"));
+            return Result.failure("INVALID_STRIPE_CUSTOMER_ID", ErrorType.BUSINESS_RULE_ERROR, "StripeCustomerId value cannot be null", null);
         }
         if (value.trim().isEmpty()) {
-            return Result.failure(new ErrorDetail("INVALID_STRIPE_CUSTOMER_ID", "StripeCustomerId value cannot be empty"));
+            return Result.failure("INVALID_STRIPE_CUSTOMER_ID", ErrorType.BUSINESS_RULE_ERROR, "StripeCustomerId value cannot be empty", null);
         }
         if (!value.startsWith("cus_")) {
-            return Result.failure(new ErrorDetail("INVALID_STRIPE_CUSTOMER_ID", "StripeCustomerId must start with 'cus_'"));
+            return Result.failure("INVALID_STRIPE_CUSTOMER_ID", ErrorType.BUSINESS_RULE_ERROR, "StripeCustomerId must start with 'cus_'", null);
         }
         return Result.success(new StripeCustomerId(value));
     }

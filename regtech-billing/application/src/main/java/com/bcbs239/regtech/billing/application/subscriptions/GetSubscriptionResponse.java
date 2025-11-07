@@ -5,7 +5,7 @@ import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 
 import java.time.LocalDate;
 

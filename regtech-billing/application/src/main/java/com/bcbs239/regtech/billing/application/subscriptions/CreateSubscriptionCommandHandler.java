@@ -10,9 +10,10 @@ import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -71,14 +72,14 @@ public class CreateSubscriptionCommandHandler {
         // Step 2: Find and validate billing account
         Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository.findById(billingAccountId);
         if (billingAccountMaybe.isEmpty()) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", 
+            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_NOT_FOUND", ErrorType.BUSINESS_RULE_ERROR,
                 "Billing account not found: " + billingAccountId, "subscription.billing.account.not.found"));
         }
         BillingAccount billingAccount = billingAccountMaybe.getValue();
 
         // Step 3: Verify billing account can create subscriptions
         if (!billingAccount.canCreateSubscription()) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_INVALID_STATUS", 
+            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_INVALID_STATUS", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Billing account status %s does not allow subscription creation", 
                     billingAccount.getStatus()), "subscription.billing.account.invalid.status"));
         }
@@ -86,7 +87,7 @@ public class CreateSubscriptionCommandHandler {
         // Step 4: Check for existing active subscription
         Maybe<Subscription> existingSubscription = subscriptionRepository.findActiveByBillingAccountId(billingAccountId);
         if (existingSubscription.isPresent()) {
-            return Result.failure(ErrorDetail.of("ACTIVE_SUBSCRIPTION_EXISTS", 
+            return Result.failure(ErrorDetail.of("ACTIVE_SUBSCRIPTION_EXISTS", ErrorType.BUSINESS_RULE_ERROR,
                 "Billing account already has an active subscription", "subscription.active.already.exists"));
         }
 

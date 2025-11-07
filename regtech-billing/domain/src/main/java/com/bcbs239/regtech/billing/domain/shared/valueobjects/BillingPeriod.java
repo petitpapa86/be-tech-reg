@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.billing.domain.shared.valueobjects;
 
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
+
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -51,8 +52,8 @@ public record BillingPeriod(YearMonth yearMonth) {
             YearMonth ym = YearMonth.parse(period, DateTimeFormatter.ofPattern("yyyy-MM"));
             return Result.success(new BillingPeriod(ym));
         } catch (DateTimeParseException e) {
-            return Result.failure(new ErrorDetail("INVALID_BILLING_PERIOD",
-                "Billing period must be in format yyyy-MM"));
+            return Result.failure("INVALID_BILLING_PERIOD", ErrorType.BUSINESS_RULE_ERROR,
+                "Billing period must be in format yyyy-MM", null);
         }
     }
 
@@ -103,10 +104,10 @@ public record BillingPeriod(YearMonth yearMonth) {
      */
     public Result<Money> calculateProRatedAmount(Money monthlyAmount, LocalDate serviceStartDate) {
         if (monthlyAmount == null) {
-            return Result.failure(new ErrorDetail("INVALID_AMOUNT", "Monthly amount cannot be null"));
+            return Result.failure("INVALID_AMOUNT", ErrorType.BUSINESS_RULE_ERROR, "Monthly amount cannot be null", null);
         }
         if (serviceStartDate == null) {
-            return Result.failure(new ErrorDetail("INVALID_DATE", "Service start date cannot be null"));
+            return Result.failure("INVALID_DATE", ErrorType.BUSINESS_RULE_ERROR, "Service start date cannot be null", null);
         }
 
         LocalDate periodStart = getStartDate();

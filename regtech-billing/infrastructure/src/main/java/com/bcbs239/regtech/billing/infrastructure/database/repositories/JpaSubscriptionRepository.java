@@ -7,9 +7,10 @@ import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.SubscriptionEntity;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.PersistenceContext;
@@ -72,7 +73,7 @@ public class JpaSubscriptionRepository implements SubscriptionRepository {
     @Override
     public Result<SubscriptionId> save(Subscription subscription) {
         if (subscription.getId() != null) {
-            return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
+            return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Cannot save subscription with existing ID", "subscription.save.existing.id"));
         }
         
@@ -83,7 +84,7 @@ public class JpaSubscriptionRepository implements SubscriptionRepository {
                 entityManager.flush();
                 return Result.success(SubscriptionId.fromString(entity.getId()).getValue().orElseThrow());
             } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED",
+                return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                     "Failed to save subscription: " + e.getMessage(), "subscription.save.failed"));
             }
         });
@@ -108,7 +109,7 @@ public class JpaSubscriptionRepository implements SubscriptionRepository {
 
     public Result<SubscriptionId> update(Subscription subscription) {
         if (subscription.getId() == null) {
-            return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
+            return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Cannot update subscription without ID", "subscription.update.missing.id"));
         }
         
@@ -119,7 +120,7 @@ public class JpaSubscriptionRepository implements SubscriptionRepository {
                 entityManager.flush();
                 return Result.success(SubscriptionId.fromString(entity.getId()).getValue().orElseThrow());
             } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED",
+                return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                     "Failed to update subscription: " + e.getMessage(), "subscription.update.failed"));
             }
         });

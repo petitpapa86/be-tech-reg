@@ -1,7 +1,9 @@
 package com.bcbs239.regtech.billing.domain.subscriptions;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+
+
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -27,10 +29,10 @@ public record SubscriptionId(String value) {
      */
     public static Result<SubscriptionId> fromString(String value) {
         if (value == null) {
-            return Result.failure(new ErrorDetail("INVALID_SUBSCRIPTION_ID", "SubscriptionId value cannot be null"));
+            return Result.failure("INVALID_SUBSCRIPTION_ID", ErrorType.BUSINESS_RULE_ERROR, "SubscriptionId value cannot be null", null);
         }
         if (value.trim().isEmpty()) {
-            return Result.failure(new ErrorDetail("INVALID_SUBSCRIPTION_ID", "SubscriptionId value cannot be empty"));
+            return Result.failure("INVALID_SUBSCRIPTION_ID", ErrorType.BUSINESS_RULE_ERROR, "SubscriptionId value cannot be empty", null);
         }
         return Result.success(new SubscriptionId(value));
     }

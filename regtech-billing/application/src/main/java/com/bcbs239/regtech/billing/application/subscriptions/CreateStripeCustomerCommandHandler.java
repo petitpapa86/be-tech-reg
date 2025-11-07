@@ -7,12 +7,13 @@ import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreatedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreationFailedEvent;
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.events.CrossModuleEventBus;
-import com.bcbs239.regtech.core.saga.AbstractSaga;
-import com.bcbs239.regtech.core.saga.SagaId;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.infrastructure.eventprocessing.CrossModuleEventBus;
+import com.bcbs239.regtech.core.infrastructure.saga.AbstractSaga;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -29,35 +30,33 @@ import java.util.function.Function;
 @SuppressWarnings("unused")
 public class CreateStripeCustomerCommandHandler {
 
-    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CreateStripeCustomerCommandHandler.class);
+    private final ILogger asyncLogger;
 
     private final PaymentService paymentService;
     private final CrossModuleEventBus crossModuleEventBus;
     private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
-    private final BillingAccountRepository billingAccountRepository;
 
     @SuppressWarnings("unused")
-    @Autowired
     public CreateStripeCustomerCommandHandler(
-            PaymentService paymentService,
+            ILogger asyncLogger, PaymentService paymentService,
             CrossModuleEventBus crossModuleEventBus,
             Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
             BillingAccountRepository billingAccountRepository) {
+        this.asyncLogger = asyncLogger;
         this.paymentService = paymentService;
         this.crossModuleEventBus = crossModuleEventBus;
         this.sagaLoader = sagaLoader;
-        this.billingAccountRepository = billingAccountRepository;
     }
 
     @EventListener
     @Async("sagaTaskExecutor")
     public void handle(CreateStripeCustomerCommand command) {
-        SagaId sagaId = command.getSagaId();
-        LoggingConfiguration.logStructured("CREATE_STRIPE_CUSTOMER_COMMAND_RECEIVED", Map.of(
+        SagaId sagaId = command.sagaId();
+        asyncLogger.asyncStructuredLog("CREATE_STRIPE_CUSTOMER_COMMAND_RECEIVED", Map.of(
                 "sagaId", sagaId,
                 "userEmail", command.getEmail(),
                 "userName", command.getName()
-        ), null);
+        ));
 
         // Create customer using PaymentService
         PaymentMethodId paymentMethodId = PaymentMethodId.fromString(command.getPaymentMethodId()).getValue().orElse(null);
@@ -76,10 +75,10 @@ public class CreateStripeCustomerCommandHandler {
         
         if (result.isFailure()) {
             String errorMsg = result.getError().get().getMessage();
-            LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATION_FAILED", Map.of(
+            asyncLogger.asyncStructuredLog("STRIPE_CUSTOMER_CREATION_FAILED", Map.of(
                     "sagaId", sagaId,
                     "error", errorMsg
-            ), null);
+            ));
             publishFailureEvent(sagaId, errorMsg);
             return;
         }
@@ -93,17 +92,17 @@ public class CreateStripeCustomerCommandHandler {
         StripeCustomerCreatedEvent event = new StripeCustomerCreatedEvent(sagaId, customer.customerId().getValue());
         crossModuleEventBus.publishEventSynchronously(event);
         
-        LoggingConfiguration.logStructured("STRIPE_CUSTOMER_CREATED_PUBLISHED", Map.of(
+        asyncLogger.asyncStructuredLog("STRIPE_CUSTOMER_CREATED_PUBLISHED", Map.of(
                 "sagaId", sagaId,
                 "stripeCustomerId", customer.customerId().getValue()
-        ), null);
+        ));
     }
 
     private void updateBillingAccount(SagaId sagaId, StripeCustomerId customerId) {
         // Find billing account associated with saga
         Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
         if (maybeSaga.isEmpty()) {
-            LoggingConfiguration.logStructured("SAGA_NOT_FOUND", Map.of("sagaId", sagaId), null);
+            asyncLogger.asyncStructuredLog("SAGA_NOT_FOUND", Map.of("sagaId", sagaId));
             return;
         }
 

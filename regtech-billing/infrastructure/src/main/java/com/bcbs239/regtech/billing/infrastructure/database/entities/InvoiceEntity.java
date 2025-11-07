@@ -4,7 +4,7 @@ import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.invoices.*;
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

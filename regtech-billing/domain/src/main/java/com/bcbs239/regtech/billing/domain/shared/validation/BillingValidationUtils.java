@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.billing.domain.shared.validation;
 
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -54,27 +55,25 @@ public class BillingValidationUtils {
      */
     public static Result<Void> validatePaymentAmount(BigDecimal amount) {
         if (amount == null) {
-            return Result.failure(ErrorDetail.of("PAYMENT_AMOUNT_NULL",
+            return Result.failure(ErrorDetail.of("PAYMENT_AMOUNT_NULL", ErrorType.BUSINESS_RULE_ERROR,
                     "Payment amount cannot be null", "validation.payment.amount.null"));
         }
 
         if (amount.compareTo(MIN_PAYMENT_AMOUNT) < 0) {
-            return Result.failure(ErrorDetail.of("PAYMENT_AMOUNT_TOO_SMALL",
+            return Result.failure(ErrorDetail.of("PAYMENT_AMOUNT_TOO_SMALL", ErrorType.BUSINESS_RULE_ERROR,
                     String.format("Payment amount must be at least %s", MIN_PAYMENT_AMOUNT),
                     "validation.payment.amount.too.small"));
         }
 
         if (amount.compareTo(MAX_PAYMENT_AMOUNT) > 0) {
-            return Result.failure(ErrorDetail.of("PAYMENT_AMOUNT_TOO_LARGE",
+            return Result.failure(ErrorDetail.of("PAYMENT_AMOUNT_TOO_LARGE", ErrorType.BUSINESS_RULE_ERROR,
                     String.format("Payment amount cannot exceed %s", MAX_PAYMENT_AMOUNT),
                     "validation.payment.amount.too.large"));
         }
 
         // Check for reasonable decimal places (max 4 for internal calculations, 2 for display)
         if (amount.scale() > 4) {
-            return Result.failure(ErrorDetail.of("PAYMENT_AMOUNT_TOO_PRECISE",
-                    "Payment amount cannot have more than 4 decimal places",
-                    "validation.payment.amount.too.precise"));
+            return Result.failure(ErrorDetail.of("PAYMENT_AMOUNT_TOO_PRECISE", ErrorType.BUSINESS_RULE_ERROR, "Payment amount cannot have more than 4 decimal places", "validation.payment.amount.too.precise"));
         }
 
         return Result.success(null);
@@ -85,14 +84,14 @@ public class BillingValidationUtils {
      */
     public static Result<Currency> validateCurrency(String currencyCode) {
         if (currencyCode == null || currencyCode.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("CURRENCY_CODE_REQUIRED",
+            return Result.failure(ErrorDetail.of("CURRENCY_CODE_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                     "Currency code is required", "validation.currency.code.required"));
         }
 
         String normalizedCode = currencyCode.trim().toUpperCase();
 
         if (!SUPPORTED_CURRENCIES.contains(normalizedCode)) {
-            return Result.failure(ErrorDetail.of("CURRENCY_NOT_SUPPORTED",
+            return Result.failure(ErrorDetail.of("CURRENCY_NOT_SUPPORTED", ErrorType.BUSINESS_RULE_ERROR,
                     String.format("Currency %s is not supported. Supported currencies: %s",
                             normalizedCode, SUPPORTED_CURRENCIES),
                     "validation.currency.not.supported"));
@@ -102,7 +101,7 @@ public class BillingValidationUtils {
             Currency currency = Currency.getInstance(normalizedCode);
             return Result.success(currency);
         } catch (IllegalArgumentException e) {
-            return Result.failure(ErrorDetail.of("INVALID_CURRENCY_CODE",
+            return Result.failure(ErrorDetail.of("INVALID_CURRENCY_CODE", ErrorType.BUSINESS_RULE_ERROR,
                     String.format("Invalid currency code: %s", normalizedCode),
                     "validation.currency.invalid"));
         }
@@ -113,12 +112,12 @@ public class BillingValidationUtils {
      */
     public static Result<Void> validateStripeCustomerId(String customerId) {
         if (customerId == null || customerId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("STRIPE_CUSTOMER_ID_REQUIRED",
+            return Result.failure(ErrorDetail.of("STRIPE_CUSTOMER_ID_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                     "Stripe customer ID is required", "validation.stripe.customer.id.required"));
         }
 
         if (!STRIPE_CUSTOMER_ID_PATTERN.matcher(customerId.trim()).matches()) {
-            return Result.failure(ErrorDetail.of("INVALID_STRIPE_CUSTOMER_ID",
+            return Result.failure(ErrorDetail.of("INVALID_STRIPE_CUSTOMER_ID", ErrorType.BUSINESS_RULE_ERROR,
                     "Invalid Stripe customer ID format", "validation.stripe.customer.id.invalid"));
         }
 
@@ -130,12 +129,12 @@ public class BillingValidationUtils {
      */
     public static Result<Void> validateStripeSubscriptionId(String subscriptionId) {
         if (subscriptionId == null || subscriptionId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("STRIPE_SUBSCRIPTION_ID_REQUIRED",
+            return Result.failure(ErrorDetail.of("STRIPE_SUBSCRIPTION_ID_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                     "Stripe subscription ID is required", "validation.stripe.subscription.id.required"));
         }
 
         if (!STRIPE_SUBSCRIPTION_ID_PATTERN.matcher(subscriptionId.trim()).matches()) {
-            return Result.failure(ErrorDetail.of("INVALID_STRIPE_SUBSCRIPTION_ID",
+            return Result.failure(ErrorDetail.of("INVALID_STRIPE_SUBSCRIPTION_ID", ErrorType.BUSINESS_RULE_ERROR,
                     "Invalid Stripe subscription ID format", "validation.stripe.subscription.id.invalid"));
         }
 
@@ -147,12 +146,12 @@ public class BillingValidationUtils {
      */
     public static Result<Void> validateStripeInvoiceId(String invoiceId) {
         if (invoiceId == null || invoiceId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("STRIPE_INVOICE_ID_REQUIRED",
+            return Result.failure(ErrorDetail.of("STRIPE_INVOICE_ID_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                     "Stripe invoice ID is required", "validation.stripe.invoice.id.required"));
         }
 
         if (!STRIPE_INVOICE_ID_PATTERN.matcher(invoiceId.trim()).matches()) {
-            return Result.failure(ErrorDetail.of("INVALID_STRIPE_INVOICE_ID",
+            return Result.failure(ErrorDetail.of("INVALID_STRIPE_INVOICE_ID", ErrorType.BUSINESS_RULE_ERROR,
                     "Invalid Stripe invoice ID format", "validation.stripe.invoice.id.invalid"));
         }
 
@@ -164,12 +163,12 @@ public class BillingValidationUtils {
      */
     public static Result<Void> validateStripePaymentMethodId(String paymentMethodId) {
         if (paymentMethodId == null || paymentMethodId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("STRIPE_PAYMENT_METHOD_ID_REQUIRED",
+            return Result.failure(ErrorDetail.of("STRIPE_PAYMENT_METHOD_ID_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                     "Stripe payment method ID is required", "validation.stripe.payment.method.id.required"));
         }
 
         if (!STRIPE_PAYMENT_METHOD_ID_PATTERN.matcher(paymentMethodId.trim()).matches()) {
-            return Result.failure(ErrorDetail.of("INVALID_STRIPE_PAYMENT_METHOD_ID",
+            return Result.failure(ErrorDetail.of("INVALID_STRIPE_PAYMENT_METHOD_ID", ErrorType.BUSINESS_RULE_ERROR,
                     "Invalid Stripe payment method ID format", "validation.stripe.payment.method.id.invalid"));
         }
 
@@ -181,12 +180,12 @@ public class BillingValidationUtils {
      */
     public static Result<Void> validateStripeEventId(String eventId) {
         if (eventId == null || eventId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("STRIPE_EVENT_ID_REQUIRED",
+            return Result.failure(ErrorDetail.of("STRIPE_EVENT_ID_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                     "Stripe event ID is required", "validation.stripe.event.id.required"));
         }
 
         if (!STRIPE_EVENT_ID_PATTERN.matcher(eventId.trim()).matches()) {
-            return Result.failure(ErrorDetail.of("INVALID_STRIPE_EVENT_ID",
+            return Result.failure(ErrorDetail.of("INVALID_STRIPE_EVENT_ID", ErrorType.BUSINESS_RULE_ERROR,
                     "Invalid Stripe event ID format", "validation.stripe.event.id.invalid"));
         }
 
@@ -198,7 +197,7 @@ public class BillingValidationUtils {
      */
     public static Result<JsonNode> validateWebhookPayload(String payload) {
         if (payload == null || payload.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("WEBHOOK_PAYLOAD_REQUIRED",
+            return Result.failure(ErrorDetail.of("WEBHOOK_PAYLOAD_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                     "Webhook payload is required", "validation.webhook.payload.required"));
         }
 
@@ -207,22 +206,22 @@ public class BillingValidationUtils {
 
             // Validate required fields
             if (!eventJson.has("id")) {
-                return Result.failure(ErrorDetail.of("WEBHOOK_MISSING_ID",
+                return Result.failure(ErrorDetail.of("WEBHOOK_MISSING_ID", ErrorType.BUSINESS_RULE_ERROR,
                         "Webhook payload missing required 'id' field", "validation.webhook.missing.id"));
             }
 
             if (!eventJson.has("type")) {
-                return Result.failure(ErrorDetail.of("WEBHOOK_MISSING_TYPE",
+                return Result.failure(ErrorDetail.of("WEBHOOK_MISSING_TYPE", ErrorType.BUSINESS_RULE_ERROR,
                         "Webhook payload missing required 'type' field", "validation.webhook.missing.type"));
             }
 
             if (!eventJson.has("data")) {
-                return Result.failure(ErrorDetail.of("WEBHOOK_MISSING_DATA",
+                return Result.failure(ErrorDetail.of("WEBHOOK_MISSING_DATA", ErrorType.BUSINESS_RULE_ERROR,
                         "Webhook payload missing required 'data' field", "validation.webhook.missing.data"));
             }
 
             if (!eventJson.has("created")) {
-                return Result.failure(ErrorDetail.of("WEBHOOK_MISSING_CREATED",
+                return Result.failure(ErrorDetail.of("WEBHOOK_MISSING_CREATED", ErrorType.BUSINESS_RULE_ERROR,
                         "Webhook payload missing required 'created' field", "validation.webhook.missing.created"));
             }
 
@@ -236,14 +235,14 @@ public class BillingValidationUtils {
             // Validate event type
             String eventType = eventJson.get("type").asText();
             if (eventType == null || eventType.trim().isEmpty()) {
-                return Result.failure(ErrorDetail.of("WEBHOOK_INVALID_TYPE",
+                return Result.failure(ErrorDetail.of("WEBHOOK_INVALID_TYPE", ErrorType.BUSINESS_RULE_ERROR,
                         "Webhook event type cannot be empty", "validation.webhook.invalid.type"));
             }
 
             return Result.success(eventJson);
 
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("WEBHOOK_PAYLOAD_INVALID_JSON",
+            return Result.failure(ErrorDetail.of("WEBHOOK_PAYLOAD_INVALID_JSON", ErrorType.BUSINESS_RULE_ERROR,
                     "Webhook payload is not valid JSON: " + e.getMessage(),
                     "validation.webhook.payload.invalid.json"));
         }
@@ -254,13 +253,13 @@ public class BillingValidationUtils {
      */
     public static Result<Void> validateWebhookSignature(String signatureHeader) {
         if (signatureHeader == null || signatureHeader.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("WEBHOOK_SIGNATURE_REQUIRED",
+            return Result.failure(ErrorDetail.of("WEBHOOK_SIGNATURE_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                     "Webhook signature header is required", "validation.webhook.signature.required"));
         }
 
         // Stripe signature format: t=timestamp,v1=signature
         if (!signatureHeader.contains("t=") || !signatureHeader.contains("v1=")) {
-            return Result.failure(ErrorDetail.of("WEBHOOK_SIGNATURE_INVALID_FORMAT",
+            return Result.failure(ErrorDetail.of("WEBHOOK_SIGNATURE_INVALID_FORMAT", ErrorType.BUSINESS_RULE_ERROR,
                     "Webhook signature header has invalid format", "validation.webhook.signature.invalid.format"));
         }
 
@@ -292,15 +291,13 @@ public class BillingValidationUtils {
      */
     public static Result<Void> validateCorrelationId(String correlationId) {
         if (correlationId == null || correlationId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("CORRELATION_ID_REQUIRED",
+            return Result.failure(ErrorDetail.of("CORRELATION_ID_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                     "Correlation ID is required", "validation.correlation.id.required"));
         }
 
         String sanitized = sanitizeStringInput(correlationId);
         if (sanitized.length() < 3 || sanitized.length() > 100) {
-            return Result.failure(ErrorDetail.of("CORRELATION_ID_INVALID_LENGTH",
-                    "Correlation ID must be between 3 and 100 characters",
-                    "validation.correlation.id.invalid.length"));
+            return Result.failure(ErrorDetail.of("CORRELATION_ID_INVALID_LENGTH", ErrorType.BUSINESS_RULE_ERROR, "Correlation ID must be between 3 and 100 characters", "validation.correlation.id.invalid.length"));
         }
 
         return Result.success(null);
@@ -311,18 +308,18 @@ public class BillingValidationUtils {
      */
     public static Result<Void> validateBillingAccountId(String billingAccountId) {
         if (billingAccountId == null || billingAccountId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_ID_REQUIRED",
+            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_ID_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                     "Billing account ID is required", "validation.billing.account.id.required"));
         }
 
         String sanitized = sanitizeStringInput(billingAccountId);
         if (sanitized.length() < 3 || sanitized.length() > 50) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_ID_INVALID_LENGTH",
-                    "Billing account ID must be between 3 and 50 characters",
-                    "validation.billing.account.id.invalid.length"));
+            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_ID_INVALID_LENGTH", ErrorType.BUSINESS_RULE_ERROR, "Billing account ID must be between 3 and 50 characters", "validation.billing.account.id.invalid.length"));
         }
 
         return Result.success(null);
     }
 }
+
+
 

@@ -4,8 +4,9 @@ package com.bcbs239.regtech.billing.application.invoicing;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.shared.validation.BillingValidationUtils;
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -39,13 +40,13 @@ public record GenerateInvoiceCommand(
         }
         
         if (billingPeriod == null) {
-            return Result.failure(ErrorDetail.of("BILLING_PERIOD_REQUIRED", 
+            return Result.failure(ErrorDetail.of("BILLING_PERIOD_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                 "Billing period is required", "invoice.billing.period.required"));
         }
         
         // Validate billing period dates
         if (billingPeriod.getStartDate().isAfter(billingPeriod.getEndDate())) {
-            return Result.failure(ErrorDetail.of("INVALID_BILLING_PERIOD", 
+            return Result.failure(ErrorDetail.of("INVALID_BILLING_PERIOD", ErrorType.BUSINESS_RULE_ERROR,
                 "Billing period start date cannot be after end date", "invoice.billing.period.invalid"));
         }
         
@@ -60,7 +61,7 @@ public record GenerateInvoiceCommand(
      */
     public static Result<GenerateInvoiceCommand> forMonth(String billingAccountId, YearMonth yearMonth) {
         if (yearMonth == null) {
-            return Result.failure(ErrorDetail.of("YEAR_MONTH_REQUIRED", 
+            return Result.failure(ErrorDetail.of("YEAR_MONTH_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                 "Year month is required", "invoice.year.month.required"));
         }
         

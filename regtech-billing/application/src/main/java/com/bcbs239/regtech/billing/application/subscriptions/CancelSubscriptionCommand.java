@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.billing.application.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
@@ -30,7 +31,7 @@ public record CancelSubscriptionCommand(
      */
     public static Result<CancelSubscriptionCommand> create(String subscriptionId, LocalDate cancellationDate) {
         if (subscriptionId == null || subscriptionId.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("SUBSCRIPTION_ID_REQUIRED", 
+            return Result.failure(ErrorDetail.of("SUBSCRIPTION_ID_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                 "Subscription ID is required", "subscription.id.required"));
         }
         

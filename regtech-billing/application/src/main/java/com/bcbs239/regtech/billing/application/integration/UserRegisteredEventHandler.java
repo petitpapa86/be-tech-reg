@@ -16,7 +16,8 @@ import com.bcbs239.regtech.core.config.LoggingConfiguration;
 import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
 import com.bcbs239.regtech.core.saga.SagaId;
 import com.bcbs239.regtech.core.saga.SagaManager;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -76,7 +77,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
             UserId userId = UserId.fromString(event.getUserId());
 
             // Check if billing account already exists (idempotency)
-            com.bcbs239.regtech.core.shared.Maybe<BillingAccount> existingAccount = billingAccountRepository.findByUserId(userId);
+            Maybe<BillingAccount> existingAccount = billingAccountRepository.findByUserId(userId);
             if (existingAccount.isPresent()) {
                 LoggingConfiguration.logStructured("Billing account already exists, skipping processing", Map.of(
                     "eventType", "BILLING_ACCOUNT_EXISTS",

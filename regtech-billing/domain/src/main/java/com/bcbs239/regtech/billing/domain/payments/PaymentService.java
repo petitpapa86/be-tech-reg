@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.domain.payments;
 
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 /**
  * Domain service interface for payment processing operations.

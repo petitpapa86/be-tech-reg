@@ -1,10 +1,13 @@
 package com.bcbs239.regtech.billing.domain.subscriptions.events;
 
-import com.bcbs239.regtech.core.saga.SagaId;
-import com.bcbs239.regtech.core.saga.SagaMessage;
+
+import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.saga.SagaMessage;
+import lombok.Getter;
 
 import java.time.Instant;
 
+@Getter
 public class StripeSubscriptionWebhookReceivedEvent extends SagaMessage {
 
     private final String stripeSubscriptionId;
@@ -16,12 +19,5 @@ public class StripeSubscriptionWebhookReceivedEvent extends SagaMessage {
         this.stripeInvoiceId = stripeInvoiceId;
     }
 
-    public String getStripeSubscriptionId() {
-        return stripeSubscriptionId;
-    }
-
-    public String getStripeInvoiceId() {
-        return stripeInvoiceId;
-    }
 }
 

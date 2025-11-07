@@ -2,8 +2,9 @@ package com.bcbs239.regtech.billing.domain.invoices;
 
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
+
 
 /**
  * Value object representing an invoice line item.
@@ -22,13 +23,13 @@ public record InvoiceLineItem(
      */
     public static Result<InvoiceLineItem> forSubscription(String tier, Money amount, BillingPeriod billingPeriod) {
         if (tier == null || tier.trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of("INVALID_TIER", "Tier cannot be null or empty", "invoice.lineitem.tier.invalid"));
+            return Result.failure("INVALID_TIER", ErrorType.BUSINESS_RULE_ERROR, "Tier cannot be null or empty", "invoice.lineitem.tier.invalid");
         }
         if (amount == null) {
-            return Result.failure(ErrorDetail.of("INVALID_AMOUNT", "Amount cannot be null", "invoice.lineitem.amount.invalid"));
+            return Result.failure("INVALID_AMOUNT", ErrorType.BUSINESS_RULE_ERROR, "Amount cannot be null", "invoice.lineitem.amount.invalid");
         }
         if (!amount.isPositive()) {
-            return Result.failure(ErrorDetail.of("INVALID_AMOUNT", "Amount must be positive", "invoice.lineitem.amount.negative"));
+            return Result.failure("INVALID_AMOUNT", ErrorType.BUSINESS_RULE_ERROR, "Amount must be positive", "invoice.lineitem.amount.negative");
         }
 
         InvoiceLineItemId id = InvoiceLineItemId.generate();
@@ -45,13 +46,13 @@ public record InvoiceLineItem(
      */
     public static Result<InvoiceLineItem> forOverage(int overageCount, Money overageRate) {
         if (overageCount <= 0) {
-            return Result.failure(ErrorDetail.of("INVALID_COUNT", "Overage count must be positive", "invoice.lineitem.count.invalid"));
+            return Result.failure("INVALID_COUNT", ErrorType.BUSINESS_RULE_ERROR, "Overage count must be positive", "invoice.lineitem.count.invalid");
         }
         if (overageRate == null) {
-            return Result.failure(ErrorDetail.of("INVALID_RATE", "Overage rate cannot be null", "invoice.lineitem.rate.invalid"));
+            return Result.failure("INVALID_RATE", ErrorType.BUSINESS_RULE_ERROR, "Overage rate cannot be null", "invoice.lineitem.rate.invalid");
         }
         if (!overageRate.isPositive()) {
-            return Result.failure(ErrorDetail.of("INVALID_RATE", "Overage rate must be positive", "invoice.lineitem.rate.negative"));
+            return Result.failure("INVALID_RATE", ErrorType.BUSINESS_RULE_ERROR, "Overage rate must be positive", "invoice.lineitem.rate.negative");
         }
 
         InvoiceLineItemId id = InvoiceLineItemId.generate();

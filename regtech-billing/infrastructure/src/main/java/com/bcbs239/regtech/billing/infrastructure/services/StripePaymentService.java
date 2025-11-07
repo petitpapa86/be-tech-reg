@@ -6,8 +6,9 @@ import com.bcbs239.regtech.billing.domain.shared.events.WebhookEvent;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeCustomer;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeService;
 import com.bcbs239.regtech.billing.infrastructure.external.stripe.StripeSubscription;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stripe.model.Event;
@@ -53,7 +54,7 @@ public class StripePaymentService implements PaymentService {
             return Result.success(domainResult);
             
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("CUSTOMER_CREATION_FAILED",
+            return Result.failure(ErrorDetail.of("CUSTOMER_CREATION_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to create customer: " + e.getMessage(),
                 "error.payment.customerCreationFailed"));
         }
@@ -84,7 +85,7 @@ public class StripePaymentService implements PaymentService {
             return Result.success(domainResult);
             
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("SUBSCRIPTION_CREATION_FAILED",
+            return Result.failure(ErrorDetail.of("SUBSCRIPTION_CREATION_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to create subscription: " + e.getMessage(),
                 "error.payment.subscriptionCreationFailed"));
         }
@@ -100,7 +101,7 @@ public class StripePaymentService implements PaymentService {
             }
             return stripeService.cancelSubscription(parsed.getValue().get());
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("SUBSCRIPTION_CANCELLATION_FAILED",
+            return Result.failure(ErrorDetail.of("SUBSCRIPTION_CANCELLATION_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to cancel subscription: " + e.getMessage(),
                 "error.payment.subscriptionCancellationFailed"));
         }
@@ -133,7 +134,7 @@ public class StripePaymentService implements PaymentService {
             return Result.success(domainResult);
             
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("INVOICE_CREATION_FAILED",
+            return Result.failure(ErrorDetail.of("INVOICE_CREATION_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to create invoice: " + e.getMessage(),
                 "error.payment.invoiceCreationFailed"));
         }
@@ -156,7 +157,7 @@ public class StripePaymentService implements PaymentService {
             WebhookEvent webhookEvent = new WebhookEvent(event.getId(), event.getType(), dataNode, created);
             return Result.success(webhookEvent);
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("WEBHOOK_VERIFICATION_FAILED",
+            return Result.failure(ErrorDetail.of("WEBHOOK_VERIFICATION_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to verify and parse webhook: " + e.getMessage(),
                 "error.payment.webhookVerificationFailed"));
         }

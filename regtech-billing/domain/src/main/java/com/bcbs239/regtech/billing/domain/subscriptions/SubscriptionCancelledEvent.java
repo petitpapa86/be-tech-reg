@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.domain.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
-import com.bcbs239.regtech.core.events.BaseEvent;
+import com.bcbs239.regtech.core.domain.events.BaseEvent;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 
 import java.time.LocalDate;
@@ -26,7 +26,6 @@ public class SubscriptionCancelledEvent extends BaseEvent {
                                     LocalDate cancellationDate,
                                     String cancellationReason,
                                     String correlationId) {
-        super(correlationId, "billing");
         this.subscriptionId = subscriptionId;
         this.billingAccountId = billingAccountId;
         this.userId = userId;

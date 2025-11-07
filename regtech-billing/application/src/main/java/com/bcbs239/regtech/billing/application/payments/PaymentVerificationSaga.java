@@ -12,16 +12,21 @@ import com.bcbs239.regtech.billing.domain.payments.events.StripePaymentSucceeded
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionWebhookReceivedEvent;
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.saga.*;
+import com.bcbs239.regtech.core.domain.saga.SagaStatus;
+import com.bcbs239.regtech.core.infrastructure.saga.AbstractSaga;
+import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
 
 import java.time.Instant;
 import java.util.Map;
 
 public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSagaData> {
-
-    public PaymentVerificationSaga(SagaId id, PaymentVerificationSagaData data, SagaClosures.TimeoutScheduler timeoutScheduler) {
-        super(id, "PaymentVerificationSaga", data, timeoutScheduler);
+    private final ILogger asyncLogger;
+    public PaymentVerificationSaga(SagaId id, PaymentVerificationSagaData data, TimeoutScheduler timeoutScheduler, ILogger logger, ILogger asyncLogger) {
+        super(id, "PaymentVerificationSaga", data, timeoutScheduler, logger);
+        this.asyncLogger = asyncLogger;
         registerHandlers();
     }
 
@@ -38,18 +43,13 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
     private void handleSagaStarted(SagaStartedEvent event) {
         // Dispatch CreateStripeCustomerCommand to start the process
         CreateStripeCustomerCommand createCommand = CreateStripeCustomerCommand.create(
-                event.getSagaId(),
+                event.sagaId(),
                 data.getUserEmail(),
                 data.getUserName(),
                 data.getPaymentMethodId()
         );
         dispatchCommand(createCommand);
 
-        LoggingConfiguration.createStructuredLog("PAYMENT_VERIFICATION_SAGA_DISPATCHED_COMMAND", Map.of(
-            "sagaId", event.getSagaId(),
-            "commandType", "CreateStripeCustomerCommand",
-            "userEmail", data.getUserEmail()
-        ));
 
         // Schedule payment timeout using SLA
         timeoutScheduler.schedule(
@@ -69,15 +69,6 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             data.getUserId()
         ));
 
-        try {
-            LoggingConfiguration.createStructuredLog("SAGA_COMMAND_ENQUEUED_IN_HANDLER", Map.of(
-                "sagaId", getId(),
-                "commandType", "CreateStripeSubscriptionCommand",
-                "commandsPending", this.peekCommandsToDispatch().size()
-            ));
-        } catch (Exception e) {
-            // ignore logging errors
-        }
 
         updateStatus();
     }
@@ -177,7 +168,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         // Compensation: Reverse successful operations
         if (data.getStripeCustomerId() != null) {
             // Log compensation intent for customer deletion
-            LoggingConfiguration.createStructuredLog("SAGA_COMPENSATION_CUSTOMER", Map.of(
+            asyncLogger.asyncStructuredLog("SAGA_COMPENSATION_CUSTOMER", Map.of(
                 "sagaId", getId(),
                 "stripeCustomerId", data.getStripeCustomerId()
             ));
@@ -185,14 +176,14 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         }
         if (data.getStripeInvoiceId() != null) {
             // Log compensation intent for invoice void
-            LoggingConfiguration.createStructuredLog("SAGA_COMPENSATION_INVOICE", Map.of(
+            asyncLogger.asyncStructuredLog("SAGA_COMPENSATION_INVOICE", Map.of(
                 "sagaId", getId(),
                 "stripeInvoiceId", data.getStripeInvoiceId()
             ));
             // dispatchCommand(new VoidStripeInvoiceCommand(getId(), data.getStripeInvoiceId()));
         }
         // Dispatch notification to customer
-        LoggingConfiguration.createStructuredLog("SAGA_COMPENSATION_NOTIFY", Map.of(
+        asyncLogger.asyncStructuredLog("SAGA_COMPENSATION_NOTIFY", Map.of(
             "sagaId", getId(),
             "userId", data.getUserId()
         ));

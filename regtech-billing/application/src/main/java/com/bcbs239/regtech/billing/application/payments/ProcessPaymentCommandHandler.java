@@ -10,7 +10,8 @@ import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.springframework.stereotype.Component;
 
@@ -98,7 +99,7 @@ public class ProcessPaymentCommandHandler {
         }
         
         Subscription subscription = Subscription.create(
-            com.bcbs239.regtech.core.shared.Maybe.some(saveAccountResult.getValue().get()),
+            Maybe.some(saveAccountResult.getValue().get()),
             stripeSubIdResult.getValue().get(),
             SubscriptionTier.STARTER,
             java.time.LocalDate.now()

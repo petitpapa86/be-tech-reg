@@ -9,13 +9,14 @@ import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.events.CrossModuleEventBus;
-import com.bcbs239.regtech.core.saga.AbstractSaga;
-import com.bcbs239.regtech.core.saga.SagaId;
-import com.bcbs239.regtech.core.saga.SagaManager;
-import com.bcbs239.regtech.core.shared.Maybe;
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.application.saga.SagaManager;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.infrastructure.eventprocessing.CrossModuleEventBus;
+import com.bcbs239.regtech.core.infrastructure.saga.AbstractSaga;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -37,8 +38,8 @@ public class CreateStripeSubscriptionCommandHandler {
     private final Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder;
     private final Function<Subscription, Result<SubscriptionId>> subscriptionSaver;
     private final CrossModuleEventBus crossModuleEventBus;
-    private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
     private final SagaManager sagaManager;
+    private final ILogger asyncLogger;
 
     public CreateStripeSubscriptionCommandHandler(
             PaymentService paymentService,
@@ -47,17 +48,16 @@ public class CreateStripeSubscriptionCommandHandler {
             Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder,
             Function<Subscription, Result<SubscriptionId>> subscriptionSaver,
             CrossModuleEventBus crossModuleEventBus,
-            Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
-            SagaManager sagaManager
-            ) {
+            SagaManager sagaManager, ILogger asyncLogger
+    ) {
         this.paymentService = paymentService;
         this.billingAccountByUserFinder = billingAccountByUserFinder;
         this.billingAccountSaver = billingAccountSaver;
         this.subscriptionByBillingAccountAndTierFinder = subscriptionByBillingAccountAndTierFinder;
         this.subscriptionSaver = subscriptionSaver;
         this.crossModuleEventBus = crossModuleEventBus;
-        this.sagaLoader = sagaLoader;
         this.sagaManager = sagaManager;
+        this.asyncLogger = asyncLogger;
     }
 
     /**
@@ -68,12 +68,12 @@ public class CreateStripeSubscriptionCommandHandler {
     public void handle(CreateStripeSubscriptionCommand command) {
         // Diagnostic log to confirm the command arrived at the handler
         try {
-            LoggingConfiguration.logStructured("CREATE_STRIPE_SUBSCRIPTION_COMMAND_RECEIVED", Map.of(
-                "sagaId", command.getSagaId(),
+            asyncLogger.asyncStructuredLog("CREATE_STRIPE_SUBSCRIPTION_COMMAND_RECEIVED", Map.of(
+                "sagaId", command.sagaId(),
                 "stripeCustomerId", command.getStripeCustomerId(),
                 "userId", command.getUserId(),
                 "subscriptionTier", command.getSubscriptionTier()
-            ), null);
+            ));
         } catch (Exception e) {
             // ignore logging failures
         }
@@ -152,7 +152,7 @@ public class CreateStripeSubscriptionCommandHandler {
 
         // Notify saga of subscription creation: let SagaManager process event so commands are dispatched
         StripeSubscriptionCreatedEvent ev = new StripeSubscriptionCreatedEvent(
-            command.getSagaId(),
+            command.sagaId(),
             stripeSubscriptionId.value(),
             "in_" + stripeSubscriptionId.value(), // Mock invoice ID - would need to be provided by payment service
             subscriptionId
@@ -160,15 +160,15 @@ public class CreateStripeSubscriptionCommandHandler {
 
         try {
             sagaManager.processEvent(ev);
-            LoggingConfiguration.logStructured("STRIPE_SUBSCRIPTION_CREATED_PROCESSED_BY_SAGAMANAGER", Map.of(
-                "sagaId", command.getSagaId(),
+            asyncLogger.asyncStructuredLog("STRIPE_SUBSCRIPTION_CREATED_PROCESSED_BY_SAGAMANAGER", Map.of(
+                "sagaId", command.sagaId(),
                 "stripeSubscriptionId", stripeSubscriptionId.value()
-            ), null);
+            ));
         } catch (Exception e) {
-            LoggingConfiguration.logStructured("SAGA_MANAGER_PROCESS_FAILED", Map.of(
-                "sagaId", command.getSagaId(),
+            asyncLogger.asyncStructuredErrorLog("SAGA_MANAGER_PROCESS_FAILED", e, Map.of(
+                "sagaId", command.sagaId(),
                 "error", e.getMessage()
-            ), null);
+            ));
             crossModuleEventBus.publishEventSynchronously(ev);
         }
     }

@@ -3,8 +3,9 @@ package com.bcbs239.regtech.billing.application.subscriptions;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.shared.validation.BillingValidationUtils;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -36,7 +37,7 @@ public record CreateSubscriptionCommand(
         }
         
         if (tier == null) {
-            return Result.failure(ErrorDetail.of("SUBSCRIPTION_TIER_REQUIRED", 
+            return Result.failure(ErrorDetail.of("SUBSCRIPTION_TIER_REQUIRED", ErrorType.BUSINESS_RULE_ERROR,
                 "Subscription tier is required", "subscription.tier.required"));
         }
         

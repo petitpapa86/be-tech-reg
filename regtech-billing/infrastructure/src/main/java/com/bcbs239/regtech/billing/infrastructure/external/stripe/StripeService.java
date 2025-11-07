@@ -7,8 +7,9 @@ import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.billing.infrastructure.configuration.BillingConfiguration;
-import com.bcbs239.regtech.core.shared.ErrorDetail;
-import com.bcbs239.regtech.core.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.*;
@@ -69,8 +70,9 @@ public class StripeService {
                 .map(customerId -> new StripeCustomer(customerId, email, name));
                 
         } catch (StripeException e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "STRIPE_CUSTOMER_CREATION_FAILED",
+                ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to create Stripe customer: " + e.getMessage(),
                 "stripe.customer.creation.failed"
             ));
@@ -108,8 +110,9 @@ public class StripeService {
                 .map(customerId -> new StripeCustomer(customerId, email, name));
                 
         } catch (StripeException e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "STRIPE_CUSTOMER_CREATION_FAILED",
+                ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to create Stripe customer: " + e.getMessage(),
                 "stripe.customer.creation.failed"
             ));
@@ -144,8 +147,9 @@ public class StripeService {
             return Result.success(null);
             
         } catch (StripeException e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "STRIPE_PAYMENT_METHOD_ATTACH_FAILED",
+                ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to attach payment method: " + e.getMessage(),
                 "stripe.payment.method.attach.failed"
             ));
@@ -172,8 +176,9 @@ public class StripeService {
             return Result.success(null);
             
         } catch (StripeException e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "STRIPE_DEFAULT_PAYMENT_METHOD_FAILED",
+                ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to set default payment method: " + e.getMessage(),
                 "stripe.default.payment.method.failed"
             ));
@@ -218,8 +223,9 @@ public class StripeService {
                 );
                 
         } catch (StripeException e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "STRIPE_SUBSCRIPTION_CREATION_FAILED",
+                ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to create Stripe subscription: " + e.getMessage(),
                 "stripe.subscription.creation.failed"
             ));
