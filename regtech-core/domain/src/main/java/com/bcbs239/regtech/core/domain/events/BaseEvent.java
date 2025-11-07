@@ -9,10 +9,17 @@ import java.time.LocalDateTime;
 @Setter
 public abstract class BaseEvent implements DomainEvent {
 
-    private String correlationId;
+    private final String correlationId;
+    private final String eventId;
+    private final String aggregateId;
+    private final String causationId;
     private final LocalDateTime timestamp;
 
-    protected BaseEvent() {
+    protected BaseEvent(String correlationId, String eventId, String aggregateId, String causationId) {
+        this.correlationId = correlationId;
+        this.eventId = eventId;
+        this.aggregateId = aggregateId;
+        this.causationId = causationId;
         this.timestamp = LocalDateTime.now();
     }
 

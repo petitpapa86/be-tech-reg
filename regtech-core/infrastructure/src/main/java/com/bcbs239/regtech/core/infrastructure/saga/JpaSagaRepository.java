@@ -2,15 +2,13 @@ package com.bcbs239.regtech.core.infrastructure.saga;
 
 import java.util.Map;
 
+import com.bcbs239.regtech.core.domain.saga.*;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.saga.SagaSnapshot;
-import com.bcbs239.regtech.core.domain.saga.ISagaRepository;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
-import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
-import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.infrastructure.saga.SagaEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 
@@ -24,13 +22,11 @@ public class JpaSagaRepository implements ISagaRepository {
 
     private final EntityManager entityManager;
     private final ObjectMapper objectMapper;
-    private final TimeoutScheduler timeoutScheduler;
     private final ILogger logger;
 
-    public JpaSagaRepository(EntityManager entityManager, ObjectMapper objectMapper, TimeoutScheduler timeoutScheduler, ILogger logger) {
+    public JpaSagaRepository(EntityManager entityManager, ObjectMapper objectMapper, ILogger logger) {
         this.entityManager = entityManager;
         this.objectMapper = objectMapper;
-        this.timeoutScheduler = timeoutScheduler;
         this.logger = logger;
     }
 

@@ -8,8 +8,8 @@ import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
-import com.bcbs239.regtech.core.saga.SagaId;
-import com.bcbs239.regtech.core.saga.SagaManager;
+import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.application.saga.SagaManager;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.slf4j.Logger;
@@ -150,11 +150,11 @@ public class MonthlyBillingScheduler {
                 sagaData.setCorrelationId(correlationId);
                 
                 // Add metadata for tracking and audit
-                sagaData.addMetadata("subscriptionId", subscription.getId().value());
-                sagaData.addMetadata("billingAccountId", subscription.getBillingAccountId().getValue().value());
-                sagaData.addMetadata("subscriptionTier", subscription.getTier().name());
-                sagaData.addMetadata("orchestrationTimestamp", java.time.Instant.now().toString());
-                sagaData.addMetadata("scheduledBillingPeriod", billingMonth.toString());
+                sagaData.getMetadata().put("subscriptionId", subscription.getId().value());
+                sagaData.getMetadata().put("billingAccountId", subscription.getBillingAccountId().getValue().value());
+                sagaData.getMetadata().put("subscriptionTier", subscription.getTier().name());
+                sagaData.getMetadata().put("orchestrationTimestamp", java.time.Instant.now().toString());
+                sagaData.getMetadata().put("scheduledBillingPeriod", billingMonth.toString());
 
                 // Start the saga using the saga manager
                 SagaId sagaId = sagaManager.startSaga(MonthlyBillingSaga.class, sagaData);

@@ -13,14 +13,20 @@ import java.util.UUID;
 @Getter
 public abstract class IntegrationEvent implements DomainEvent {
 
-    private final UUID id;
+    private final String correlationId;
+    private final String eventId;
+    private final String aggregateId;
+    private final String causationId;
     private final LocalDateTime occurredOn;
     private final String eventType;
 
-    protected IntegrationEvent() {
-        this.id = UUID.randomUUID();
+    protected IntegrationEvent(String eventId,String eventType, String correlationId, String aggregateId, String causationId) {
+        this.eventType = eventType;
+        this.correlationId = correlationId;
+        this.aggregateId = aggregateId;
+        this.causationId = causationId;
+        this.eventId = eventId;
         this.occurredOn = LocalDateTime.now();
-        this.eventType = this.getClass().getSimpleName();
     }
 
     @Override
@@ -30,7 +36,7 @@ public abstract class IntegrationEvent implements DomainEvent {
 
     @Override
     public String toString() {
-        return String.format("%s{id=%s, occurredOn=%s}", eventType, id, occurredOn);
+        return String.format("%s{id=%s, occurredOn=%s}", eventType, eventId, occurredOn);
     }
 }
 

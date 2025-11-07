@@ -243,8 +243,9 @@ public class StripeService {
             return Result.success(null);
             
         } catch (StripeException e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "STRIPE_SUBSCRIPTION_CANCELLATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to cancel Stripe subscription: " + e.getMessage(),
                 "stripe.subscription.cancellation.failed"
             ));
@@ -267,8 +268,9 @@ public class StripeService {
             return Result.success(null);
             
         } catch (StripeException e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "STRIPE_SUBSCRIPTION_SCHEDULE_CANCELLATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to schedule Stripe subscription cancellation: " + e.getMessage(),
                 "stripe.subscription.schedule.cancellation.failed"
             ));
@@ -299,8 +301,9 @@ public class StripeService {
                 ));
                 
         } catch (StripeException e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "STRIPE_INVOICE_CREATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to create Stripe invoice: " + e.getMessage(),
                 "stripe.invoice.creation.failed"
             ));
@@ -331,8 +334,9 @@ public class StripeService {
                 });
                 
         } catch (StripeException e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "STRIPE_INVOICE_RETRIEVAL_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to retrieve Stripe invoice: " + e.getMessage(),
                 "stripe.invoice.retrieval.failed"
             ));
@@ -368,8 +372,9 @@ public class StripeService {
                  });
 
          } catch (StripeException e) {
-             return Result.failure(new ErrorDetail(
+             return Result.failure(ErrorDetail.of(
                  "STRIPE_INVOICE_FINALIZATION_FAILED",
+                 ErrorType.SYSTEM_ERROR,
                  "Failed to finalize Stripe invoice: " + e.getMessage(),
                  "stripe.invoice.finalization.failed"
              ));
@@ -385,8 +390,9 @@ public class StripeService {
             return Result.success(event);
             
         } catch (Exception e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "WEBHOOK_SIGNATURE_VERIFICATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to verify webhook signature: " + e.getMessage(),
                 "webhook.signature.verification.failed"
             ));
@@ -399,8 +405,9 @@ public class StripeService {
     public Result<InvoiceStatusUpdate> synchronizeInvoiceStatus(Event event) {
         try {
             if (!isInvoiceEvent(event.getType())) {
-                return Result.failure(new ErrorDetail(
+                return Result.failure(ErrorDetail.of(
                     "INVALID_INVOICE_EVENT",
+                    ErrorType.SYSTEM_ERROR,
                     "Event type is not an invoice event: " + event.getType(),
                     "webhook.invalid.invoice.event"
                 ));
@@ -408,8 +415,9 @@ public class StripeService {
 
             final Invoice stripeInvoice = (Invoice) event.getDataObjectDeserializer().getObject().orElse(null);
             if (stripeInvoice == null) {
-                return Result.failure(new ErrorDetail(
+                return Result.failure(ErrorDetail.of(
                     "INVOICE_DATA_MISSING",
+                    ErrorType.SYSTEM_ERROR,
                     "Invoice data is missing from webhook event",
                     "webhook.invoice.data.missing"
                 ));
@@ -429,8 +437,9 @@ public class StripeService {
                 ));
                 
         } catch (Exception e) {
-            return Result.failure(new ErrorDetail(
+            return Result.failure(ErrorDetail.of(
                 "INVOICE_STATUS_SYNC_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to synchronize invoice status: " + e.getMessage(),
                 "webhook.invoice.status.sync.failed"
             ));

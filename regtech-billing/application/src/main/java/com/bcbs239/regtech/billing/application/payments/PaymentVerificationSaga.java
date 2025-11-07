@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.billing.application.payments;
 
+import com.bcbs239.regtech.core.domain.saga.AbstractSaga;
+
 import com.bcbs239.regtech.billing.application.integration.FinalizeBillingAccountCommand;
 import com.bcbs239.regtech.billing.application.invoicing.CreateStripeInvoiceCommand;
 import com.bcbs239.regtech.billing.application.policies.createstripecustomer.CreateStripeCustomerCommand;
@@ -13,20 +15,16 @@ import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionWebhookReceivedEvent;
 import com.bcbs239.regtech.core.domain.saga.SagaStatus;
-import com.bcbs239.regtech.core.infrastructure.saga.AbstractSaga;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
 
 import java.time.Instant;
-import java.util.Map;
 
 public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSagaData> {
-    private final ILogger asyncLogger;
-    public PaymentVerificationSaga(SagaId id, PaymentVerificationSagaData data, TimeoutScheduler timeoutScheduler, ILogger logger, ILogger asyncLogger) {
+    public PaymentVerificationSaga(SagaId id, PaymentVerificationSagaData data, TimeoutScheduler timeoutScheduler, ILogger logger) {
         super(id, "PaymentVerificationSaga", data, timeoutScheduler, logger);
-        this.asyncLogger = asyncLogger;
         registerHandlers();
     }
 
@@ -168,25 +166,16 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         // Compensation: Reverse successful operations
         if (data.getStripeCustomerId() != null) {
             // Log compensation intent for customer deletion
-            asyncLogger.asyncStructuredLog("SAGA_COMPENSATION_CUSTOMER", Map.of(
-                "sagaId", getId(),
-                "stripeCustomerId", data.getStripeCustomerId()
-            ));
+
             // dispatchCommand(new DeleteStripeCustomerCommand(getId(), data.getStripeCustomerId()));
         }
         if (data.getStripeInvoiceId() != null) {
             // Log compensation intent for invoice void
-            asyncLogger.asyncStructuredLog("SAGA_COMPENSATION_INVOICE", Map.of(
-                "sagaId", getId(),
-                "stripeInvoiceId", data.getStripeInvoiceId()
-            ));
+
             // dispatchCommand(new VoidStripeInvoiceCommand(getId(), data.getStripeInvoiceId()));
         }
         // Dispatch notification to customer
-        asyncLogger.asyncStructuredLog("SAGA_COMPENSATION_NOTIFY", Map.of(
-            "sagaId", getId(),
-            "userId", data.getUserId()
-        ));
+
         // dispatchCommand(new NotifyCustomerCommand(getId(), data.getUserId(), "Order cancelled due to payment timeout"));
     }
 

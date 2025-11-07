@@ -27,6 +27,12 @@
 			<artifactId>regtech-core</artifactId>
 		</dependency>
 		
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-core-application</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
 		<!-- IAM module for user management -->
 		<dependency>
 			<groupId>com.bcbs239</groupId>

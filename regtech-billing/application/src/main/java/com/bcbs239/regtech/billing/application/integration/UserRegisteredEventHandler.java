@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.application.integration;
 
-import com.bcbs239.regtech.billing.application.policies.PaymentVerificationSaga;
+import com.bcbs239.regtech.billing.application.payments.PaymentVerificationSaga;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
@@ -11,11 +11,9 @@ import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.core.application.IIntegrationEventHandler;
-import com.bcbs239.regtech.core.config.LoggingConfiguration;
-import com.bcbs239.regtech.core.events.UserRegisteredIntegrationEvent;
-import com.bcbs239.regtech.core.saga.SagaId;
-import com.bcbs239.regtech.core.saga.SagaManager;
+
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
@@ -32,43 +30,32 @@ import java.util.Map;
  * Starts the PaymentVerificationSaga when a user registers.
  */
 @Component("billingUserRegisteredEventHandler")
-public class UserRegisteredEventHandler implements IIntegrationEventHandler<UserRegisteredIntegrationEvent> {
+public class UserRegisteredEventHandler  {
 
     private final ApplicationContext applicationContext;
     private final BillingAccountRepository billingAccountRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final InvoiceRepository invoiceRepository;
-    private final SagaManager sagaManagerForTest; // optional
+    private final ILogger asyncLogger;
+
 
     @Autowired
     public UserRegisteredEventHandler(ApplicationContext applicationContext,
                                       BillingAccountRepository billingAccountRepository,
                                       SubscriptionRepository subscriptionRepository,
-                                      InvoiceRepository invoiceRepository,
-                                      @Autowired(required = false) SagaManager sagaManagerForTest) {
+                                      InvoiceRepository invoiceRepository, ILogger asyncLogger
+    ) {
         this.applicationContext = applicationContext;
         this.billingAccountRepository = billingAccountRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.invoiceRepository = invoiceRepository;
-        this.sagaManagerForTest = sagaManagerForTest;
+        this.asyncLogger = asyncLogger;
     }
 
-    // Backwards-compatible constructor for tests that instantiate handler with SagaManager first
-    public UserRegisteredEventHandler(SagaManager sagaManager,
-                                      BillingAccountRepository billingAccountRepository,
-                                      SubscriptionRepository subscriptionRepository,
-                                      InvoiceRepository invoiceRepository) {
-        this.applicationContext = null;
-        this.billingAccountRepository = billingAccountRepository;
-        this.subscriptionRepository = subscriptionRepository;
-        this.invoiceRepository = invoiceRepository;
-        this.sagaManagerForTest = sagaManager;
-    }
 
-    @Override
-    public void handle(UserRegisteredIntegrationEvent event) {
+    public void handle(UserRegisteredEvent event) {
         try {
-            LoggingConfiguration.logStructured("Received UserRegisteredIntegrationEvent", Map.of(
+            asyncLogger.asyncStructuredLog("Received UserRegisteredIntegrationEvent", Map.of(
                 "eventType", "USER_REGISTERED_EVENT_RECEIVED",
                 "userId", event.getUserId(),
                 "email", event.getEmail()
@@ -79,7 +66,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
             // Check if billing account already exists (idempotency)
             Maybe<BillingAccount> existingAccount = billingAccountRepository.findByUserId(userId);
             if (existingAccount.isPresent()) {
-                LoggingConfiguration.logStructured("Billing account already exists, skipping processing", Map.of(
+                asyncLogger.asyncStructuredLog("Billing account already exists, skipping processing", Map.of(
                     "eventType", "BILLING_ACCOUNT_EXISTS",
                     "userId", event.getUserId()
                 ));
@@ -92,7 +79,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
 
             Result<BillingAccountId> saveResult = billingAccountRepository.save(billingAccount);
             if (saveResult.isFailure()) {
-                LoggingConfiguration.logStructured("Failed to create billing account", Map.of(
+                asyncLogger.asyncStructuredLog("Failed to create billing account", Map.of(
                     "eventType", "BILLING_ACCOUNT_CREATION_FAILED",
                     "userId", event.getUserId(),
                     "error", saveResult.getError().get().getMessage()
@@ -101,7 +88,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
             }
 
             BillingAccountId billingAccountId = saveResult.getValue().get();
-            LoggingConfiguration.logStructured("Billing account created", Map.of(
+            asyncLogger.asyncStructuredLog("Billing account created", Map.of(
                 "eventType", "BILLING_ACCOUNT_CREATED",
                 "billingAccountId", billingAccountId.getValue(),
                 "userId", event.getUserId()
@@ -111,14 +98,14 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
             for (Subscription subscription : billingAccount.getSubscriptions()) {
                 Result<SubscriptionId> subscriptionSaveResult = subscriptionRepository.save(subscription);
                 if (subscriptionSaveResult.isFailure()) {
-                    LoggingConfiguration.logStructured("Subscription creation failed", Map.of(
+                    asyncLogger.asyncStructuredLog("Subscription creation failed", Map.of(
                         "eventType", "SUBSCRIPTION_CREATION_FAILED",
                         "billingAccountId", billingAccountId.getValue(),
                         "error", subscriptionSaveResult.getError().get().getMessage()
                     ));
                     return;
                 }
-                LoggingConfiguration.logStructured("Subscription created", Map.of(
+                asyncLogger.asyncStructuredLog("Subscription created", Map.of(
                     "eventType", "SUBSCRIPTION_CREATED",
                     "subscriptionId", subscriptionSaveResult.getValue().get().value(),
                     "billingAccountId", billingAccountId.getValue()
@@ -129,14 +116,14 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
             for (Invoice invoice : billingAccount.getInvoices()) {
                 Result<InvoiceId> invoiceSaveResult = invoiceRepository.save(invoice);
                 if (invoiceSaveResult.isFailure()) {
-                    LoggingConfiguration.logStructured("Invoice creation failed", Map.of(
+                    asyncLogger.asyncStructuredLog("Invoice creation failed", Map.of(
                         "eventType", "INVOICE_CREATION_FAILED",
                         "billingAccountId", billingAccountId.getValue(),
                         "error", invoiceSaveResult.getError().get().getMessage()
                     ));
                     return;
                 }
-                LoggingConfiguration.logStructured("Invoice created", Map.of(
+                asyncLogger.asyncStructuredLog("Invoice created", Map.of(
                     "eventType", "INVOICE_CREATED",
                     "invoiceId", invoiceSaveResult.getValue().get().value(),
                     "billingAccountId", billingAccountId.getValue()
@@ -144,7 +131,7 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
             }
 
             PaymentVerificationSagaData sagaData = PaymentVerificationSagaData.builder()
-                 .correlationId(event.getId().toString()) // Convert UUID to String
+                 .correlationId(event.getEventId().toString()) // Convert UUID to String
                  .userId(event.getUserId())
                  .billingAccountId(billingAccountId.getValue())
                  .userEmail(event.getEmail())
@@ -153,52 +140,41 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
                  .build();
 
             // Start the PaymentVerificationSaga via runtime lookup of sagaManager bean
-            LoggingConfiguration.logStructured("About to start PaymentVerificationSaga", Map.of(
+            asyncLogger.asyncStructuredLog("About to start PaymentVerificationSaga", Map.of(
                 "eventType", "SAGA_START_ATTEMPT",
                 "userId", event.getUserId(),
                 "sagaData", sagaData.toString()
             ));
 
             try {
-                if (sagaManagerForTest != null) {
-                    Method startSaga = sagaManagerForTest.getClass().getMethod("startSaga", Class.class, Object.class);
-                    Object sagaIdObj = startSaga.invoke(sagaManagerForTest, PaymentVerificationSaga.class, sagaData);
-                    SagaId sagaId = (SagaId) sagaIdObj;
 
-                    LoggingConfiguration.logStructured("PaymentVerificationSaga started successfully", Map.of(
-                        "eventType", "SAGA_START_SUCCESS",
-                        "userId", event.getUserId(),
-                        "sagaId", sagaId.id()
-                    ));
-                } else {
                     Object sagaManagerBean = applicationContext.getBean("sagaManager");
                     Method startSaga = sagaManagerBean.getClass().getMethod("startSaga", Class.class, Object.class);
                     Object sagaIdObj = startSaga.invoke(sagaManagerBean, PaymentVerificationSaga.class, sagaData);
                     SagaId sagaId = (SagaId) sagaIdObj;
 
-                    LoggingConfiguration.logStructured("PaymentVerificationSaga started successfully", Map.of(
+                asyncLogger.asyncStructuredLog("PaymentVerificationSaga started successfully", Map.of(
                         "eventType", "SAGA_START_SUCCESS",
                         "userId", event.getUserId(),
                         "sagaId", sagaId.id()
                     ));
-                }
+
             } catch (Exception ex) {
-                LoggingConfiguration.createStructuredLog("SAGA_START_FAILED", Map.of(
+                asyncLogger.asyncStructuredErrorLog("SAGA_START_FAILED", ex, Map.of(
                     "userId", event.getUserId(),
                     "error", ex.getMessage()
                 ));
                 throw new RuntimeException("Failed to start saga: " + ex.getMessage(), ex);
             }
 
-            LoggingConfiguration.logStructured("User registration integration event processing completed", Map.of(
+            asyncLogger.asyncStructuredLog("User registration integration event processing completed", Map.of(
                 "eventType", "USER_REGISTRATION_COMPLETED",
-                "userId", event.getUserId(),
-                "fullName", event.getName()
+                "userId", event.getUserId()
             ));
 
         } catch (Exception e) {
             // Log full error and rethrow to allow caller to handle transaction properly
-            LoggingConfiguration.logError("billing_user_registration", "UNHANDLED_HANDLER_EXCEPTION", e.getMessage(), e, Map.of(
+            asyncLogger.asyncStructuredErrorLog("billing_user_registration", "UNHANDLED_HANDLER_EXCEPTION", e.getMessage(), e, Map.of(
                 "eventId", event.getId(),
                 "userId", event.getUserId()
             ));
@@ -206,14 +182,5 @@ public class UserRegisteredEventHandler implements IIntegrationEventHandler<User
         }
     }
 
-    @Override
-    public Class<UserRegisteredIntegrationEvent> getEventClass() {
-        return UserRegisteredIntegrationEvent.class;
-    }
-
-    @Override
-    public String getHandlerName() {
-        return "billingUserRegisteredEventHandler";
-    }
 }
 

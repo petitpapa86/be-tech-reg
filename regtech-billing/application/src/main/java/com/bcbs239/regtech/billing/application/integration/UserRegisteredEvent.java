@@ -1,11 +1,10 @@
 package com.bcbs239.regtech.billing.application.integration;
 
 import com.bcbs239.regtech.core.domain.events.BaseEvent;
-import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import lombok.Getter;
 
 @Getter
-public class UserRegisteredIntegrationEvent extends BaseEvent {
+public class UserRegisteredEvent extends BaseEvent {
     private final String eventId;
     private final String aggregateId;
     private final String correlationId;
@@ -13,7 +12,7 @@ public class UserRegisteredIntegrationEvent extends BaseEvent {
     private final String userId;
     private final String email;
 
-    public UserRegisteredIntegrationEvent(String eventId, String aggregateId, String correlationId, String causationId, String userId, String email) {
+    public UserRegisteredEvent(String eventId, String aggregateId, String correlationId, String causationId, String userId, String email) {
         super(correlationId,eventId,aggregateId,causationId);
         this.eventId = eventId;
         this.aggregateId = aggregateId;

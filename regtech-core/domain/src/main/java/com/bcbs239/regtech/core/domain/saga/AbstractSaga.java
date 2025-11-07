@@ -1,7 +1,6 @@
-package com.bcbs239.regtech.core.application.saga;
+package com.bcbs239.regtech.core.domain.saga;
 
 import com.bcbs239.regtech.core.domain.logging.ILogger;
-import com.bcbs239.regtech.core.domain.saga.*;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -154,9 +153,7 @@ public abstract class AbstractSaga<T> {
     private void scheduleRetry(SagaError error) {
         this.retryCount++;
         this.errors.add(error.withRetry());
-        
-        log.warn("Scheduling retry {}/{} for saga {} due to: {}", 
-                retryCount, MAX_RETRIES, id, error.getMessage());
+
         
         // Schedule retry with exponential backoff using the timeout scheduler
         long delayMillis = calculateBackoffDelay().toMillis();
@@ -181,9 +178,13 @@ public abstract class AbstractSaga<T> {
         this.status = SagaStatus.FAILED;
         this.completedAt = Instant.now();
         this.errors.add(error);
-        
-        log.error("Saga {} failed permanently: {}", id, error.getMessage());
-        
+        logger.asyncStructuredLog("SAGA_FAILED", Map.of(
+            "sagaId", id,
+            "sagaType", sagaType,
+            "completedAt", completedAt.toString(),
+            "errorMessage", error.getMessage(),
+            "errorType", error.getErrorType().name()
+        ));
         // Compensate for completed steps
         compensate();
     }
