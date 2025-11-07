@@ -4,7 +4,7 @@ import com.bcbs239.regtech.core.application.eventprocessing.IntegrationEventDese
 import com.bcbs239.regtech.core.application.integration.DomainEventDispatcher;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.events.BaseEvent;
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.inbox.IInboxMessageRepository;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessage;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessageStatus;
@@ -67,7 +67,7 @@ public class ProcessInboxJob {
             }
 
 
-            Result<BaseEvent> deserializeResult = deserializer.deserialize(message.getEventType(), message.getContent());
+            Result<DomainEvent> deserializeResult = deserializer.deserialize(message.getEventType(), message.getContent());
             if (deserializeResult.isFailure()) {
                 String errorMessage = deserializeResult.getError().map(ErrorDetail::getMessage).orElse("Unknown deserialization error");
                 logger.error("Deserialization failed for message {}: {}", message.getId(), errorMessage);

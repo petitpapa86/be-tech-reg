@@ -18,7 +18,7 @@ import java.time.Instant;
 @EqualsAndHashCode(callSuper = true)
 public abstract class SagaMessageEntity extends SagaMessage {
     public SagaMessageEntity(String eventType, Instant occurredAt, SagaId sagaId) {
-        super(eventType, occurredAt, sagaId);
+        super(eventType, occurredAt, sagaId, null, null); // correlationId and causationId can be null for saga entities
     }
 }
 

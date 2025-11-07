@@ -14,7 +14,7 @@ public class SagaFailedEvent extends SagaMessage {
     private final String sagaType;
 
     public SagaFailedEvent(SagaId sagaId, String sagaType, Supplier<Instant> timeSupplier) {
-        super("SagaFailed", timeSupplier.get(), sagaId);
+        super("SagaFailed", timeSupplier.get(), sagaId, null, null); // correlationId and causationId can be null for saga events
         this.sagaType = sagaType;
     }
 

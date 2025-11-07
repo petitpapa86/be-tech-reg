@@ -11,32 +11,31 @@ import java.util.UUID;
  * might be interested in.
  */
 @Getter
-public abstract class IntegrationEvent implements DomainEvent {
+public abstract class IntegrationEvent extends DomainEvent {
 
-    private final String correlationId;
-    private final String eventId;
     private final String aggregateId;
-    private final String causationId;
     private final LocalDateTime occurredOn;
     private final String eventType;
+    private final String sourceContext;
+    private final String targetContext;
 
-    protected IntegrationEvent(String eventId,String eventType, String correlationId, String aggregateId, String causationId) {
+    protected IntegrationEvent(String eventType, String correlationId, String aggregateId, String causationId, String sourceContext, String targetContext) {
+        super(correlationId, causationId);
         this.eventType = eventType;
-        this.correlationId = correlationId;
         this.aggregateId = aggregateId;
-        this.causationId = causationId;
-        this.eventId = eventId;
         this.occurredOn = LocalDateTime.now();
+        this.sourceContext = sourceContext;
+        this.targetContext = targetContext;
     }
 
     @Override
     public String eventType() {
-        return getEventType();
+        return eventType;
     }
 
     @Override
     public String toString() {
-        return String.format("%s{id=%s, occurredOn=%s}", eventType, eventId, occurredOn);
+        return String.format("%s{id=%s, occurredOn=%s}", eventType, getEventId(), occurredOn);
     }
 }
 

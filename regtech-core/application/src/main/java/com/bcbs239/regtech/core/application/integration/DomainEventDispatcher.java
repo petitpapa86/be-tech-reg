@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.core.application.integration;
 
-import com.bcbs239.regtech.core.domain.events.BaseEvent;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.events.DomainEventHandler;
 import org.slf4j.Logger;
@@ -23,7 +22,7 @@ public class DomainEventDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(DomainEventDispatcher.class);
 
-    private final Map<Class<? extends BaseEvent>, List<DomainEventHandler<? extends BaseEvent>>> handlers = new ConcurrentHashMap<>();
+    private final Map<Class<? extends DomainEvent>, List<DomainEventHandler<? extends DomainEvent>>> handlers = new ConcurrentHashMap<>();
     private final ApplicationContext applicationContext;
 
     public DomainEventDispatcher(ApplicationContext applicationContext) {
@@ -34,11 +33,14 @@ public class DomainEventDispatcher {
     public void onContextRefreshed(ContextRefreshedEvent event) {
         // Register all DomainEventHandler beans after the context is fully initialized
 
+        @SuppressWarnings("rawtypes")
         var beans =  applicationContext.getBeansOfType(DomainEventHandler.class);
         if (!beans.isEmpty()) {
-            for (var handler : beans.values()) {
+            for (@SuppressWarnings("rawtypes") var handler : beans.values()) {
                 try {
-                    registerHandler(handler);
+                    @SuppressWarnings("unchecked")
+                    DomainEventHandler<? extends DomainEvent> typedHandler = (DomainEventHandler<? extends DomainEvent>) handler;
+                    registerHandler(typedHandler);
                 } catch (Exception e) {
                     logger.error("Failed to auto-register domain event handler {}", handler.getClass().getName(), e);
                 }
@@ -48,17 +50,17 @@ public class DomainEventDispatcher {
         }
     }
 
-    public void registerHandler(DomainEventHandler<? extends BaseEvent> handler) {
-        Class<? extends BaseEvent> eventType = handler.eventClass();
+    public void registerHandler(DomainEventHandler<? extends DomainEvent> handler) {
+        Class<? extends DomainEvent> eventType = handler.eventClass();
         handlers.computeIfAbsent(eventType, key -> new ArrayList<>()).add(handler);
         logger.info("Registered event handler {} for event type {}", handler.getClass().getSimpleName(), eventType.getSimpleName());
     }
 
-    public boolean dispatch(BaseEvent event) {
+    public boolean dispatch(DomainEvent event) {
         // Support subclasses and proxies by matching registered handler types that are assignable from the event's class
-        List<DomainEventHandler<? extends BaseEvent>> matchedHandlers = new ArrayList<>();
+        List<DomainEventHandler<? extends DomainEvent>> matchedHandlers = new ArrayList<>();
 
-        for (Map.Entry<Class<? extends BaseEvent>, List<DomainEventHandler<? extends BaseEvent>>> entry : handlers.entrySet()) {
+        for (Map.Entry<Class<? extends DomainEvent>, List<DomainEventHandler<? extends DomainEvent>>> entry : handlers.entrySet()) {
             Class<? extends DomainEvent> registeredType = entry.getKey();
             if (registeredType.isAssignableFrom(event.getClass())) {
                 matchedHandlers.addAll(entry.getValue());
@@ -71,10 +73,10 @@ public class DomainEventDispatcher {
         }
 
         boolean anyHandled = false;
-        for (DomainEventHandler<? extends BaseEvent> handler : matchedHandlers) {
+        for (DomainEventHandler<? extends DomainEvent> handler : matchedHandlers) {
             try {
                 @SuppressWarnings("unchecked")
-                DomainEventHandler<BaseEvent> h = (DomainEventHandler<BaseEvent>) handler;
+                DomainEventHandler<DomainEvent> h = (DomainEventHandler<DomainEvent>) handler;
                 h.handle(event);
                 anyHandled = true;
                 logger.info("Dispatched event {} to handler {}", event.getClass().getSimpleName(), handler.getClass().getSimpleName());

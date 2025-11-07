@@ -4,12 +4,12 @@ import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.domain.events.BaseEvent;
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 
 /**
  * Domain event published when an invoice is generated.
  */
-public class InvoiceGeneratedEvent extends BaseEvent {
+public class InvoiceGeneratedEvent extends DomainEvent {
 
     private final InvoiceId invoiceId;
     private final BillingAccountId billingAccountId;
@@ -21,6 +21,7 @@ public class InvoiceGeneratedEvent extends BaseEvent {
                                BillingPeriod billingPeriod,
                                Money totalAmount,
                                String correlationId) {
+        super(correlationId); // causationId defaults to null for domain events
         this.invoiceId = invoiceId;
         this.billingAccountId = billingAccountId;
         this.billingPeriod = billingPeriod;
@@ -41,6 +42,11 @@ public class InvoiceGeneratedEvent extends BaseEvent {
 
     public Money getTotalAmount() {
         return totalAmount;
+    }
+
+    @Override
+    public String eventType() {
+        return "InvoiceGeneratedEvent";
     }
 
     @Override

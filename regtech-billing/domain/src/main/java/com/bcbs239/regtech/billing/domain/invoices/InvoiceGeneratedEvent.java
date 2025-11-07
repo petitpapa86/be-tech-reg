@@ -2,7 +2,7 @@ package com.bcbs239.regtech.billing.domain.invoices;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.domain.events.BaseEvent;
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import lombok.Getter;
 
 /**
@@ -10,7 +10,7 @@ import lombok.Getter;
  * This event can be consumed by notification systems or other contexts.
  */
 @Getter
-public class InvoiceGeneratedEvent extends BaseEvent {
+public class InvoiceGeneratedEvent extends DomainEvent {
     
     private final InvoiceId invoiceId;
     private final BillingAccountId billingAccountId;
@@ -18,9 +18,15 @@ public class InvoiceGeneratedEvent extends BaseEvent {
     
     public InvoiceGeneratedEvent(InvoiceId invoiceId, BillingAccountId billingAccountId, 
                                Money totalAmount, String correlationId) {
+        super(correlationId, null); // causationId can be null for now
         this.invoiceId = invoiceId;
         this.billingAccountId = billingAccountId;
         this.totalAmount = totalAmount;
+    }
+
+    @Override
+    public String eventType() {
+        return "InvoiceGeneratedEvent";
     }
 
     @Override

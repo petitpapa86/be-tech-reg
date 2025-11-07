@@ -16,7 +16,7 @@ public class SagaCompletedEvent extends SagaMessage {
     private final String sagaType;
 
     public SagaCompletedEvent(SagaId sagaId, String sagaType, Supplier<Instant> timeSupplier) {
-        super("SagaCompleted", timeSupplier.get(), sagaId);
+        super("SagaCompleted", timeSupplier.get(), sagaId, null, null); // correlationId and causationId can be null for saga events
         this.sagaType = sagaType;
     }
 

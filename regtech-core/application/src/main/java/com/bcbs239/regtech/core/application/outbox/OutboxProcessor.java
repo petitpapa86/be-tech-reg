@@ -2,7 +2,7 @@ package com.bcbs239.regtech.core.application.outbox;
 
 
 import com.bcbs239.regtech.core.application.integration.DomainEventDispatcher;
-import com.bcbs239.regtech.core.domain.events.BaseEvent;
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.outbox.IOutboxMessageRepository;
 import com.bcbs239.regtech.core.domain.outbox.OutboxMessage;
@@ -108,9 +108,9 @@ public class OutboxProcessor {
         }
 
         @SuppressWarnings("unchecked")
-        Class<? extends BaseEvent> domainEventClass = (Class<? extends BaseEvent>) eventClass;
+        Class<? extends DomainEvent> domainEventClass = (Class<? extends DomainEvent>) eventClass;
 
-        BaseEvent event = objectMapper.readValue(message.getContent(), domainEventClass);
+        DomainEvent event = objectMapper.readValue(message.getContent(), domainEventClass);
 
         domainEventDispatcher.dispatch(event);
 
