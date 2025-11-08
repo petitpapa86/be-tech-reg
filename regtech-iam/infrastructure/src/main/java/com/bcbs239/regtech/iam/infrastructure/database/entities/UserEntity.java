@@ -3,6 +3,8 @@ package com.bcbs239.regtech.iam.infrastructure.database.entities;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -12,6 +14,8 @@ import java.util.List;
  * JPA Entity for users table with proper domain conversion.
  * Follows the established pattern of separating persistence from domain model.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "users", schema = "iam", indexes = {
     @Index(name = "idx_users_email", columnList = "email"),
@@ -21,6 +25,7 @@ import java.util.List;
 })
 public class UserEntity {
 
+    // Getters and setters
     @Id
     @Column(name = "id", columnDefinition = "UUID")
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -134,43 +139,5 @@ public class UserEntity {
         return user;
     }
 
-    // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) { this.firstName = firstName; }
-
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) { this.lastName = lastName; }
-
-    public UserStatus getStatus() { return status; }
-    public void setStatus(UserStatus status) { this.status = status; }
-
-    public String getGoogleId() { return googleId; }
-    public void setGoogleId(String googleId) { this.googleId = googleId; }
-
-    public String getFacebookId() { return facebookId; }
-    public void setFacebookId(String facebookId) { this.facebookId = facebookId; }
-
-    public Instant getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
-
-    public Instant getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
-
-    public Long getVersion() { return version; }
-    public void setVersion(Long version) { this.version = version; }
-
-    public List<UserBankAssignmentEntity> getBankAssignments() { return bankAssignments; }
-    public void setBankAssignments(List<UserBankAssignmentEntity> bankAssignments) {
-        this.bankAssignments = bankAssignments;
-    }
 }
 

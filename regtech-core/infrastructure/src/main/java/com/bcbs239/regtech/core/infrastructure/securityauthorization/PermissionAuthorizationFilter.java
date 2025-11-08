@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.core.infrastructure.securityauthorization;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,10 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.servlet.HandlerMapping;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -113,15 +110,15 @@ public class PermissionAuthorizationFilter extends OncePerRequestFilter {
      * Get required permissions from route attributes.
      */
     private String[] getRequiredPermissions(HttpServletRequest request) {
-        // Try to get from request attributes (set by RouterFunction)
-        Object permissions = request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE);
-        if (permissions instanceof Map) {
+        // Try to get permissions from router attributes set on the route
+        Object permissionAttr = null;//request.getAttribute(RouterAttributes.PERMISSIONS_ATTR);
+        if (permissionAttr instanceof String[]) {
+            return (String[]) permissionAttr;
+        }
+        if (permissionAttr instanceof java.util.List) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> attributes = (Map<String, Object>) permissions;
-            Object permissionAttr = attributes.get("permissions");
-            if (permissionAttr instanceof String[]) {
-                return (String[]) permissionAttr;
-            }
+            java.util.List<String> list = (java.util.List<String>) permissionAttr;
+            return list.toArray(new String[0]);
         }
 
         // Fallback: extract from request path patterns
@@ -180,6 +177,12 @@ public class PermissionAuthorizationFilter extends OncePerRequestFilter {
      * Check if endpoint is public (no authentication required).
      */
     private boolean isPublicEndpoint(HttpServletRequest request) {
+        // First, check route attribute set by RouterFunction
+        Object publicAttr = null;// request.getAttribute(RouterAttributes.PUBLIC_ATTR);
+        if (publicAttr instanceof Boolean && (Boolean) publicAttr) {
+            return true;
+        }
+
         String path = request.getRequestURI();
         
         // Health check endpoints

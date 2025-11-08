@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
-import java.util.function.Function;
 
 /**
  * Command handler for user registration with transactional outbox pattern for reliable event publishing.
@@ -36,62 +35,8 @@ public class RegisterUserCommandHandler {
      */
     @Transactional
     public Result<RegisterUserResponse> handle(RegisterUserCommand command) {
-        long startTime = System.currentTimeMillis();
-
-        try {
-            // Call the pure function with repository closures and unit of work
-            Result<RegisterUserResponse> result = registerUser(
-                command,
-                userRepository.emailLookup(),
-                userRepository.userSaver(),
-                unitOfWork,
-                userRepository.userRoleSaver()
-            );
-
-            long duration = System.currentTimeMillis() - startTime;
-            if (result.isSuccess()) {
-                RegisterUserResponse response = result.getValue().get();
-            } else {
-                ErrorDetail error = result.getError().get();
-            }
-
-            return result;
-
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            throw new RuntimeException("User registration failed", e);
-        }
-    }
-
-    /**
-     * Pure function for user registration with transactional outbox pattern
-     *
-     * @param command The registration command
-     * @param emailLookup Function to check if email exists
-     * @param userSaver Function to save the user
-     * @param unitOfWork Unit of work for transactional operations
-     * @return Result of registration attempt
-     */
-    @Transactional
-    static Result<RegisterUserResponse> registerUser(
-        RegisterUserCommand command,
-        Function<Email, Maybe<User>> emailLookup,
-        Function<User, Result<UserId>> userSaver,
-        BaseUnitOfWork unitOfWork
-    ) {
-    // Fallback to overload that doesn't persist roles (keeps existing tests working)
-    return registerUser(command, emailLookup, userSaver, unitOfWork, null);
-    }
-
-    @Transactional
-    static Result<RegisterUserResponse> registerUser(
-        RegisterUserCommand command,
-        Function<Email, Maybe<User>> emailLookup,
-        Function<User, Result<UserId>> userSaver,
-        BaseUnitOfWork unitOfWork,
-        java.util.function.Function<com.bcbs239.regtech.iam.domain.users.UserRole, Result<String>> userRoleSaver
-    ) {
-        // Generate correlation ID for saga tracking with user data embedded
+        
+        // Inline registerUser logic to simplify flow and remove indirection
         String correlationId = "user-registration-" + UUID.randomUUID();
 
         try {
@@ -103,7 +48,7 @@ public class RegisterUserCommandHandler {
             Email email = emailResult.getValue().get();
 
             // Step 2: Check email uniqueness
-            Maybe<User> existingUser = emailLookup.apply(email);
+            Maybe<User> existingUser = userRepository.emailLookup(email);
             if (existingUser.isPresent()) {
                 return Result.failure(ErrorDetail.of("EMAIL_ALREADY_EXISTS", ErrorType.VALIDATION_ERROR, "Email already exists", "user.email.already.exists"));
             }
@@ -129,25 +74,23 @@ public class RegisterUserCommandHandler {
             String lastName = maybeLast.getValue();
 
             // Step 5: Create user aggregate with PENDING_PAYMENT status and bank assignment
-            User newUser = User.createWithBank(email, password, firstName, lastName, command.bankId(),command.paymentMethodId());
+            User newUser = User.createWithBank(email, password, firstName, lastName, command.bankId(), command.paymentMethodId());
 
             // Step 6: Save user
-            Result<UserId> saveResult = userSaver.apply(newUser);
+            Result<UserId> saveResult = userRepository.userSaver(newUser);
             if (saveResult.isFailure()) {
                 return Result.failure(saveResult.getError().get());
             }
 
             UserId userId = saveResult.getValue().get();
 
-            // Step 7: Persist default ADMIN role for new users if a saver was provided
-            if (userRoleSaver != null) {
-                com.bcbs239.regtech.iam.domain.users.UserRole adminRole = com.bcbs239.regtech.iam.domain.users.UserRole.create(
-                    userId, Bcbs239Role.SYSTEM_ADMIN, "default-org"
-                );
-                Result<String> roleSaveResult = userRoleSaver.apply(adminRole);
-                if (roleSaveResult.isFailure()) {
-                    return Result.failure(roleSaveResult.getError().get());
-                }
+            // Step 7: Persist default ADMIN role for new users
+            com.bcbs239.regtech.iam.domain.users.UserRole adminRole = com.bcbs239.regtech.iam.domain.users.UserRole.create(
+                userId, Bcbs239Role.SYSTEM_ADMIN, "default-org"
+            );
+            Result<String> roleSaveResult = userRepository.userRoleSaver(adminRole);
+            if (roleSaveResult.isFailure()) {
+                return Result.failure(roleSaveResult.getError().get());
             }
 
             // Register user so its domain events are collected and published
@@ -159,11 +102,13 @@ public class RegisterUserCommandHandler {
             // Return success response
             RegisterUserResponse response = new RegisterUserResponse(userId, correlationId);
             return Result.success(response);
-
         } catch (Exception e) {
-            throw e;
+            throw new RuntimeException("User registration failed", e);
         }
+
+        
     }
+
 
 }
 

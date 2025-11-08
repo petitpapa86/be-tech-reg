@@ -9,7 +9,6 @@ import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Domain repository interface for User aggregate operations.
@@ -18,39 +17,39 @@ import java.util.function.Function;
 public interface UserRepository {
     
     /**
-     * Returns a function that loads a user by ID
+     * Loads a user by ID
      */
-    Function<UserId, Result<User>> userLoader();
+    Maybe<User> userLoader(UserId userId);
     
     /**
-     * Returns a function that saves a user
+     * Saves a user
      */
-    Function<User, Result<UserId>> userSaver();
+    Result<UserId> userSaver(User user);
     
     /**
-     * Returns a function that finds user roles by user ID
+     * Finds user roles by user ID
      */
-    Function<UserId, List<UserRole>> userRolesFinder();
+    List<UserRole> userRolesFinder(UserId userId);
     
     /**
-     * Returns a function that finds user organization roles
+     * Finds user organization roles
      */
-    Function<UserOrgQuery, List<UserRole>> userOrgRolesFinder();
+    List<UserRole> userOrgRolesFinder(UserOrgQuery query);
     
     /**
-     * Returns a function that saves a user role
+     * Saves a user role
      */
-    Function<UserRole, Result<String>> userRoleSaver();
+    Result<String> userRoleSaver(UserRole userRole);
     
     /**
-     * Returns a function that finds user by email
+     * Finds user by email
      */
-    Function<Email, Maybe<User>> emailLookup();
+    Maybe<User> emailLookup(Email email);
     
     /**
-     * Returns a function that generates JWT tokens
+     * Generates JWT tokens for a user using provided secret
      */
-    Function<User, Result<JwtToken>> tokenGenerator(String secretKey);
+    Result<JwtToken> tokenGenerator(User user, String secretKey);
     
     /**
      * Query object for user organization role lookups

@@ -17,19 +17,19 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  */
 @SpringBootApplication
 @ComponentScan(basePackages = {
-    "com.bcbs239.regtech.core",
-    "com.bcbs239.regtech.iam",
-   // "com.bcbs239.regtech.billing",
-    "com.bcbs239.regtech.app"
+        "com.bcbs239.regtech.core",
+        "com.bcbs239.regtech.iam.infrastructure.config",
+        // "com.bcbs239.regtech.billing",
+        "com.bcbs239.regtech.app"
 })
 // Include the broader infrastructure package so JPA picks up SagaEntity and other entities
 @EntityScan(basePackages = {
-    "com.bcbs239.regtech.core.infrastructure",
-    "com.bcbs239.regtech.core.infrastructure.outbox"
+        "com.bcbs239.regtech.core.infrastructure",
+        "com.bcbs239.regtech.core.infrastructure.outbox",
 })
 @EnableJpaRepositories(basePackages = {
-    "com.bcbs239.regtech.core.infrastructure",
-    "com.bcbs239.regtech.core.infrastructure.outbox"
+        "com.bcbs239.regtech.core.infrastructure",
+        "com.bcbs239.regtech.core.infrastructure.outbox",
 })
 @EnableTransactionManagement
 @EnableAsync

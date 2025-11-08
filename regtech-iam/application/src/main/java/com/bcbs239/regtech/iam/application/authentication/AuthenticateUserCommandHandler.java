@@ -8,7 +8,6 @@ import com.bcbs239.regtech.iam.domain.users.*;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Command handler for user authentication with pure functional implementation
@@ -29,12 +28,8 @@ public class AuthenticateUserCommandHandler {
      * Handles the authenticate user command using pure functions
      */
     public Result<AuthenticationResult> handle(AuthenticationCommand command) {
-        // Call the pure function with repository closures
-        return authenticateUser(
-            command,
-            userRepository.emailLookup(),
-            userRepository.tokenGenerator(jwtSecretKey)
-        );
+        // Call the refactored authenticateUser which uses repository methods directly
+        return authenticateUser(command, userRepository, jwtSecretKey);
     }
 
     /**
@@ -47,8 +42,8 @@ public class AuthenticateUserCommandHandler {
      */
     static Result<AuthenticationResult> authenticateUser(
             AuthenticationCommand command,
-            Function<Email, Maybe<User>> userLookup,
-            Function<User, Result<JwtToken>> tokenGenerator
+            UserRepository userRepository,
+            String jwtSecretKey
     ) {
         // Validate command
         if (!command.isValid()) {
@@ -63,7 +58,7 @@ public class AuthenticateUserCommandHandler {
         Email email = emailResult.getValue().get();
 
         // Find user by email
-        Maybe<User> userMaybe = userLookup.apply(email);
+        Maybe<User> userMaybe = userRepository.emailLookup(email);
         if (userMaybe.isEmpty()) {
             return Result.failure(ErrorDetail.of("INVALID_CREDENTIALS", ErrorType.AUTHENTICATION_ERROR, "Invalid email or password", "authentication.invalid.credentials"));
         }
@@ -81,7 +76,7 @@ public class AuthenticateUserCommandHandler {
         }
 
         // Generate JWT token
-        Result<JwtToken> tokenResult = tokenGenerator.apply(user);
+        Result<JwtToken> tokenResult = userRepository.tokenGenerator(user, jwtSecretKey);
         if (tokenResult.isFailure()) {
             return Result.failure(tokenResult.getError().get());
         }

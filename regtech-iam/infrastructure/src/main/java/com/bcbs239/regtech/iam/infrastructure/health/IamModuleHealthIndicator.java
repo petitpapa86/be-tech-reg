@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.iam.infrastructure.health;
 
-import com.bcbs239.regtech.core.health.ModuleHealthIndicator;
+import com.bcbs239.regtech.core.domain.monitoring.ModuleHealthIndicator;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.stereotype.Component;
 

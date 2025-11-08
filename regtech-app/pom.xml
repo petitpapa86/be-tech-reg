@@ -23,6 +23,11 @@
 			<artifactId>regtech-iam-presentation</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-iam-infrastructure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 <!--		<dependency>-->
 <!--			<groupId>com.bcbs239</groupId>-->
 <!--			<artifactId>regtech-billing</artifactId>-->

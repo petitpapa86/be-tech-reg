@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.iam.domain.users;
 
 import com.bcbs239.regtech.core.domain.shared.Entity;
+import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredEvent;
 
 import java.time.Instant;
 import java.util.ArrayList;

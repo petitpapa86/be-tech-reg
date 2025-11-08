@@ -48,10 +48,11 @@ public class UserController extends BaseController {
         RouterFunction<ServerResponse> profileRoute = RouterFunctions.route(
                 RequestPredicates.GET("/api/v1/users/profile").and(RequestPredicates.accept(MediaType.APPLICATION_JSON)),
                 this::getUserProfileHandler
-        ).withAttribute("permissions", new String[]{"users:read"});
+        );
 
-        // Combine routes: both registration and profile are public
-        return RouterAttributes.asPublic(registerRoute).and(RouterAttributes.asPublic(profileRoute));
+        // Combine routes: registration is public, profile requires permission
+        return RouterAttributes.asPublic(registerRoute)
+                .and(RouterAttributes.withPermissions(profileRoute, "users:read"));
     }
 
     private ServerResponse registerUserHandler(ServerRequest request) throws ServletException, IOException {
@@ -144,4 +145,3 @@ public class UserController extends BaseController {
     ) {
     }
 }
-

@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.iam.domain.users;
+package com.bcbs239.regtech.iam.domain.users.events;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
