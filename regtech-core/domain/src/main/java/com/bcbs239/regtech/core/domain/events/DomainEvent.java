@@ -2,6 +2,7 @@ package com.bcbs239.regtech.core.domain.events;
 
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import java.util.UUID;
  * Domain events represent significant business events within a bounded context.
  */
 @Getter
+@NoArgsConstructor(force = true)
 public abstract class DomainEvent {
 
     private final String eventId = UUID.randomUUID().toString();

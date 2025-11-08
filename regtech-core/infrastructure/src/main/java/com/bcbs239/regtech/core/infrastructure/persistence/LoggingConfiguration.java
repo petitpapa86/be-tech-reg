@@ -43,7 +43,10 @@ public class LoggingConfiguration implements WebMvcConfigurer {
      * logging fallback will be used. Configured at bean initialization from
      * the Spring Environment (dev profile disables structured logging).
      */
-    public static volatile boolean STRUCTURED_LOGGING_ENABLED = true;
+    // Default to false (human-friendly) unless explicitly enabled by property
+    // or when running in an explicit production profile. This avoids noisy
+    // JSON output during local development by default.
+    public static volatile boolean STRUCTURED_LOGGING_ENABLED = false;
 
     @Bean
     public ObjectMapper loggingObjectMapper() {
@@ -61,11 +64,12 @@ public class LoggingConfiguration implements WebMvcConfigurer {
             if (prop != null) {
                 STRUCTURED_LOGGING_ENABLED = prop;
             } else {
-                // Fallback to profile-based behavior: dev disables structured logging
+                // Fallback to profile-based behavior: only enable structured logging
+                // for explicit production-like profiles. This keeps local/dev output
+                // human readable by default.
                 List<String> profiles = Arrays.asList(env.getActiveProfiles());
-                // Treat both 'dev' and 'development' as development profiles
-                boolean isDev = profiles.contains("dev") || profiles.contains("development");
-                STRUCTURED_LOGGING_ENABLED = !isDev;
+                boolean isProd = profiles.contains("prod") || profiles.contains("production") || profiles.contains("gcp") || profiles.contains("stage") || profiles.contains("staging");
+                STRUCTURED_LOGGING_ENABLED = isProd;
             }
         } catch (Exception e) {
             // default to enabled if we cannot determine the environment

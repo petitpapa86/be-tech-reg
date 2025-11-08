@@ -30,7 +30,7 @@ import java.util.List;
 public class BaseUnitOfWork {
 
     private static final Logger logger = LoggerFactory.getLogger(BaseUnitOfWork.class);
-    private IOutboxMessageRepository outboxMessageRepository;
+    private final IOutboxMessageRepository outboxMessageRepository;
 
     private final ObjectMapper objectMapper;
 
@@ -71,9 +71,14 @@ public class BaseUnitOfWork {
                 OutboxMessage outboxMessage = new OutboxMessage(type, content, Instant.now());
                 outboxMessages.add(outboxMessage);
             }
-            // Persist all at once
-            for (OutboxMessage msg : outboxMessages) {
-                outboxMessageRepository.save(msg);
+            // Persist all messages in a single batch within the same transaction.
+            // Use saveAll when available to reduce DB round-trips and ensure
+            // persistence happens together with the calling transaction.
+            try {
+                outboxMessageRepository.saveAll(outboxMessages);
+            } catch (Exception e) {
+                logger.error("Failed to persist outbox messages", e);
+                throw e;
             }
             // Clear only after successful persistence
             domainEvents.clear();

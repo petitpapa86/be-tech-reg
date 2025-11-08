@@ -9,6 +9,11 @@ import java.util.Optional;
 public interface IOutboxMessageRepository {
 
     OutboxMessage save(OutboxMessage message);
+    
+    /**
+     * Persist a batch of outbox messages in a single operation and return the saved messages.
+     */
+    java.util.List<OutboxMessage> saveAll(java.util.List<OutboxMessage> messages);
 
     Optional<OutboxMessage> findById(String id);
 

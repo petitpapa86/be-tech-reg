@@ -37,6 +37,21 @@ public class JpaOutboxMessageRepository implements IOutboxMessageRepository {
     }
 
     @Override
+    @Transactional
+    public java.util.List<OutboxMessage> saveAll(java.util.List<OutboxMessage> messages) {
+        if (messages == null || messages.isEmpty()) return java.util.Collections.emptyList();
+        java.util.List<OutboxMessageEntity> entities = messages.stream()
+                .map(this::toEntity)
+                .collect(java.util.stream.Collectors.toList());
+
+        java.util.List<OutboxMessageEntity> saved = outboxMessageRepository.saveAll(entities);
+
+        return saved.stream()
+                .map(this::toDomain)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
     public Optional<OutboxMessage> findById(String id) {
         return outboxMessageRepository.findById(id).map(this::toDomain);
     }
