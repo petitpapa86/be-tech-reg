@@ -12,7 +12,6 @@ import java.util.UUID;
  * Domain events represent significant business events within a bounded context.
  */
 @Getter
-@NoArgsConstructor(force = true)
 public abstract class DomainEvent {
 
     private final String eventId = UUID.randomUUID().toString();
