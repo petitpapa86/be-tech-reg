@@ -21,4 +21,22 @@ public final class CorrelationContext {
     public static String boundedContext() {
         return BOUNDED_CONTEXT.isBound() ? BOUNDED_CONTEXT.get() : null;
     }
+
+    /**
+     * Run the given Runnable with the supplied correlation and causation ids
+     * scoped via the module-level ScopedValue instances. Either id may be
+     * null; if both are null the runnable is executed directly without scoping.
+     */
+    public static void runWith(String correlationId, String causationId, Runnable r) {
+        if (correlationId == null && causationId == null) {
+            r.run();
+            return;
+        }
+
+        var scope = java.lang.ScopedValue.where(CORRELATION_ID, correlationId);
+        if (causationId != null) {
+            scope = scope.where(CAUSATION_ID, causationId);
+        }
+        scope.run(r);
+    }
 }

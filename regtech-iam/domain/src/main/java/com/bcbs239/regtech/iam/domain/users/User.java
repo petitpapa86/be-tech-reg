@@ -2,6 +2,7 @@ package com.bcbs239.regtech.iam.domain.users;
 
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredEvent;
+import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -54,17 +55,31 @@ public class User extends Entity {
      * Factory method to create a new user with bank assignment
      */
     public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId, String paymentMethodId) {
+        // Delegate to the overload that accepts optional correlation/cause ids
+        return createWithBank(email, password, firstName, lastName, bankId, paymentMethodId, null, null);
+    }
+
+    /**
+     * Overloaded factory method that accepts optional correlation and causation ids.
+     * When provided the event is added inside a ScopedValue scope so downstream
+     * synchronous handlers can read the correlation context via
+     * CorrelationContext.correlationIdOrNull() / causationIdOrNull().
+     */
+    public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId, String paymentMethodId, String correlationId, String causationId) {
         User user = create(email, password, firstName, lastName);
         user.assignToBank(bankId, "USER"); // Default role for new users
 
-        // Raise domain event
-        UserRegisteredEvent event = new UserRegisteredEvent(
-            user.id,
-            email.getValue(),
-            bankId,
-            paymentMethodId
-        );
-        user.addDomainEvent(event);
+        // Scope the correlation/cause ids while constructing and adding the
+        // domain event so its constructor can observe the ScopedValue context.
+        CorrelationContext.runWith(correlationId, causationId, () -> {
+            UserRegisteredEvent event = new UserRegisteredEvent(
+                user.id,
+                email.getValue(),
+                bankId,
+                paymentMethodId
+            );
+            user.addDomainEvent(event);
+        });
 
         return user;
     }
