@@ -3,6 +3,9 @@ spring:
     name: regtech
   profiles:
     active: development
+  mvc:
+    favicon:
+      enabled: false
   datasource:
     url: jdbc:h2:mem:regtech;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;INIT=CREATE SCHEMA IF NOT EXISTS billing\;CREATE SCHEMA IF NOT EXISTS iam
     driver-class-name: org.h2.Driver
@@ -178,6 +181,9 @@ management:
 logging:
   # Logback configuration file for structured logging
   config: classpath:logback-spring.xml
+  # Toggle structured (JSON) logging used by LoggingConfiguration
+  #structured:
+  #  enabled: false
 
   level:
     com.bcbs239.regtech: INFO
@@ -218,6 +224,10 @@ logging:
     com.bcbs239.regtech.core.outbox: DEBUG
     # Ingestion module debugging in GCP
     com.bcbs239.regtech.modules.ingestion: DEBUG
+
+  # Enable structured logging when running in the gcp profile
+  structured:
+    enabled: true
 
 # Inbox processing configuration (bound to com.bcbs239.regtech.core.application.inbox.InboxOptions)
 inbox:

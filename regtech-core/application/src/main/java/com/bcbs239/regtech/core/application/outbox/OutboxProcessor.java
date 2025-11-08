@@ -2,6 +2,7 @@ package com.bcbs239.regtech.core.application.outbox;
 
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
+import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.outbox.IOutboxMessageRepository;
 import com.bcbs239.regtech.core.domain.outbox.OutboxMessage;
 import com.bcbs239.regtech.core.domain.outbox.OutboxMessageStatus;
@@ -27,12 +28,12 @@ public class OutboxProcessor {
     private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
 
     private final IOutboxMessageRepository outboxMessageRepository;
-    private final DomainEventDispatcher domainEventDispatcher;
+    private final DomainEventBus domainEventDispatcher;
     private final ObjectMapper objectMapper;
     private final OutboxOptions outboxOptions;
 
     public OutboxProcessor(
-            IOutboxMessageRepository outboxMessageRepository, DomainEventDispatcher domainEventDispatcher,
+            IOutboxMessageRepository outboxMessageRepository, DomainEventBus domainEventDispatcher,
             ObjectMapper objectMapper, OutboxOptions outboxOptions) {
         this.outboxMessageRepository = outboxMessageRepository;
         this.domainEventDispatcher = domainEventDispatcher;
@@ -110,7 +111,7 @@ public class OutboxProcessor {
 
         DomainEvent event = objectMapper.readValue(message.getContent(), domainEventClass);
 
-        domainEventDispatcher.dispatch(event);
+        domainEventDispatcher.publish(event);
 
         logger.info("Dispatched domain event from outbox: type={}, id={}", typeName, message.getId());
 

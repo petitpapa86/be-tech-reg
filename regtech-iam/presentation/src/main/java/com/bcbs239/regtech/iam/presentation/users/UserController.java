@@ -82,6 +82,7 @@ public class UserController extends BaseController {
                         error.getFieldErrors(),
                         error.getMessage()
                 );
+                assert responseEntity.getBody() != null;
                 return ServerResponse.status(responseEntity.getStatusCode())
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(responseEntity.getBody());
@@ -96,7 +97,8 @@ public class UserController extends BaseController {
                     "user.register.success"
             );
 
-            return ServerResponse.status(responseEntity.getStatusCode())
+        assert responseEntity.getBody() != null;
+        return ServerResponse.status(responseEntity.getStatusCode())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(responseEntity.getBody());
 
