@@ -22,6 +22,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 import org.springframework.web.servlet.function.support.RouterFunctionMapping;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
 import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
@@ -50,11 +51,39 @@ public class LoggingConfiguration implements WebMvcConfigurer {
     public static final ScopedValue<Map<String, Object>> LOGGING_DETAILS = ScopedValue.newInstance();
     public static final ScopedValue<Long> REQUEST_START_TIME = ScopedValue.newInstance();
 
+    /**
+     * If false, structured (JSON) logging is disabled and a simple plain-text
+     * logging fallback will be used. Configured at bean initialization from
+     * the Spring Environment (dev profile disables structured logging).
+     */
+    public static volatile boolean STRUCTURED_LOGGING_ENABLED = true;
+
     @Bean
     public ObjectMapper loggingObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         return mapper;
+    }
+
+    @Autowired
+    public void configureStructuredLogging(Environment env) {
+        try {
+            // Prefer an explicit property when present so environments can opt in/out
+            Boolean prop = env.getProperty("logging.structured.enabled", Boolean.class);
+            if (prop != null) {
+                STRUCTURED_LOGGING_ENABLED = prop;
+            } else {
+                // Fallback to profile-based behavior: dev disables structured logging
+                List<String> profiles = Arrays.asList(env.getActiveProfiles());
+                // Treat both 'dev' and 'development' as development profiles
+                boolean isDev = profiles.contains("dev") || profiles.contains("development");
+                STRUCTURED_LOGGING_ENABLED = !isDev;
+            }
+        } catch (Exception e) {
+            // default to enabled if we cannot determine the environment
+            STRUCTURED_LOGGING_ENABLED = true;
+        }
+        logger.info("Structured logging enabled: {}", STRUCTURED_LOGGING_ENABLED);
     }
 
     @Override
@@ -338,6 +367,19 @@ public class LoggingConfiguration implements WebMvcConfigurer {
         // Capture current scoped values for propagation (safely check if bound)
         final String correlationId = CORRELATION_ID.isBound() ? CORRELATION_ID.get() : MDC.get("correlationId");
         final String version = VERSION.isBound() ? VERSION.get() : "1.0.0";
+
+        // If structured logging is disabled (e.g. dev profile), fall back to
+        // simple synchronous logging to keep console output readable.
+        if (!STRUCTURED_LOGGING_ENABLED) {
+            Logger simpleLogger = LoggerFactory.getLogger(loggerName);
+            String detailStr = capturedDetails == null || capturedDetails.isEmpty() ? "" : capturedDetails.toString();
+            if (throwable != null) {
+                simpleLogger.error(message + " - details=" + detailStr, throwable);
+            } else {
+                simpleLogger.info(message + " - details=" + detailStr);
+            }
+            return;
+        }
 
         // Submit to virtual thread executor with error handling
         try {

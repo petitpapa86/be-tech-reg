@@ -1,15 +1,20 @@
 package com.bcbs239.regtech.app.config;
 
 
+import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -23,28 +28,55 @@ public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
-     * Handles all unhandled exceptions.
-     * Logs the exception and returns a generic error response using existing ApiResponse format.
-     *
-     * @param ex the exception
-     * @param request the web request
-     * @return a ResponseEntity with structured error details
+     * Logs error using both standard and structured logging
      */
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleGlobalException(Exception ex, WebRequest request) {
-        String path = request.getDescription(false).replace("uri=", "");
-        
-//        LoggingConfiguration.logStructured("UNHANDLED_EXCEPTION", Map.of(
-//            "exception", ex.getClass().getSimpleName(),
-//            "message", ex.getMessage(),
-//            "path", path
-//        ));
+    private void logError(String eventType, Exception ex, HttpServletRequest request, Map<String, Object> additionalContext) {
+        String path = request.getRequestURI();
 
-        String message = "An unexpected error occurred. Please try again or contact support if the problem persists.";
-        
+        // Standard logging
+       // logger.error("Error [{}] at {}: {}", eventType, path, ex.getMessage(), ex);
+
+        // Structured logging with full context
+        Map<String, Object> context = new HashMap<>(Map.of(
+                "eventType", eventType,
+                "exception", ex.getClass().getSimpleName(),
+                "message", ex.getMessage(),
+                "path", path,
+                "method", request.getMethod(),
+                "correlationId", LoggingConfiguration.getCurrentCorrelationId()
+        ));
+
+        if (additionalContext != null) {
+            context.putAll(additionalContext);
+        }
+
+        LoggingConfiguration.logError(eventType, ex, context);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<?>> handleException(Exception ex, HttpServletRequest request) {
+        logError("UNHANDLED_EXCEPTION", ex, request, null);
+
         return ResponseEntity.internalServerError().body(
-            ResponseUtils.systemError(message)
+                ResponseUtils.systemError(ex.getMessage())
         );
     }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiResponse<?>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request) {
+
+        logError("DATA_INTEGRITY_VIOLATION", ex, request, Map.of(
+                "severity", "HIGH",
+                "requiresInvestigation", true
+        ));
+
+        return ResponseEntity.internalServerError().body(
+                ResponseUtils.systemError(ex.getMessage())
+        );
+    }
+
+
 }
 

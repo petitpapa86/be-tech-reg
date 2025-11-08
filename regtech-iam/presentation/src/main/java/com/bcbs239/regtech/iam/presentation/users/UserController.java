@@ -9,6 +9,7 @@ import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityCon
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommand;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommandHandler;
 import com.bcbs239.regtech.iam.application.users.RegisterUserResponse;
+import jakarta.servlet.ServletException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -18,6 +19,7 @@ import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
+import java.io.IOException;
 import java.util.Set;
 
 import static org.springframework.web.servlet.function.RequestPredicates.*;
@@ -51,8 +53,8 @@ public class UserController extends BaseController {
                 .and(RouterAttributes.withPermissions(profileRoute, "users:read"));
     }
 
-    private ServerResponse registerUserHandler(ServerRequest request) {
-        try {
+    private ServerResponse registerUserHandler(ServerRequest request) throws ServletException, IOException {
+
             RegisterUserRequest req = request.body(RegisterUserRequest.class);
 
             // Create command with validation
@@ -98,11 +100,7 @@ public class UserController extends BaseController {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(responseEntity.getBody());
 
-        } catch (Exception e) {
-            return ServerResponse.status(500)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(ApiResponse.error().message(e.getMessage()).build());
-        }
+
     }
 
     private ServerResponse getUserProfileHandler(ServerRequest request) {
