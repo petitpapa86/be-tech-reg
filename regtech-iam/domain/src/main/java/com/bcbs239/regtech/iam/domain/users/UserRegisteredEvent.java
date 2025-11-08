@@ -1,10 +1,8 @@
 package com.bcbs239.regtech.iam.domain.users;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
-import com.bcbs239.regtech.core.domain.shared.CorrelationContext;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import lombok.Getter;
-
-import java.util.UUID;
 
 @Getter
 public class UserRegisteredEvent extends DomainEvent {
@@ -15,11 +13,15 @@ public class UserRegisteredEvent extends DomainEvent {
     private final String paymentMethodId;
 
     public UserRegisteredEvent(String userId, String email, String bankId, String paymentMethodId) {
-        super(CorrelationContext.correlationId(), CorrelationContext.causationId());
+        super(null, Maybe.none(), "UserRegisteredEvent");
         this.userId = userId;
         this.email = email;
         this.bankId = bankId;
         this.paymentMethodId = paymentMethodId;
+    }
+
+    public static UserRegisteredEvent create(String userId, String email, String bankId, String paymentMethodId) {
+        return new UserRegisteredEvent(userId, email, bankId, paymentMethodId);
     }
 
     @Override
@@ -27,5 +29,5 @@ public class UserRegisteredEvent extends DomainEvent {
         return "UserRegisteredEvent";
     }
 }
-}
+
 

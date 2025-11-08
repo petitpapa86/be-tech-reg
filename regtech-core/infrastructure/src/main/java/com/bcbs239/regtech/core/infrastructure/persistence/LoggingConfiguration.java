@@ -9,13 +9,22 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
+import org.springframework.web.servlet.function.RequestPredicates;
+import org.springframework.web.servlet.function.RouterFunction;
+import org.springframework.web.servlet.function.RouterFunctions;
+import org.springframework.web.servlet.function.ServerResponse;
+import org.springframework.web.servlet.function.support.RouterFunctionMapping;
+import org.springframework.beans.factory.SmartInitializingSingleton;
+import org.springframework.context.ApplicationContext;
 import java.util.HashMap;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -51,6 +60,59 @@ public class LoggingConfiguration implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new CorrelationIdInterceptor());
+    }
+
+    @Bean
+    public RouterFunctionMapping customRouterFunctionMapping(@Autowired(required = false) List<RouterFunction<ServerResponse>> routerFunctions) {
+        RouterFunction<ServerResponse> combined = null;
+        if (routerFunctions != null && !routerFunctions.isEmpty()) {
+            combined = routerFunctions.stream()
+                    .reduce(RouterFunction::and)
+                    .orElse(null);
+        }
+        if (combined == null) {
+            combined = RouterFunctions.route(RequestPredicates.GET("/__internal__/router-function-mapping"), request -> ServerResponse.ok().build());
+        }
+        return new RouterFunctionMapping(combined);
+    }
+
+    @Bean
+    public SmartInitializingSingleton routerFunctionRegistrar(ApplicationContext ctx) {
+        return () -> {
+            // Always inspect the ApplicationContext directly so we get diagnostics even when autowired lists are empty
+            String[] rfBeanNames = ctx.getBeanNamesForType(RouterFunction.class, true, false);
+            logger.info("(Registrar) Discovered RouterFunction bean names: {}", Arrays.toString(rfBeanNames));
+
+            String[] mappingBeanNames = ctx.getBeanNamesForType(RouterFunctionMapping.class, true, false);
+            logger.info("(Registrar) Discovered RouterFunctionMapping bean names: {}", Arrays.toString(mappingBeanNames));
+
+            if (rfBeanNames == null || rfBeanNames.length == 0) {
+                logger.info("(Registrar) No RouterFunction beans found in context");
+                return;
+            }
+
+            // Collect RouterFunction instances
+            List<RouterFunction<ServerResponse>> routerFunctions = Arrays.stream(rfBeanNames)
+                    .map(name -> (RouterFunction<ServerResponse>) ctx.getBean(name))
+                    .toList();
+
+            RouterFunction<ServerResponse> combinedFn = routerFunctions.stream().reduce(RouterFunction::and).orElse(null);
+            if (combinedFn == null) {
+                logger.info("(Registrar) Combined RouterFunction is null after reduction");
+                return;
+            }
+
+            logger.info("(Registrar) Registering combined RouterFunction with {} routerFunctions", routerFunctions.size());
+
+            for (RouterFunctionMapping mapping : ctx.getBeansOfType(RouterFunctionMapping.class).values()) {
+                try {
+                    mapping.getClass().getMethod("setRouterFunction", RouterFunction.class).invoke(mapping, combinedFn);
+                    logger.info("(Registrar) Applied combined RouterFunction to mapping: {}", mapping.getClass().getName());
+                } catch (Exception e) {
+                    logger.warn("(Registrar) Failed to apply RouterFunction to mapping {}: {}", mapping.getClass().getName(), e.getMessage());
+                }
+            }
+        };
     }
 
     /**
