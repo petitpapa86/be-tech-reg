@@ -15,21 +15,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.function.RequestPredicates;
-import org.springframework.web.servlet.function.RouterFunction;
-import org.springframework.web.servlet.function.RouterFunctions;
-import org.springframework.web.servlet.function.ServerResponse;
-import org.springframework.web.servlet.function.support.RouterFunctionMapping;
-import org.springframework.beans.factory.SmartInitializingSingleton;
-import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 import java.util.HashMap;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import com.bcbs239.regtech.core.infrastructure.persistence.MaybeJacksonModule;
 
 /**
  * Enhanced logging configuration for GCP deployment with structured JSON logging.
@@ -41,15 +32,11 @@ public class LoggingConfiguration implements WebMvcConfigurer {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggingConfiguration.class);
 
-    private static final ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor();
-
-    // Scoped Values for logging context
-    public static final ScopedValue<String> CORRELATION_ID = ScopedValue.newInstance();
-    public static final ScopedValue<String> SERVICE = ScopedValue.newInstance();
-    public static final ScopedValue<String> EVENT_TYPE = ScopedValue.newInstance();
-    public static final ScopedValue<String> VERSION = ScopedValue.newInstance();
-    public static final ScopedValue<Map<String, Object>> LOGGING_DETAILS = ScopedValue.newInstance();
-    public static final ScopedValue<Long> REQUEST_START_TIME = ScopedValue.newInstance();
+    // Synchronous simplified logging configuration.
+    // Keep a simple ObjectMapper for structured JSON logs when enabled.
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .registerModule(new JavaTimeModule())
+        .registerModule(new MaybeJacksonModule());
 
     /**
      * If false, structured (JSON) logging is disabled and a simple plain-text
@@ -62,6 +49,7 @@ public class LoggingConfiguration implements WebMvcConfigurer {
     public ObjectMapper loggingObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
+        mapper.registerModule(new MaybeJacksonModule());
         return mapper;
     }
 
@@ -96,21 +84,8 @@ public class LoggingConfiguration implements WebMvcConfigurer {
      */
     @PreDestroy
     public void shutdown() {
-        logger.info("Shutting down virtual thread executor for logging");
-        virtualThreadExecutor.shutdown();
-        try {
-            if (!virtualThreadExecutor.awaitTermination(10, TimeUnit.SECONDS)) {
-                logger.warn("Executor did not terminate in time, forcing shutdown");
-                virtualThreadExecutor.shutdownNow();
-                if (!virtualThreadExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
-                    logger.error("Executor did not terminate after forced shutdown");
-                }
-            }
-        } catch (InterruptedException e) {
-            logger.error("Interrupted while waiting for executor shutdown", e);
-            virtualThreadExecutor.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
+        // No async executor to shut down in simplified configuration.
+        logger.debug("LoggingConfiguration.shutdown() called - no async executor to stop.");
     }
 
     private static class CorrelationIdInterceptor implements HandlerInterceptor {
@@ -125,18 +100,11 @@ public class LoggingConfiguration implements WebMvcConfigurer {
             final String finalCorrelationId = correlationId;
             final long startTime = System.currentTimeMillis();
             
-            // Bind ScopedValues for the request scope
-            ScopedValue.where(CORRELATION_ID, finalCorrelationId)
-                      .where(SERVICE, "regtech")
-                      .where(VERSION, "1.0.0")
-                      .where(REQUEST_START_TIME, startTime)
-                      .run(() -> {
-                // Also set MDC for compatibility with synchronous logging
-                MDC.put("correlationId", finalCorrelationId);
-                MDC.put("requestMethod", request.getMethod());
-                MDC.put("requestUri", request.getRequestURI());
-                MDC.put("userAgent", request.getHeader("User-Agent"));
-            });
+            // Set MDC for the request scope
+            MDC.put("correlationId", finalCorrelationId);
+            MDC.put("requestMethod", request.getMethod());
+            MDC.put("requestUri", request.getRequestURI());
+            MDC.put("userAgent", request.getHeader("User-Agent"));
             
             response.setHeader("X-Correlation-ID", correlationId);
 
@@ -194,14 +162,7 @@ public class LoggingConfiguration implements WebMvcConfigurer {
      * Get the current correlation ID from ScopedValue or MDC fallback
      */
     public static String getCurrentCorrelationId() {
-        String correlationId = null;
-        if (CORRELATION_ID.isBound()) {
-            correlationId = CORRELATION_ID.get();
-        }
-        if (correlationId == null) {
-            correlationId = MDC.get("correlationId");
-        }
-        return correlationId;
+        return MDC.get("correlationId");
     }
 
     /**
@@ -212,8 +173,10 @@ public class LoggingConfiguration implements WebMvcConfigurer {
         logEntry.put("timestamp", System.currentTimeMillis());
         logEntry.put("eventType", eventType);
         logEntry.put("correlationId", getCurrentCorrelationId());
-        logEntry.put("service", SERVICE.isBound() ? SERVICE.get() : "regtech");
-        logEntry.put("version", VERSION.isBound() ? VERSION.get() : "1.0.0");
+    String svc = MDC.get("service");
+    logEntry.put("service", svc != null ? svc : "regtech");
+    String ver = MDC.get("version");
+    logEntry.put("version", ver != null ? ver : "1.0.0");
 
         // Capture line number
         StackTraceElement[] stack = Thread.currentThread().getStackTrace();
@@ -299,6 +262,7 @@ public class LoggingConfiguration implements WebMvcConfigurer {
      */
     private static String getStackTraceAsString(Throwable throwable) {
         StringBuilder sb = new StringBuilder();
+        if (throwable == null) return "";
         for (StackTraceElement element : throwable.getStackTrace()) {
             sb.append(element.toString()).append("\n");
         }
@@ -324,17 +288,13 @@ public class LoggingConfiguration implements WebMvcConfigurer {
      * @param throwable Optional exception to log
      */
     public static void logStructured(String message, Map<String, Object> details, Throwable throwable) {
-        // Capture calling class, service, and line number before async execution
-        final String loggerName;
-        final String service;
-        final int lineNumber;
-        final String eventType;
-        final Map<String, Object> capturedDetails;
+    // Capture calling class and event type before execution
+    final String loggerName;
+    final String eventType;
+    final Map<String, Object> capturedDetails;
         
         {
             String tempLoggerName = "com.bcbs239.regtech.structured";
-            String tempService = SERVICE.isBound() ? SERVICE.get() : "regtech";
-            int tempLineNumber = 0;
             String tempEventType = details != null && details.containsKey("eventType") 
                 ? String.valueOf(details.get("eventType")) : "LOG";
             Map<String, Object> tempDetails = new HashMap<>();
@@ -349,102 +309,42 @@ public class LoggingConfiguration implements WebMvcConfigurer {
                     !className.startsWith("java.") &&
                     !className.startsWith("jdk.")) {
                     tempLoggerName = className;
-                    tempLineNumber = element.getLineNumber();
-                    String[] parts = className.split("\\.");
-                    if (parts.length >= 4 && "com.bcbs239.regtech".equals(parts[0] + "." + parts[1] + "." + parts[2])) {
-                        tempService = "regtech-" + parts[3];
-                    }
                     break;
                 }
             }
             loggerName = tempLoggerName;
-            service = tempService;
-            lineNumber = tempLineNumber;
             eventType = tempEventType;
             capturedDetails = tempDetails;
         }
 
-        // Capture current scoped values for propagation (safely check if bound)
-        final String correlationId = CORRELATION_ID.isBound() ? CORRELATION_ID.get() : MDC.get("correlationId");
-        final String version = VERSION.isBound() ? VERSION.get() : "1.0.0";
-
-        // If structured logging is disabled (e.g. dev profile), fall back to
-        // simple synchronous logging to keep console output readable.
+        // If structured logging is disabled, emit a plain log message with details
+        Logger targetLogger = LoggerFactory.getLogger(loggerName);
         if (!STRUCTURED_LOGGING_ENABLED) {
-            Logger simpleLogger = LoggerFactory.getLogger(loggerName);
-            String detailStr = capturedDetails == null || capturedDetails.isEmpty() ? "" : capturedDetails.toString();
-            if (throwable != null) {
-                simpleLogger.error(message + " - details=" + detailStr, throwable);
+            if (capturedDetails.isEmpty()) {
+                if (throwable != null) targetLogger.error(message, throwable);
+                else targetLogger.info(message);
             } else {
-                simpleLogger.info(message + " - details=" + detailStr);
+                String detailStr = capturedDetails.toString();
+                if (throwable != null) targetLogger.error(message + " - details=" + detailStr, throwable);
+                else targetLogger.info(message + " - details=" + detailStr);
             }
             return;
         }
 
-        // Submit to virtual thread executor with error handling
+        // Structured logging: build a JSON object and log it synchronously
         try {
-            virtualThreadExecutor.submit(() -> {
-                try {
-                    // Bind scoped values in the virtual thread
-                    ScopedValue.where(CORRELATION_ID, correlationId)
-                              .where(SERVICE, service)
-                              .where(EVENT_TYPE, eventType)
-                              .where(VERSION, version)
-                              .where(LOGGING_DETAILS, capturedDetails)
-                              .run(() -> {
-                        try {
-                            Logger structuredLogger = LoggerFactory.getLogger(loggerName);
-
-                            // Populate MDC from Scoped Values for SLF4J compatibility
-                            if (correlationId != null) {
-                                MDC.put("correlationId", correlationId);
-                            }
-                            MDC.put("service", service);
-                            MDC.put("eventType", eventType);
-                            MDC.put("lineNumber", String.valueOf(lineNumber));
-                            MDC.put("version", version);
-                            
-                            if (!capturedDetails.isEmpty()) {
-                                capturedDetails.forEach((key, value) -> 
-                                    MDC.put(key, value != null ? value.toString() : "null"));
-                            }
-
-                            if (throwable != null) {
-                                MDC.put("error", throwable.getMessage());
-                                MDC.put("exceptionClass", throwable.getClass().getName());
-                                structuredLogger.error(message, throwable);
-                            } else {
-                                structuredLogger.info(message);
-                            }
-                        } finally {
-                            // Clear MDC to prevent leaks
-                            MDC.clear();
-                        }
-                    });
-                } catch (Exception e) {
-                    // Fallback logging if structured logging fails
-                    Logger fallbackLogger = LoggerFactory.getLogger(LoggingConfiguration.class);
-                    fallbackLogger.error("Failed to log structured message: {} - Error: {}", 
-                        message, e.getMessage(), e);
-                }
-            });
-        } catch (Exception e) {
-            // If executor submission fails, log synchronously as fallback
-            Logger fallbackLogger = LoggerFactory.getLogger(LoggingConfiguration.class);
-            fallbackLogger.error("Failed to submit log task to executor: {} - Error: {}", 
-                message, e.getMessage(), e);
-            
-            // Attempt synchronous logging
-            try {
-                Logger structuredLogger = LoggerFactory.getLogger(loggerName);
-                if (throwable != null) {
-                    structuredLogger.error(message, throwable);
-                } else {
-                    structuredLogger.info(message);
-                }
-            } catch (Exception syncError) {
-                fallbackLogger.error("Synchronous logging also failed", syncError);
+            Map<String, Object> entry = createStructuredLog(eventType, capturedDetails);
+            entry.put("message", message);
+            if (throwable != null) {
+                entry.put("exception", getStackTraceAsString(throwable));
             }
+            String json = OBJECT_MAPPER.writeValueAsString(entry);
+            targetLogger.info(json);
+        } catch (Exception e) {
+            // Fallback to simple logging if JSON serialization fails
+            targetLogger.warn("Failed to write structured log as JSON, falling back. Error: {}", e.getMessage());
+            if (throwable != null) targetLogger.error(message, throwable);
+            else targetLogger.info(message + " - details=" + capturedDetails.toString());
         }
     }
 
@@ -453,17 +353,12 @@ public class LoggingConfiguration implements WebMvcConfigurer {
      * Useful for background tasks or async operations
      */
     public static void withCorrelationId(String correlationId, Runnable task) {
-        ScopedValue.where(CORRELATION_ID, correlationId)
-                  .where(SERVICE, "regtech")
-                  .where(VERSION, "1.0.0")
-                  .run(() -> {
-            MDC.put("correlationId", correlationId);
-            try {
-                task.run();
-            } finally {
-                MDC.remove("correlationId");
-            }
-        });
+        MDC.put("correlationId", correlationId);
+        try {
+            task.run();
+        } finally {
+            MDC.remove("correlationId");
+        }
     }
 
     /**
@@ -472,19 +367,13 @@ public class LoggingConfiguration implements WebMvcConfigurer {
     public static <T> T withLoggingContext(String correlationId, String service, 
                                           Map<String, Object> details, 
                                           java.util.function.Supplier<T> task) {
-        return ScopedValue.where(CORRELATION_ID, correlationId)
-                         .where(SERVICE, service)
-                         .where(VERSION, "1.0.0")
-                         .where(LOGGING_DETAILS, details)
-                         .call(() -> {
-            MDC.put("correlationId", correlationId);
-            MDC.put("service", service);
-            try {
-                return task.get();
-            } finally {
-                MDC.clear();
-            }
-        });
+        MDC.put("correlationId", correlationId);
+        MDC.put("service", service);
+        try {
+            return task.get();
+        } finally {
+            MDC.clear();
+        }
     }
 }
 
