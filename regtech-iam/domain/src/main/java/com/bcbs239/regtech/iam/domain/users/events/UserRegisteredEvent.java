@@ -2,10 +2,13 @@ package com.bcbs239.regtech.iam.domain.users.events;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UserRegisteredEvent extends DomainEvent {
 
     private final String userId;
@@ -13,7 +16,11 @@ public class UserRegisteredEvent extends DomainEvent {
     private final String bankId;
     private final String paymentMethodId;
 
-    public UserRegisteredEvent(String userId, String email, String bankId, String paymentMethodId) {
+    @JsonCreator
+    public UserRegisteredEvent(@JsonProperty("userId") String userId,
+                               @JsonProperty("email") String email,
+                               @JsonProperty("bankId") String bankId,
+                               @JsonProperty("paymentMethodId") String paymentMethodId) {
         super(null, Maybe.none(), "UserRegisteredEvent");
         this.userId = userId;
         this.email = email;
