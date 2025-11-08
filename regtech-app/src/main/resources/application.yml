@@ -15,6 +15,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
     show-sql: false
+    open-in-view: false
   flyway:
     enabled: false
   h2:
@@ -199,7 +200,7 @@ logging:
   # For GCP deployment, set SPRING_PROFILES_ACTIVE=gcp to enable JSON structured logging
   # This will automatically use the GCP_JSON appender in logback-spring.xml
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
 ---
 spring:

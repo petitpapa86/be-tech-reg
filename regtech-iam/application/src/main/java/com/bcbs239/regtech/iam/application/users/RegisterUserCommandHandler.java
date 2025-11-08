@@ -9,6 +9,7 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ValidationUtils;
 import com.bcbs239.regtech.iam.domain.users.*;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
@@ -17,7 +18,7 @@ import java.util.UUID;
  * Command handler for user registration with transactional outbox pattern for reliable event publishing.
  * Saves user and outbox event in the same transaction, then scheduled processor handles publication.
  */
-@Component
+@Service
 public class RegisterUserCommandHandler {
 
     private final UserRepository userRepository;
