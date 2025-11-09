@@ -31,31 +31,26 @@ public class JpaInboxMessageRepository implements IInboxMessageRepository {
     @Override
     @Transactional
     public InboxMessage save(InboxMessage message) {
-        InboxMessageEntity entity = toEntity(message);
-
-        // If an inbox message with the same id already exists, return it (idempotent)
-        if (entity.getId() != null && inboxMessageRepository.existsById(entity.getId())) {
-            InboxMessageEntity existing = inboxMessageRepository.findById(entity.getId()).orElse(null);
+        // Check for duplicate by eventId FIRST (idempotency check)
+        if (message.getId() != null) {
+            InboxMessageEntity existing = inboxMessageRepository.findByEventId(message.getId()).orElse(null);
             if (existing != null) {
                 return toDomain(existing);
             }
         }
 
+        InboxMessageEntity entity = toEntity(message);
+        // Don't set the ID - let JPA generate it
+        // The eventId field will store the original event ID for idempotency
+        entity.setId(null);
+        entity.setEventId(message.getId());
+
         try {
             InboxMessageEntity saved = inboxMessageRepository.save(entity);
             return toDomain(saved);
         } catch (org.springframework.dao.DataIntegrityViolationException ex) {
-            // Concurrent insert or unique constraint violation - fetch existing by event id or id and return it
-            InboxMessageEntity existing = null;
-            if (entity.getId() != null) {
-                existing = inboxMessageRepository.findById(entity.getId()).orElse(null);
-            }
-            if (existing == null && entity.getEventId() != null) {
-                existing = inboxMessageRepository.findAll().stream()
-                        .filter(e -> entity.getEventId().equals(e.getEventId()))
-                        .findFirst()
-                        .orElse(null);
-            }
+            // Concurrent insert with same eventId - fetch existing and return it
+            InboxMessageEntity existing = inboxMessageRepository.findByEventId(message.getId()).orElse(null);
             if (existing != null) {
                 return toDomain(existing);
             }
@@ -77,10 +72,10 @@ public class JpaInboxMessageRepository implements IInboxMessageRepository {
     @Transactional
     public void markAsProcessing(String id) {
         entityManager.createQuery(
-            "UPDATE InboxMessageEntity i SET i.processingStatus = :processing WHERE i.id = :id AND i.processingStatus = :pending"
+            "UPDATE InboxMessageEntity i SET i.processingStatus = :processing WHERE i.eventId = :eventId AND i.processingStatus = :pending"
         )
         .setParameter("processing", InboxMessageEntity.ProcessingStatus.PROCESSING)
-        .setParameter("id", id)
+        .setParameter("eventId", id)
         .setParameter("pending", InboxMessageEntity.ProcessingStatus.PENDING)
         .executeUpdate();
     }
@@ -89,10 +84,10 @@ public class JpaInboxMessageRepository implements IInboxMessageRepository {
     @Transactional
     public void markAsPermanentlyFailed(String id) {
         entityManager.createQuery(
-            "UPDATE InboxMessageEntity i SET i.processingStatus = :failed WHERE i.id = :id"
+            "UPDATE InboxMessageEntity i SET i.processingStatus = :failed WHERE i.eventId = :eventId"
         )
         .setParameter("failed", InboxMessageEntity.ProcessingStatus.FAILED)
-        .setParameter("id", id)
+        .setParameter("eventId", id)
         .executeUpdate();
     }
 
@@ -100,17 +95,19 @@ public class JpaInboxMessageRepository implements IInboxMessageRepository {
     @Transactional
     public void markAsProcessed(String id, Instant now) {
         entityManager.createQuery(
-            "UPDATE InboxMessageEntity i SET i.processingStatus = :processed, i.processedAt = :processedAt WHERE i.id = :id"
+            "UPDATE InboxMessageEntity i SET i.processingStatus = :processed, i.processedAt = :processedAt WHERE i.eventId = :eventId"
         )
         .setParameter("processed", InboxMessageEntity.ProcessingStatus.PROCESSED)
         .setParameter("processedAt", now)
-        .setParameter("id", id)
+        .setParameter("eventId", id)
         .executeUpdate();
     }
 
     private InboxMessageEntity toEntity(InboxMessage message) {
         InboxMessageEntity entity = new InboxMessageEntity();
-        entity.setId(message.getId());
+        // Don't set ID here - it will be set in the save method
+        // entity.setId() is intentionally not called
+        entity.setEventId(message.getId()); // Store original event ID for idempotency
         entity.setEventType(message.getEventType());
         entity.setEventData(message.getContent());
         entity.setReceivedAt(message.getOccurredOnUtc());
@@ -124,7 +121,7 @@ public class JpaInboxMessageRepository implements IInboxMessageRepository {
 
     private InboxMessage toDomain(InboxMessageEntity entity) {
         InboxMessage message = new InboxMessage();
-        message.setId(entity.getId());
+        message.setId(entity.getEventId()); // Use eventId as the domain ID for consistency
         message.setEventType(entity.getEventType());
         message.setContent(entity.getEventData());
         message.setOccurredOnUtc(entity.getReceivedAt());

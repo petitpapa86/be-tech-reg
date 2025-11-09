@@ -33,6 +33,10 @@ public class InboxMessageEntity  {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Version
+    @Column(name = "version")
+    private Long version;
+
     @Column(name = "event_id", length = 100, unique = true)
     private String eventId; // new: original integration event id for idempotency
 
