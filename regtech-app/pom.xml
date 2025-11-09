@@ -39,11 +39,11 @@
             <artifactId>regtech-iam-application</artifactId>  <!-- ✅ This one! -->
             <version>${project.version}</version>
         </dependency>
-<!--		<dependency>-->
-<!--			<groupId>com.bcbs239</groupId>-->
-<!--			<artifactId>regtech-billing</artifactId>-->
-<!--			<version>${project.version}</version>-->
-<!--		</dependency>-->
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-billing</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 <!--		<dependency>-->
 <!--			<groupId>com.bcbs239</groupId>-->
 <!--			<artifactId>regtech-billing-infrastructure</artifactId>-->

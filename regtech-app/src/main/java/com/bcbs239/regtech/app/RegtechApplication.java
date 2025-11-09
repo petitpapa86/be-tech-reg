@@ -26,7 +26,8 @@ import java.util.Arrays;
 @ComponentScan(basePackages = {
         "com.bcbs239.regtech.app",
         "com.bcbs239.regtech.core",
-        "com.bcbs239.regtech.iam.infrastructure.config"
+        "com.bcbs239.regtech.iam.infrastructure.config",
+        "com.bcbs239.regtech.billing.infrastructure.configuration",
 })
 @EntityScan(basePackages = {
         "com.bcbs239.regtech.core.infrastructure",
