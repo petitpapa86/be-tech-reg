@@ -46,7 +46,7 @@ public class InvoiceGeneratedEvent extends DomainEvent {
 
     @Override
     public String eventType() {
-        return "InvoiceGeneratedEvent";
+        return getEventType();
     }
 
     @Override

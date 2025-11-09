@@ -88,7 +88,7 @@ public class IngestionBatch extends Entity {
 
         // Apply transition
         BatchTransitions.applyTransition(this, BatchStatus.PARSING);
-        addDomainEvent(new BatchProcessingStartedEvent(batchId, bankId, Instant.now()));
+        addDomainEvent(new BatchProcessingStartedEvent(batchId, bankId, Instant.now(), batchId.value()));
 
         return Result.success(null);
     }
@@ -109,7 +109,7 @@ public class IngestionBatch extends Entity {
         // Apply
         BatchTransitions.applyTransition(this, BatchStatus.VALIDATED);
         this.totalExposures = exposureCount;
-        addDomainEvent(new BatchValidatedEvent(batchId, bankId, exposureCount, Instant.now()));
+        addDomainEvent(new BatchValidatedEvent(batchId, bankId, exposureCount, Instant.now(), batchId.value()));
 
         return Result.success(null);
     }
@@ -148,7 +148,7 @@ public class IngestionBatch extends Entity {
 
         BatchTransitions.applyTransition(this, BatchStatus.STORING);
         this.s3Reference = s3Reference;
-        addDomainEvent(new BatchStoredEvent(batchId, bankId, s3Reference, Instant.now()));
+        addDomainEvent(new BatchStoredEvent(batchId, bankId, s3Reference, Instant.now(), batchId.value()));
 
         return Result.success(null);
     }
@@ -169,7 +169,7 @@ public class IngestionBatch extends Entity {
         this.completedAt = Instant.now();
         this.processingDurationMs = completedAt.toEpochMilli() - uploadedAt.toEpochMilli();
 
-        addDomainEvent(new BatchCompletedEvent(batchId, bankId, s3Reference, totalExposures, fileMetadata.fileSizeBytes(), completedAt));
+        addDomainEvent(new BatchCompletedEvent(batchId, bankId, s3Reference, totalExposures, fileMetadata.fileSizeBytes(), completedAt, batchId.value()));
 
         return Result.success(null);
     }
@@ -252,6 +252,19 @@ public class IngestionBatch extends Entity {
      */
     public boolean isSuccessful() {
         return status == BatchStatus.COMPLETED;
+    }
+
+    // Manual getters for Lombok compatibility issues
+    public BatchStatus getStatus() {
+        return status;
+    }
+
+    public S3Reference getS3Reference() {
+        return s3Reference;
+    }
+
+    public Integer getTotalExposures() {
+        return totalExposures;
     }
 }
 

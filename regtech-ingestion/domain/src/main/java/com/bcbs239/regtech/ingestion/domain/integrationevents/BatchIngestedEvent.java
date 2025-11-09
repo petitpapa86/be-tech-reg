@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.ingestion.domain.integrationevents;
 
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -32,7 +33,7 @@ public class BatchIngestedEvent extends IntegrationEvent {
             int totalExposures,
             long fileSizeBytes,
             Instant completedAt) {
-        super();
+        super(batchId, Maybe.none(), "BatchIngestedEvent");
         this.batchId = batchId;
         this.bankId = bankId;
         this.s3Uri = s3Uri;
@@ -40,6 +41,11 @@ public class BatchIngestedEvent extends IntegrationEvent {
         this.fileSizeBytes = fileSizeBytes;
         this.completedAt = completedAt;
         this.eventVersion = EVENT_VERSION;
+    }
+    
+    @Override
+    public String eventType() {
+        return getEventType();
     }
     
     @Override

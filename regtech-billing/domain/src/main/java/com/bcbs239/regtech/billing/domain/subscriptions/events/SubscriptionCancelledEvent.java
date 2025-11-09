@@ -40,7 +40,7 @@ public class SubscriptionCancelledEvent extends DomainEvent {
 
     @Override
     public String eventType() {
-        return "SubscriptionCancelledEvent";
+        return getEventType();
     }
 
     @Override

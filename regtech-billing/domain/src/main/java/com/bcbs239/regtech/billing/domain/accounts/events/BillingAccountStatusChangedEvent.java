@@ -35,7 +35,7 @@ public class BillingAccountStatusChangedEvent extends DomainEvent {
 
     @Override
     public String eventType() {
-        return "BillingAccountStatusChangedEvent";
+        return getEventType();
     }
     
     @Override

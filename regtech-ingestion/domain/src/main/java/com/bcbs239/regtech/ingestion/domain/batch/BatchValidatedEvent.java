@@ -8,16 +8,30 @@ import java.time.Instant;
 /**
  * Domain event raised when batch validation completes successfully.
  */
-public record BatchValidatedEvent(
-    BatchId batchId,
-    BankId bankId,
-    int exposureCount,
-    Instant validatedAt
-) implements DomainEvent {
+public class BatchValidatedEvent extends DomainEvent {
+    
+    private final BatchId batchId;
+    private final BankId bankId;
+    private final int exposureCount;
+    private final Instant validatedAt;
+    
+    public BatchValidatedEvent(BatchId batchId, BankId bankId, int exposureCount, Instant validatedAt, String correlationId) {
+        super(correlationId, "BatchValidatedEvent");
+        this.batchId = batchId;
+        this.bankId = bankId;
+        this.exposureCount = exposureCount;
+        this.validatedAt = validatedAt;
+    }
     
     @Override
     public String eventType() {
-        return "BatchValidated";
+        return getEventType();
     }
+    
+    // Getters
+    public BatchId batchId() { return batchId; }
+    public BankId bankId() { return bankId; }
+    public int exposureCount() { return exposureCount; }
+    public Instant validatedAt() { return validatedAt; }
 }
 

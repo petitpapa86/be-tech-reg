@@ -8,15 +8,27 @@ import java.time.Instant;
 /**
  * Domain event raised when batch processing starts.
  */
-public record BatchProcessingStartedEvent(
-    BatchId batchId,
-    BankId bankId,
-    Instant startedAt
-) implements DomainEvent {
+public class BatchProcessingStartedEvent extends DomainEvent {
+    
+    private final BatchId batchId;
+    private final BankId bankId;
+    private final Instant startedAt;
+    
+    public BatchProcessingStartedEvent(BatchId batchId, BankId bankId, Instant startedAt, String correlationId) {
+        super(correlationId, "BatchProcessingStartedEvent");
+        this.batchId = batchId;
+        this.bankId = bankId;
+        this.startedAt = startedAt;
+    }
     
     @Override
     public String eventType() {
-        return "BatchProcessingStarted";
+        return getEventType();
     }
+    
+    // Getters
+    public BatchId batchId() { return batchId; }
+    public BankId bankId() { return bankId; }
+    public Instant startedAt() { return startedAt; }
 }
 

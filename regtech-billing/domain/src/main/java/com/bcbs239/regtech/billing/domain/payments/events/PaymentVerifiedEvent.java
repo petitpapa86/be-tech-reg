@@ -23,7 +23,7 @@ public class PaymentVerifiedEvent extends DomainEvent {
 
     @Override
     public String eventType() {
-        return "PaymentVerifiedEvent";
+        return getEventType();
     }
     
     @Override

@@ -19,6 +19,7 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
@@ -52,7 +53,7 @@ public class UserRegisteredEventHandler  {
         this.asyncLogger = asyncLogger;
     }
 
-
+    @EventListener
     public void handle(UserRegisteredEvent event) {
         try {
             asyncLogger.asyncStructuredLog("Received UserRegisteredIntegrationEvent", Map.of(
