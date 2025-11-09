@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.domain.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
-import com.bcbs239.regtech.core.domain.events.BaseEvent;
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 
 import java.time.LocalDate;
@@ -10,7 +10,7 @@ import java.time.LocalDate;
  * Domain event published when a subscription is cancelled.
  * This event can be consumed by other contexts for cleanup processes and business logic.
  */
-public class SubscriptionCancelledEvent extends BaseEvent {
+public class SubscriptionCancelledEvent extends DomainEvent {
     
     private final SubscriptionId subscriptionId;
     private final BillingAccountId billingAccountId;
@@ -26,6 +26,7 @@ public class SubscriptionCancelledEvent extends BaseEvent {
                                     LocalDate cancellationDate,
                                     String cancellationReason,
                                     String correlationId) {
+        super(correlationId, "SubscriptionCancelledEvent");
         this.subscriptionId = subscriptionId;
         this.billingAccountId = billingAccountId;
         this.userId = userId;
@@ -56,6 +57,11 @@ public class SubscriptionCancelledEvent extends BaseEvent {
     
     public String getCancellationReason() {
         return cancellationReason;
+    }
+    
+    @Override
+    public String eventType() {
+        return "SubscriptionCancelledEvent";
     }
     
     @Override

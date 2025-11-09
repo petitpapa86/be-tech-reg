@@ -104,9 +104,10 @@ public class OutboxProcessor {
 
         DomainEvent event = objectMapper.readValue(message.getContent(), domainEventClass);
 
-        domainEventDispatcher.publish(event);
-
-        logger.info("Dispatched domain event from outbox: type={}, id={}", typeName, message.getId());
+        // Publish all deserialized domain events as outbox replays so listeners can avoid
+        // emitting side-effects again (for example, re-publishing integration events).
+        domainEventDispatcher.publishAsReplay(event);
+        logger.info("Dispatched domain event (outbox replay) from outbox: type={}, id={}", typeName, message.getId());
 
     }
 

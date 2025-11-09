@@ -12,7 +12,7 @@ public class StripeInvoiceCreatedEvent extends SagaMessage {
     private final String stripeInvoiceId;
 
     public StripeInvoiceCreatedEvent(SagaId sagaId, String stripeInvoiceId) {
-        super("StripeInvoiceCreatedEvent", Instant.now(), sagaId);
+        super("StripeInvoiceCreatedEvent", Instant.now(), sagaId, sagaId.toString(), sagaId.toString());
         this.stripeInvoiceId = stripeInvoiceId;
     }
 

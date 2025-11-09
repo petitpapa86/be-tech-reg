@@ -14,7 +14,7 @@ public class StripeSubscriptionWebhookReceivedEvent extends SagaMessage {
     private final String stripeInvoiceId;
 
     public StripeSubscriptionWebhookReceivedEvent(SagaId sagaId, String stripeSubscriptionId, String stripeInvoiceId) {
-        super("StripeSubscriptionWebhookReceivedEvent", Instant.now(), sagaId);
+        super("StripeSubscriptionWebhookReceivedEvent", Instant.now(), sagaId, sagaId.toString(), sagaId.toString());
         this.stripeSubscriptionId = stripeSubscriptionId;
         this.stripeInvoiceId = stripeInvoiceId;
     }

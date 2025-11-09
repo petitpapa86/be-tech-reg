@@ -11,7 +11,7 @@ public class SagaNotFoundEvent extends SagaMessage {
     private final String stripeCustomerId;
 
     public SagaNotFoundEvent(SagaId sagaId, String stripeCustomerId) {
-        super("SagaNotFoundEvent", Instant.now(), sagaId);
+        super("SagaNotFoundEvent", Instant.now(), sagaId, sagaId.toString(), sagaId.toString());
         this.stripeCustomerId = stripeCustomerId;
     }
 

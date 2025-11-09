@@ -5,12 +5,8 @@ import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
-import java.lang.ScopedValue;
-
-import static com.bcbs239.regtech.core.infrastructure.context.CorrelationContext.*;
-
 @Component
-public class DomainEventBus {
+public class DomainEventBus implements com.bcbs239.regtech.core.domain.events.DomainEventBus {
 
     private final ApplicationEventPublisher delegate;
 
@@ -18,9 +14,19 @@ public class DomainEventBus {
         this.delegate = delegate;
     }
 
-    public void publish(DomainEvent event) {
-        ScopedValue.where(CORRELATION_ID, event.getCorrelationId())
-                   .where(CAUSATION_ID, event.getEventId()) // This event becomes the causation for subsequent events
-                   .run(() -> delegate.publishEvent(event));
+//    @Override
+//    public boolean publish(DomainEvent event) {
+//    java.lang.ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
+//           .where(CorrelationContext.CAUSATION_ID, event.getEventId()) // This event becomes the causation for subsequent events
+//           .run(() -> delegate.publishEvent(event));
+//        return true;
+//    }
+
+    @Override
+    public void publishAsReplay(DomainEvent event) {
+    java.lang.ScopedValue.where(CorrelationContext.OUTBOX_REPLAY, Boolean.TRUE)
+           .where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
+           .where(CorrelationContext.CAUSATION_ID, event.getEventId())
+           .run(() -> delegate.publishEvent(event));
     }
 }

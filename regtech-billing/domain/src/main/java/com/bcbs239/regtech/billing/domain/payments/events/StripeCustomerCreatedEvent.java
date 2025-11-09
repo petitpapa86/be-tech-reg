@@ -13,7 +13,7 @@ public class StripeCustomerCreatedEvent extends SagaMessage {
     private final String stripeCustomerId;
 
     public StripeCustomerCreatedEvent(SagaId sagaId, String stripeCustomerId) {
-        super("StripeCustomerCreatedEvent", Instant.now(), sagaId);
+        super("StripeCustomerCreatedEvent", Instant.now(), sagaId, sagaId.toString(), sagaId.toString());
         this.stripeCustomerId = stripeCustomerId;
     }
 

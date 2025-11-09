@@ -14,7 +14,7 @@ public class BillingAccountConfigurationFailedEvent extends SagaMessage {
     private final String errorMessage;
 
     public BillingAccountConfigurationFailedEvent(SagaId sagaId, String billingAccountId, String stripeCustomerId, String errorMessage) {
-        super("BillingAccountConfigurationFailedEvent", Instant.now(), sagaId);
+        super("BillingAccountConfigurationFailedEvent", Instant.now(), sagaId, sagaId.toString(), sagaId.toString());
         this.billingAccountId = billingAccountId;
         this.stripeCustomerId = stripeCustomerId;
         this.errorMessage = errorMessage;

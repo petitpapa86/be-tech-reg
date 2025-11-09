@@ -15,7 +15,7 @@ public class StripeSubscriptionCreatedEvent extends SagaMessage {
     private final Optional<SubscriptionId> subscriptionId;
 
     public StripeSubscriptionCreatedEvent(SagaId sagaId, String stripeSubscriptionId, String stripeInvoiceId, SubscriptionId subscriptionId) {
-        super("StripeSubscriptionCreatedEvent", Instant.now(), sagaId);
+        super("StripeSubscriptionCreatedEvent", Instant.now(), sagaId, sagaId.toString(), sagaId.toString());
         this.stripeSubscriptionId = stripeSubscriptionId;
         this.stripeInvoiceId = stripeInvoiceId;
         this.subscriptionId = Optional.ofNullable(subscriptionId);

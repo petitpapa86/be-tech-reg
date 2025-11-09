@@ -14,7 +14,7 @@ public class PaymentMethodDefaultFailedEvent extends SagaMessage {
     private final String errorMessage;
 
     public PaymentMethodDefaultFailedEvent(SagaId sagaId, String stripeCustomerId, String paymentMethodId, String errorMessage) {
-        super("PaymentMethodDefaultFailedEvent", Instant.now(), sagaId);
+        super("PaymentMethodDefaultFailedEvent", Instant.now(), sagaId, sagaId.toString(), sagaId.toString());
         this.stripeCustomerId = stripeCustomerId;
         this.paymentMethodId = paymentMethodId;
         this.errorMessage = errorMessage;

@@ -75,12 +75,12 @@ public class ProcessInboxJob {
 
 
             DomainEvent event = deserializeResult.getValue().orElseThrow();
-            boolean success = dispatcher.publish(event);
-            if (success) {
+            try{
+                dispatcher.publishAsReplay(event);
                 inboxMessageRepository.markAsProcessed(message.getId(), Instant.now());
-            } else {
+            } catch (Exception e){
                 inboxMessageRepository.markAsPermanentlyFailed(message.getId());
-                logger.warn("One or more handlers failed for message {}", message.getId());
+                logger.error("Logging failed for inbox message {}: {}", message.getId(), e.getMessage());
             }
 
         }

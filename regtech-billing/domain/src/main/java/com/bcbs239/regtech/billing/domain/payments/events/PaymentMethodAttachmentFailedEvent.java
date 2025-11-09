@@ -12,7 +12,7 @@ public class PaymentMethodAttachmentFailedEvent extends SagaMessage {
     private final String errorMessage;
 
     public PaymentMethodAttachmentFailedEvent(SagaId sagaId, String stripeCustomerId, String errorMessage) {
-        super("PaymentMethodAttachmentFailedEvent", Instant.now(), sagaId);
+        super("PaymentMethodAttachmentFailedEvent", Instant.now(), sagaId, sagaId.toString(), sagaId.toString());
         this.stripeCustomerId = stripeCustomerId;
         this.errorMessage = errorMessage;
     }

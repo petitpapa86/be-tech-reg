@@ -46,7 +46,7 @@ public class CrossModuleEventBus implements IIntegrationEventBus, InitializingBe
      * If a permit cannot be acquired within the configured timeout, the method falls back
      * to synchronous publishing to avoid dropping events.
      */
-    public void publishEvent(Object event) {
+    public void publishEvent(IntegrationEvent event) {
         boolean permitAcquired;
         try {
             permitAcquired = publishSemaphore.tryAcquire(acquireTimeoutMs, TimeUnit.MILLISECONDS);

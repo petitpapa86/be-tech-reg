@@ -5,13 +5,15 @@ import lombok.Getter;
 
 @Getter
 public class UserRegisteredEvent extends DomainEvent {
-    private final String aggregateId;
     private final String userId;
     private final String email;
+    private final String bankId;
+    private final String paymentMethodId;
 
-    public UserRegisteredEvent(String eventId, String aggregateId, String correlationId, String causationId, String userId, String email) {
+    public UserRegisteredEvent(String correlationId, String causationId, String userId, String email, String bankId, String paymentMethodId) {
         super(correlationId, causationId);
-        this.aggregateId = aggregateId;
+        this.bankId = bankId;
+        this.paymentMethodId = paymentMethodId;
         this.userId = userId;
         this.email = email;
     }

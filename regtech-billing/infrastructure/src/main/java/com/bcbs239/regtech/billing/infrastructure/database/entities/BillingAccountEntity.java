@@ -32,6 +32,15 @@ public class BillingAccountEntity {
     @Column(name = "id", nullable = false)
     private String id;
 
+    // Manual getters/setters for JPA compatibility
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     @Column(name = "user_id", nullable = false)
     private String userId;
 
@@ -60,6 +69,55 @@ public class BillingAccountEntity {
     @Version
     @Column(name = "version")
     private Long version;
+
+    // Manual getters/setters for JPA compatibility
+    public String getStripeCustomerId() {
+        return stripeCustomerId;
+    }
+
+    public void setStripeCustomerId(String stripeCustomerId) {
+        this.stripeCustomerId = stripeCustomerId;
+    }
+
+    public BillingAccountStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(BillingAccountStatus status) {
+        this.status = status;
+    }
+
+    public String getDefaultPaymentMethodId() {
+        return defaultPaymentMethodId;
+    }
+
+    public void setDefaultPaymentMethodId(String defaultPaymentMethodId) {
+        this.defaultPaymentMethodId = defaultPaymentMethodId;
+    }
+
+    public BigDecimal getAccountBalanceAmount() {
+        return accountBalanceAmount;
+    }
+
+    public void setAccountBalanceAmount(BigDecimal accountBalanceAmount) {
+        this.accountBalanceAmount = accountBalanceAmount;
+    }
+
+    public String getAccountBalanceCurrency() {
+        return accountBalanceCurrency;
+    }
+
+    public void setAccountBalanceCurrency(String accountBalanceCurrency) {
+        this.accountBalanceCurrency = accountBalanceCurrency;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 
     // Default constructor for JPA
     public BillingAccountEntity() {}

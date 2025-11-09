@@ -3,6 +3,7 @@ package com.bcbs239.regtech.iam.application.integration;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredEvent;
+import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,10 @@ public class UserRegisteredEventPublisher {
     }
     @TransactionalEventListener
     public void handle(UserRegisteredEvent event) {
+        if (CorrelationContext.isOutboxReplay()) {
+            logger.debug("Skipping integration publish for UserRegisteredEvent {} because this is an outbox replay", event.getEventId());
+            return;
+        }
         try {
             logger.info("Converting and publishing UserRegisteredIntegrationEvent for user {}", event.getUserId());
 

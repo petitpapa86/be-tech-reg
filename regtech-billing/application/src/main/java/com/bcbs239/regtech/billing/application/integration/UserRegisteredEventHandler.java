@@ -135,7 +135,7 @@ public class UserRegisteredEventHandler  {
                  .userId(event.getUserId())
                  .billingAccountId(billingAccountId.getValue())
                  .userEmail(event.getEmail())
-                 .userName(event.getName())
+                 .userName(event.getEmail()) // Use email as name since name field doesn't exist
                  .paymentMethodId(event.getPaymentMethodId())
                  .build();
 
@@ -174,8 +174,8 @@ public class UserRegisteredEventHandler  {
 
         } catch (Exception e) {
             // Log full error and rethrow to allow caller to handle transaction properly
-            asyncLogger.asyncStructuredErrorLog("billing_user_registration", "UNHANDLED_HANDLER_EXCEPTION", e.getMessage(), e, Map.of(
-                "eventId", event.getId(),
+            asyncLogger.asyncStructuredErrorLog("billing_user_registration UNHANDLED_HANDLER_EXCEPTION: " + e.getMessage(), e, Map.of(
+                "eventId", event.getEventId(),
                 "userId", event.getUserId()
             ));
             throw e;

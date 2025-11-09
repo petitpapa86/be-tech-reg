@@ -18,7 +18,7 @@ public class InvoiceGeneratedEvent extends DomainEvent {
     
     public InvoiceGeneratedEvent(InvoiceId invoiceId, BillingAccountId billingAccountId, 
                                Money totalAmount, String correlationId) {
-        super(correlationId, null); // causationId can be null for now
+        super(correlationId, "InvoiceGeneratedEvent");
         this.invoiceId = invoiceId;
         this.billingAccountId = billingAccountId;
         this.totalAmount = totalAmount;

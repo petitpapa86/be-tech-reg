@@ -2,14 +2,16 @@ package com.bcbs239.regtech.billing.domain.accounts.events;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountStatus;
-import com.bcbs239.regtech.core.domain.events.BaseEvent;
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.iam.domain.users.UserId;
+import lombok.Getter;
 
 /**
  * Domain event published when a billing account status changes.
  * This event can be consumed by other contexts for status tracking and business logic.
  */
-public class BillingAccountStatusChangedEvent extends BaseEvent {
+@Getter
+public class BillingAccountStatusChangedEvent extends DomainEvent {
     
     private final BillingAccountId billingAccountId;
     private final UserId userId;
@@ -23,31 +25,17 @@ public class BillingAccountStatusChangedEvent extends BaseEvent {
                                           BillingAccountStatus newStatus,
                                           String reason,
                                           String correlationId) {
+        super(correlationId, "BillingAccountStatusChangedEvent");
         this.billingAccountId = billingAccountId;
         this.userId = userId;
         this.previousStatus = previousStatus;
         this.newStatus = newStatus;
         this.reason = reason;
     }
-    
-    public BillingAccountId getBillingAccountId() {
-        return billingAccountId;
-    }
-    
-    public UserId getUserId() {
-        return userId;
-    }
-    
-    public BillingAccountStatus getPreviousStatus() {
-        return previousStatus;
-    }
-    
-    public BillingAccountStatus getNewStatus() {
-        return newStatus;
-    }
-    
-    public String getReason() {
-        return reason;
+
+    @Override
+    public String eventType() {
+        return "BillingAccountStatusChangedEvent";
     }
     
     @Override

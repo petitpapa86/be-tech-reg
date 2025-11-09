@@ -24,6 +24,14 @@ public class ProcessedWebhookEventEntity {
     @Column(name = "id", nullable = false)
     private String id;
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     @Column(name = "stripe_event_id", nullable = false, unique = true)
     private String stripeEventId;
 

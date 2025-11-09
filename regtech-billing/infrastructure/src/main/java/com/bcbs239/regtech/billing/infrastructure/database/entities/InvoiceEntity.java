@@ -31,6 +31,14 @@ public class InvoiceEntity {
     @Column(name = "id", nullable = false)
     private String id;
 
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
     @Column(name = "billing_account_id", nullable = true)
     private String billingAccountId;
 

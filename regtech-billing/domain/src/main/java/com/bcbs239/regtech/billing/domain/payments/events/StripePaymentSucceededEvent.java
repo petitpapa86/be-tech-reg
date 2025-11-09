@@ -12,7 +12,7 @@ public class StripePaymentSucceededEvent extends SagaMessage {
     private final String stripePaymentIntentId;
 
     public StripePaymentSucceededEvent(SagaId sagaId, String stripePaymentIntentId) {
-        super("StripePaymentSucceededEvent", Instant.now(), sagaId);
+        super("StripePaymentSucceededEvent", Instant.now(), sagaId, sagaId.toString(), sagaId.toString());
         this.stripePaymentIntentId = stripePaymentIntentId;
     }
 
