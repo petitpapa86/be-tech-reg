@@ -47,7 +47,7 @@ public class CrossModuleEventBus implements IIntegrationEventBus, InitializingBe
      * to synchronous publishing to avoid dropping events.
      */
     public void publishEvent(Object event) {
-        boolean permitAcquired = false;
+        boolean permitAcquired;
         try {
             permitAcquired = publishSemaphore.tryAcquire(acquireTimeoutMs, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
@@ -86,7 +86,7 @@ public class CrossModuleEventBus implements IIntegrationEventBus, InitializingBe
     @Override
     public void publish(IntegrationEvent event) {
         // Default integration event publishing delegates to synchronous publish so consumers (Inbox) see them reliably
-        publishEventSynchronously(event);
+        publishEvent(event);
     }
 }
 

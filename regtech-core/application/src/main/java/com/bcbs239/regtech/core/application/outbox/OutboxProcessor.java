@@ -61,8 +61,17 @@ public class OutboxProcessor {
             }
 
             try {
+                // Attempt to atomically claim the message (set to PROCESSING). If another worker claimed it, skip.
+                int claimed = outboxMessageRepository.markAsProcessing(message.getId());
+                if (claimed == 0) {
+                    logger.debug("Outbox message {} already claimed by another worker, skipping", message.getId());
+                    continue;
+                }
+
                 publishMessage(message);
-                markAsProcessed(message.getId());
+
+                // Mark processed after successful publish
+                outboxMessageRepository.markAsProcessed(message.getId(), java.time.Instant.now());
                 processedCount++;
             } catch (Exception e) {
                 logger.error("Failed to process outbox message {}: {}", message.getId(), e.getMessage());
@@ -73,28 +82,12 @@ public class OutboxProcessor {
         logger.info("Processed {} outbox messages successfully", processedCount);
     }
 
-    private void markAsProcessed(String messageId) {
-        OutboxMessage outboxMessage = outboxMessageRepository.findByStatusOrderByOccurredOnUtc(OutboxMessageStatus.PENDING)
-                .stream()
-                .filter(msg -> msg.getId().equals(messageId))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Message not found: " + messageId));
-
-        outboxMessage.setStatus(OutboxMessageStatus.PROCESSED);
-        outboxMessage.setProcessedOnUtc(java.time.Instant.now());
-        outboxMessageRepository.save(outboxMessage);
-    }
-
     private void markAsFailed(String messageId, String errorMessage) {
-        OutboxMessage outboxMessage = outboxMessageRepository.findByStatusOrderByOccurredOnUtc(OutboxMessageStatus.PENDING)
-                .stream()
-                .filter(msg -> msg.getId().equals(messageId))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Message not found: " + messageId));
-
-        outboxMessage.setStatus(OutboxMessageStatus.FAILED);
-        outboxMessage.setErrorMessage(errorMessage);
-        outboxMessageRepository.save(outboxMessage);
+        try {
+            outboxMessageRepository.markAsFailed(messageId, errorMessage);
+        } catch (Exception ex) {
+            logger.error("Failed to mark outbox message {} as failed: {}", messageId, ex.getMessage(), ex);
+        }
     }
 
     private void publishMessage(OutboxMessage message) throws ClassNotFoundException, JsonProcessingException {

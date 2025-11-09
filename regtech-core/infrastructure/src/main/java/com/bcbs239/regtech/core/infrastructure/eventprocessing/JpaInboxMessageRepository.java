@@ -32,8 +32,36 @@ public class JpaInboxMessageRepository implements IInboxMessageRepository {
     @Transactional
     public InboxMessage save(InboxMessage message) {
         InboxMessageEntity entity = toEntity(message);
-        InboxMessageEntity saved = inboxMessageRepository.save(entity);
-        return toDomain(saved);
+
+        // If an inbox message with the same id already exists, return it (idempotent)
+        if (entity.getId() != null && inboxMessageRepository.existsById(entity.getId())) {
+            InboxMessageEntity existing = inboxMessageRepository.findById(entity.getId()).orElse(null);
+            if (existing != null) {
+                return toDomain(existing);
+            }
+        }
+
+        try {
+            InboxMessageEntity saved = inboxMessageRepository.save(entity);
+            return toDomain(saved);
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            // Concurrent insert or unique constraint violation - fetch existing by event id or id and return it
+            InboxMessageEntity existing = null;
+            if (entity.getId() != null) {
+                existing = inboxMessageRepository.findById(entity.getId()).orElse(null);
+            }
+            if (existing == null && entity.getEventId() != null) {
+                existing = inboxMessageRepository.findAll().stream()
+                        .filter(e -> entity.getEventId().equals(e.getEventId()))
+                        .findFirst()
+                        .orElse(null);
+            }
+            if (existing != null) {
+                return toDomain(existing);
+            }
+            // If we can't recover, rethrow
+            throw ex;
+        }
     }
 
     @Override

@@ -24,5 +24,20 @@ public interface IOutboxMessageRepository {
     void deleteById(String id);
 
     List<OutboxMessage> findByStatusOrderByOccurredOnUtc(OutboxMessageStatus outboxMessageStatus);
+    
+        /**
+         * Atomically mark a pending outbox message as processing. Returns number of rows updated (0/1).
+         */
+        int markAsProcessing(String id);
+
+        /**
+         * Atomically mark a message as processed with processed timestamp.
+         */
+        void markAsProcessed(String id, java.time.Instant now);
+
+        /**
+         * Atomically mark a message as failed and record an error message.
+         */
+        void markAsFailed(String id, String errorMessage);
 }
 

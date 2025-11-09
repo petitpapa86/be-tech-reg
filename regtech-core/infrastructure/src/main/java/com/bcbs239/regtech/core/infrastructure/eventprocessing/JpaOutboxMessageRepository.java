@@ -79,6 +79,42 @@ public class JpaOutboxMessageRepository implements IOutboxMessageRepository {
     }
 
     @Override
+    @Transactional
+    public int markAsProcessing(String id) {
+        return entityManager.createQuery(
+                "UPDATE OutboxMessageEntity o SET o.status = :processing WHERE o.id = :id AND o.status = :pending"
+        )
+        .setParameter("processing", com.bcbs239.regtech.core.domain.outbox.OutboxMessageStatus.PROCESSING)
+        .setParameter("id", id)
+        .setParameter("pending", com.bcbs239.regtech.core.domain.outbox.OutboxMessageStatus.PENDING)
+        .executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void markAsProcessed(String id, java.time.Instant now) {
+        entityManager.createQuery(
+            "UPDATE OutboxMessageEntity o SET o.status = :processed, o.processedOnUtc = :processedAt WHERE o.id = :id"
+        )
+        .setParameter("processed", com.bcbs239.regtech.core.domain.outbox.OutboxMessageStatus.PROCESSED)
+        .setParameter("processedAt", now)
+        .setParameter("id", id)
+        .executeUpdate();
+    }
+
+    @Override
+    @Transactional
+    public void markAsFailed(String id, String errorMessage) {
+        entityManager.createQuery(
+            "UPDATE OutboxMessageEntity o SET o.status = :failed, o.lastError = :error WHERE o.id = :id"
+        )
+        .setParameter("failed", com.bcbs239.regtech.core.domain.outbox.OutboxMessageStatus.FAILED)
+        .setParameter("error", errorMessage)
+        .setParameter("id", id)
+        .executeUpdate();
+    }
+
+    @Override
     public List<OutboxMessage> findByStatusOrderByOccurredOnUtc(OutboxMessageStatus outboxMessageStatus) {
         OutboxMessageStatus entityStatus = toEntityStatus(outboxMessageStatus);
         return outboxMessageRepository.findByStatusOrderByOccurredOnUtc(entityStatus)
