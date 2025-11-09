@@ -2,19 +2,12 @@ package com.bcbs239.regtech.iam.domain.users;
 
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredEvent;
-import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * User Aggregate Root
- *
- * Represents a user in the IAM system with their identity, authentication
- * credentials, and associated bank relationships.
- */
 public class User extends Entity {
     private String id;
     private Email email;
@@ -29,7 +22,6 @@ public class User extends Entity {
     private long version;
     private List<BankAssignment> bankAssignments;
 
-    // Private constructor for factory methods
     private User() {
         this.bankAssignments = new ArrayList<>();
     }
@@ -51,36 +43,16 @@ public class User extends Entity {
         return user;
     }
 
-    /**
-     * Factory method to create a new user with bank assignment
-     */
-    public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId, String paymentMethodId) {
-        // Delegate to the overload that accepts optional correlation/cause ids
-        return createWithBank(email, password, firstName, lastName, bankId, paymentMethodId, null, null);
-    }
-
-    /**
-     * Overloaded factory method that accepts optional correlation and causation ids.
-     * When provided the event is added inside a ScopedValue scope so downstream
-     * synchronous handlers can read the correlation context via
-     * CorrelationContext.correlationIdOrNull() / causationIdOrNull().
-     */
-    public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId, String paymentMethodId, String correlationId, String causationId) {
+    public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId, String paymentMethodId, String causationId) {
         User user = create(email, password, firstName, lastName);
         user.assignToBank(bankId, "USER"); // Default role for new users
-
-        // Scope the correlation/cause ids while constructing and adding the
-        // domain event so its constructor can observe the ScopedValue context.
-        CorrelationContext.runWith(correlationId, causationId, () -> {
-            UserRegisteredEvent event = new UserRegisteredEvent(
+        UserRegisteredEvent event = new UserRegisteredEvent(
                 user.id,
                 email.getValue(),
                 bankId,
-                paymentMethodId
-            );
-            user.addDomainEvent(event);
-        });
-
+                paymentMethodId,
+                causationId);
+        user.addDomainEvent(event);
         return user;
     }
 
@@ -106,10 +78,10 @@ public class User extends Entity {
      * Package-private factory method for persistence layer reconstruction
      * Used by JPA entities to recreate domain objects from database
      */
-    public static User createFromPersistence(UserId id, Email email, Password password, String firstName, 
-                                    String lastName, UserStatus status, String googleId, String facebookId,
-                                    Instant createdAt, Instant updatedAt, long version, 
-                                    List<BankAssignment> bankAssignments) {
+    public static User createFromPersistence(UserId id, Email email, Password password, String firstName,
+                                             String lastName, UserStatus status, String googleId, String facebookId,
+                                             Instant createdAt, Instant updatedAt, long version,
+                                             List<BankAssignment> bankAssignments) {
         User user = new User();
         user.id = id.getValue();
         user.email = email;
@@ -147,9 +119,9 @@ public class User extends Entity {
      */
     public void assignToBank(String bankId, String role) {
         BankAssignment assignment = new BankAssignment(
-            bankId,
-            role,
-            Instant.now()
+                bankId,
+                role,
+                Instant.now()
         );
         this.bankAssignments.add(assignment);
         this.updatedAt = Instant.now();
@@ -212,18 +184,53 @@ public class User extends Entity {
     }
 
     // Getters
-    public UserId getId() { return UserId.fromString(id); }
-    public Email getEmail() { return email; }
-    public Password getPassword() { return password; }
-    public String getFirstName() { return firstName; }
-    public String getLastName() { return lastName; }
-    public UserStatus getStatus() { return status; }
-    public String getGoogleId() { return googleId; }
-    public String getFacebookId() { return facebookId; }
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public long getVersion() { return version; }
-    public List<BankAssignment> getBankAssignments() { return List.copyOf(bankAssignments); }
+    public UserId getId() {
+        return UserId.fromString(id);
+    }
+
+    public Email getEmail() {
+        return email;
+    }
+
+    public Password getPassword() {
+        return password;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public String getGoogleId() {
+        return googleId;
+    }
+
+    public String getFacebookId() {
+        return facebookId;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public long getVersion() {
+        return version;
+    }
+
+    public List<BankAssignment> getBankAssignments() {
+        return List.copyOf(bankAssignments);
+    }
 
     // Setters for OAuth
     public void setGoogleId(String googleId) {
@@ -273,16 +280,27 @@ public class User extends Entity {
         private final String role;
         private final Instant assignedAt;
 
-        public BankAssignment( String bankId, String role, Instant assignedAt) {
+        public BankAssignment(String bankId, String role, Instant assignedAt) {
             this.bankId = bankId;
             this.role = role;
             this.assignedAt = assignedAt;
         }
 
-        public String getId() { return id; }
-        public String getBankId() { return bankId; }
-        public String getRole() { return role; }
-        public Instant getAssignedAt() { return assignedAt; }
+        public String getId() {
+            return id;
+        }
+
+        public String getBankId() {
+            return bankId;
+        }
+
+        public String getRole() {
+            return role;
+        }
+
+        public Instant getAssignedAt() {
+            return assignedAt;
+        }
     }
 }
 

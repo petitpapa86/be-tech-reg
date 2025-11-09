@@ -1,8 +1,11 @@
 package com.bcbs239.regtech.iam.application.users;
 
+import com.bcbs239.regtech.core.application.Command;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,21 +13,43 @@ import java.util.List;
 /**
  * Command for user registration with Stripe payment information
  */
-public record RegisterUserCommand(
-    String email,
-    String password,
-    String firstName,
-    String lastName,
-    String bankId,
-    String paymentMethodId,
-    String phone,
-    AddressInfo address
-) {
+@Getter
+@Setter
+public final class RegisterUserCommand extends Command {
+
+    private final String email;
+    private final String password;
+    private final String firstName;
+    private final String lastName;
+    private final String bankId;
+    private final String paymentMethodId;
+    private final String phone;
+    private final AddressInfo address;
+
+    public RegisterUserCommand(String commandId,
+                               String email,
+                               String password,
+                               String firstName,
+                               String lastName,
+                               String bankId,
+                               String paymentMethodId,
+                               String phone,
+                               AddressInfo address) {
+        this.email = email;
+        this.password = password;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.bankId = bankId;
+        this.paymentMethodId = paymentMethodId;
+        this.phone = phone;
+        this.address = address;
+    }
+
 
     /**
      * Address information for Stripe integration
      */
-    public record AddressInfo(
+    public static record AddressInfo(
         String line1,
         String line2,
         String city,
@@ -32,6 +57,7 @@ public record RegisterUserCommand(
         String postalCode,
         String country
     ) {}
+
     /**
      * Creates a RegisterUserCommand with validation
      *
@@ -92,6 +118,7 @@ public record RegisterUserCommand(
         }
 
         return Result.success(new RegisterUserCommand(
+            java.util.UUID.randomUUID().toString(),
             email.trim(),
             password.trim(),
             firstName.trim(),

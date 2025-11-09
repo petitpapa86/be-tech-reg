@@ -22,17 +22,10 @@ public class UserRegisteredEvent extends DomainEvent {
     public UserRegisteredEvent(@JsonProperty("userId") String userId,
                                @JsonProperty("email") String email,
                                @JsonProperty("bankId") String bankId,
-                               @JsonProperty("paymentMethodId") String paymentMethodId) {
-        // Read correlation/causation from the current scope (if any) so the
-        // DomainEvent gets the values instead of remaining null. This allows
-        // synchronous in-thread handlers to observe the correlation ids when
-        // the event is created inside a ScopedValue scope.
+                               @JsonProperty("paymentMethodId") String paymentMethodId,
+                               @JsonProperty("causationId") String causationId) {
+
         String correlationId = CorrelationContext.correlationId();
-        if (correlationId == null) {
-            // Fallback to MDC-based correlation id (set by the request interceptor)
-            correlationId = MDC.get("correlationId");
-        }
-    String causationId = CorrelationContext.causationId();
         Maybe<String> causationMaybe;
         if (causationId != null) {
             causationMaybe = Maybe.some(causationId);
@@ -46,8 +39,8 @@ public class UserRegisteredEvent extends DomainEvent {
         this.paymentMethodId = paymentMethodId;
     }
 
-    public static UserRegisteredEvent create(String userId, String email, String bankId, String paymentMethodId) {
-        return new UserRegisteredEvent(userId, email, bankId, paymentMethodId);
+    public static UserRegisteredEvent create(String userId, String email, String bankId, String paymentMethodId, String causationId) {
+        return new UserRegisteredEvent(userId, email, bankId, paymentMethodId, causationId);
     }
 
     @Override
