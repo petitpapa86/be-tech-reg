@@ -8,6 +8,8 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
@@ -30,6 +32,8 @@ public class CancelSubscriptionCommandHandler {
     /**
      * Handle the CancelSubscriptionCommand using direct repository method calls
      */
+    @EventListener
+    @Async("sagaTaskExecutor")
     public Result<CancelSubscriptionResponse> handle(CancelSubscriptionCommand command) {
         // Step 1: Validate subscription ID
         Result<SubscriptionId> subscriptionIdResult = command.getSubscriptionId();

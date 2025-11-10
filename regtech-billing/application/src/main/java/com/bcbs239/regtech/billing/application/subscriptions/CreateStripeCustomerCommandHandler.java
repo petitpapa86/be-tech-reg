@@ -8,13 +8,13 @@ import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreatedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreationFailedEvent;
 
+import com.bcbs239.regtech.core.application.saga.SagaManager;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.ISagaRepository;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.SagaSnapshot;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.infrastructure.eventprocessing.CrossModuleEventBus;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -32,18 +32,18 @@ public class CreateStripeCustomerCommandHandler {
     private final ILogger asyncLogger;
 
     private final PaymentService paymentService;
-    private final CrossModuleEventBus crossModuleEventBus;
+    private final SagaManager sagaManager;
     private final ISagaRepository sagaRepository;
 
     @SuppressWarnings("unused")
     public CreateStripeCustomerCommandHandler(
             ILogger asyncLogger, PaymentService paymentService,
-            CrossModuleEventBus crossModuleEventBus,
+            SagaManager sagaManager,
             ISagaRepository sagaRepository,
             BillingAccountRepository billingAccountRepository) {
         this.asyncLogger = asyncLogger;
         this.paymentService = paymentService;
-        this.crossModuleEventBus = crossModuleEventBus;
+        this.sagaManager = sagaManager;
         this.sagaRepository = sagaRepository;
     }
 
@@ -87,9 +87,9 @@ public class CreateStripeCustomerCommandHandler {
         // Update billing account with Stripe customer ID
         updateBillingAccount(sagaId, customer.customerId());
         
-        // Publish success event
+        // Publish success event to saga via SagaManager
         StripeCustomerCreatedEvent event = new StripeCustomerCreatedEvent(sagaId, customer.customerId().getValue());
-        crossModuleEventBus.publishEventSynchronously(event);
+        sagaManager.processEvent(event);
         
         asyncLogger.asyncStructuredLog("STRIPE_CUSTOMER_CREATED_PUBLISHED", Map.of(
                 "sagaId", sagaId,
@@ -112,6 +112,6 @@ public class CreateStripeCustomerCommandHandler {
 
     private void publishFailureEvent(SagaId sagaId, String errorMessage) {
         StripeCustomerCreationFailedEvent failureEvent = new StripeCustomerCreationFailedEvent(sagaId, errorMessage);
-        crossModuleEventBus.publishEventSynchronously(failureEvent);
+        sagaManager.processEvent(failureEvent);
     }
 }

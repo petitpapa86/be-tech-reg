@@ -8,7 +8,6 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaEntity;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 
@@ -33,21 +32,24 @@ public class JpaSagaRepository implements ISagaRepository {
     @Override
     public Result<SagaId> save(SagaSnapshot snapshot) {
         try {
-            SagaEntity entity = toEntity(snapshot);
-
-            if (entityManager.find(SagaEntity.class, entity.getSagaId()) == null) {
+            SagaEntity existingEntity = entityManager.find(SagaEntity.class, snapshot.getSagaId().id());
+            
+            if (existingEntity == null) {
                 // Insert new saga
-                entityManager.persist(entity);
+                SagaEntity newEntity = toEntity(snapshot);
+                entityManager.persist(newEntity);
                 logger.asyncStructuredLog("SAGA_PERSISTED", Map.of(
                     "sagaId", snapshot.getSagaId(),
                     "sagaType", snapshot.getSagaType()
                 ));
             } else {
-                // Update existing saga
-                entityManager.merge(entity);
+                // Update existing saga - update fields on the managed entity
+                existingEntity.updateFrom(snapshot);
+                // No need to call merge - entity is already managed
                 logger.asyncStructuredLog("SAGA_UPDATED", Map.of(
                     "sagaId", snapshot.getSagaId(),
-                    "sagaType", snapshot.getSagaType()
+                    "sagaType", snapshot.getSagaType(),
+                    "version", existingEntity.getVersion()
                 ));
             }
 
@@ -64,21 +66,24 @@ public class JpaSagaRepository implements ISagaRepository {
 
     public Result<SagaId> save(AbstractSaga<?> saga) {
         try {
-            SagaEntity entity = toEntity(saga, objectMapper);
-
-            if (entityManager.find(SagaEntity.class, entity.getSagaId()) == null) {
+            SagaEntity existingEntity = entityManager.find(SagaEntity.class, saga.getId().id());
+            
+            if (existingEntity == null) {
                 // Insert new saga
-                entityManager.persist(entity);
+                SagaEntity newEntity = toEntity(saga, objectMapper);
+                entityManager.persist(newEntity);
                 logger.asyncStructuredLog("SAGA_PERSISTED", Map.of(
                     "sagaId", saga.getId(),
                     "sagaType", saga.getSagaType()
                 ));
             } else {
-                // Update existing saga
-                entityManager.merge(entity);
+                // Update existing saga - update fields on the managed entity
+                existingEntity.updateFrom(saga, objectMapper);
+                // No need to call merge - entity is already managed
                 logger.asyncStructuredLog("SAGA_UPDATED", Map.of(
                     "sagaId", saga.getId(),
-                    "sagaType", saga.getSagaType()
+                    "sagaType", saga.getSagaType(),
+                    "version", existingEntity.getVersion()
                 ));
             }
 

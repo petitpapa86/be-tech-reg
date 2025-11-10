@@ -79,6 +79,44 @@ public class SagaEntity {
     }
 
     /**
+     * Updates this entity from a saga snapshot (for managed entities).
+     */
+    public void updateFrom(com.bcbs239.regtech.core.domain.saga.SagaSnapshot snapshot) {
+        this.status = snapshot.getStatus();
+        this.sagaData = snapshot.getSagaData();
+        this.processedEvents = snapshot.getProcessedEvents();
+        this.pendingCommands = snapshot.getPendingCommands();
+        this.completedAt = snapshot.getCompletedAt();
+    }
+
+    /**
+     * Updates this entity from a saga instance (for managed entities).
+     */
+    public void updateFrom(com.bcbs239.regtech.core.domain.saga.AbstractSaga<?> saga, com.fasterxml.jackson.databind.ObjectMapper objectMapper) throws Exception {
+        this.status = saga.getStatus();
+        this.sagaData = safeSerialize(objectMapper, saga.getData());
+        this.processedEvents = safeSerialize(objectMapper,
+                saga.getProcessedEvents().stream()
+                        .map(e -> e.getClass().getSimpleName())
+                        .toList()
+        );
+        this.pendingCommands = safeSerialize(objectMapper, saga.peekCommandsToDispatch());
+        this.completedAt = saga.getCompletedAt();
+    }
+
+    private static String safeSerialize(com.fasterxml.jackson.databind.ObjectMapper mapper, Object value) throws Exception {
+        try {
+            return mapper.writeValueAsString(value);
+        } catch (com.fasterxml.jackson.databind.exc.InvalidDefinitionException e) {
+            // likely Java 8 time types not supported by this mapper - create a temporary mapper with JavaTimeModule
+            com.fasterxml.jackson.databind.ObjectMapper tmp = mapper.copy();
+            tmp.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+            tmp.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            return tmp.writeValueAsString(value);
+        }
+    }
+
+    /**
      * Sets the SystemTimeProvider for testing purposes.
      * @param timeProvider the SystemTimeProvider to use
      */

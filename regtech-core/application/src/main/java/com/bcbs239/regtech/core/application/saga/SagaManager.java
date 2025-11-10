@@ -105,10 +105,6 @@ public class SagaManager {
         // Snapshot pending commands so persistence can record them without consuming the in-memory list
         List<SagaCommand> commandsSnapshot = saga.peekCommandsToDispatch();
 
-        // Create updated snapshot and save
-        SagaSnapshot updatedSnapshot = createSnapshot(saga);
-        sagaRepository.save(updatedSnapshot);
-
         // Diagnostic log of snapshot
         try {
             logger.asyncStructuredLog("SAGA_COMMANDS_SNAPSHOT", Map.of(
@@ -125,20 +121,25 @@ public class SagaManager {
             // ignore logging errors
         }
 
-        // Persist saga (saves snapshot of pending commands via repository's peek usage)
+        // Persist saga once with updated state
+        Result<SagaId> saveResult;
         try {
-            Result<SagaId> saveResult = sagaRepository.save(saga.toSnapshot(objectMapper));
-            if (saveResult.isFailure()) {
-                logger.asyncStructuredLog("SAGA_SAVE_FAILED", Map.of(
-                    "sagaId", saga.getId(),
-                    "error", saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error")
-                ));
-            }
+            saveResult = sagaRepository.save(saga.toSnapshot(objectMapper));
         } catch (Exception e) {
-            logger.asyncStructuredLog("SAGA_SNAPSHOT_FAILED", Map.of(
+            logger.asyncStructuredLog("SAGA_SAVE_EXCEPTION", Map.of(
                 "sagaId", saga.getId(),
                 "error", e.getMessage()
             ));
+            throw new RuntimeException("Failed to create saga snapshot: " + e.getMessage(), e);
+        }
+        
+        if (saveResult.isFailure()) {
+            String errorMsg = saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error");
+            logger.asyncStructuredLog("SAGA_SAVE_FAILED", Map.of(
+                "sagaId", saga.getId(),
+                "error", errorMsg
+            ));
+            throw new RuntimeException("Failed to save saga: " + errorMsg);
         }
 
         // Consume in-memory commands (clears the saga's command list) to avoid duplicate dispatching
@@ -188,11 +189,13 @@ public class SagaManager {
     @SuppressWarnings("unchecked")
     private AbstractSaga<?> reconstructSaga(SagaSnapshot snapshot) {
         try {
-            // Get saga class from type
-            Class<? extends AbstractSaga<?>> sagaClass = (Class<? extends AbstractSaga<?>>) Class.forName(getSagaClassName(snapshot.getSagaType()));
-
+            // Find saga class by scanning for classes with matching sagaType
+            Class<? extends AbstractSaga<?>> sagaClass = findSagaClass(snapshot.getSagaType());
+            
+            // Discover data class from saga constructor
+            Class<?> dataClass = discoverSagaDataClass(sagaClass);
+            
             // Deserialize saga data
-            Class<?> dataClass = Class.forName(getSagaDataClassName(snapshot.getSagaType()));
             Object data = objectMapper.readValue(snapshot.getSagaData(), dataClass);
 
             // Create saga instance
@@ -212,27 +215,39 @@ public class SagaManager {
         }
     }
 
-    // TODO: Implement proper saga class registry
-    private static String getSagaDataClassName(String sagaType) {
-        // Simple mapping for now - in production use a registry
-        if ("TestSaga".equals(sagaType)) {
-            return "java.lang.String";
+    @SuppressWarnings("unchecked")
+    private Class<? extends AbstractSaga<?>> findSagaClass(String sagaType) throws ClassNotFoundException {
+        // Try common package patterns
+        String[] packagePrefixes = {
+            "com.bcbs239.regtech.billing.application.payments.",
+            "com.bcbs239.regtech.billing.application.policies.",
+            "com.bcbs239.regtech.core.sagav2.",
+            "com.bcbs239.regtech.core.application.saga."
+        };
+        
+        for (String prefix : packagePrefixes) {
+            try {
+                return (Class<? extends AbstractSaga<?>>) Class.forName(prefix + sagaType);
+            } catch (ClassNotFoundException e) {
+                // Try next prefix
+            }
         }
-        if ("PaymentVerificationSaga".equals(sagaType)) {
-            return "com.bcbs239.regtech.billing.domain.billing.PaymentVerificationSagaData";
-        }
-        return "java.lang.Object";
+        
+        throw new ClassNotFoundException("Could not find saga class for type: " + sagaType);
     }
 
-    private static String getSagaClassName(String sagaType) {
-        // Simple mapping for now - in production use a registry
-        if ("TestSaga".equals(sagaType)) {
-            return "com.bcbs239.regtech.core.sagav2.TestSaga";
+    private Class<?> discoverSagaDataClass(Class<? extends AbstractSaga<?>> sagaClass) throws NoSuchMethodException {
+        // Find constructor with signature (SagaId, T, TimeoutScheduler, ILogger)
+        for (Constructor<?> constructor : sagaClass.getDeclaredConstructors()) {
+            Class<?>[] paramTypes = constructor.getParameterTypes();
+            if (paramTypes.length == 4 && 
+                paramTypes[0] == SagaId.class && 
+                paramTypes[2] == TimeoutScheduler.class &&
+                paramTypes[3] == ILogger.class) {
+                return paramTypes[1]; // Return the data class type
+            }
         }
-        if ("PaymentVerificationSaga".equals(sagaType)) {
-            return "com.bcbs239.regtech.billing.application.policies.PaymentVerificationSaga";
-        }
-        return "com.bcbs239.regtech.core.sagav2.AbstractSaga";
+        throw new NoSuchMethodException("Could not find saga constructor with expected signature");
     }
 
     private SagaSnapshot createSnapshot(AbstractSaga<?> saga) {

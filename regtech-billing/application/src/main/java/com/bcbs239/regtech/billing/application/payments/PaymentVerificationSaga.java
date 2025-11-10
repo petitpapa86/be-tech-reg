@@ -9,6 +9,7 @@ import com.bcbs239.regtech.billing.application.subscriptions.CreateStripeSubscri
 import com.bcbs239.regtech.billing.domain.invoices.events.StripeInvoiceCreatedEvent;
 import com.bcbs239.regtech.billing.domain.payments.PaymentVerificationSagaData;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreatedEvent;
+import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreationFailedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripePaymentFailedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripePaymentSucceededEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
@@ -31,6 +32,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
     private void registerHandlers() {
         onEvent(SagaStartedEvent.class, this::handleSagaStarted);
         onEvent(StripeCustomerCreatedEvent.class, this::handleStripeCustomerCreated);
+        onEvent(StripeCustomerCreationFailedEvent.class, this::handleStripeCustomerCreationFailed);
         onEvent(StripeSubscriptionCreatedEvent.class, this::handleStripeSubscriptionCreated);
         onEvent(StripeSubscriptionWebhookReceivedEvent.class, this::handleStripeSubscriptionWebhookReceived);
         onEvent(StripeInvoiceCreatedEvent.class, this::handleStripeInvoiceCreated);
@@ -40,8 +42,9 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     private void handleSagaStarted(SagaStartedEvent event) {
         // Dispatch CreateStripeCustomerCommand to start the process
-        CreateStripeCustomerCommand createCommand = CreateStripeCustomerCommand.create(
+        CreateStripeCustomerCommand createCommand = new CreateStripeCustomerCommand(
                 event.sagaId(),
+                data.getUserId(),
                 data.getUserEmail(),
                 data.getUserName(),
                 data.getPaymentMethodId()
@@ -143,6 +146,13 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     private void handleStripePaymentFailed(StripePaymentFailedEvent event) {
         data.setFailureReason(event.getFailureReason());
+        updateStatus();
+    }
+
+    private void handleStripeCustomerCreationFailed(StripeCustomerCreationFailedEvent event) {
+        data.setFailureReason("Stripe customer creation failed: " + event.getErrorMessage());
+        // Cancel the payment timeout since we're failing
+        timeoutScheduler.cancel(getId().id() + "-payment-timeout");
         updateStatus();
     }
 

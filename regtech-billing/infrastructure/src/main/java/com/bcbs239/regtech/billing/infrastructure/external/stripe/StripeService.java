@@ -462,7 +462,7 @@ public class StripeService {
      */
     private String createOrGetPriceId(SubscriptionTier tier) {
         return switch (tier) {
-            case STARTER -> "price_starter_500_eur_monthly"; // This should be created in Stripe dashboard
+            case STARTER -> "price_1SN9TrF6vJewYjaQlmpIzWaV"; // This should be created in Stripe dashboard
         };
     }
 
