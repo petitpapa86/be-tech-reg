@@ -10,11 +10,12 @@ import java.util.Map;
 
 public class CreateStripeSubscriptionCommand extends SagaCommand {
 
-    public CreateStripeSubscriptionCommand(SagaId sagaId, String stripeCustomerId, SubscriptionTier subscriptionTier, String userId) {
+    public CreateStripeSubscriptionCommand(SagaId sagaId, String stripeCustomerId, SubscriptionTier subscriptionTier, String userId, String paymentMethodId) {
         super(sagaId, "CreateStripeSubscriptionCommand", Map.of(
             "stripeCustomerId", stripeCustomerId,
             "subscriptionTier", subscriptionTier,
-            "userId", userId
+            "userId", userId,
+            "paymentMethodId", paymentMethodId
         ), Instant.now());
     }
 
@@ -28,6 +29,10 @@ public class CreateStripeSubscriptionCommand extends SagaCommand {
 
     public String getUserId() {
         return (String) payload().get("userId");
+    }
+
+    public String getPaymentMethodId() {
+        return (String) payload().get("paymentMethodId");
     }
 }
 

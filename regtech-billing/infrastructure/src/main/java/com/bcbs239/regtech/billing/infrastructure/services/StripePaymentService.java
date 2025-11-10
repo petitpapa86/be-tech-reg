@@ -34,7 +34,7 @@ public class StripePaymentService implements PaymentService {
     @Override
     public Result<CustomerCreationResult> createCustomer(CustomerCreationRequest request) {
         try {
-            // StripeService supports createCustomer(email, name). PaymentMethodId is not required here.
+            // Create customer
             Result<StripeCustomer> result = stripeService.createCustomer(
                 request.email(),
                 request.name()
@@ -45,6 +45,28 @@ public class StripePaymentService implements PaymentService {
             }
             
             StripeCustomer customer = result.getValue().get();
+            
+            // If payment method provided, attach it and set as default
+            if (request.paymentMethodId() != null) {
+                Result<Void> attachResult = stripeService.attachPaymentMethod(
+                    customer.customerId(),
+                    request.paymentMethodId()
+                );
+                
+                if (attachResult.isFailure()) {
+                    return Result.failure(attachResult.getError().get());
+                }
+                
+                Result<Void> defaultResult = stripeService.setDefaultPaymentMethod(
+                    customer.customerId(),
+                    request.paymentMethodId()
+                );
+                
+                if (defaultResult.isFailure()) {
+                    return Result.failure(defaultResult.getError().get());
+                }
+            }
+            
             CustomerCreationResult domainResult = new CustomerCreationResult(
                 customer.customerId(),
                 customer.email(),

@@ -64,10 +64,11 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         data.setStripeCustomerId(event.getStripeCustomerId());
         data.setBillingAccountId(data.getUserId());
         dispatchCommand(new CreateStripeSubscriptionCommand(
-            getId(), 
-            data.getStripeCustomerId(), 
+            getId(),
+            data.getStripeCustomerId(),
             SubscriptionTier.STARTER,
-            data.getUserId()
+            data.getUserId(),
+            data.getPaymentMethodId()
         ));
 
 
@@ -91,10 +92,11 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         } else {
             // Subscription doesn't exist yet (from webhook) - create it first
             dispatchCommand(new CreateStripeSubscriptionCommand(
-                getId(), 
-                data.getStripeCustomerId(), 
+                getId(),
+                data.getStripeCustomerId(),
                 SubscriptionTier.STARTER,
-                data.getUserId()
+                data.getUserId(),
+                data.getPaymentMethodId()
             ));
         }
         updateStatus();
@@ -107,10 +109,11 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         // Webhook indicates subscription was created in Stripe - ensure we have local subscription
         if (data.getSubscriptionId() == null) {
             dispatchCommand(new CreateStripeSubscriptionCommand(
-                getId(), 
-                data.getStripeCustomerId(), 
+                getId(),
+                data.getStripeCustomerId(),
                 SubscriptionTier.STARTER,
-                data.getUserId()
+                data.getUserId(),
+                data.getPaymentMethodId()
             ));
         } else {
             // We already have a subscription, create invoice

@@ -65,7 +65,8 @@ public class CreateStripeSubscriptionCommandHandler {
                 "sagaId", command.sagaId(),
                 "stripeCustomerId", command.getStripeCustomerId(),
                 "userId", command.getUserId(),
-                "subscriptionTier", command.getSubscriptionTier()
+                "subscriptionTier", command.getSubscriptionTier(),
+                "paymentMethodId", command.getPaymentMethodId()
             ));
         } catch (Exception e) {
             // ignore logging failures
@@ -95,11 +96,19 @@ public class CreateStripeSubscriptionCommandHandler {
             return;
         }
 
+        // Resolve PaymentMethodId from command (if provided)
+        com.bcbs239.regtech.billing.domain.payments.PaymentMethodId paymentMethodId = null;
+        try {
+            paymentMethodId = com.bcbs239.regtech.billing.domain.payments.PaymentMethodId.fromString(command.getPaymentMethodId()).getValue().orElse(null);
+        } catch (Exception ignored) {
+            // leave as null
+        }
+
         // Create Stripe subscription
         PaymentService.SubscriptionCreationRequest subscriptionRequest = new PaymentService.SubscriptionCreationRequest(
             customerId,
             command.getSubscriptionTier(),
-            null // PaymentMethodId - would need to be provided in command
+            paymentMethodId
         );
         
         Result<PaymentService.SubscriptionCreationResult> subscriptionResult = paymentService.createSubscription(subscriptionRequest);
