@@ -53,7 +53,7 @@ public class DunningActionExecutor {
         try {
             // Load required data
             Maybe<Invoice> invoiceMaybe = invoiceRepository.invoiceFinder().apply(invoiceId);
-            Maybe<BillingAccount> accountMaybe = billingAccountRepository.billingAccountFinder().apply(billingAccountId);
+            Maybe<BillingAccount> accountMaybe = billingAccountRepository.findById(billingAccountId);
 
             if (invoiceMaybe.isEmpty()) {
                 return new DunningProcessScheduler.DunningActionResult(
@@ -237,8 +237,8 @@ public class DunningActionExecutor {
             
             if (suspensionResult.isSuccess()) {
                 // Save the suspended account
-                Result<BillingAccountId> saveResult = billingAccountRepository.billingAccountSaver().apply(account);
-                
+                Result<BillingAccountId> saveResult = billingAccountRepository.save(account);
+
                 if (saveResult.isSuccess()) {
                     String details = String.format("Account suspended successfully. Email notification: %s", 
                         emailSent ? "sent" : "failed");
@@ -322,4 +322,3 @@ public class DunningActionExecutor {
         }
     }
 }
-

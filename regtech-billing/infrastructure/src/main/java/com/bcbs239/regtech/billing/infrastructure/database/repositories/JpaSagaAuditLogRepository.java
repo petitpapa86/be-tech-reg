@@ -3,6 +3,7 @@ package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.SagaAuditLogEntity;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -30,6 +31,7 @@ public class JpaSagaAuditLogRepository {
         return auditLog -> {
             if (auditLog.getId() != null) {
                 return Result.failure(ErrorDetail.of("SAGA_AUDIT_LOG_SAVE_FAILED",
+                    ErrorType.SYSTEM_ERROR,
                     "Cannot save saga audit log with existing ID", "saga.audit.log.save.existing.id"));
             }
             try {
@@ -40,6 +42,7 @@ public class JpaSagaAuditLogRepository {
                 return Result.success(auditLog.getId());
             } catch (Exception e) {
                 return Result.failure(ErrorDetail.of("SAGA_AUDIT_LOG_SAVE_FAILED",
+                    ErrorType.SYSTEM_ERROR,
                     "Failed to save saga audit log: " + e.getMessage(),
                     "saga.audit.log.save.failed"));
             }
@@ -128,6 +131,7 @@ public class JpaSagaAuditLogRepository {
             return Result.success(auditLog.getId());
         } catch (Exception e) {
             return Result.failure(ErrorDetail.of("SAGA_AUDIT_LOG_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to log saga event: " + e.getMessage(),
                 "saga.audit.log.failed"));
         }
@@ -184,4 +188,3 @@ public class JpaSagaAuditLogRepository {
         }
     }
 }
-

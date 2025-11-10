@@ -2,6 +2,7 @@ package com.bcbs239.regtech.billing.infrastructure.messaging;
 
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,6 +32,7 @@ public class EventSerializer {
         } catch (JsonProcessingException e) {
             return Result.failure(ErrorDetail.of(
                 "EVENT_SERIALIZATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to serialize event: " + e.getMessage(),
                 "event.serialization.failed"
             ));
@@ -47,6 +49,7 @@ public class EventSerializer {
         } catch (JsonProcessingException e) {
             return Result.failure(ErrorDetail.of(
                 "EVENT_DESERIALIZATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to deserialize event: " + e.getMessage(),
                 "event.deserialization.failed"
             ));
@@ -64,12 +67,14 @@ public class EventSerializer {
         } catch (ClassNotFoundException e) {
             return Result.failure(ErrorDetail.of(
                 "EVENT_TYPE_NOT_FOUND",
+                ErrorType.SYSTEM_ERROR,
                 "Event type not found: " + eventTypeName,
                 "event.type.not.found"
             ));
         } catch (JsonProcessingException e) {
             return Result.failure(ErrorDetail.of(
                 "EVENT_DESERIALIZATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to deserialize event: " + e.getMessage(),
                 "event.deserialization.failed"
             ));
@@ -90,4 +95,3 @@ public class EventSerializer {
         return event.getClass().getName();
     }
 }
-

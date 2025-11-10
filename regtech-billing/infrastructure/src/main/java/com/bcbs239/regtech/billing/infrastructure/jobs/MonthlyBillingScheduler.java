@@ -3,6 +3,7 @@ package com.bcbs239.regtech.billing.infrastructure.jobs;
 import com.bcbs239.regtech.billing.application.invoicing.MonthlyBillingSaga;
 import com.bcbs239.regtech.billing.application.invoicing.MonthlyBillingSagaData;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
@@ -185,13 +186,21 @@ public class MonthlyBillingScheduler {
     private Maybe<UserId> extractUserIdFromSubscription(Subscription subscription) {
         try {
             // Look up the billing account to get the user ID
+            Maybe<BillingAccountId> billingAccountIdMaybe = subscription.getBillingAccountId();
+
+            if (billingAccountIdMaybe.isEmpty()) {
+                logger.warn("Subscription {} has no billing account ID", subscription.getId());
+                return Maybe.none();
+            }
+
+            BillingAccountId billingAccountId = billingAccountIdMaybe.getValue();
+
             Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository
-                .billingAccountFinder()
-                .apply(subscription.getBillingAccountId().getValue());
-            
+                .findById(billingAccountId);
+
             if (billingAccountMaybe.isEmpty()) {
                 logger.warn("Billing account {} not found for subscription {}", 
-                    subscription.getBillingAccountId().getValue(), subscription.getId());
+                    billingAccountId.getValue(), subscription.getId());
                 return Maybe.none();
             }
             

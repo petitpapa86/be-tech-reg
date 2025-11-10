@@ -3,6 +3,7 @@ package com.bcbs239.regtech.billing.infrastructure.observability;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.SagaAuditLogEntity;
 import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSagaAuditLogRepository;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -61,6 +62,7 @@ public class BillingSagaAuditService {
         } catch (JsonProcessingException e) {
             return Result.failure(ErrorDetail.of(
                 "AUDIT_SERIALIZATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to serialize audit data: " + e.getMessage(),
                 "audit.serialization.failed"
             ));
@@ -96,6 +98,7 @@ public class BillingSagaAuditService {
         } catch (JsonProcessingException e) {
             return Result.failure(ErrorDetail.of(
                 "AUDIT_SERIALIZATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to serialize calculation audit data: " + e.getMessage(),
                 "audit.serialization.failed"
             ));
@@ -132,6 +135,7 @@ public class BillingSagaAuditService {
         } catch (JsonProcessingException e) {
             return Result.failure(ErrorDetail.of(
                 "AUDIT_SERIALIZATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to serialize invoice amount audit data: " + e.getMessage(),
                 "audit.serialization.failed"
             ));
@@ -167,8 +171,9 @@ public class BillingSagaAuditService {
             return auditLogRepository.sagaAuditLogSaver().apply(auditLog);
 
         } catch (JsonProcessingException e) {
-            return Result.failure(com.bcbs239.regtech.core.shared.ErrorDetail.of(
+            return Result.failure(ErrorDetail.of(
                 "AUDIT_SERIALIZATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to serialize status change audit data: " + e.getMessage(),
                 "audit.serialization.failed"
             ));
@@ -206,6 +211,7 @@ public class BillingSagaAuditService {
         } catch (JsonProcessingException e) {
             return Result.failure(ErrorDetail.of(
                 "AUDIT_SERIALIZATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
                 "Failed to serialize saga completion audit data: " + e.getMessage(),
                 "audit.serialization.failed"
             ));
@@ -282,4 +288,3 @@ public class BillingSagaAuditService {
         return report;
     }
 }
-

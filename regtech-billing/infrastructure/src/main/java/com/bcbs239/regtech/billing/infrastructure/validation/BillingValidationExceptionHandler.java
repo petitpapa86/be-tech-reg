@@ -30,14 +30,13 @@ public class BillingValidationExceptionHandler {
         for (org.springframework.validation.FieldError error : ex.getBindingResult().getFieldErrors()) {
             errors.add(new FieldError(
                 error.getField(),
-                "VALIDATION_ERROR",
                 error.getDefaultMessage(),
                 "validation.field.error"
             ));
         }
 
         String message = errors.size() == 1
-            ? errors.get(0).getMessage()
+            ? errors.get(0).message()
             : String.format("Validation failed for %d fields", errors.size());
 
         return ResponseEntity.badRequest().body(
@@ -55,7 +54,7 @@ public class BillingValidationExceptionHandler {
             .collect(Collectors.toList());
 
         String message = errors.size() == 1
-            ? errors.get(0).getMessage()
+            ? errors.get(0).message()
             : String.format("Validation failed for %d constraints", errors.size());
 
         return ResponseEntity.badRequest().body(
@@ -66,9 +65,8 @@ public class BillingValidationExceptionHandler {
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
-        com.bcbs239.regtech.core.shared.FieldError error = new com.bcbs239.regtech.core.shared.FieldError(
+        FieldError error = new FieldError(
             "argument",
-            "INVALID_ARGUMENT",
             ex.getMessage(),
             "validation.invalid.argument"
         );
@@ -87,10 +85,8 @@ public class BillingValidationExceptionHandler {
 
         return new FieldError(
             propertyPath,
-            "CONSTRAINT_VIOLATION",
             message,
             "validation.constraint.violation"
         );
     }
 }
-
