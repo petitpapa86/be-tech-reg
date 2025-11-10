@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.iam.application.integration;
 
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
+import com.bcbs239.regtech.core.domain.events.integration.UserRegisteredIntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredEvent;
 import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;

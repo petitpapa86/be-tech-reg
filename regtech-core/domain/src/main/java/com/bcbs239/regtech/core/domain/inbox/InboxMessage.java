@@ -48,7 +48,7 @@ public class InboxMessage {
     public static InboxMessage fromIntegrationEvent(IntegrationEvent event, ObjectMapper mapper) {
         return InboxMessage.builder()
                 .id(event.getEventId())
-                .eventType(event.eventType())
+                .eventType(event.getClass().getName()) // Store fully qualified class name for deserialization
                 .content(serializeEventContent(event, mapper))
                 .status(InboxMessageStatus.PENDING)
                 .occurredOnUtc(Instant.now())

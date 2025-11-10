@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.billing.infrastructure.validation;
 
-import com.bcbs239.regtech.core.shared.ApiResponse;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
@@ -24,10 +25,10 @@ public class BillingValidationExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
-        List<com.bcbs239.regtech.core.shared.FieldError> errors = new ArrayList<>();
+        List<FieldError> errors = new ArrayList<>();
 
         for (org.springframework.validation.FieldError error : ex.getBindingResult().getFieldErrors()) {
-            errors.add(new com.bcbs239.regtech.core.shared.FieldError(
+            errors.add(new FieldError(
                 error.getField(),
                 "VALIDATION_ERROR",
                 error.getDefaultMessage(),
@@ -49,7 +50,7 @@ public class BillingValidationExceptionHandler {
      */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ApiResponse<Void>> handleConstraintViolation(ConstraintViolationException ex) {
-        List<com.bcbs239.regtech.core.shared.FieldError> errors = ex.getConstraintViolations().stream()
+        List<FieldError> errors = ex.getConstraintViolations().stream()
             .map(this::mapConstraintViolationToFieldError)
             .collect(Collectors.toList());
 
@@ -80,11 +81,11 @@ public class BillingValidationExceptionHandler {
     /**
      * Map constraint violation to FieldError
      */
-    private com.bcbs239.regtech.core.shared.FieldError mapConstraintViolationToFieldError(ConstraintViolation<?> violation) {
+    private FieldError mapConstraintViolationToFieldError(ConstraintViolation<?> violation) {
         String propertyPath = violation.getPropertyPath().toString();
         String message = violation.getMessage();
 
-        return new com.bcbs239.regtech.core.shared.FieldError(
+        return new FieldError(
             propertyPath,
             "CONSTRAINT_VIOLATION",
             message,

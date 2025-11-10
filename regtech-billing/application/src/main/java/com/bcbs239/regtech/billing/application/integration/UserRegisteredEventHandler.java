@@ -27,7 +27,7 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Event handler for UserRegisteredIntegrationEvent.
+ * Event handler for BillingUserRegisteredEvent (local domain event).
  * Starts the PaymentVerificationSaga when a user registers.
  */
 @Component("billingUserRegisteredEventHandler")
@@ -51,13 +51,14 @@ public class UserRegisteredEventHandler  {
         this.subscriptionRepository = subscriptionRepository;
         this.invoiceRepository = invoiceRepository;
         this.asyncLogger = asyncLogger;
+        System.out.println("🏗️🏗️🏗️ UserRegisteredEventHandler CONSTRUCTOR CALLED - Bean is being created!");
     }
 
     @EventListener
-    public void handle(UserRegisteredEvent event) {
+    public void handle(BillingUserRegisteredEvent event) {
         try {
-            asyncLogger.asyncStructuredLog("Received UserRegisteredIntegrationEvent", Map.of(
-                "eventType", "USER_REGISTERED_EVENT_RECEIVED",
+            asyncLogger.asyncStructuredLog("🎯 HANDLER RECEIVED: BillingUserRegisteredEvent", Map.of(
+                "eventType", "BILLING_USER_REGISTERED_EVENT_RECEIVED",
                 "userId", event.getUserId(),
                 "email", event.getEmail()
             ));

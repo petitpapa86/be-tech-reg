@@ -8,6 +8,7 @@ public final class CorrelationContext {
     public static final ScopedValue<String> CAUSATION_ID   = ScopedValue.newInstance();
     public static final ScopedValue<String> BOUNDED_CONTEXT = ScopedValue.newInstance();
     public static final ScopedValue<Boolean> OUTBOX_REPLAY = ScopedValue.newInstance();
+    public static final ScopedValue<Boolean> INBOX_REPLAY = ScopedValue.newInstance();
 
     private CorrelationContext() {}
 
@@ -25,6 +26,10 @@ public final class CorrelationContext {
 
     public static boolean isOutboxReplay() {
         return OUTBOX_REPLAY.isBound() && Boolean.TRUE.equals(OUTBOX_REPLAY.get());
+    }
+
+    public static boolean isInboxReplay() {
+        return INBOX_REPLAY.isBound() && Boolean.TRUE.equals(INBOX_REPLAY.get());
     }
 
     /**

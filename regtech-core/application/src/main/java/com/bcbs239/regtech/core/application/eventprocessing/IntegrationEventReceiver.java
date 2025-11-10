@@ -3,6 +3,7 @@ package com.bcbs239.regtech.core.application.eventprocessing;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.inbox.IInboxMessageRepository;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessage;
+import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +25,12 @@ public class IntegrationEventReceiver {
     @EventListener
     @Transactional
     public void onIntegrationEvent(IntegrationEvent event) {
+        // Skip saving events that are being replayed from inbox to prevent loops
+        if (CorrelationContext.isInboxReplay()) {
+            logger.debug("Skipping inbox save for inbox-replayed integration event: {}", event.getClass().getSimpleName());
+            return;
+        }
+        
         // check for existing message to ensure idempotency could be added here
         try {
             logger.info("Received integration event: {}", event.getClass().getSimpleName());
