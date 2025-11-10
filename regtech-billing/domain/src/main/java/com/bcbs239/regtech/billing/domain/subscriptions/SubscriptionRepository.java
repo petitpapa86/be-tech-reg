@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.billing.domain.repositories;
+package com.bcbs239.regtech.billing.domain.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;

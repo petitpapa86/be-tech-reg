@@ -1,7 +1,5 @@
 package com.bcbs239.regtech.billing.application.subscriptions;
 
-import com.bcbs239.regtech.core.domain.saga.AbstractSaga;
-
 import com.bcbs239.regtech.billing.application.policies.createstripecustomer.CreateStripeCustomerCommand;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
@@ -11,7 +9,9 @@ import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreatedE
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreationFailedEvent;
 
 import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.core.domain.saga.ISagaRepository;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.saga.SagaSnapshot;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.infrastructure.eventprocessing.CrossModuleEventBus;
@@ -20,7 +20,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * Command handler for creating Stripe customers.
@@ -34,18 +33,18 @@ public class CreateStripeCustomerCommandHandler {
 
     private final PaymentService paymentService;
     private final CrossModuleEventBus crossModuleEventBus;
-    private final Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader;
+    private final ISagaRepository sagaRepository;
 
     @SuppressWarnings("unused")
     public CreateStripeCustomerCommandHandler(
             ILogger asyncLogger, PaymentService paymentService,
             CrossModuleEventBus crossModuleEventBus,
-            Function<SagaId, Maybe<AbstractSaga<?>>> sagaLoader,
+            ISagaRepository sagaRepository,
             BillingAccountRepository billingAccountRepository) {
         this.asyncLogger = asyncLogger;
         this.paymentService = paymentService;
         this.crossModuleEventBus = crossModuleEventBus;
-        this.sagaLoader = sagaLoader;
+        this.sagaRepository = sagaRepository;
     }
 
     @EventListener
@@ -100,7 +99,7 @@ public class CreateStripeCustomerCommandHandler {
 
     private void updateBillingAccount(SagaId sagaId, StripeCustomerId customerId) {
         // Find billing account associated with saga
-        Maybe<AbstractSaga<?>> maybeSaga = sagaLoader.apply(sagaId);
+        Maybe<SagaSnapshot> maybeSaga = sagaRepository.load(sagaId);
         if (maybeSaga.isEmpty()) {
             asyncLogger.asyncStructuredLog("SAGA_NOT_FOUND", Map.of("sagaId", sagaId));
             return;
@@ -116,4 +115,3 @@ public class CreateStripeCustomerCommandHandler {
         crossModuleEventBus.publishEventSynchronously(failureEvent);
     }
 }
-

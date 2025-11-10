@@ -2,6 +2,7 @@ package com.bcbs239.regtech.billing.application.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
@@ -9,6 +10,7 @@ import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
 
 import com.bcbs239.regtech.core.application.saga.SagaManager;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
@@ -21,7 +23,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * Command handler for creating Stripe subscriptions.
@@ -31,28 +32,22 @@ import java.util.function.Function;
 public class CreateStripeSubscriptionCommandHandler {
 
     private final PaymentService paymentService;
-    private final Function<UserId, Maybe<BillingAccount>> billingAccountByUserFinder;
-    private final Function<BillingAccount, Result<BillingAccountId>> billingAccountSaver;
-    private final Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder;
-    private final Function<Subscription, Result<SubscriptionId>> subscriptionSaver;
+    private final BillingAccountRepository billingAccountRepository;
+    private final SubscriptionRepository subscriptionRepository;
     private final CrossModuleEventBus crossModuleEventBus;
     private final SagaManager sagaManager;
     private final ILogger asyncLogger;
 
     public CreateStripeSubscriptionCommandHandler(
             PaymentService paymentService,
-            Function<UserId, Maybe<BillingAccount>> billingAccountByUserFinder,
-            Function<BillingAccount, Result<BillingAccountId>> billingAccountSaver,
-            Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder,
-            Function<Subscription, Result<SubscriptionId>> subscriptionSaver,
+            BillingAccountRepository billingAccountRepository,
+            SubscriptionRepository subscriptionRepository,
             CrossModuleEventBus crossModuleEventBus,
             SagaManager sagaManager, ILogger asyncLogger
     ) {
         this.paymentService = paymentService;
-        this.billingAccountByUserFinder = billingAccountByUserFinder;
-        this.billingAccountSaver = billingAccountSaver;
-        this.subscriptionByBillingAccountAndTierFinder = subscriptionByBillingAccountAndTierFinder;
-        this.subscriptionSaver = subscriptionSaver;
+        this.billingAccountRepository = billingAccountRepository;
+        this.subscriptionRepository = subscriptionRepository;
         this.crossModuleEventBus = crossModuleEventBus;
         this.sagaManager = sagaManager;
         this.asyncLogger = asyncLogger;
@@ -78,7 +73,7 @@ public class CreateStripeSubscriptionCommandHandler {
 
         // Get existing billing account
         com.bcbs239.regtech.iam.domain.users.UserId iamUserId = com.bcbs239.regtech.iam.domain.users.UserId.fromString(command.getUserId());
-        Maybe<BillingAccount> billingAccountMaybe = billingAccountByUserFinder.apply(iamUserId);
+        Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository.findByUserId(iamUserId);
         if (billingAccountMaybe.isEmpty()) {
             // TODO: Handle case where billing account doesn't exist
             return;
@@ -117,7 +112,7 @@ public class CreateStripeSubscriptionCommandHandler {
 
         // Find existing subscription to update
         BillingAccountId billingAccountId = billingAccount.getId();
-        Maybe<Subscription> subscriptionMaybe = subscriptionByBillingAccountAndTierFinder.apply(billingAccountId).apply(command.getSubscriptionTier());
+        Maybe<Subscription> subscriptionMaybe = subscriptionRepository.findActiveByBillingAccountId(billingAccountId);
         if (subscriptionMaybe.isEmpty()) {
             // TODO: Handle case where subscription doesn't exist
             return;
@@ -133,14 +128,14 @@ public class CreateStripeSubscriptionCommandHandler {
         }
 
         // Save updated billing account
-        Result<BillingAccountId> saveAccountResult = billingAccountSaver.apply(billingAccount);
+        Result<BillingAccountId> saveAccountResult = billingAccountRepository.save(billingAccount);
         if (saveAccountResult.isFailure()) {
             // TODO: Handle failure
             return;
         }
 
         // Save subscription
-        Result<SubscriptionId> saveSubscriptionResult = subscriptionSaver.apply(subscription);
+        Result<SubscriptionId> saveSubscriptionResult = subscriptionRepository.save(subscription);
         if (saveSubscriptionResult.isFailure()) {
             // TODO: Handle failure
             return;
@@ -171,4 +166,3 @@ public class CreateStripeSubscriptionCommandHandler {
         }
     }
 }
-

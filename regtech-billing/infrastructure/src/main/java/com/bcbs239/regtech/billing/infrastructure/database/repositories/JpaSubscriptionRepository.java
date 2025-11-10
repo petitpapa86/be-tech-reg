@@ -1,11 +1,7 @@
 package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
-import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
+import com.bcbs239.regtech.billing.domain.subscriptions.*;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.SubscriptionEntity;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
@@ -29,7 +25,7 @@ import java.util.stream.Collectors;
  */
 @Repository
 @Transactional
-public class JpaSubscriptionRepository implements SubscriptionRepository {
+public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository {
 
     @PersistenceContext
     private EntityManager entityManager;

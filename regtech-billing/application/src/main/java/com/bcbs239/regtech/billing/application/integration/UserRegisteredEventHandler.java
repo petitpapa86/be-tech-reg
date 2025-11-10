@@ -8,10 +8,10 @@ import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.payments.PaymentVerificationSagaData;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
-import com.bcbs239.regtech.billing.domain.repositories.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
