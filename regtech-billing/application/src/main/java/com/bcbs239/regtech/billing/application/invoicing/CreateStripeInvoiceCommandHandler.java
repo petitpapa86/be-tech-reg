@@ -4,6 +4,8 @@ import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 /**
@@ -23,9 +25,8 @@ public class CreateStripeInvoiceCommandHandler {
         this.paymentService = paymentService;
     }
 
-    /**
-     * Handle invoice creation command
-     */
+    @EventListener
+    @Async("sagaTaskExecutor")
     public Result<CreateStripeInvoiceResponse> handle(CreateStripeInvoiceCommand command) {
         // Convert string to StripeCustomerId
         Result<StripeCustomerId> customerIdResult =

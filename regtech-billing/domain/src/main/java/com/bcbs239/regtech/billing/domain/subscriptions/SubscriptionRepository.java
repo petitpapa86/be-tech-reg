@@ -23,8 +23,12 @@ public interface SubscriptionRepository {
     Maybe<Subscription> findActiveByBillingAccountId(BillingAccountId billingAccountId);
     
     /**
-     * Save a subscription
+     * Save a new subscription
      */
     Result<SubscriptionId> save(Subscription subscription);
+    
+    /**
+     * Update an existing subscription
+     */
+    Result<SubscriptionId> update(Subscription subscription);
 }
-

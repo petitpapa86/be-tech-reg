@@ -95,8 +95,11 @@ public class UserRegisteredEventHandler  {
                 "userId", event.getUserId()
             ));
 
-            // Save the default subscription
+            // Save the default subscription (set billing account ID first)
             for (Subscription subscription : billingAccount.getSubscriptions()) {
+                // Set the billing account ID on the subscription now that we have it
+                subscription.setBillingAccountId(Maybe.some(billingAccountId));
+                
                 Result<SubscriptionId> subscriptionSaveResult = subscriptionRepository.save(subscription);
                 if (subscriptionSaveResult.isFailure()) {
                     asyncLogger.asyncStructuredLog("Subscription creation failed", Map.of(

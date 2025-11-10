@@ -21,6 +21,8 @@ import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
@@ -55,9 +57,12 @@ public class CreateStripeSubscriptionCommandHandler {
 
     /**
      * Handle the CreateStripeSubscriptionCommand
+     * NOT_SUPPORTED ensures no transaction context exists when calling repository methods
+     * that use REQUIRES_NEW propagation.
      */
     @EventListener
     @Async("sagaTaskExecutor")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void handle(CreateStripeSubscriptionCommand command) {
         // Diagnostic log to confirm the command arrived at the handler
         try {
@@ -137,11 +142,18 @@ public class CreateStripeSubscriptionCommandHandler {
         }
         StripeSubscriptionId stripeSubscriptionId = stripeSubscriptionIdResult.getValue().get();
 
-        // Find existing subscription to update
+        // Find existing subscription to update (should be in PENDING status)
         BillingAccountId billingAccountId = billingAccount.getId();
+        
+        // Debug: Log what we're looking for
+        asyncLogger.asyncStructuredLog("SEARCHING_FOR_PENDING_SUBSCRIPTION", Map.of(
+            "sagaId", command.sagaId(),
+            "billingAccountId", billingAccountId.value()
+        ));
+        
         Maybe<Subscription> subscriptionMaybe = subscriptionRepository.findActiveByBillingAccountId(billingAccountId);
         if (subscriptionMaybe.isEmpty()) {
-            asyncLogger.asyncStructuredErrorLog("ACTIVE_SUBSCRIPTION_NOT_FOUND", null, Map.of(
+            asyncLogger.asyncStructuredErrorLog("PENDING_SUBSCRIPTION_NOT_FOUND", null, Map.of(
                 "sagaId", command.sagaId(),
                 "billingAccountId", billingAccountId.value()
             ));
@@ -159,23 +171,80 @@ public class CreateStripeSubscriptionCommandHandler {
             ));
             return;
         }
-
-        // Save updated billing account
-        Result<BillingAccountId> saveAccountResult = billingAccountRepository.save(billingAccount);
-        if (saveAccountResult.isFailure()) {
-            asyncLogger.asyncStructuredErrorLog("SAVE_BILLING_ACCOUNT_FAILED", null, Map.of(
+        
+        // Activate subscription after successful Stripe subscription creation
+        Result<Void> activateResult = subscription.activate();
+        if (activateResult.isFailure()) {
+            asyncLogger.asyncStructuredErrorLog("SUBSCRIPTION_ACTIVATION_FAILED", null, Map.of(
                 "sagaId", command.sagaId(),
-                "error", saveAccountResult.getError()
+                "error", activateResult.getError()
             ));
             return;
         }
 
-        // Save subscription
-        Result<SubscriptionId> saveSubscriptionResult = subscriptionRepository.save(subscription);
+        // Save updated billing account (use update since it already has an ID)
+        Result<BillingAccountId> saveAccountResult;
+        try {
+            asyncLogger.asyncStructuredLog("UPDATING_BILLING_ACCOUNT", Map.of(
+                "sagaId", command.sagaId(),
+                "billingAccountId", billingAccount.getId().value()
+            ));
+            saveAccountResult = billingAccountRepository.update(billingAccount);
+            asyncLogger.asyncStructuredLog("BILLING_ACCOUNT_UPDATED", Map.of(
+                "sagaId", command.sagaId(),
+                "billingAccountId", billingAccount.getId().value()
+            ));
+        } catch (Exception e) {
+            asyncLogger.asyncStructuredErrorLog("BILLING_ACCOUNT_UPDATE_EXCEPTION", e, Map.of(
+                "sagaId", command.sagaId(),
+                "billingAccountId", billingAccount.getId().value(),
+                "exceptionType", e.getClass().getName(),
+                "exceptionMessage", e.getMessage()
+            ));
+            return;
+        }
+        
+        if (saveAccountResult.isFailure()) {
+            String errorMsg = saveAccountResult.getError()
+                .map(err -> err.getMessage())
+                .orElse("Unknown error");
+            asyncLogger.asyncStructuredErrorLog("SAVE_BILLING_ACCOUNT_FAILED", null, Map.of(
+                "sagaId", command.sagaId(),
+                "errorMessage", errorMsg
+            ));
+            return;
+        }
+
+        // Save subscription (use update since it already has an ID)
+        Result<SubscriptionId> saveSubscriptionResult;
+        try {
+            asyncLogger.asyncStructuredLog("UPDATING_SUBSCRIPTION", Map.of(
+                "sagaId", command.sagaId(),
+                "subscriptionId", subscription.getId().value(),
+                "status", subscription.getStatus().name()
+            ));
+            saveSubscriptionResult = subscriptionRepository.update(subscription);
+            asyncLogger.asyncStructuredLog("SUBSCRIPTION_UPDATED", Map.of(
+                "sagaId", command.sagaId(),
+                "subscriptionId", subscription.getId().value()
+            ));
+        } catch (Exception e) {
+            asyncLogger.asyncStructuredErrorLog("SUBSCRIPTION_UPDATE_EXCEPTION", e, Map.of(
+                "sagaId", command.sagaId(),
+                "subscriptionId", subscription.getId().value(),
+                "exceptionType", e.getClass().getName(),
+                "exceptionMessage", e.getMessage()
+            ));
+            return;
+        }
+        
         if (saveSubscriptionResult.isFailure()) {
+            String errorMsg = saveSubscriptionResult.getError()
+                .map(err -> err.getMessage())
+                .orElse("Unknown error");
             asyncLogger.asyncStructuredErrorLog("SAVE_SUBSCRIPTION_FAILED", null, Map.of(
                 "sagaId", command.sagaId(),
-                "error", saveSubscriptionResult.getError()
+                "errorMessage", errorMsg
             ));
             return;
         }

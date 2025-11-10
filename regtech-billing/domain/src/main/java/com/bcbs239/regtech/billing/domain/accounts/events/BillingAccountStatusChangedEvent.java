@@ -35,13 +35,13 @@ public class BillingAccountStatusChangedEvent extends DomainEvent {
 
     @Override
     public String eventType() {
-        return getEventType();
+        return "BillingAccountStatusChangedEvent";
     }
     
     @Override
     public String toString() {
         return String.format("BillingAccountStatusChangedEvent{billingAccountId=%s, userId=%s, previousStatus=%s, newStatus=%s, reason=%s, correlationId=%s}", 
-            billingAccountId, userId, previousStatus, newStatus, reason, getCorrelationId());
+            billingAccountId, userId, previousStatus, newStatus, reason, this.getCorrelationId());
     }
 }
 

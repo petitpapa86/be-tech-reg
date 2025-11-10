@@ -5,6 +5,11 @@ package com.bcbs239.regtech.billing.domain.subscriptions;
  */
 public enum SubscriptionStatus {
     /**
+     * Subscription is pending payment verification
+     */
+    PENDING,
+    
+    /**
      * Subscription is active and billing normally
      */
     ACTIVE,
@@ -32,10 +37,17 @@ public enum SubscriptionStatus {
     }
     
     /**
+     * Check if subscription is pending payment
+     */
+    public boolean isPending() {
+        return this == PENDING;
+    }
+    
+    /**
      * Check if subscription requires payment attention
      */
     public boolean requiresPaymentAttention() {
-        return this == PAST_DUE;
+        return this == PAST_DUE || this == PENDING;
     }
     
     /**

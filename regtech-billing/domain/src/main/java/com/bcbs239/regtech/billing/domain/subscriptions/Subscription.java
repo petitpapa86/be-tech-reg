@@ -45,7 +45,7 @@ public class Subscription {
      * 
      * @param stripeSubscriptionId The Stripe subscription ID for payment processing
      * @param tier The subscription tier with pricing and limits
-     * @return New Subscription with ACTIVE status
+     * @return New Subscription with PENDING status (waiting for payment verification)
      */
     public static Subscription create(
                                     StripeSubscriptionId stripeSubscriptionId,
@@ -57,7 +57,7 @@ public class Subscription {
         subscription.id = null;
         subscription.stripeSubscriptionId = stripeSubscriptionId;
         subscription.tier = tier;
-        subscription.status = SubscriptionStatus.ACTIVE;
+        subscription.status = SubscriptionStatus.PENDING;
         subscription.startDate = LocalDate.now();
         subscription.createdAt = Instant.now();
         subscription.updatedAt = Instant.now();
@@ -177,6 +177,26 @@ public class Subscription {
         if (!this.status.canBeReactivated()) {
             return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Cannot reactivate subscription from status: %s", this.status), "subscription.invalid.status.transition"));
+        }
+        
+        this.status = SubscriptionStatus.ACTIVE;
+        this.updatedAt = Instant.now();
+        this.version++;
+        
+        return Result.success(null);
+    }
+    
+    /**
+     * Activate subscription from PENDING status after successful payment.
+     * Can only transition from PENDING to ACTIVE.
+     * 
+     * @return Result indicating success or failure with error details
+     */
+    public Result<Void> activate() {
+        if (this.status != SubscriptionStatus.PENDING) {
+            return Result.failure(ErrorDetail.of("INVALID_STATUS_TRANSITION", ErrorType.BUSINESS_RULE_ERROR,
+                String.format("Cannot activate subscription from status: %s. Expected: %s", 
+                    this.status, SubscriptionStatus.PENDING), "subscription.invalid.status.transition"));
         }
         
         this.status = SubscriptionStatus.ACTIVE;
