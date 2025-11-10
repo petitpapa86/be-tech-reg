@@ -83,11 +83,13 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         if (event.getSubscriptionId().isPresent()) {
             // Subscription already exists (from command handler)
             data.setSubscriptionId(event.getSubscriptionId().get().value());
+            // Create invoice with subscription amount (50000 cents = €500.00)
             dispatchCommand(new CreateStripeInvoiceCommand(
                 getId(), 
-                data.getStripeInvoiceId(),
-                data.getBillingAccountId(),
-                data.getSubscriptionId()
+                data.getStripeCustomerId(),
+                data.getSubscriptionId(),
+                "50000", // STARTER tier amount in cents
+                "Subscription payment for STARTER tier"
             ));
         } else {
             // Subscription doesn't exist yet (from webhook) - create it first
@@ -119,9 +121,10 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             // We already have a subscription, create invoice
             dispatchCommand(new CreateStripeInvoiceCommand(
                 getId(), 
-                data.getStripeInvoiceId(),
-                data.getBillingAccountId(),
-                data.getSubscriptionId()
+                data.getStripeCustomerId(),
+                data.getSubscriptionId(),
+                "50000", // STARTER tier amount in cents
+                "Subscription payment for STARTER tier"
             ));
         }
         updateStatus();
@@ -129,6 +132,17 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     private void handleStripeInvoiceCreated(StripeInvoiceCreatedEvent event) {
         data.setStripeInvoiceId(event.getStripeInvoiceId());
+        
+        // Finalize billing account now that all setup is complete
+        dispatchCommand(new FinalizeBillingAccountCommand(
+            getId(),
+            data.getStripeCustomerId(),
+            data.getStripeSubscriptionId(),
+            data.getStripeInvoiceId(),
+            data.getBillingAccountId(),
+            data.getCorrelationId()
+        ));
+        
         updateStatus();
     }
 
@@ -167,8 +181,10 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         } else if (data.getUserId() != null &&
                    data.getStripeCustomerId() != null &&
                    data.getStripeSubscriptionId() != null &&
-                   data.getStripeInvoiceId() != null &&
-                   data.getStripePaymentIntentId() != null) {
+                   data.getStripeInvoiceId() != null) {
+            // Complete saga when invoice is created
+            // Note: Actual payment happens via Stripe webhooks and is handled separately
+            // The saga's responsibility is to ensure customer, subscription, and invoice are created
             setStatus(SagaStatus.COMPLETED);
             setCompletedAt(Instant.now());
         }
@@ -176,20 +192,44 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     @Override
     protected void compensate() {
-        // Compensation: Reverse successful operations
+        // COMPENSATION STRATEGY:
+        // This saga follows an "orchestration" pattern where each step is designed to be idempotent.
+        // 
+        // IMPORTANT: Stripe charges happen immediately when invoice is created/finalized.
+        // If any step fails AFTER payment, we need to handle it properly:
+        //
+        // 1. Customer Creation - Safe to rollback (delete customer)
+        // 2. Subscription Creation - Safe to rollback (cancel subscription)
+        // 3. Invoice Creation - CRITICAL: Invoice may already be paid!
+        //    - If invoice is unpaid: Void the invoice
+        //    - If invoice is paid: Issue a refund via Stripe API
+        // 4. Local DB operations - Use database transactions (REQUIRES_NEW propagation)
+        //
+        // Current implementation uses compensation commands (commented out):
+        // - These would be implemented in production to handle rollback
+        // - Payment refunds should be handled via RefundPaymentCommand
+        // - Customer notifications via NotifyCustomerCommand
+        
         if (data.getStripeCustomerId() != null) {
-            // Log compensation intent for customer deletion
-
+            // TODO: Implement customer deletion or marking as inactive
             // dispatchCommand(new DeleteStripeCustomerCommand(getId(), data.getStripeCustomerId()));
         }
+        
         if (data.getStripeInvoiceId() != null) {
-            // Log compensation intent for invoice void
-
-            // dispatchCommand(new VoidStripeInvoiceCommand(getId(), data.getStripeInvoiceId()));
+            // TODO: Implement invoice voiding or refund based on payment status
+            // Check invoice payment status first:
+            // - If unpaid: dispatchCommand(new VoidStripeInvoiceCommand(getId(), data.getStripeInvoiceId()));
+            // - If paid: dispatchCommand(new RefundStripePaymentCommand(getId(), data.getStripePaymentIntentId()));
         }
-        // Dispatch notification to customer
-
-        // dispatchCommand(new NotifyCustomerCommand(getId(), data.getUserId(), "Order cancelled due to payment timeout"));
+        
+        if (data.getStripeSubscriptionId() != null) {
+            // TODO: Implement subscription cancellation
+            // dispatchCommand(new CancelStripeSubscriptionCommand(getId(), data.getStripeSubscriptionId()));
+        }
+        
+        // TODO: Notify customer about failed transaction
+        // dispatchCommand(new NotifyCustomerCommand(getId(), data.getUserId(), 
+        //     "Your subscription setup encountered an error. Any charges will be refunded."));
     }
 
     private void handlePaymentTimeout() {

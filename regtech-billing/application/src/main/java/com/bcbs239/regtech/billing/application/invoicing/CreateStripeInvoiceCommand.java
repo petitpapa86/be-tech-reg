@@ -10,28 +10,26 @@ import java.util.Map;
 
 public class CreateStripeInvoiceCommand extends SagaCommand {
 
-    public CreateStripeInvoiceCommand(SagaId sagaId, String stripeInvoiceId, String billingAccountId, String subscriptionId) {
+    public CreateStripeInvoiceCommand(
+            SagaId sagaId, 
+            String customerId,
+            String subscriptionId,
+            String amount,
+            String description) {
         super(sagaId, "CreateStripeInvoiceCommand", Map.of(
-            "stripeInvoiceId", stripeInvoiceId,
-            "billingAccountId", billingAccountId,
-            "subscriptionId", subscriptionId
+            "customerId", customerId,
+            "subscriptionId", subscriptionId,
+            "amount", amount,
+            "description", description
         ), Instant.now());
     }
 
-    public String getStripeInvoiceId() {
-        return (String) payload().get("stripeInvoiceId");
-    }
-
-    public String getBillingAccountId() {
-        return (String) payload().get("billingAccountId");
+    public String getCustomerId() {
+        return (String) payload().get("customerId");
     }
 
     public String getSubscriptionId() {
         return (String) payload().get("subscriptionId");
-    }
-    
-    public String getCustomerId() {
-        return (String) payload().get("customerId");
     }
     
     public String getAmount() {

@@ -13,7 +13,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.Currency;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * JPA Entity for Invoice aggregate persistence.
@@ -98,6 +101,10 @@ public class InvoiceEntity {
     @Column(name = "version")
     private Long version;
 
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "invoice_id", referencedColumnName = "id")
+    private List<InvoiceLineItemEntity> lineItems = new ArrayList<>();
+
     // Default constructor for JPA
     public InvoiceEntity() {}
 
@@ -147,6 +154,13 @@ public class InvoiceEntity {
         entity.updatedAt = invoice.getUpdatedAt();
         entity.version = invoice.getVersion();
         
+        // Convert line items from domain to entity
+        if (invoice.getLineItems() != null && !invoice.getLineItems().isEmpty()) {
+            entity.lineItems = invoice.getLineItems().stream()
+                .map(lineItem -> InvoiceLineItemEntity.fromDomain(lineItem, entity.id))
+                .collect(Collectors.toList());
+        }
+        
         return entity;
     }
 
@@ -195,6 +209,14 @@ public class InvoiceEntity {
         invoice.setCreatedAt(this.createdAt);
         invoice.setUpdatedAt(this.updatedAt);
         invoice.setVersion(this.version != null ? this.version : 0L);
+        
+        // Convert line items from entity to domain
+        if (this.lineItems != null && !this.lineItems.isEmpty()) {
+            List<InvoiceLineItem> domainLineItems = this.lineItems.stream()
+                .map(InvoiceLineItemEntity::toDomain)
+                .collect(Collectors.toList());
+            invoice.setLineItems(domainLineItems);
+        }
         
         return invoice;
     }
