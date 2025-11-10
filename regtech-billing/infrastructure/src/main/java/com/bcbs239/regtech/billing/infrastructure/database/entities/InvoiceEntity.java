@@ -155,9 +155,10 @@ public class InvoiceEntity {
         entity.version = invoice.getVersion();
         
         // Convert line items from domain to entity
+        // Don't pass invoiceId - JPA will set it via the @JoinColumn relationship
         if (invoice.getLineItems() != null && !invoice.getLineItems().isEmpty()) {
             entity.lineItems = invoice.getLineItems().stream()
-                .map(lineItem -> InvoiceLineItemEntity.fromDomain(lineItem, entity.id))
+                .map(lineItem -> InvoiceLineItemEntity.fromDomain(lineItem))
                 .collect(Collectors.toList());
         }
         

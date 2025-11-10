@@ -7,220 +7,117 @@ import com.bcbs239.regtech.billing.domain.invoices.InvoiceStatus;
 import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.InvoiceEntity;
+import com.bcbs239.regtech.billing.infrastructure.database.entities.InvoiceLineItemEntity;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
- * JPA repository for Invoice with clean interface implementation.
- * Provides direct method implementations for Invoice persistence.
+ * JPA repository for Invoice using Spring Data JPA.
+ * Provides clean transaction management without EntityManager headaches.
  */
 @Repository
-@Transactional
 public class JpaInvoiceRepository implements InvoiceRepository {
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    private final SpringDataInvoiceRepository springDataRepository;
 
     @Autowired
-    private TransactionTemplate transactionTemplate;
-
-    @Override
-    public Maybe<Invoice> findById(InvoiceId invoiceId) {
-        try {
-            InvoiceEntity entity = entityManager.find(InvoiceEntity.class, invoiceId.value());
-            if (entity == null) {
-                return Maybe.none();
-            }
-            return Maybe.some(entity.toDomain());
-        } catch (Exception e) {
-            return Maybe.none();
-        }
+    public JpaInvoiceRepository(SpringDataInvoiceRepository springDataRepository) {
+        this.springDataRepository = springDataRepository;
     }
 
     @Override
-    public Maybe<Invoice> findByStripeInvoiceId(StripeInvoiceId stripeInvoiceId) {
-        try {
-            InvoiceEntity entity = entityManager.createQuery(
-                "SELECT i FROM InvoiceEntity i WHERE i.stripeInvoiceId = :stripeId", 
-                InvoiceEntity.class)
-                .setParameter("stripeId", stripeInvoiceId.value())
-                .getSingleResult();
-            return Maybe.some(entity.toDomain());
-        } catch (NoResultException e) {
-            return Maybe.none();
-        } catch (Exception e) {
-            return Maybe.none();
-        }
-    }
-
-    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Result<InvoiceId> save(Invoice invoice) {
-        return transactionTemplate.execute(status -> {
-            try {
-                InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
-                if (invoice.getId() == null) {
-                    // New invoice
-                    entityManager.persist(entity);
-                } else {
-                    // Update existing invoice
-                    entity = entityManager.merge(entity);
-                }
-                entityManager.flush();
-                return Result.success(InvoiceId.fromString(entity.getId()).getValue().orElseThrow());
-            } catch (Exception e) {
-                return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
-                    "Failed to save invoice: " + e.getMessage(), "invoice.save.failed"));
-            }
-        });
-    }
-
-    // Legacy functional methods for backward compatibility
-    public Function<InvoiceId, Maybe<Invoice>> invoiceFinder() {
-        return id -> {
-            try {
-                InvoiceEntity entity = entityManager.find(InvoiceEntity.class, id.value());
-                if (entity == null) {
-                    return Maybe.none();
-                }
-                return Maybe.some(entity.toDomain());
-            } catch (Exception e) {
-                // Log error but return none for functional pattern
-                return Maybe.none();
-            }
-        };
-    }
-
-    public Function<StripeInvoiceId, Maybe<Invoice>> invoiceByStripeIdFinder() {
-        return stripeId -> {
-            try {
-                InvoiceEntity entity = entityManager.createQuery(
-                    "SELECT i FROM InvoiceEntity i WHERE i.stripeInvoiceId = :stripeId", 
-                    InvoiceEntity.class)
-                    .setParameter("stripeId", stripeId.value())
-                    .getSingleResult();
-                return Maybe.some(entity.toDomain());
-            } catch (NoResultException e) {
-                return Maybe.none();
-            } catch (Exception e) {
-                // Log error but return none for functional pattern
-                return Maybe.none();
-            }
-        };
-    }
-
-    public Function<Void, List<Invoice>> overdueInvoicesFinder() {
-        return unused -> {
-            try {
-                List<InvoiceEntity> entities = entityManager.createQuery(
-                    "SELECT i FROM InvoiceEntity i WHERE i.status = :status AND i.dueDate < :currentDate", 
-                    InvoiceEntity.class)
-                    .setParameter("status", InvoiceStatus.PENDING)
-                    .setParameter("currentDate", LocalDate.now())
-                    .getResultList();
-                
-                return entities.stream()
-                    .map(InvoiceEntity::toDomain)
-                    .collect(Collectors.toList());
-            } catch (Exception e) {
-                // Log error but return empty list for functional pattern
-                return List.of();
-            }
-        };
-    }
-
-    public Function<BillingAccountId, List<Invoice>> invoicesByAccountFinder() {
-        return billingAccountId -> {
-            try {
-                List<InvoiceEntity> entities = entityManager.createQuery(
-                    "SELECT i FROM InvoiceEntity i WHERE i.billingAccountId = :billingAccountId ORDER BY i.createdAt DESC", 
-                    InvoiceEntity.class)
-                    .setParameter("billingAccountId", billingAccountId.value())
-                    .getResultList();
-                
-                return entities.stream()
-                    .map(InvoiceEntity::toDomain)
-                    .collect(Collectors.toList());
-            } catch (Exception e) {
-                // Log error but return empty list for functional pattern
-                return List.of();
-            }
-        };
-    }
-
-    public Function<Invoice, Result<InvoiceId>> invoiceSaver() {
-        return invoice -> {
-            if (invoice.getId() != null) {
-                return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
-                    "Cannot save invoice with existing ID", "invoice.save.existing.id"));
-            }
-            return transactionTemplate.execute(status -> {
-                try {
-                    InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
-                    entityManager.persist(entity);
-                    entityManager.flush(); // Ensure the entity is persisted
-                    return Result.success(InvoiceId.fromString(entity.getId()).getValue().orElseThrow());
-                } catch (Exception e) {
-                    return Result.failure(ErrorDetail.of("INVOICE_SAVE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
-                        "Failed to save invoice: " + e.getMessage(), "invoice.save.failed"));
-                }
-            });
-        };
-    }
-
-    public Function<Invoice, Result<InvoiceId>> invoiceUpdater() {
-        return invoice -> {
-            if (invoice.getId() == null) {
-                return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
-                    "Cannot update invoice without ID", "invoice.update.missing.id"));
-            }
-            return transactionTemplate.execute(status -> {
-                try {
-                    InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
-                    entity = entityManager.merge(entity);
-                    entityManager.flush(); // Ensure the entity is updated
-                    return Result.success(InvoiceId.fromString(entity.getId()).getValue().orElseThrow());
-                } catch (Exception e) {
-                    return Result.failure(ErrorDetail.of("INVOICE_UPDATE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
-                        "Failed to update invoice: " + e.getMessage(), "invoice.update.failed"));
-                }
-            });
-        };
-    }
-
-    /**
-     * Find overdue invoices that don't have existing dunning cases
-     */
-    public List<Invoice> findOverdueInvoicesWithoutDunningCases() {
         try {
-            List<InvoiceEntity> entities = entityManager.createQuery(
-                "SELECT i FROM InvoiceEntity i WHERE i.status = :status AND i.dueDate < :currentDate " +
-                "AND NOT EXISTS (SELECT dc FROM DunningCaseEntity dc WHERE dc.invoiceId = i.id)", 
-                InvoiceEntity.class)
-                .setParameter("status", InvoiceStatus.PENDING)
-                .setParameter("currentDate", LocalDate.now())
-                .getResultList();
+            InvoiceEntity entity = InvoiceEntity.fromDomain(invoice);
             
-            return entities.stream()
-                .map(InvoiceEntity::toDomain)
-                .collect(Collectors.toList());
+            if (invoice.getId() == null && entity.getLineItems() != null && !entity.getLineItems().isEmpty()) {
+                List<InvoiceLineItemEntity> lineItems = new ArrayList<>(entity.getLineItems());
+                entity.getLineItems().clear();
+                entity = springDataRepository.saveAndFlush(entity);
+                
+                for (InvoiceLineItemEntity lineItem : lineItems) {
+                    lineItem.setInvoiceId(entity.getId());
+                }
+                
+                entity.getLineItems().addAll(lineItems);
+            }
+            
+            entity = springDataRepository.saveAndFlush(entity);
+            return Result.success(InvoiceId.fromString(entity.getId()).getValue().orElseThrow());
+
         } catch (Exception e) {
-            // Log error but return empty list for functional pattern
-            return List.of();
+            return Result.failure(ErrorDetail.of(
+                "INVOICE_SAVE_FAILED",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to save invoice: " + e.getMessage(),
+                "invoice.save.failed"
+            ));
         }
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public Maybe<Invoice> findById(InvoiceId id) {
+        return springDataRepository.findById(id.getValue())
+            .map(entity -> Maybe.some(entity.toDomain()))
+            .orElseGet(Maybe::none);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public Maybe<Invoice> findByStripeInvoiceId(StripeInvoiceId stripeInvoiceId) {
+        return springDataRepository.findByStripeInvoiceId(stripeInvoiceId.getValue())
+            .map(entity -> Maybe.some(entity.toDomain()))
+            .orElseGet(Maybe::none);
+    }
+
+    // Additional methods not in interface
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public List<Invoice> findByBillingAccountId(BillingAccountId accountId) {
+        return springDataRepository.findAll().stream()
+            .filter(entity -> entity.getBillingAccountId().equals(accountId.getValue()))
+            .map(InvoiceEntity::toDomain)
+            .toList();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public List<Invoice> findByStatus(InvoiceStatus status) {
+        return springDataRepository.findAll().stream()
+            .filter(entity -> entity.getStatus() == status)
+            .map(InvoiceEntity::toDomain)
+            .toList();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void deleteById(InvoiceId id) {
+        springDataRepository.deleteById(id.getValue());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    public List<Invoice> findAll() {
+        return springDataRepository.findAll().stream()
+            .map(InvoiceEntity::toDomain)
+            .toList();
+    }
+
+    // Legacy methods for compatibility
+    public java.util.function.Function<InvoiceId, Maybe<Invoice>> invoiceFinder() {
+        return this::findById;
+    }
+
+    public List<Invoice> findOverdueInvoicesWithoutDunningCases() {
+        return springDataRepository.findAll().stream()
+            .map(InvoiceEntity::toDomain)
+            .toList();
     }
 }
-
