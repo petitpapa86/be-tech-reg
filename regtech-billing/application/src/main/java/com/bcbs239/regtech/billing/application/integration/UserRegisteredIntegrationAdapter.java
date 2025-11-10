@@ -26,14 +26,11 @@ public class UserRegisteredIntegrationAdapter {
     public UserRegisteredIntegrationAdapter(DomainEventBus domainEventBus, ILogger asyncLogger) {
         this.domainEventBus = domainEventBus;
         this.asyncLogger = asyncLogger;
-        System.out.println("🏗️🏗️🏗️ UserRegisteredIntegrationAdapter CONSTRUCTOR CALLED - Bean is being created!");
     }
 
     @EventListener
     public void onIntegrationEvent(UserRegisteredIntegrationEvent integrationEvent) {
-        System.out.println("🎯🎯🎯 ADAPTER CALLED! Event: " + integrationEvent.getClass().getSimpleName() + ", userId=" + integrationEvent.getUserId());
-        
-        asyncLogger.asyncStructuredLog("🎯 ADAPTER RECEIVED: UserRegisteredIntegrationEvent", Map.of(
+        asyncLogger.asyncStructuredLog("Adapting UserRegisteredIntegrationEvent to BillingUserRegisteredEvent", Map.of(
             "eventType", "INTEGRATION_EVENT_ADAPTER",
             "integrationEventId", integrationEvent.getEventId(),
             "userId", integrationEvent.getUserId(),
@@ -53,7 +50,7 @@ public class UserRegisteredIntegrationAdapter {
         // Publish as replay so existing billing handlers receive it
         domainEventBus.publishAsReplay(billingEvent);
 
-        asyncLogger.asyncStructuredLog("✅ ADAPTER PUBLISHED: BillingUserRegisteredEvent", Map.of(
+        asyncLogger.asyncStructuredLog("Published BillingUserRegisteredEvent to domain event bus", Map.of(
             "eventType", "BILLING_EVENT_PUBLISHED",
             "eventId", billingEvent.getEventId(),
             "userId", billingEvent.getUserId()

@@ -32,15 +32,9 @@ public class DomainEventBus implements com.bcbs239.regtech.core.domain.events.Do
 
     @Override
     public void publishFromInbox(DomainEvent event) {
-        System.out.println("🚀🚀🚀 DomainEventBus.publishFromInbox called for: " + event.getClass().getName());
     java.lang.ScopedValue.where(CorrelationContext.INBOX_REPLAY, Boolean.TRUE)
            .where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
            .where(CorrelationContext.CAUSATION_ID, event.getEventId())
-           .run(() -> {
-               System.out.println("🔥🔥🔥 About to call delegate.publishEvent");
-               delegate.publishEvent(event);
-               System.out.println("✨✨✨ delegate.publishEvent completed");
-           });
-        System.out.println("🎉🎉🎉 DomainEventBus.publishFromInbox completed");
+           .run(() -> delegate.publishEvent(event));
     }
 }

@@ -51,13 +51,12 @@ public class UserRegisteredEventHandler  {
         this.subscriptionRepository = subscriptionRepository;
         this.invoiceRepository = invoiceRepository;
         this.asyncLogger = asyncLogger;
-        System.out.println("🏗️🏗️🏗️ UserRegisteredEventHandler CONSTRUCTOR CALLED - Bean is being created!");
     }
 
     @EventListener
     public void handle(BillingUserRegisteredEvent event) {
         try {
-            asyncLogger.asyncStructuredLog("🎯 HANDLER RECEIVED: BillingUserRegisteredEvent", Map.of(
+            asyncLogger.asyncStructuredLog("Received BillingUserRegisteredEvent", Map.of(
                 "eventType", "BILLING_USER_REGISTERED_EVENT_RECEIVED",
                 "userId", event.getUserId(),
                 "email", event.getEmail()

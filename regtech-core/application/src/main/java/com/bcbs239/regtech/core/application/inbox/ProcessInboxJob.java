@@ -77,9 +77,7 @@ public class ProcessInboxJob {
             DomainEvent event = deserializeResult.getValue().orElseThrow();
             try{
                 logger.info("Publishing replayed integration event: {} (eventId={})", event.getClass().getSimpleName(), event.getEventId());
-                System.out.println("📤📤📤 INBOX PUBLISHING: " + event.getClass().getName() + ", eventId=" + event.getEventId());
                 dispatcher.publishFromInbox(event);
-                System.out.println("✅✅✅ INBOX PUBLISHED SUCCESSFULLY");
                 inboxMessageRepository.markAsProcessed(message.getId(), Instant.now());
                 logger.info("Successfully processed inbox message {} and published event {}", message.getId(), event.getClass().getSimpleName());
             } catch (Exception e){
