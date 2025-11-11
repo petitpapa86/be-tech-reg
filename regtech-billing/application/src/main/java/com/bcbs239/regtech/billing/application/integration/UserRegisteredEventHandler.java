@@ -4,10 +4,7 @@ import com.bcbs239.regtech.billing.application.payments.PaymentVerificationSaga;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
-import com.bcbs239.regtech.billing.domain.invoices.Invoice;
-import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.payments.PaymentVerificationSagaData;
-import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 
@@ -36,7 +33,6 @@ public class UserRegisteredEventHandler  {
     private final ApplicationContext applicationContext;
     private final BillingAccountRepository billingAccountRepository;
     private final SubscriptionRepository subscriptionRepository;
-    private final InvoiceRepository invoiceRepository;
     private final ILogger asyncLogger;
 
 
@@ -44,12 +40,11 @@ public class UserRegisteredEventHandler  {
     public UserRegisteredEventHandler(ApplicationContext applicationContext,
                                       BillingAccountRepository billingAccountRepository,
                                       SubscriptionRepository subscriptionRepository,
-                                      InvoiceRepository invoiceRepository, ILogger asyncLogger
+                                      ILogger asyncLogger
     ) {
         this.applicationContext = applicationContext;
         this.billingAccountRepository = billingAccountRepository;
         this.subscriptionRepository = subscriptionRepository;
-        this.invoiceRepository = invoiceRepository;
         this.asyncLogger = asyncLogger;
     }
 
@@ -116,23 +111,8 @@ public class UserRegisteredEventHandler  {
                 ));
             }
 
-            // Save the default invoice
-            for (Invoice invoice : billingAccount.getInvoices()) {
-                Result<InvoiceId> invoiceSaveResult = invoiceRepository.save(invoice);
-                if (invoiceSaveResult.isFailure()) {
-                    asyncLogger.asyncStructuredLog("Invoice creation failed", Map.of(
-                        "eventType", "INVOICE_CREATION_FAILED",
-                        "billingAccountId", billingAccountId.getValue(),
-                        "error", invoiceSaveResult.getError().get().getMessage()
-                    ));
-                    return;
-                }
-                asyncLogger.asyncStructuredLog("Invoice created", Map.of(
-                    "eventType", "INVOICE_CREATED",
-                    "invoiceId", invoiceSaveResult.getValue().get().value(),
-                    "billingAccountId", billingAccountId.getValue()
-                ));
-            }
+            // NOTE: Invoices will be created via Stripe integration (PaymentVerificationSaga)
+            // No need to save default invoices here
 
             PaymentVerificationSagaData sagaData = PaymentVerificationSagaData.builder()
                  .correlationId(event.getEventId().toString()) // Convert UUID to String

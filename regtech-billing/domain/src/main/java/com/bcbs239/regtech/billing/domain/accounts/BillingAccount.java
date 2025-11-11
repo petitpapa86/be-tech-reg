@@ -117,33 +117,8 @@ public class BillingAccount {
                 Subscription defaultSubscription = Subscription.create( defaultStripeId, SubscriptionTier.STARTER);
                 account.subscriptions.add(defaultSubscription);
 
-                // Create default invoice
-                Result<StripeInvoiceId> defaultInvoiceIdResult = StripeInvoiceId.fromString("default");
-                if (!defaultInvoiceIdResult.isSuccess()) {
-                    throw new IllegalStateException("Failed to create default StripeInvoiceId: " + defaultInvoiceIdResult.getError());
-                }
-                StripeInvoiceId defaultInvoiceId = defaultInvoiceIdResult.getValue().orElseThrow(
-                    () -> new IllegalStateException("Failed to obtain StripeInvoiceId value despite success: " + defaultInvoiceIdResult.getError())
-                );
-                Money subscriptionAmount = defaultSubscription.getMonthlyAmount();
-                Money overageAmount = Money.zero(Currency.getInstance("EUR"));
-                BillingPeriod currentPeriod = BillingPeriod.current();
-
-                Result<Invoice> invoiceResult = Invoice.create(
-                    Maybe.some(account.id),
-                    defaultInvoiceId,
-                    subscriptionAmount,
-                    overageAmount,
-                    currentPeriod,
-                    () -> createdAt,
-                    LocalDate::now
-                );
-
-                if (invoiceResult.isSuccess()) {
-                    account.invoices.add(invoiceResult.getValue().orElseThrow(
-                        () -> new IllegalStateException("Invoice creation reported success but value missing: " + invoiceResult.getError())
-                    ));
-                }
+                // NOTE: Invoice will be created via Stripe integration (CreateStripeInvoiceCommand)
+                // No need to create default invoice here
             }
 
             return account;
