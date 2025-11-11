@@ -90,13 +90,12 @@ public class CreateStripeSubscriptionCommandHandler {
 
         BillingAccount billingAccount = billingAccountMaybe.getValue();
 
-        // Update billing account with Stripe customer ID
+        // Verify billing account has Stripe customer ID (should have been set by CreateStripeCustomerCommandHandler)
         StripeCustomerId customerId = new StripeCustomerId(command.getStripeCustomerId());
-        Result<Void> updateResult = billingAccount.updateStripeCustomerId(customerId);
-        if (updateResult.isFailure()) {
-            asyncLogger.asyncStructuredErrorLog("UPDATE_STRIPE_CUSTOMER_ID_FAILED", null, Map.of(
+        if (billingAccount.getStripeCustomerId().isEmpty()) {
+            asyncLogger.asyncStructuredErrorLog("BILLING_ACCOUNT_MISSING_CUSTOMER_ID", null, Map.of(
                 "sagaId", command.sagaId(),
-                "error", updateResult.getError()
+                "billingAccountId", billingAccount.getId().value()
             ));
             return;
         }

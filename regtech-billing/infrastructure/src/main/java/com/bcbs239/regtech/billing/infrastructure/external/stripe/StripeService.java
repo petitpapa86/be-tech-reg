@@ -19,8 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Currency;
 import java.util.HashMap;
 import java.util.Map;
@@ -186,14 +184,10 @@ public class StripeService {
     }
 
     /**
-     * Create a subscription with billing anchor to next month start
+     * Create a subscription with immediate billing
      */
     public Result<StripeSubscription> createSubscription(StripeCustomerId customerId, SubscriptionTier tier) {
         try {
-            // Calculate billing anchor to first day of next month
-            LocalDate nextMonth = LocalDate.now().plusMonths(1);
-            long billingCycleAnchor = nextMonth.atStartOfDay().toEpochSecond(ZoneOffset.UTC);
-            
             // Create price for the subscription tier
             String priceId = createOrGetPriceId(tier);
             
@@ -204,7 +198,6 @@ public class StripeService {
                         .setPrice(priceId)
                         .build()
                 )
-                .setBillingCycleAnchor(billingCycleAnchor)
                 .setProrationBehavior(SubscriptionCreateParams.ProrationBehavior.CREATE_PRORATIONS)
                 .setCollectionMethod(SubscriptionCreateParams.CollectionMethod.CHARGE_AUTOMATICALLY)
                 .build();

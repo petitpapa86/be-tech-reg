@@ -62,7 +62,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
 
     private void handleStripeCustomerCreated(StripeCustomerCreatedEvent event) {
         data.setStripeCustomerId(event.getStripeCustomerId());
-        data.setBillingAccountId(data.getUserId());
+        data.setBillingAccountId(event.getBillingAccountId());
         dispatchCommand(new CreateStripeSubscriptionCommand(
             getId(),
             data.getStripeCustomerId(),
