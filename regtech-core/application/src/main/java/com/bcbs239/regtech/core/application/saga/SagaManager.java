@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.saga.*;
 import com.bcbs239.regtech.core.infrastructure.commandprocessing.CommandDispatcher;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaCompletedEvent;
@@ -31,6 +32,7 @@ public class SagaManager {
     private final ISagaRepository sagaRepository;
     private final CommandDispatcher commandDispatcher;
     private final ApplicationEventPublisher eventPublisher;
+    private final IIntegrationEventBus integrationEventBus;
     private final Supplier<Instant> currentTimeSupplier;
     private final TimeoutScheduler timeoutScheduler;
     private final ILogger logger;
@@ -179,14 +181,28 @@ public class SagaManager {
     @SuppressWarnings("unchecked")
     private <T> AbstractSaga<T> createSagaInstance(Class<? extends AbstractSaga<T>> sagaClass, SagaId sagaId, T data) {
         try {
-            // Try constructor with ApplicationEventPublisher first (for PaymentVerificationSaga)
+            // Try 6-param constructor first (with IIntegrationEventBus)
             try {
-                Constructor<?> constructor = sagaClass.getDeclaredConstructor(SagaId.class, data.getClass(), TimeoutScheduler.class, ILogger.class, ApplicationEventPublisher.class);
-                return (AbstractSaga<T>) constructor.newInstance(sagaId, data, timeoutScheduler, logger, eventPublisher);
+                Constructor<?> constructor = sagaClass.getDeclaredConstructor(
+                    SagaId.class, data.getClass(), TimeoutScheduler.class, ILogger.class, 
+                    ApplicationEventPublisher.class, IIntegrationEventBus.class);
+                return (AbstractSaga<T>) constructor.newInstance(
+                    sagaId, data, timeoutScheduler, logger, eventPublisher, integrationEventBus);
             } catch (NoSuchMethodException e) {
-                // Fall back to old constructor without ApplicationEventPublisher
-                Constructor<?> constructor = sagaClass.getDeclaredConstructor(SagaId.class, data.getClass(), TimeoutScheduler.class, ILogger.class);
-                return (AbstractSaga<T>) constructor.newInstance(sagaId, data, timeoutScheduler, logger);
+                // Try 5-param constructor (with ApplicationEventPublisher)
+                try {
+                    Constructor<?> constructor = sagaClass.getDeclaredConstructor(
+                        SagaId.class, data.getClass(), TimeoutScheduler.class, ILogger.class, 
+                        ApplicationEventPublisher.class);
+                    return (AbstractSaga<T>) constructor.newInstance(
+                        sagaId, data, timeoutScheduler, logger, eventPublisher);
+                } catch (NoSuchMethodException e2) {
+                    // Fall back to 4-param constructor
+                    Constructor<?> constructor = sagaClass.getDeclaredConstructor(
+                        SagaId.class, data.getClass(), TimeoutScheduler.class, ILogger.class);
+                    return (AbstractSaga<T>) constructor.newInstance(
+                        sagaId, data, timeoutScheduler, logger);
+                }
             }
         } catch (Exception e) {
             throw new SagaCreationException("Failed to create saga instance: " + sagaClass.getSimpleName(), e);
@@ -205,15 +221,29 @@ public class SagaManager {
             // Deserialize saga data
             Object data = objectMapper.readValue(snapshot.getSagaData(), dataClass);
 
-            // Create saga instance - try with ApplicationEventPublisher first
+            // Create saga instance - try 6-param, then 5-param, then 4-param
             AbstractSaga<?> saga;
             try {
-                Constructor<?> constructor = sagaClass.getDeclaredConstructor(SagaId.class, dataClass, TimeoutScheduler.class, ILogger.class, ApplicationEventPublisher.class);
-                saga = (AbstractSaga<?>) constructor.newInstance(snapshot.getSagaId(), data, timeoutScheduler, logger, eventPublisher);
+                Constructor<?> constructor = sagaClass.getDeclaredConstructor(
+                    SagaId.class, dataClass, TimeoutScheduler.class, ILogger.class, 
+                    ApplicationEventPublisher.class, IIntegrationEventBus.class);
+                saga = (AbstractSaga<?>) constructor.newInstance(
+                    snapshot.getSagaId(), data, timeoutScheduler, logger, eventPublisher, integrationEventBus);
             } catch (NoSuchMethodException e) {
-                // Fall back to old constructor
-                Constructor<?> constructor = sagaClass.getDeclaredConstructor(SagaId.class, dataClass, TimeoutScheduler.class, ILogger.class);
-                saga = (AbstractSaga<?>) constructor.newInstance(snapshot.getSagaId(), data, timeoutScheduler, logger);
+                // Try 5-param constructor
+                try {
+                    Constructor<?> constructor = sagaClass.getDeclaredConstructor(
+                        SagaId.class, dataClass, TimeoutScheduler.class, ILogger.class, 
+                        ApplicationEventPublisher.class);
+                    saga = (AbstractSaga<?>) constructor.newInstance(
+                        snapshot.getSagaId(), data, timeoutScheduler, logger, eventPublisher);
+                } catch (NoSuchMethodException e2) {
+                    // Fall back to 4-param constructor
+                    Constructor<?> constructor = sagaClass.getDeclaredConstructor(
+                        SagaId.class, dataClass, TimeoutScheduler.class, ILogger.class);
+                    saga = (AbstractSaga<?>) constructor.newInstance(
+                        snapshot.getSagaId(), data, timeoutScheduler, logger);
+                }
             }
 
             // Restore saga state
@@ -251,7 +281,20 @@ public class SagaManager {
     }
 
     private Class<?> discoverSagaDataClass(Class<? extends AbstractSaga<?>> sagaClass) throws NoSuchMethodException {
-        // Find constructor with signature (SagaId, T, TimeoutScheduler, ILogger, ApplicationEventPublisher) first
+        // Try 6-param constructor first (SagaId, T, TimeoutScheduler, ILogger, ApplicationEventPublisher, IIntegrationEventBus)
+        for (Constructor<?> constructor : sagaClass.getDeclaredConstructors()) {
+            Class<?>[] paramTypes = constructor.getParameterTypes();
+            if (paramTypes.length == 6 && 
+                paramTypes[0] == SagaId.class && 
+                paramTypes[2] == TimeoutScheduler.class &&
+                paramTypes[3] == ILogger.class &&
+                paramTypes[4] == ApplicationEventPublisher.class &&
+                paramTypes[5] == IIntegrationEventBus.class) {
+                return paramTypes[1]; // Return the data class type
+            }
+        }
+        
+        // Try 5-param constructor (SagaId, T, TimeoutScheduler, ILogger, ApplicationEventPublisher)
         for (Constructor<?> constructor : sagaClass.getDeclaredConstructors()) {
             Class<?>[] paramTypes = constructor.getParameterTypes();
             if (paramTypes.length == 5 && 
@@ -263,7 +306,7 @@ public class SagaManager {
             }
         }
         
-        // Fall back to old constructor signature (SagaId, T, TimeoutScheduler, ILogger)
+        // Fall back to 4-param constructor (SagaId, T, TimeoutScheduler, ILogger)
         for (Constructor<?> constructor : sagaClass.getDeclaredConstructors()) {
             Class<?>[] paramTypes = constructor.getParameterTypes();
             if (paramTypes.length == 4 && 

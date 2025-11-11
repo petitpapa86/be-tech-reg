@@ -7,30 +7,43 @@ import com.bcbs239.regtech.billing.application.invoicing.CreateStripeInvoiceComm
 import com.bcbs239.regtech.billing.application.policies.createstripecustomer.CreateStripeCustomerCommand;
 import com.bcbs239.regtech.billing.application.subscriptions.CreateStripeSubscriptionCommand;
 import com.bcbs239.regtech.billing.application.payments.compensation.*;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.invoices.events.StripeInvoiceCreatedEvent;
 import com.bcbs239.regtech.billing.domain.payments.PaymentVerificationSagaData;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreatedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreationFailedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripePaymentFailedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripePaymentSucceededEvent;
+import com.bcbs239.regtech.billing.domain.shared.events.BillingAccountActivatedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionWebhookReceivedEvent;
+import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.saga.SagaStatus;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
+import com.bcbs239.regtech.iam.domain.users.UserId;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSagaData> {
     private final ApplicationEventPublisher eventPublisher;
+    private final IIntegrationEventBus integrationEventBus;
     
-    public PaymentVerificationSaga(SagaId id, PaymentVerificationSagaData data, TimeoutScheduler timeoutScheduler, ILogger logger, ApplicationEventPublisher eventPublisher) {
+    public PaymentVerificationSaga(
+            SagaId id, 
+            PaymentVerificationSagaData data, 
+            TimeoutScheduler timeoutScheduler, 
+            ILogger logger, 
+            ApplicationEventPublisher eventPublisher,
+            IIntegrationEventBus integrationEventBus) {
         super(id, "PaymentVerificationSaga", data, timeoutScheduler, logger);
         this.eventPublisher = eventPublisher;
+        this.integrationEventBus = integrationEventBus;
         registerHandlers();
     }
 
@@ -203,6 +216,42 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             // This ensures finalization command has time to execute
             setStatus(SagaStatus.COMPLETED);
             setCompletedAt(Instant.now());
+            
+            // Publish integration event to notify IAM module about billing activation
+            publishBillingActivatedEvent();
+        }
+    }
+    
+    private void publishBillingActivatedEvent() {
+        try {
+            // Reconstruct value objects from string data
+            UserId userId = new UserId(UUID.fromString(data.getUserId()));
+            BillingAccountId billingAccountId = new BillingAccountId(data.getBillingAccountId());
+            SubscriptionTier subscriptionTier = SubscriptionTier.STARTER; // Default to STARTER tier
+            
+            BillingAccountActivatedEvent event = new BillingAccountActivatedEvent(
+                userId,
+                billingAccountId,
+                subscriptionTier,
+                Instant.now(),
+                getId().id() // Use saga ID as correlation ID
+            );
+            
+            integrationEventBus.publish(event);
+            
+            logger.asyncStructuredLog("BILLING_ACTIVATED_EVENT_PUBLISHED", java.util.Map.of(
+                "sagaId", getId().id(),
+                "userId", data.getUserId(),
+                "billingAccountId", data.getBillingAccountId(),
+                "subscriptionTier", subscriptionTier.name(),
+                "eventType", "BillingAccountActivated"
+            ));
+        } catch (Exception e) {
+            logger.asyncStructuredErrorLog("BILLING_ACTIVATED_EVENT_PUBLICATION_FAILED", e, java.util.Map.of(
+                "sagaId", getId().id(),
+                "userId", data.getUserId(),
+                "error", e.getMessage()
+            ));
         }
     }
 
