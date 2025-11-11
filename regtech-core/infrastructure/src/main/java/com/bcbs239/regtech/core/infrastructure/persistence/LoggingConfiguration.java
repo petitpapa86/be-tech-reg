@@ -274,6 +274,15 @@ public class LoggingConfiguration implements WebMvcConfigurer {
     }
 
     /**
+     * Extract simple class name from fully qualified class name
+     */
+    private static String getSimpleClassName(String fullyQualifiedName) {
+        if (fullyQualifiedName == null) return "unknown";
+        int lastDot = fullyQualifiedName.lastIndexOf('.');
+        return lastDot >= 0 ? fullyQualifiedName.substring(lastDot + 1) : fullyQualifiedName;
+    }
+
+    /**
      * Combined structured logging method that integrates SLF4J logging with structured data.
      * Logs the message using SLF4J and includes structured details as JSON.
      * Uses virtual threads for non-blocking async logging with proper error handling.
@@ -300,7 +309,7 @@ public class LoggingConfiguration implements WebMvcConfigurer {
         {
             String tempLoggerName = "com.bcbs239.regtech.structured";
             String tempEventType = details != null && details.containsKey("eventType") 
-                ? String.valueOf(details.get("eventType")) : "LOG";
+                ? String.valueOf(details.get("eventType")) : message;
             Map<String, Object> tempDetails = new HashMap<>();
             if (details != null) {
                 tempDetails.putAll(details);
@@ -309,10 +318,17 @@ public class LoggingConfiguration implements WebMvcConfigurer {
             StackTraceElement[] stack = Thread.currentThread().getStackTrace();
             for (StackTraceElement element : stack) {
                 String className = element.getClassName();
-                if (!className.startsWith("com.bcbs239.regtech.core.config.LoggingConfiguration") &&
+                // Skip LoggingConfiguration, LoggingService, and JDK classes
+                if (!className.startsWith("com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration") &&
+                    !className.startsWith("com.bcbs239.regtech.core.infrastructure.logging.LoggingService") &&
                     !className.startsWith("java.") &&
-                    !className.startsWith("jdk.")) {
+                    !className.startsWith("jdk.") &&
+                    !className.startsWith("sun.")) {
                     tempLoggerName = className;
+                    // Also capture the method name and line number for better traceability
+                    tempDetails.put("sourceClass", className);
+                    tempDetails.put("sourceMethod", element.getMethodName());
+                    tempDetails.put("sourceLineNumber", element.getLineNumber());
                     break;
                 }
             }
@@ -324,14 +340,30 @@ public class LoggingConfiguration implements WebMvcConfigurer {
         // If structured logging is disabled, emit a plain log message with details
         Logger targetLogger = LoggerFactory.getLogger(loggerName);
         if (!STRUCTURED_LOGGING_ENABLED) {
-            if (capturedDetails.isEmpty()) {
-                if (throwable != null) targetLogger.error(message, throwable);
-                else targetLogger.info(message);
-            } else {
-                String detailStr = capturedDetails.toString();
-                if (throwable != null) targetLogger.error(message + " - details=" + detailStr, throwable);
-                else targetLogger.info(message + " - details=" + detailStr);
+            // Format: [EventType] message - source=ClassName.methodName:line - details
+            String sourceInfo = capturedDetails.containsKey("sourceClass") 
+                ? String.format("%s.%s:%s", 
+                    getSimpleClassName((String) capturedDetails.get("sourceClass")),
+                    capturedDetails.get("sourceMethod"),
+                    capturedDetails.get("sourceLineNumber"))
+                : "unknown";
+            
+            String logMessage = String.format("[%s] %s - source=%s", eventType, message, sourceInfo);
+            
+            if (!capturedDetails.isEmpty()) {
+                // Remove source info from details map for cleaner output
+                Map<String, Object> displayDetails = new HashMap<>(capturedDetails);
+                displayDetails.remove("sourceClass");
+                displayDetails.remove("sourceMethod");
+                displayDetails.remove("sourceLineNumber");
+                
+                if (!displayDetails.isEmpty()) {
+                    logMessage += " - details=" + displayDetails.toString();
+                }
             }
+            
+            if (throwable != null) targetLogger.error(logMessage, throwable);
+            else targetLogger.info(logMessage);
             return;
         }
 
