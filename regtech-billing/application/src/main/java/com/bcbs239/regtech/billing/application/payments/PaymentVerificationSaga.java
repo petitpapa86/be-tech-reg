@@ -143,7 +143,8 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             data.getCorrelationId()
         ));
         
-        updateStatus();
+        // Don't call updateStatus() here - let payment webhook complete the saga
+        // This ensures finalization command has time to execute
     }
 
     private void handleStripePaymentSucceeded(StripePaymentSucceededEvent event) {
@@ -181,10 +182,10 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         } else if (data.getUserId() != null &&
                    data.getStripeCustomerId() != null &&
                    data.getStripeSubscriptionId() != null &&
-                   data.getStripeInvoiceId() != null) {
-            // Complete saga when invoice is created
-            // Note: Actual payment happens via Stripe webhooks and is handled separately
-            // The saga's responsibility is to ensure customer, subscription, and invoice are created
+                   data.getStripeInvoiceId() != null &&
+                   data.getStripePaymentIntentId() != null) {
+            // Complete saga only after payment is confirmed via webhook
+            // This ensures finalization command has time to execute
             setStatus(SagaStatus.COMPLETED);
             setCompletedAt(Instant.now());
         }
