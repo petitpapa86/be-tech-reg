@@ -213,6 +213,9 @@ public abstract class AbstractSaga<T> {
             "completedAt", completedAt.toString(),
             "reason", reason
         ));
+        
+        // Trigger compensation when saga fails
+        compensate();
     }
 
     protected boolean hasProcessedEvent(Class<? extends SagaMessage> eventClass) {

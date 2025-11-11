@@ -469,5 +469,79 @@ public class StripeService {
         Boolean paid,
         Money amountPaid
     ) {}
+    
+    /**
+     * Refund a payment via Stripe Payment Intent
+     */
+    public Result<StripeRefund> refundPayment(String paymentIntentId, String reason) {
+        try {
+            RefundCreateParams params = RefundCreateParams.builder()
+                .setPaymentIntent(paymentIntentId)
+                .setReason(RefundCreateParams.Reason.REQUESTED_BY_CUSTOMER)
+                .putMetadata("refund_reason", reason != null ? reason : "Saga compensation")
+                .build();
+            
+            Refund refund = Refund.create(params);
+            
+            // Convert amount from cents to currency format
+            BigDecimal amountDecimal = BigDecimal.valueOf(refund.getAmount())
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            
+            return Result.success(new StripeRefund(
+                refund.getId(),
+                refund.getStatus(),
+                amountDecimal.toString(),
+                refund.getPaymentIntent()
+            ));
+            
+        } catch (StripeException e) {
+            return Result.failure(ErrorDetail.of(
+                "STRIPE_REFUND_FAILED",
+                ErrorType.BUSINESS_RULE_ERROR,
+                "Failed to refund Stripe payment: " + e.getMessage(),
+                "stripe.refund.failed"
+            ));
+        }
+    }
+    
+    /**
+     * Void an unpaid invoice
+     */
+    public Result<Void> voidInvoice(String invoiceId) {
+        try {
+            Invoice invoice = Invoice.retrieve(invoiceId);
+            
+            // Only void invoices that are in draft or open status and not paid
+            if (invoice.getPaid() != null && invoice.getPaid()) {
+                return Result.failure(ErrorDetail.of(
+                    "INVOICE_ALREADY_PAID",
+                    ErrorType.BUSINESS_RULE_ERROR,
+                    "Cannot void a paid invoice",
+                    "stripe.invoice.void.alreadyPaid"
+                ));
+            }
+            
+            invoice.voidInvoice();
+            return Result.success(null);
+            
+        } catch (StripeException e) {
+            return Result.failure(ErrorDetail.of(
+                "STRIPE_VOID_INVOICE_FAILED",
+                ErrorType.BUSINESS_RULE_ERROR,
+                "Failed to void Stripe invoice: " + e.getMessage(),
+                "stripe.invoice.void.failed"
+            ));
+        }
+    }
+    
+    /**
+     * DTO for refund results
+     */
+    public record StripeRefund(
+        String refundId,
+        String status,
+        String amount,
+        String paymentIntentId
+    ) {}
 }
 

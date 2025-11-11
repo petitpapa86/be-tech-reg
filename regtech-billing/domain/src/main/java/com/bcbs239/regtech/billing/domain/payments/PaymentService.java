@@ -35,6 +35,16 @@ public interface PaymentService {
     Result<com.bcbs239.regtech.billing.domain.shared.events.WebhookEvent> verifyAndParseWebhook(String payload, String signatureHeader);
     
     /**
+     * Refunds a payment via Stripe Payment Intent
+     */
+    Result<RefundResult> refundPayment(String paymentIntentId, String reason);
+    
+    /**
+     * Voids an unpaid invoice
+     */
+    Result<Void> voidInvoice(String invoiceId);
+    
+    /**
      * Request for creating a customer
      */
     record CustomerCreationRequest(
@@ -86,6 +96,16 @@ public interface PaymentService {
         String invoiceId,
         String status,
         String amount
+    ) {}
+    
+    /**
+     * Result of refund operation
+     */
+    record RefundResult(
+        String refundId,
+        String status,
+        String amount,
+        String paymentIntentId
     ) {}
 }
 

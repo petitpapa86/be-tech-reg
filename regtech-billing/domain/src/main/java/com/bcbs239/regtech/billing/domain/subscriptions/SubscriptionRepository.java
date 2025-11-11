@@ -23,6 +23,11 @@ public interface SubscriptionRepository {
     Maybe<Subscription> findActiveByBillingAccountId(BillingAccountId billingAccountId);
     
     /**
+     * Find subscription by Stripe subscription ID
+     */
+    Maybe<Subscription> findByStripeSubscriptionId(StripeSubscriptionId stripeSubscriptionId);
+    
+    /**
      * Save a new subscription
      */
     Result<SubscriptionId> save(Subscription subscription);

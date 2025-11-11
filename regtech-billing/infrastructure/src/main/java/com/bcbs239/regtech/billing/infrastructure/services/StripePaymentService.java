@@ -184,5 +184,51 @@ public class StripePaymentService implements PaymentService {
                 "error.payment.webhookVerificationFailed"));
         }
     }
+    
+    @Override
+    public Result<RefundResult> refundPayment(String paymentIntentId, String reason) {
+        try {
+            Result<StripeService.StripeRefund> refundResult = 
+                stripeService.refundPayment(paymentIntentId, reason);
+            
+            if (refundResult.isFailure()) {
+                return Result.failure(refundResult.getError().get());
+            }
+            
+            StripeService.StripeRefund refund = refundResult.getValue().get();
+            
+            RefundResult domainResult = new RefundResult(
+                refund.refundId(),
+                refund.status(),
+                refund.amount(),
+                refund.paymentIntentId()
+            );
+            
+            return Result.success(domainResult);
+            
+        } catch (Exception e) {
+            return Result.failure(ErrorDetail.of("REFUND_FAILED", ErrorType.BUSINESS_RULE_ERROR,
+                "Failed to refund payment: " + e.getMessage(),
+                "error.payment.refundFailed"));
+        }
+    }
+    
+    @Override
+    public Result<Void> voidInvoice(String invoiceId) {
+        try {
+            Result<Void> voidResult = stripeService.voidInvoice(invoiceId);
+            
+            if (voidResult.isFailure()) {
+                return Result.failure(voidResult.getError().get());
+            }
+            
+            return Result.success(null);
+            
+        } catch (Exception e) {
+            return Result.failure(ErrorDetail.of("VOID_INVOICE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
+                "Failed to void invoice: " + e.getMessage(),
+                "error.payment.voidInvoiceFailed"));
+        }
+    }
 }
 

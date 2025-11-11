@@ -69,6 +69,22 @@ public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.do
     }
 
     @Override
+    public Maybe<Subscription> findByStripeSubscriptionId(StripeSubscriptionId stripeSubscriptionId) {
+        try {
+            SubscriptionEntity entity = entityManager.createQuery(
+                "SELECT s FROM SubscriptionEntity s WHERE s.stripeSubscriptionId = :stripeSubscriptionId", 
+                SubscriptionEntity.class)
+                .setParameter("stripeSubscriptionId", stripeSubscriptionId.value())
+                .getSingleResult();
+            return Maybe.some(entity.toDomain());
+        } catch (NoResultException e) {
+            return Maybe.none();
+        } catch (Exception e) {
+            return Maybe.none();
+        }
+    }
+
+    @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public Result<SubscriptionId> save(Subscription subscription) {
         if (subscription.getId() != null) {
