@@ -4,7 +4,7 @@ import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.domain.saga.SagaData;
-import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
 import lombok.Getter;
 
 import java.time.LocalDate;

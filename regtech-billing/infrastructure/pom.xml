@@ -17,28 +17,40 @@
 			<artifactId>regtech-billing-domain</artifactId>
 		</dependency>
 		
+		<!-- ❌ REMOVED: Infrastructure should NOT depend on Application
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-billing-application</artifactId>
 		</dependency>
+		-->
 		
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-core</artifactId>
 		</dependency>
 		
+		<!-- ❌ REMOVED: Use core-infrastructure instead
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-core-application</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		-->
 		
-		<!-- IAM module for user management -->
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-core-infrastructure</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
+		<!-- ❌ REMOVED: Modules should NOT depend on other modules
+		     Use Integration Events for cross-module communication
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-iam</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		-->
 		
 		<!-- Spring Boot Starters -->
 		<dependency>

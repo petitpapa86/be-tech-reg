@@ -1,18 +1,18 @@
-package com.bcbs239.regtech.billing.infrastructure.jobs;
+package com.bcbs239.regtech.billing.application.jobs;
 
 import com.bcbs239.regtech.billing.application.invoicing.MonthlyBillingSaga;
 import com.bcbs239.regtech.billing.application.invoicing.MonthlyBillingSagaData;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.accounts.IBillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
+import com.bcbs239.regtech.billing.domain.subscriptions.ISubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaBillingAccountRepository;
-import com.bcbs239.regtech.billing.infrastructure.database.repositories.JpaSubscriptionRepository;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.application.saga.SagaManager;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,13 +34,13 @@ public class MonthlyBillingScheduler {
     private static final Logger logger = LoggerFactory.getLogger(MonthlyBillingScheduler.class);
 
     private final SagaManager sagaManager;
-    private final JpaSubscriptionRepository subscriptionRepository;
-    private final JpaBillingAccountRepository billingAccountRepository;
+    private final ISubscriptionRepository subscriptionRepository;
+    private final IBillingAccountRepository billingAccountRepository;
 
     public MonthlyBillingScheduler(
             SagaManager sagaManager,
-            JpaSubscriptionRepository subscriptionRepository,
-            JpaBillingAccountRepository billingAccountRepository) {
+            ISubscriptionRepository subscriptionRepository,
+            IBillingAccountRepository billingAccountRepository) {
         this.sagaManager = sagaManager;
         this.subscriptionRepository = subscriptionRepository;
         this.billingAccountRepository = billingAccountRepository;

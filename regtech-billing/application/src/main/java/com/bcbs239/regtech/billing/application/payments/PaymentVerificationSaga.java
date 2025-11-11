@@ -24,7 +24,7 @@ import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
-import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;

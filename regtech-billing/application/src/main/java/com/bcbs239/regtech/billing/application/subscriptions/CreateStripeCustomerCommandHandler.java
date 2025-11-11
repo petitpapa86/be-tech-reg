@@ -18,7 +18,7 @@ import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.SagaSnapshot;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;

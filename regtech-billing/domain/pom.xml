@@ -17,11 +17,15 @@
 			<artifactId>regtech-core</artifactId>
 		</dependency>
 		
+		<!-- ❌ REMOVED: Domain should NOT depend on other module domains
+		     Each module should have its own bounded context
+		     Use Value Objects with IDs for cross-module references
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-iam-domain</artifactId>
 			<version>${project.version}</version>
 		</dependency>
+		-->
 		
 		<!-- Spring Boot Starter for basic annotations -->
 		<dependency>
@@ -42,5 +46,15 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-core-domain</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
 </project>

@@ -4,7 +4,7 @@ import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
 import lombok.Getter;
 
 import java.time.Instant;

@@ -25,7 +25,7 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.infrastructure.eventprocessing.CrossModuleEventBus;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaClosures;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
-import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
 
 import java.math.BigDecimal;
 import java.time.Instant;
