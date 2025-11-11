@@ -2,6 +2,7 @@ package com.bcbs239.regtech.iam.domain.users;
 
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredEvent;
+import lombok.Getter;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -274,6 +275,7 @@ public class User extends Entity {
     /**
      * Bank Assignment embedded entity
      */
+    @Getter
     public static class BankAssignment {
         private String id;
         private final String bankId;
@@ -286,21 +288,6 @@ public class User extends Entity {
             this.assignedAt = assignedAt;
         }
 
-        public String getId() {
-            return id;
-        }
-
-        public String getBankId() {
-            return bankId;
-        }
-
-        public String getRole() {
-            return role;
-        }
-
-        public Instant getAssignedAt() {
-            return assignedAt;
-        }
     }
 }
 

@@ -22,6 +22,12 @@
 			<artifactId>regtech-core</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-core-domain</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
 		<!-- Spring Boot Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -68,6 +74,10 @@
             <artifactId>regtech-core-application</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-iam-domain</artifactId>
         </dependency>
     </dependencies>
 </project>

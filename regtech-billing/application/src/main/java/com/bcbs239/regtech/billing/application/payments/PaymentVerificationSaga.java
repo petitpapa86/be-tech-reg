@@ -14,7 +14,7 @@ import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreatedE
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreationFailedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripePaymentFailedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripePaymentSucceededEvent;
-import com.bcbs239.regtech.billing.domain.shared.events.BillingAccountActivatedEvent;
+import com.bcbs239.regtech.core.domain.events.integration.BillingAccountActivatedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionWebhookReceivedEvent;
@@ -230,9 +230,9 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             SubscriptionTier subscriptionTier = SubscriptionTier.STARTER; // Default to STARTER tier
             
             BillingAccountActivatedEvent event = new BillingAccountActivatedEvent(
-                userId,
-                billingAccountId,
-                subscriptionTier,
+                data.getUserId(),
+                data.getBillingAccountId(),
+                subscriptionTier.name(),
                 Instant.now(),
                 getId().id() // Use saga ID as correlation ID
             );

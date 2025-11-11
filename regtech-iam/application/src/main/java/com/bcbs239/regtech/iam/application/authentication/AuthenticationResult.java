@@ -12,13 +12,13 @@ import java.util.List;
  * JWT token, and bank selection requirements
  */
 public record AuthenticationResult(
-    UserId userId,
-    Email email,
-    JwtToken accessToken,
-    boolean requiresBankSelection,
-    List<BankAssignmentDto> availableBanks,
-    Maybe<TenantContext> tenantContext, // Only if single bank
-    String nextStep
+        UserId userId,
+        Email email,
+        JwtToken accessToken,
+        boolean requiresBankSelection,
+        List<BankAssignmentDto> availableBanks,
+        Maybe<TenantContext> tenantContext, // Only if single bank
+        String nextStep
 ) {
 
     /**

@@ -1,10 +1,7 @@
-package com.bcbs239.regtech.billing.domain.shared.events;
+package com.bcbs239.regtech.core.domain.events.integration;
 
-import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -15,25 +12,25 @@ import java.time.Instant;
  */
 @Getter
 public class BillingAccountActivatedEvent extends IntegrationEvent {
-    
+
     private final String userId;
     private final String billingAccountId;
     private final String subscriptionTier;
     private final Instant activatedAt;
-    
+
     public BillingAccountActivatedEvent(
-            UserId userId,
-            BillingAccountId billingAccountId,
-            SubscriptionTier subscriptionTier,
+            String userId,
+            String billingAccountId,
+            String subscriptionTier,
             Instant activatedAt,
             String correlationId) {
         super(correlationId, Maybe.none(), "BillingAccountActivated");
-        this.userId = userId.value().toString();
-        this.billingAccountId = billingAccountId.value();
-        this.subscriptionTier = subscriptionTier.name();
+        this.userId = userId;
+        this.billingAccountId = billingAccountId;
+        this.subscriptionTier = subscriptionTier;
         this.activatedAt = activatedAt;
     }
-    
+
     @Override
     public String eventType() {
         return "BillingAccountActivated";

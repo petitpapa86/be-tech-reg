@@ -1,10 +1,14 @@
 package com.bcbs239.regtech.iam.domain.users;
 
+import lombok.Getter;
+
 /**
  * User role entity that links users to their roles and permissions.
  */
+@Getter
 public class UserRole {
-    
+
+    // Getters
     private String id;
     private String userId;
     private Bcbs239Role role;
@@ -51,13 +55,7 @@ public class UserRole {
     public boolean isBcbs239Role() {
         return true;
     }
-    
-    // Getters
-    public String getId() { return id; }
-    public String getUserId() { return userId; }
-    public Bcbs239Role getRole() { return role; }
-    public String getOrganizationId() { return organizationId; }
-    public boolean isActive() { return active; }
+
 }
 
 
