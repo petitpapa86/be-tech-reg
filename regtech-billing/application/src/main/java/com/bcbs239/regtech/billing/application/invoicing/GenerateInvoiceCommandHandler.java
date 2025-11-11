@@ -13,6 +13,7 @@ import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
+import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
@@ -188,7 +189,7 @@ public class GenerateInvoiceCommandHandler {
     }
 
     // Helper records for function parameters
-    public record UsageQuery(com.bcbs239.regtech.iam.domain.users.UserId userId, BillingPeriod billingPeriod) {}
+    public record UsageQuery(UserId userId, BillingPeriod billingPeriod) {}
     public record InvoiceCreationData(StripeCustomerId customerId, Money amount, String description) {}
 }
 

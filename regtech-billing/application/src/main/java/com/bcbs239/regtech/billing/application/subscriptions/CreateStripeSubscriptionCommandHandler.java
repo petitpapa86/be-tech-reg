@@ -78,8 +78,8 @@ public class CreateStripeSubscriptionCommandHandler {
         }
 
         // Get existing billing account
-        com.bcbs239.regtech.iam.domain.users.UserId iamUserId = com.bcbs239.regtech.iam.domain.users.UserId.fromString(command.getUserId());
-        Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository.findByUserId(iamUserId);
+        UserId userId = UserId.fromString(command.getUserId());
+        Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository.findByUserId(userId);
         if (billingAccountMaybe.isEmpty()) {
             asyncLogger.asyncStructuredErrorLog("BILLING_ACCOUNT_NOT_FOUND", null, Map.of(
                 "sagaId", command.sagaId(),

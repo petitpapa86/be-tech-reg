@@ -4,9 +4,9 @@ import com.bcbs239.regtech.billing.application.invoicing.MonthlyBillingSaga;
 import com.bcbs239.regtech.billing.application.invoicing.MonthlyBillingSagaData;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.accounts.IBillingAccountRepository;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
-import com.bcbs239.regtech.billing.domain.subscriptions.ISubscriptionRepository;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
@@ -34,13 +34,13 @@ public class MonthlyBillingScheduler {
     private static final Logger logger = LoggerFactory.getLogger(MonthlyBillingScheduler.class);
 
     private final SagaManager sagaManager;
-    private final ISubscriptionRepository subscriptionRepository;
-    private final IBillingAccountRepository billingAccountRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final BillingAccountRepository billingAccountRepository;
 
     public MonthlyBillingScheduler(
             SagaManager sagaManager,
-            ISubscriptionRepository subscriptionRepository,
-            IBillingAccountRepository billingAccountRepository) {
+            SubscriptionRepository subscriptionRepository,
+            BillingAccountRepository billingAccountRepository) {
         this.sagaManager = sagaManager;
         this.subscriptionRepository = subscriptionRepository;
         this.billingAccountRepository = billingAccountRepository;
@@ -49,8 +49,11 @@ public class MonthlyBillingScheduler {
     /**
      * Scheduled job that runs on the first day of each month at 00:00:00 UTC.
      * Triggers monthly billing for the previous month's usage.
+     * 
+     * TODO: Phase 3 - Implement batch query methods in SubscriptionRepository
+     * Currently disabled until repository interface is extended with findByStatusIn() method
      */
-    @Scheduled(cron = "0 0 0 1 * ?", zone = "UTC")
+    // @Scheduled(cron = "0 0 0 1 * ?", zone = "UTC")
     public void executeMonthlyBilling() {
         ZonedDateTime now = ZonedDateTime.now(ZoneId.of("UTC"));
         YearMonth previousMonth = YearMonth.from(now.minusMonths(1));
@@ -108,7 +111,19 @@ public class MonthlyBillingScheduler {
 
     /**
      * Start monthly billing sagas for all active subscriptions
+     * 
+     * TODO: Phase 3 - Implement when repository supports batch queries
+     * Requires: SubscriptionRepository.findByStatusIn(List<SubscriptionStatus>)
      */
+    private MonthlyBillingResult startMonthlyBillingSagas(YearMonth billingMonth) {
+        BillingPeriod billingPeriod = BillingPeriod.forMonth(billingMonth);
+        logger.warn("Monthly billing orchestration is currently disabled - awaiting Phase 3 repository enhancements");
+        return new MonthlyBillingResult(billingPeriod, 0, 0, 0);
+    }
+    
+    /*
+     * TODO: Phase 3 - Replace stub implementation above with this full implementation
+     * 
     private MonthlyBillingResult startMonthlyBillingSagas(YearMonth billingMonth) {
         BillingPeriod billingPeriod = BillingPeriod.forMonth(billingMonth);
         
@@ -179,10 +194,31 @@ public class MonthlyBillingScheduler {
             failureCount
         );
     }
+    */
+
+    /**
+     * Generate correlation ID in format: userId-billingPeriod (e.g., "user-123-2024-01")
+     */
+    public String generateCorrelationId(UserId userId, BillingPeriod billingPeriod) {
+        return userId.getValue() + "-" + billingPeriod.getPeriodId();
+    }
+
+    /*
+     * TODO: Phase 3 - Re-enable these methods when batch query methods are available
+     *
+    public MonthlyBillingResult triggerCurrentMonthBilling() {
+        YearMonth currentMonth = YearMonth.now();
+        return triggerMonthlyBilling(currentMonth);
+    }
+
+    public MonthlyBillingResult triggerPreviousMonthBilling() {
+        YearMonth previousMonth = YearMonth.now().minusMonths(1);
+        return triggerMonthlyBilling(previousMonth);
+    }
 
     /**
      * Extract user ID from subscription by looking up the billing account
-     */
+     *
     private Maybe<UserId> extractUserIdFromSubscription(Subscription subscription) {
         try {
             // Look up the billing account to get the user ID
@@ -213,29 +249,7 @@ public class MonthlyBillingScheduler {
             return Maybe.none();
         }
     }
-    
-    /**
-     * Generate correlation ID in format: userId-billingPeriod (e.g., "user-123-2024-01")
-     */
-    public String generateCorrelationId(UserId userId, BillingPeriod billingPeriod) {
-        return userId.getValue() + "-" + billingPeriod.getPeriodId();
-    }
-
-    /**
-     * Trigger billing for current month (useful for testing)
-     */
-    public MonthlyBillingResult triggerCurrentMonthBilling() {
-        YearMonth currentMonth = YearMonth.now();
-        return triggerMonthlyBilling(currentMonth);
-    }
-
-    /**
-     * Trigger billing for previous month (most common manual use case)
-     */
-    public MonthlyBillingResult triggerPreviousMonthBilling() {
-        YearMonth previousMonth = YearMonth.now().minusMonths(1);
-        return triggerMonthlyBilling(previousMonth);
-    }
+    */
 
     /**
      * Result of monthly billing orchestration
