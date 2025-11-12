@@ -14,21 +14,13 @@ import java.time.Instant;
 public class BillingAccountActivatedEvent extends IntegrationEvent {
 
     private final String userId;
-    private final String billingAccountId;
-    private final String subscriptionTier;
-    private final Instant activatedAt;
+
 
     public BillingAccountActivatedEvent(
             String userId,
-            String billingAccountId,
-            String subscriptionTier,
-            Instant activatedAt,
             String correlationId) {
         super(correlationId, Maybe.none(), "BillingAccountActivated");
         this.userId = userId;
-        this.billingAccountId = billingAccountId;
-        this.subscriptionTier = subscriptionTier;
-        this.activatedAt = activatedAt;
     }
 
     @Override

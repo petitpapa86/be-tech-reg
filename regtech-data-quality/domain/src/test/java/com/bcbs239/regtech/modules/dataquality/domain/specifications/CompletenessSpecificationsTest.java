@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.modules.dataquality.domain.specifications;
 
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.Specification;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.specifications.Specification;
 import com.bcbs239.regtech.dataquality.domain.specifications.CompletenessSpecifications;
 import com.bcbs239.regtech.dataquality.domain.specifications.UniquenessSpecifications;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class CompletenessSpecificationsTest {
 

@@ -100,6 +100,14 @@ regtech:
     parallel-processing-enabled: false
     processing-interval: 10000 # 10 seconds
     batch-size: 20
+
+  event:
+    retry:
+      interval: 60000  # Check every 60 seconds
+      batch-size: 10   # Process 10 events per batch
+      max-retries: 5   # Maximum retry attempts
+      enabled: true    # Enable/disable retry processing
+
 # Billing Module Configuration
 billing:
   stripe:

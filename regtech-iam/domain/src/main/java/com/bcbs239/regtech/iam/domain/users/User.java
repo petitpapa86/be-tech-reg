@@ -3,12 +3,15 @@ package com.bcbs239.regtech.iam.domain.users;
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredEvent;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+@Getter
+@Setter
 public class User extends Entity {
     private String id;
     private Email email;
@@ -189,45 +192,6 @@ public class User extends Entity {
         return UserId.fromString(id);
     }
 
-    public Email getEmail() {
-        return email;
-    }
-
-    public Password getPassword() {
-        return password;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public UserStatus getStatus() {
-        return status;
-    }
-
-    public String getGoogleId() {
-        return googleId;
-    }
-
-    public String getFacebookId() {
-        return facebookId;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public long getVersion() {
-        return version;
-    }
 
     public List<BankAssignment> getBankAssignments() {
         return List.copyOf(bankAssignments);

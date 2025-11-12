@@ -8,12 +8,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.web.servlet.function.RouterFunction;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 import java.util.Arrays;
 
@@ -23,6 +21,7 @@ import java.util.Arrays;
  * and provides centralized configuration and startup.
  */
 @SpringBootApplication
+@EnableAsync
 @ComponentScan(basePackages = {
         "com.bcbs239.regtech.app",
         "com.bcbs239.regtech.core",

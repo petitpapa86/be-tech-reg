@@ -23,10 +23,6 @@ public record BankId(String value) {
     public static BankId of(String value) {
         return new BankId(value);
     }
-    
-    @Override
-    public String toString() {
-        return value;
-    }
+
 }
 

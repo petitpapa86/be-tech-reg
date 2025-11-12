@@ -12,24 +12,55 @@ import java.time.Instant;
 /**
  * Domain event raised when quality validation completes successfully for a batch.
  */
-public record QualityValidationCompletedEvent(
-    QualityReportId reportId,
-    BatchId batchId,
-    BankId bankId,
-    QualityScores qualityScores,
-    S3Reference detailsReference,
-    Instant occurredAt
-) implements DomainEvent {
-    
-    public QualityValidationCompletedEvent {
+public class QualityValidationCompletedEvent extends DomainEvent {
+
+    private final QualityReportId reportId;
+    private final BatchId batchId;
+    private final BankId bankId;
+    private final QualityScores qualityScores;
+    private final S3Reference detailsReference;
+    private final Instant occurredAt;
+
+    public QualityValidationCompletedEvent(QualityReportId reportId, BatchId batchId, BankId bankId, QualityScores qualityScores, S3Reference detailsReference, Instant occurredAt) {
+        super("QualityValidationCompletedEvent", null, "QualityValidationCompleted");
         if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
         if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
         if (bankId == null) throw new IllegalArgumentException("Bank ID cannot be null");
         if (qualityScores == null) throw new IllegalArgumentException("Quality scores cannot be null");
         if (detailsReference == null) throw new IllegalArgumentException("Details reference cannot be null");
         if (occurredAt == null) throw new IllegalArgumentException("Occurred at cannot be null");
+        this.reportId = reportId;
+        this.batchId = batchId;
+        this.bankId = bankId;
+        this.qualityScores = qualityScores;
+        this.detailsReference = detailsReference;
+        this.occurredAt = occurredAt;
     }
-    
+
+    public QualityReportId getReportId() {
+        return reportId;
+    }
+
+    public BatchId getBatchId() {
+        return batchId;
+    }
+
+    public BankId getBankId() {
+        return bankId;
+    }
+
+    public QualityScores getQualityScores() {
+        return qualityScores;
+    }
+
+    public S3Reference getDetailsReference() {
+        return detailsReference;
+    }
+
+    public Instant getOccurredAt() {
+        return occurredAt;
+    }
+
     @Override
     public String eventType() {
         return "QualityValidationCompleted";

@@ -52,6 +52,13 @@ public class BaseUnitOfWork {
     }
 
     /**
+     * Register a domain event directly (for cases where no entity is modified).
+     */
+    public void registerEvent(DomainEvent event) {
+        domainEvents.add(event);
+    }
+
+    /**
      * Save changes: persist collected events to outbox and schedule internal dispatch after commit.
      * Events will be dispatched by the OutboxProcessor background job for external systems.
      */
