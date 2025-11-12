@@ -97,6 +97,9 @@ public class EventProcessingFailure extends Entity {
 
         String id = (idCandidate != null && !idCandidate.isBlank()) ? idCandidate : UUID.randomUUID().toString();
 
+        // Default backoff: 10s, 30s, 1min, 5min, 10min
+        long[] defaultBackoff = {10, 30, 60, 300, 600};
+        
         return new EventProcessingFailure(
             id,
             eventType,
@@ -106,7 +109,7 @@ public class EventProcessingFailure extends Entity {
             errorStacktrace,
             0, // retryCount
             maxRetries,
-            calculateNextRetryAt(0, maxRetries), // nextRetryAt
+            calculateNextRetryAt(0, defaultBackoff), // nextRetryAt
             EventProcessingStatus.PENDING,
             now, // createdAt
             now, // updatedAt
@@ -195,7 +198,7 @@ public class EventProcessingFailure extends Entity {
      * Mark as failed and return new instance with updated retry count.
      * Since this is an immutable domain entity, we return a new instance.
      */
-    public EventProcessingFailure markAsFailed(String errorMessage, String errorStacktrace) {
+    public EventProcessingFailure markAsFailed(String errorMessage, String errorStacktrace, long[] backoffIntervalsSeconds) {
         int newRetryCount = this.retryCount + 1;
         Instant now = Instant.now();
 
@@ -207,7 +210,7 @@ public class EventProcessingFailure extends Entity {
             newNextRetryAt = null;
         } else {
             newStatus = EventProcessingStatus.PENDING;
-            newNextRetryAt = calculateNextRetryAt(newRetryCount, this.maxRetries);
+            newNextRetryAt = calculateNextRetryAt(newRetryCount, backoffIntervalsSeconds);
         }
 
         return new EventProcessingFailure(
@@ -228,19 +231,18 @@ public class EventProcessingFailure extends Entity {
     }
 
     /**
-     * Calculate next retry time using exponential backoff
-     * Backoff intervals: 1min, 2min, 5min, 15min, 30min
+     * Calculate next retry time using configurable exponential backoff
      */
-    private static Instant calculateNextRetryAt(int retryCount, int maxRetries) {
-        if (retryCount >= maxRetries) {
-            return null;
+    private static Instant calculateNextRetryAt(int retryCount, long[] backoffIntervalsSeconds) {
+        if (backoffIntervalsSeconds == null || backoffIntervalsSeconds.length == 0) {
+            // Fallback to default: 10s, 30s, 1min, 5min, 10min
+            backoffIntervalsSeconds = new long[]{10, 30, 60, 300, 600};
         }
+        
+        int index = Math.min(retryCount, backoffIntervalsSeconds.length - 1);
+        long delaySeconds = backoffIntervalsSeconds[index];
 
-        long[] backoffIntervalsMinutes = {1, 2, 5, 15, 30};
-        int index = Math.min(retryCount, backoffIntervalsMinutes.length - 1);
-        long delayMinutes = backoffIntervalsMinutes[index];
-
-        return Instant.now().plusSeconds(delayMinutes * 60);
+        return Instant.now().plusSeconds(delaySeconds);
     }
 
     /**

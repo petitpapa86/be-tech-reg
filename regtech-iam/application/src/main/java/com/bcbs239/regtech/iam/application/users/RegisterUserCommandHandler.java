@@ -74,6 +74,7 @@ public class RegisterUserCommandHandler {
         }
 
         UserId userId = saveResult.getValue().get();
+        newUser.setId(userId.getValue());
 
         com.bcbs239.regtech.iam.domain.users.UserRole adminRole = com.bcbs239.regtech.iam.domain.users.UserRole.create(
                 userId, Bcbs239Role.SYSTEM_ADMIN, "default-org"

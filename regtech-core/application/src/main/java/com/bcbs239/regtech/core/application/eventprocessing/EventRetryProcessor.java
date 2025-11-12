@@ -95,7 +95,11 @@ public class EventRetryProcessor {
                 boolean success = reprocessEvent(failure);
 
                 if (!success) {
-                    EventProcessingFailure failedFast = failure.markAsFailed("Handler invocation failed or no handler found", "");
+                    EventProcessingFailure failedFast = failure.markAsFailed(
+                            "Handler invocation failed or no handler found",
+                            "",
+                            retryOptions.getBackoffIntervalsSeconds()
+                    );
                     failureRepository.save(failedFast);
 
                     // Notify team about handler invocation failure
@@ -166,7 +170,8 @@ public class EventRetryProcessor {
             // Deserialization failed - mark as failed and update retry count
             EventProcessingFailure failedFailure = failure.markAsFailed(
                     "Deserialization failed: " + e.getMessage(),
-                    getStackTraceAsString(e)
+                    getStackTraceAsString(e),
+                    retryOptions.getBackoffIntervalsSeconds()
             );
             failureRepository.save(failedFailure);
 
@@ -250,7 +255,8 @@ public class EventRetryProcessor {
                     // Handler execution failed - mark as failed and update retry count
                     EventProcessingFailure failedFailure = failure.markAsFailed(
                             "Handler execution failed: " + cause.getMessage(),
-                            getStackTraceAsString(cause)
+                            getStackTraceAsString(cause),
+                            retryOptions.getBackoffIntervalsSeconds()
                     );
                     failureRepository.save(failedFailure);
 
@@ -280,7 +286,8 @@ public class EventRetryProcessor {
                     // Other reflection errors (shouldn't happen in normal flow)
                     EventProcessingFailure failedFailure = failure.markAsFailed(
                             "Handler invocation error: " + e.getMessage(),
-                            getStackTraceAsString(e)
+                            getStackTraceAsString(e),
+                            retryOptions.getBackoffIntervalsSeconds()
                     );
                     failureRepository.save(failedFailure);
 

@@ -14,7 +14,14 @@ public class EventRetryOptions {
     private int batchSize = 10; // Process 10 events per batch
     private int maxRetries = 5; // Maximum retry attempts
     private boolean enabled = true; // Enable/disable retry processing
+    
+    // Backoff intervals in seconds: [10s, 30s, 1min, 5min, 10min]
+    private long[] backoffIntervalsSeconds = {10, 30, 60, 300, 600};
 
     public EventRetryOptions() {
+    }
+    
+    public long[] getBackoffIntervalsSeconds() {
+        return backoffIntervalsSeconds;
     }
 }
