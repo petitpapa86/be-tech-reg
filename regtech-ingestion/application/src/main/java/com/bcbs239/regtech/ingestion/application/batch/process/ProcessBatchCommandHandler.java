@@ -198,13 +198,11 @@ public class ProcessBatchCommandHandler {
         String fileName = batch.getFileMetadata().fileName();
         String contentType = batch.getFileMetadata().contentType();
         
-        if (contentType.equals("application/json")) {
-            return fileParsingService.parseJsonFile(command.fileStream(), fileName);
-        } else if (contentType.equals("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")) {
-            return fileParsingService.parseExcelFile(command.fileStream(), fileName);
-        } else {
-            return Result.failure(ErrorDetail.of("UNSUPPORTED_CONTENT_TYPE", ErrorType.VALIDATION_ERROR, "Unsupported content type for parsing: " + contentType, "unsupported.content.type"));
-        }
+        return switch (contentType) {
+            case "application/json" -> fileParsingService.parseJsonFile(command.fileStream(), fileName);
+            case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> fileParsingService.parseExcelFile(command.fileStream(), fileName);
+            default -> Result.failure(ErrorDetail.of("UNSUPPORTED_CONTENT_TYPE", ErrorType.VALIDATION_ERROR, "Unsupported content type for parsing: " + contentType, "unsupported.content.type"));
+        };
     }
     
     private Result<ValidationResult> validateFile(ParsedFileData parsedData) {
