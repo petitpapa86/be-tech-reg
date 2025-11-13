@@ -1,19 +1,20 @@
 package com.bcbs239.regtech.ingestion.application.batch.upload;
 
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import java.io.InputStream;
 
 /**
  * Command for uploading a file for ingestion processing.
- * Contains file data and authentication information.
+ * Contains file data and bank identification.
  */
 public record UploadFileCommand(
     InputStream fileStream,
     String fileName,
     String contentType,
     long fileSizeBytes,
-    String authToken
+    BankId bankId
 ) {
-    
+
     public UploadFileCommand {
         if (fileStream == null) {
             throw new IllegalArgumentException("File stream cannot be null");
@@ -27,8 +28,8 @@ public record UploadFileCommand(
         if (fileSizeBytes <= 0) {
             throw new IllegalArgumentException("File size must be positive");
         }
-        if (authToken == null || authToken.trim().isEmpty()) {
-            throw new IllegalArgumentException("Auth token cannot be null or empty");
+        if (bankId == null) {
+            throw new IllegalArgumentException("Bank ID cannot be null");
         }
     }
 }

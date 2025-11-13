@@ -3,11 +3,18 @@ package com.bcbs239.regtech.ingestion.application.batch.upload;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.Bank;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.IBankInfoRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
+import com.bcbs239.regtech.ingestion.domain.file.ContentType;
+import com.bcbs239.regtech.ingestion.domain.file.FileName;
+import com.bcbs239.regtech.ingestion.domain.file.FileSize;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -16,74 +23,91 @@ import java.security.NoSuchAlgorithmException;
 
 /**
  * Command handler for uploading files for ingestion processing.
- * Handles validation, rate limiting, batch creation, and initial storage.
+ * Handles validation, batch creation, and initial storage.
  */
 @Component
 public class UploadFileCommandHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(UploadFileCommandHandler.class);
+
     private final IIngestionBatchRepository ingestionBatchRepository;
-    private final FileUploadValidationService fileUploadValidationService;
-    private final JwtTokenService jwtTokenService;
-    private final RateLimitingService rateLimitingService;
-    private final IngestionLoggingService loggingService;
+    private final IBankInfoRepository bankInfoRepository;
 
     public UploadFileCommandHandler(
             IIngestionBatchRepository ingestionBatchRepository,
-            FileUploadValidationService fileUploadValidationService,
-            JwtTokenService jwtTokenService,
-            RateLimitingService rateLimitingService,
-            IngestionLoggingService loggingService) {
+            IBankInfoRepository bankInfoRepository) {
         this.ingestionBatchRepository = ingestionBatchRepository;
-        this.fileUploadValidationService = fileUploadValidationService;
-        this.jwtTokenService = jwtTokenService;
-        this.rateLimitingService = rateLimitingService;
-        this.loggingService = loggingService;
+        this.bankInfoRepository = bankInfoRepository;
     }
 
     /**
      * Handle the upload file command.
-     * 1. Validate JWT token and extract bank ID
-     * 2. Apply rate limiting per bank
-     * 3. Validate file size and content type
-     * 4. Create IngestionBatch aggregate
-     * 5. Store initial batch record
-     * 6. Return batch ID for status tracking
+     * 1. Load bank information from database
+     * 2. Validate file size and content type
+     * 3. Create IngestionBatch aggregate
+     * 4. Store initial batch record
+     * 5. Return batch ID for status tracking
      */
     public Result<BatchId> handle(UploadFileCommand command) {
         long startTime = System.currentTimeMillis();
 
+        BankId bankId = command.bankId();
 
-        // 1. Validate JWT token and extract bank ID using JWT token service
-        Result<BankId> bankIdResult = jwtTokenService.validateTokenAndExtractBankId(command.authToken());
-        if (bankIdResult.isFailure()) {
-            return Result.failure(bankIdResult.getError().orElseThrow());
+        // 1. Load bank information from database
+        var bankInfo = bankInfoRepository.findByBankId(bankId);
+        if (bankInfo.isEmpty()) {
+            return Result.failure(ErrorDetail.of("BANK_NOT_FOUND", ErrorType.VALIDATION_ERROR,
+                String.format("Bank with ID '%s' not found", bankId.value()), "bank.not_found"));
         }
 
-        BankId bankId = bankIdResult.getValue().orElseThrow();
-
-        // 2. Apply rate limiting per bank
-        Result<Void> rateLimitCheck = rateLimitingService.checkRateLimit(bankId);
-        if (rateLimitCheck.isFailure()) {
-            return Result.failure(rateLimitCheck.getError().orElseThrow());
+        if (!bankInfo.get().isActive()) {
+            return Result.failure(ErrorDetail.of("BANK_INACTIVE", ErrorType.VALIDATION_ERROR,
+                String.format("Bank with ID '%s' is not active", bankId.value()), "bank.inactive"));
         }
 
-        // 3. Validate file size and content type
-        Result<Void> fileValidation = fileUploadValidationService.validateUpload(
-                command.fileName(),
-                command.contentType(),
-                command.fileSizeBytes()
-        );
-        if (fileValidation.isFailure()) {
-            return Result.failure(fileValidation.getError().orElseThrow());
+        // 2. Validate file size and content type
+        // Create value objects
+        Result<FileName> fileNameResult = FileName.create(command.fileName());
+        if (fileNameResult.isFailure()) {
+            return Result.failure(fileNameResult.getError().orElseThrow());
         }
 
-        // 4. Generate unique batch ID
+        Result<ContentType> contentTypeResult = ContentType.create(command.contentType());
+        if (contentTypeResult.isFailure()) {
+            return Result.failure(contentTypeResult.getError().orElseThrow());
+        }
+
+        Result<FileSize> fileSizeResult = FileSize.create(command.fileSizeBytes());
+        if (fileSizeResult.isFailure()) {
+            return Result.failure(fileSizeResult.getError().orElseThrow());
+        }
+
+        // Get the value objects
+        FileName validatedFileName = fileNameResult.getValue().orElseThrow();
+        ContentType validatedContentType = contentTypeResult.getValue().orElseThrow();
+        FileSize validatedFileSize = fileSizeResult.getValue().orElseThrow();
+
+        // Validate file extension based on content type
+        if (validatedContentType.isJson() && !validatedFileName.hasJsonExtension()) {
+            return Result.failure(ErrorDetail.of("INVALID_FILE_EXTENSION", ErrorType.SYSTEM_ERROR, "JSON files must have .json extension", "generic.error"));
+        } else if (validatedContentType.isExcel() && !validatedFileName.hasExcelExtension()) {
+            return Result.failure(ErrorDetail.of("INVALID_FILE_EXTENSION", ErrorType.SYSTEM_ERROR, "Excel files must have .xlsx or .xls extension", "generic.error"));
+        }
+
+        // Log warnings for large files
+        if (validatedContentType.isJson() && validatedFileSize.shouldWarnForJson()) {
+            log.warn("Large JSON file detected: {} ({} bytes)", command.fileName(), command.fileSizeBytes());
+        } else if (validatedContentType.isExcel() && validatedFileSize.shouldWarnForExcel()) {
+            log.warn("Large Excel file detected: {} ({} bytes)", command.fileName(), command.fileSizeBytes());
+        }
+
+        // 3. Generate unique batch ID
         BatchId batchId = BatchId.generate();
 
-        // 5. Calculate file checksum for integrity
+        // 4. Calculate file checksum for integrity
         String md5Checksum = calculateMD5Checksum(command.fileStream());
 
-        // 6. Create file metadata
+        // 5. Create file metadata
         FileMetadata fileMetadata = new FileMetadata(
                 command.fileName(),
                 command.contentType(),
@@ -92,14 +116,14 @@ public class UploadFileCommandHandler {
                 null
         );
 
-        // 7. Create IngestionBatch aggregate
+        // 6. Create IngestionBatch aggregate
         IngestionBatch batch = new IngestionBatch(batchId, bankId, fileMetadata);
 
-        // 8. Log file upload started for audit trail
-        loggingService.logFileUploadStarted(batchId, bankId, command.fileName(),
-                command.fileSizeBytes(), command.contentType());
+        // 7. Log file upload started for audit trail
+        log.info("File upload started - BatchId: {}, BankId: {}, FileName: {}, Size: {} bytes, ContentType: {}",
+                batchId.value(), bankId.value(), command.fileName(), command.fileSizeBytes(), command.contentType());
 
-        // 9. Store initial batch record
+        // 8. Store initial batch record
         Result<IngestionBatch> saveResult = ingestionBatchRepository.save(batch);
         if (saveResult.isFailure()) {
             return Result.failure(saveResult.getError().orElse(
@@ -107,11 +131,11 @@ public class UploadFileCommandHandler {
             ));
         }
 
-        // 10. Log successful upload completion for audit trail
+        // 9. Log successful upload completion for audit trail
         long duration = System.currentTimeMillis() - startTime;
-        loggingService.logFileUploadCompleted(batchId, bankId, duration);
+        log.info("File upload completed - BatchId: {}, BankId: {}, Duration: {}ms", batchId.value(), bankId.value(), duration);
 
-        // 11. Return batch ID for status tracking
+        // 10. Return batch ID for status tracking
         return Result.success(batchId);
     }
 
@@ -149,24 +173,7 @@ public class UploadFileCommandHandler {
         }
     }
 
-    // These services will be migrated to infrastructure layer
-    // For now, creating placeholder interfaces
-    public interface FileUploadValidationService {
-        Result<Void> validateUpload(String fileName, String contentType, long fileSizeBytes);
-    }
-
-    public interface JwtTokenService {
-        Result<BankId> validateTokenAndExtractBankId(String token);
-    }
-
-    public interface RateLimitingService {
-        Result<Void> checkRateLimit(BankId bankId);
-    }
-
-    public interface IngestionLoggingService {
-        void logFileUploadStarted(BatchId batchId, BankId bankId, String fileName, long fileSizeBytes, String contentType);
-
-        void logFileUploadCompleted(BatchId batchId, BankId bankId, long duration);
-    }
+    // Note: JWT token validation and rate limiting are now handled at application level
+    // Logging is done directly using SLF4J logger
 }
 

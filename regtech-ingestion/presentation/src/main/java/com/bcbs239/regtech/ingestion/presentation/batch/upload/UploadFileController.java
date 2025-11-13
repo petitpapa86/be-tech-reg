@@ -7,9 +7,7 @@ import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import com.bcbs239.regtech.core.domain.shared.FieldError;
-import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommand;
-import com.bcbs239.regtech.ingestion.application.batch.upload.UploadFileCommandHandler;
-import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import com.bcbs239.regtech.ingestion.presentation.constants.Permissions;
 import lombok.extern.slf4j.Slf4j;
@@ -51,8 +49,20 @@ public class UploadFileController extends BaseController implements IEndpoint {
     }
     
     private ServerResponse handle(ServerRequest request) {
-        // Extract auth token from header
-        String authToken = request.headers().firstHeader("Authorization");
+        // Extract bank ID from header (assuming it's passed directly now that JWT validation is removed)
+        String bankIdValue = request.headers().firstHeader("X-Bank-Id");
+        if (bankIdValue == null || bankIdValue.trim().isEmpty()) {
+            return ServerResponse.badRequest()
+                .body(ResponseUtils.error("Bank ID is required", "BANK_ID_MISSING"));
+        }
+        
+        BankId bankId;
+        try {
+            bankId = BankId.of(bankIdValue.trim());
+        } catch (Exception e) {
+            return ServerResponse.badRequest()
+                .body(ResponseUtils.error("Invalid bank ID format", "INVALID_BANK_ID"));
+        }
         
         // Extract multipart file
         org.springframework.util.MultiValueMap<String, jakarta.servlet.http.Part> multipartData;
@@ -65,7 +75,7 @@ public class UploadFileController extends BaseController implements IEndpoint {
         }
         
         // Validate request parameters
-        Result<Void> validationResult = validateUploadRequest(filePart, authToken);
+        Result<Void> validationResult = validateUploadRequest(filePart);
         if (validationResult.isFailure()) {
             ErrorDetail error = validationResult.getError().orElseThrow();
             
@@ -92,7 +102,7 @@ public class UploadFileController extends BaseController implements IEndpoint {
                 file.getSubmittedFileName(),
                 file.getContentType(),
                 file.getSize(),
-                authToken
+                bankId
             );
         } catch (IOException e) {
             throw new RuntimeException("Failed to read uploaded file", e);
@@ -120,7 +130,7 @@ public class UploadFileController extends BaseController implements IEndpoint {
     /**
      * Validates upload request parameters.
      */
-    private Result<Void> validateUploadRequest(List<jakarta.servlet.http.Part> filePart, String authToken) {
+    private Result<Void> validateUploadRequest(List<jakarta.servlet.http.Part> filePart) {
         List<FieldError> fieldErrors = new java.util.ArrayList<>();
 
         // Validate file parameter
@@ -152,12 +162,6 @@ public class UploadFileController extends BaseController implements IEndpoint {
                 fieldErrors.add(new FieldError("file", "INVALID_FILENAME", 
                     "File must have a valid name"));
             }
-        }
-
-        // Validate authorization header
-        if (authToken == null || authToken.trim().isEmpty()) {
-            fieldErrors.add(new FieldError("Authorization", "REQUIRED", 
-                "Authorization header is required"));
         }
 
         if (!fieldErrors.isEmpty()) {
