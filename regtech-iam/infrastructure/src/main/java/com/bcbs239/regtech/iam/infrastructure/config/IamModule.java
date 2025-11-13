@@ -21,7 +21,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @Configuration
 @ComponentScan(basePackages = "com.bcbs239.regtech.iam")
 @EntityScan(basePackages = "com.bcbs239.regtech.iam.infrastructure.database.entities")
-@EnableJpaRepositories(basePackages = "com.bcbs239.regtech.iam.infrastructure.database.repositories")
 public class IamModule {
 
     // IAM-specific beans only

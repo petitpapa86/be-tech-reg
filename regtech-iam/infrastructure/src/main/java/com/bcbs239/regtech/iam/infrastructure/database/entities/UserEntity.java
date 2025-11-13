@@ -28,7 +28,6 @@ public class UserEntity {
     // Getters and setters
     @Id
     @Column(name = "id", columnDefinition = "UUID")
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @Column(name = "email", nullable = false, unique = true, length = 255)
@@ -63,33 +62,21 @@ public class UserEntity {
     @Column(name = "version", nullable = false)
     private Long version;
 
-    // Unidirectional OneToMany with explicit join column. The child table has a user_id FK column.
-    @OneToMany(fetch = FetchType.LAZY, orphanRemoval = true)
-    @JoinColumn(name = "user_id", referencedColumnName = "id", updatable = false, insertable = false)
+    // Bidirectional OneToMany with cascade for proper relationship management
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
     private List<UserBankAssignmentEntity> bankAssignments = new ArrayList<>();
 
 
     // Default constructor for JPA
     public UserEntity() {}
 
-    // Constructor for creation
-    public UserEntity(String email, String passwordHash, String firstName,
-                     String lastName, UserStatus status, Instant createdAt, Instant updatedAt) {
-        this.id = id;
-        this.email = email;
-        this.passwordHash = passwordHash;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.status = status;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
-
     /**
      * Factory method to create entity from domain object
      */
     public static UserEntity fromDomain(User user) {
         UserEntity entity = new UserEntity();
+        entity.id = user.getId().getValue();
         entity.email = user.getEmail().getValue();
         entity.passwordHash = user.getPassword().getHashedValue();
         entity.firstName = user.getFirstName();
@@ -99,7 +86,8 @@ public class UserEntity {
         entity.facebookId = user.getFacebookId();
         entity.createdAt = user.getCreatedAt();
         entity.updatedAt = user.getUpdatedAt();
-        entity.version = user.getVersion();
+        // Set version to null for new entities so Hibernate treats them as transient
+        entity.version = null;
         
         // Convert bank assignments
         entity.bankAssignments = user.getBankAssignments().stream()

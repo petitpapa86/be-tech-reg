@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.iam.infrastructure.database.repositories;
 
 import com.bcbs239.regtech.core.domain.logging.ILogger;
-import com.bcbs239.regtech.core.domain.security.authorization.Role;
+import com.bcbs239.regtech.iam.domain.users.Bcbs239Role;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
@@ -11,36 +11,31 @@ import com.bcbs239.regtech.iam.domain.users.UserRepository.UserOrgQuery;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserBankAssignmentEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserRoleEntity;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 /**
- * Consolidated JPA repository for User aggregate operations using EntityManager and closures.
+ * Consolidated JPA repository for User aggregate operations using Spring Data JPA repositories.
  * Follows the established architecture patterns with proper domain/persistence separation.
  */
 @Repository
 public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.UserRepository {
 
     private final ILogger asyncLogger;
-
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    private final TransactionTemplate transactionTemplate;
+    private final SpringDataUserRepository userRepository;
+    private final SpringDataUserRoleRepository userRoleRepository;
+    private final SpringDataUserBankAssignmentRepository userBankAssignmentRepository;
 
     @Autowired
-    public JpaUserRepository(ILogger asyncLogger, EntityManager entityManager, TransactionTemplate transactionTemplate) {
+    public JpaUserRepository(ILogger asyncLogger, SpringDataUserRepository userRepository, SpringDataUserRoleRepository userRoleRepository, SpringDataUserBankAssignmentRepository userBankAssignmentRepository) {
         this.asyncLogger = asyncLogger;
-        this.entityManager = entityManager;
-        this.transactionTemplate = transactionTemplate;
+        this.userRepository = userRepository;
+        this.userRoleRepository = userRoleRepository;
+        this.userBankAssignmentRepository = userBankAssignmentRepository;
     }
 
 
@@ -51,13 +46,10 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     @Override
     public Maybe<User> emailLookup(Email email) {
         try {
-            UserEntity entity = entityManager.createQuery(
-                "SELECT u FROM UserEntity u WHERE u.email = :email", UserEntity.class)
-                .setParameter("email", email.getValue())
-                .getSingleResult();
-            return Maybe.some(entity.toDomain());
-        } catch (NoResultException e) {
-            return Maybe.none();
+            return userRepository.findByEmail(email.getValue())
+                    .map(UserEntity::toDomain)
+                    .map(Maybe::some)
+                    .orElse(Maybe.none());
         } catch (Exception e) {
             asyncLogger.asyncStructuredErrorLog("Failed to lookup user by email", e,
                     Map.of(
@@ -76,11 +68,10 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     @Override
     public Maybe<User> userLoader(UserId userId) {
         try {
-            UserEntity entity = entityManager.find(UserEntity.class, userId.getValue());
-            if (entity == null) {
-                return Maybe.none();
-            }
-            return Maybe.some(entity.toDomain());
+            return userRepository.findById(userId.getValue())
+                    .map(UserEntity::toDomain)
+                    .map(Maybe::some)
+                    .orElse(Maybe.none());
         } catch (Exception e) {
             asyncLogger.asyncStructuredErrorLog("Failed to load user by id", e, Map.of("userId", userId.getValue(), "error", e.getMessage()));
             return Maybe.none();
@@ -93,24 +84,42 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
      */
     @Override
     public Result<UserId> userSaver(User user) {
-        // Ensure persistence happens inside a real transaction
-        return transactionTemplate.execute(status -> {
-            try {
+        try {
+            // Check if user exists in database to determine if this is an update
+            boolean isUpdate = userRepository.existsById(user.getId().getValue());
+            
+            UserEntity savedEntity;
+            if (isUpdate) {
+                // For updates, find existing entity and update its fields
+                UserEntity existingEntity = userRepository.findById(user.getId().getValue())
+                        .orElseThrow(() -> new IllegalStateException("User not found for update: " + user.getId().getValue()));
+                
+                // Update fields from domain
+                existingEntity.setEmail(user.getEmail().getValue());
+                existingEntity.setPasswordHash(user.getPassword().getHashedValue());
+                existingEntity.setFirstName(user.getFirstName());
+                existingEntity.setLastName(user.getLastName());
+                existingEntity.setStatus(user.getStatus());
+                existingEntity.setGoogleId(user.getGoogleId());
+                existingEntity.setFacebookId(user.getFacebookId());
+                existingEntity.setUpdatedAt(user.getUpdatedAt());
+                
+                // For bank assignments, we don't update them in this scenario
+                // They are managed separately through other operations
+                // Clearing the collection causes Hibernate to try setting user_id to null
+                
+                savedEntity = userRepository.save(existingEntity);
+            } else {
+                // For new entities, create fresh entity
                 UserEntity entity = UserEntity.fromDomain(user);
-                entity.setId(null);
-                entityManager.persist(entity);
-                for (UserBankAssignmentEntity assignment : entity.getBankAssignments()) {
-                    assignment.setUserId(entity.getId());
-                    assignment.setVersion(null);
-                    entityManager.persist(assignment);
-                }
-                entityManager.flush();
-                return Result.success(user.getId());
-            } catch (Exception e) {
-                asyncLogger.asyncStructuredErrorLog("Failed to save user", e, Map.of("user", user.getId(), "error", e.getMessage()));
-                return Result.failure(ErrorDetail.of("USER_SAVE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to save user: " + e.getMessage(), "user.save.failed"));
+                savedEntity = userRepository.save(entity);
             }
-        });
+            
+            return Result.success(UserId.fromString(savedEntity.getId()));
+        } catch (Exception e) {
+            asyncLogger.asyncStructuredErrorLog("Failed to save user", e, Map.of("user", user.getId(), "error", e.getMessage()));
+            return Result.failure(ErrorDetail.of("USER_SAVE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to save user: " + e.getMessage(), "user.save.failed"));
+        }
     }
 
     /**
@@ -119,15 +128,10 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     @Override
     public List<UserRole> userRolesFinder(UserId userId) {
         try {
-            List<UserRoleEntity> entities = entityManager.createQuery(
-                "SELECT ur FROM UserRoleEntity ur WHERE ur.userId = :userId AND ur.active = true", 
-                UserRoleEntity.class)
-                .setParameter("userId", userId.getValue())
-                .getResultList();
-            
-            return entities.stream()
-                .map(UserRoleEntity::toDomain)
-                .toList();
+            return userRoleRepository.findByUserIdAndActiveTrue(userId.getValue())
+                    .stream()
+                    .map(UserRoleEntity::toDomain)
+                    .toList();
         } catch (Exception e) {
             asyncLogger.asyncStructuredErrorLog("Failed to find user roles", e, Map.of("userId", userId.getValue(), "error", e.getMessage()));
             return List.of();
@@ -140,16 +144,10 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     @Override
     public List<UserRole> userOrgRolesFinder(UserOrgQuery query) {
         try {
-            List<UserRoleEntity> entities = entityManager.createQuery(
-                "SELECT ur FROM UserRoleEntity ur WHERE ur.userId = :userId AND ur.organizationId = :organizationId AND ur.active = true", 
-                UserRoleEntity.class)
-                .setParameter("userId", query.userId().getValue())
-                .setParameter("organizationId", query.organizationId())
-                .getResultList();
-            
-            return entities.stream()
-                .map(UserRoleEntity::toDomain)
-                .toList();
+            return userRoleRepository.findByUserIdAndOrganizationIdAndActiveTrue(query.userId().getValue(), query.organizationId())
+                    .stream()
+                    .map(UserRoleEntity::toDomain)
+                    .toList();
         } catch (Exception e) {
             asyncLogger.asyncStructuredErrorLog("Failed to find user org roles", e, Map.of("userId", query.userId().getValue(), "organizationId", query.organizationId(), "error", e.getMessage()));
             return List.of();
@@ -161,23 +159,14 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
      */
     @Override
     public Result<String> userRoleSaver(UserRole userRole) {
-        return transactionTemplate.execute(status -> {
-            try {
-                UserRoleEntity entity = UserRoleEntity.fromDomain(userRole);
-
-                if (entity.getId() == null) {
-                    entityManager.persist(entity);
-                } else {
-                    entity = entityManager.merge(entity);
-                }
-
-                entityManager.flush();
-                return Result.success(entity.getId());
-            } catch (Exception e) {
-                asyncLogger.asyncStructuredErrorLog("Failed to save user role", e, Map.of("userRole", userRole, "error", e.getMessage()));
-                return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to save user role: " + e.getMessage(), "user.role.save.failed"));
-            }
-        });
+        try {
+            UserRoleEntity entity = UserRoleEntity.fromDomain(userRole);
+            UserRoleEntity saved = userRoleRepository.save(entity);
+            return Result.success(saved.getId());
+        } catch (Exception e) {
+            asyncLogger.asyncStructuredErrorLog("Failed to save user role", e, Map.of("userRole", userRole, "error", e.getMessage()));
+            return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to save user role: " + e.getMessage(), "user.role.save.failed"));
+        }
     }
 
     /**
@@ -186,14 +175,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     public Function<UserRoleQuery, Boolean> userRoleChecker() {
         return query -> {
             try {
-                Long count = entityManager.createQuery(
-                    "SELECT COUNT(ur) FROM UserRoleEntity ur WHERE ur.userId = :userId AND ur.role = :role AND ur.active = true", 
-                    Long.class)
-                    .setParameter("userId", query.userId().getValue())
-                    .setParameter("role", query.role().name())
-                    .getSingleResult();
-                
-                return count > 0;
+                return userRoleRepository.existsByUserIdAndRoleAndActiveTrue(query.userId().getValue(), query.role());
             } catch (Exception e) {
                 return false;
             }
@@ -204,13 +186,10 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
      * Traditional method for complex queries that don't fit the closure pattern
      */
     public List<User> findByStatus(UserStatus status) {
-        return entityManager.createQuery(
-            "SELECT u FROM UserEntity u WHERE u.status = :status", UserEntity.class)
-            .setParameter("status", status.name())
-            .getResultList()
-            .stream()
-            .map(UserEntity::toDomain)
-            .toList();
+        return userRepository.findByStatus(status)
+                .stream()
+                .map(UserEntity::toDomain)
+                .toList();
     }
 
 
@@ -234,6 +213,6 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     /**
      * Query record for user role checking
      */
-    public record UserRoleQuery(UserId userId, Role role) {}
+    public record UserRoleQuery(UserId userId, Bcbs239Role role) {}
 }
 
