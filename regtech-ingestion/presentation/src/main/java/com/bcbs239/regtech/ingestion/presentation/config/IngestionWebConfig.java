@@ -1,8 +1,7 @@
 package com.bcbs239.regtech.ingestion.presentation.config;
 
-import com.bcbs239.regtech.ingestion.presentation.batch.process.ProcessBatchController;
 import com.bcbs239.regtech.ingestion.presentation.batch.status.BatchStatusController;
-import com.bcbs239.regtech.ingestion.presentation.batch.upload.UploadFileController;
+import com.bcbs239.regtech.ingestion.presentation.batch.upload.UploadAndProcessFileController;
 import com.bcbs239.regtech.ingestion.presentation.compliance.lifecycle.LifecyclePoliciesController;
 import com.bcbs239.regtech.ingestion.presentation.compliance.policies.RetentionPoliciesController;
 import com.bcbs239.regtech.ingestion.presentation.compliance.reports.ComplianceReportsController;
@@ -21,16 +20,14 @@ public class IngestionWebConfig {
     
     @Bean
     public RouterFunction<ServerResponse> ingestionRoutes(
-            UploadFileController uploadFileController,
-            ProcessBatchController processBatchController,
+            UploadAndProcessFileController uploadAndProcessFileController,
             BatchStatusController batchStatusController,
             ComplianceReportsController complianceReportsController,
             RetentionPoliciesController retentionPoliciesController,
             LifecyclePoliciesController lifecyclePoliciesController,
             IngestionHealthController healthController) {
-        
-        return uploadFileController.mapEndpoint()
-            .and(processBatchController.mapEndpoint())
+
+        return uploadAndProcessFileController.mapEndpoint()
             .and(batchStatusController.mapEndpoint())
             .and(complianceReportsController.mapEndpoint())
             .and(retentionPoliciesController.mapEndpoint())

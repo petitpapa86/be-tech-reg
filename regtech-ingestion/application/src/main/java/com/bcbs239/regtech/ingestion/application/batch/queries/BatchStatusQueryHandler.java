@@ -36,7 +36,6 @@ public class BatchStatusQueryHandler {
     
     public BatchStatusQueryHandler(
             IIngestionBatchRepository ingestionBatchRepository,
-            JwtTokenService jwtTokenService,
             IngestionSecurityService securityService,
             IngestionLoggingService loggingService) {
         this.ingestionBatchRepository = ingestionBatchRepository;
@@ -251,10 +250,6 @@ public class BatchStatusQueryHandler {
     
     // These services will be migrated to infrastructure layer
     // For now, creating placeholder interfaces
-    public interface JwtTokenService {
-        Result<BankId> validateTokenAndExtractBankId(String token);
-    }
-    
     public interface IngestionSecurityService {
         Result<BankId> validateTokenAndExtractBankId(String token);
         Result<Void> verifyBatchAccess(BatchId batchId, BankId bankId);

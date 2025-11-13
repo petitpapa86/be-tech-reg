@@ -6,13 +6,12 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 /**
  * Bank entity representing a financial institution.
  */
-public class Bank extends Entity<BankId> {
+public class Bank extends Entity {
 
     private final String name;
     private final String country;
 
     private Bank(BankId id, String name, String country) {
-        super(id);
         this.name = name;
         this.country = country;
     }
