@@ -2,16 +2,11 @@ package com.bcbs239.regtech.iam.application.users;
 
 
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
-import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.shared.ErrorType;
-import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.domain.shared.ValidationUtils;
+import com.bcbs239.regtech.core.domain.shared.*;
+import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
 import com.bcbs239.regtech.iam.domain.users.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
 
 /**
  * Command handler for user registration with transactional outbox pattern for reliable event publishing.

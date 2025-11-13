@@ -1,11 +1,11 @@
 package com.bcbs239.regtech.iam.presentation.users;
 
-import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
-import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityContext;
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
+import com.bcbs239.regtech.core.presentation.controllers.BaseController;
+import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommand;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommandHandler;
 import com.bcbs239.regtech.iam.application.users.RegisterUserResponse;

@@ -1,7 +1,5 @@
 package com.bcbs239.regtech.core.infrastructure.context;
 
-import java.lang.ScopedValue;
-
 public final class CorrelationContext {
 
     public static final ScopedValue<String> CORRELATION_ID = ScopedValue.newInstance();

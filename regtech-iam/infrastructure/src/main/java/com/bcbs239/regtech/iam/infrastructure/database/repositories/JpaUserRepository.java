@@ -1,14 +1,11 @@
 package com.bcbs239.regtech.iam.infrastructure.database.repositories;
 
 import com.bcbs239.regtech.core.domain.logging.ILogger;
-import com.bcbs239.regtech.iam.domain.users.Bcbs239Role;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
-import com.bcbs239.regtech.iam.domain.users.UserRepository.UserOrgQuery;
-import com.bcbs239.regtech.iam.infrastructure.database.entities.UserBankAssignmentEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserRoleEntity;
 import org.springframework.beans.factory.annotation.Autowired;

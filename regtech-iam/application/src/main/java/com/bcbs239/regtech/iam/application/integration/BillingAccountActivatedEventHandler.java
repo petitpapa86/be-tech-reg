@@ -1,15 +1,11 @@
 package com.bcbs239.regtech.iam.application.integration;
 
-import com.bcbs239.regtech.core.domain.events.integration.BillingAccountActivatedEvent;
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
+import com.bcbs239.regtech.core.domain.events.integration.BillingAccountActivatedEvent;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.iam.domain.users.User;
-import com.bcbs239.regtech.iam.domain.users.UserId;
-import com.bcbs239.regtech.iam.domain.users.UserRepository;
-import com.bcbs239.regtech.iam.domain.users.UserRole;
-import com.bcbs239.regtech.iam.domain.users.UserStatus;
+import com.bcbs239.regtech.iam.domain.users.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
