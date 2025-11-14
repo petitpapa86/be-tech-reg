@@ -9,7 +9,12 @@ import java.util.Set;
  * Enhanced BCBS 239 Roles with hierarchical permissions.
  * Each role has a level and specific permissions for RegTech compliance operations.
  * Maps to core Permission constants for cross-module compatibility.
+ *
+ * @deprecated Use database-driven role configuration for flexibility.
+ *             Roles and permissions should be stored in the database and loaded at runtime.
+ *             This enum will be removed in a future version.
  */
+@Deprecated(since = "2025-11-14", forRemoval = true)
 public enum Bcbs239Role {
     
     /**

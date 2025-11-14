@@ -9,14 +9,16 @@ import java.time.Instant;
 
 /**
  * JPA Entity for user_roles table with proper domain conversion.
+ * Updated to use role_id instead of enum for database-driven role management.
  */
 @Entity
 @Table(name = "user_roles", schema = "iam", indexes = {
     @Index(name = "idx_user_roles_user_id", columnList = "user_id"),
     @Index(name = "idx_user_roles_organization_id", columnList = "organization_id"),
-    @Index(name = "idx_user_roles_role", columnList = "role"),
+    @Index(name = "idx_user_roles_role_id", columnList = "role_id"),
     @Index(name = "idx_user_roles_active", columnList = "active")
 })
+@SuppressWarnings("removal") // Suppress deprecation warnings for Bcbs239Role during migration
 public class UserRoleEntity {
 
     @Id
@@ -27,8 +29,13 @@ public class UserRoleEntity {
     @Column(name = "user_id", nullable = false, columnDefinition = "UUID")
     private String userId;
 
+    @Column(name = "role_id", length = 36)
+    private String roleId;
+
+    // Keep enum field for backward compatibility during migration
+    // TODO: Remove this field once migration is complete
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false, length = 50)
+    @Column(name = "role", length = 50)
     private Bcbs239Role role;
 
     @Column(name = "organization_id", nullable = false, length = 255)
@@ -51,10 +58,11 @@ public class UserRoleEntity {
     protected UserRoleEntity() {}
 
     // Constructor for creation
-    public UserRoleEntity(String id, String userId, Bcbs239Role role, String organizationId, 
+    public UserRoleEntity(String id, String userId, String roleId, Bcbs239Role role, String organizationId,
                          Boolean active, Instant createdAt, Instant updatedAt) {
         this.id = id;
         this.userId = userId;
+        this.roleId = roleId;
         this.role = role;
         this.organizationId = organizationId;
         this.active = active;
@@ -73,7 +81,7 @@ public class UserRoleEntity {
         entity.role = userRole.getRole();
         entity.organizationId = userRole.getOrganizationId();
         entity.active = userRole.isActive();
-        entity.createdAt = Instant.now(); // Set from domain if available
+        entity.createdAt = Instant.now();
         entity.updatedAt = Instant.now();
         return entity;
     }
@@ -96,6 +104,9 @@ public class UserRoleEntity {
     public String getUserId() { return userId; }
     public void setUserId(String userId) { this.userId = userId; }
 
+    public String getRoleId() { return roleId; }
+    public void setRoleId(String roleId) { this.roleId = roleId; }
+
     public Bcbs239Role getRole() { return role; }
     public void setRole(Bcbs239Role role) { this.role = role; }
 
@@ -113,5 +124,34 @@ public class UserRoleEntity {
 
     public Long getVersion() { return version; }
     public void setVersion(Long version) { this.version = version; }
-}
 
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = Instant.now();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        UserRoleEntity that = (UserRoleEntity) o;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "UserRoleEntity{" +
+                "id='" + id + '\'' +
+                ", userId='" + userId + '\'' +
+                ", roleId='" + roleId + '\'' +
+                ", role=" + role +
+                ", organizationId='" + organizationId + '\'' +
+                ", active=" + active +
+                '}';
+    }
+}

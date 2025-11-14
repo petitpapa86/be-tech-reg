@@ -5,20 +5,21 @@
  * authorization, and security policy enforcement across the regtech-core module.
  *
  * Key responsibilities:
- * - User authentication and authorization
+ * - Security context management with Java 21 Scoped Values
  * - Permission-based access control
  * - Security policy enforcement
- * - JWT token processing and validation
- * - Security context management
+ * - Authentication result handling
+ * - WebFlux functional routing security
  *
  * Components:
- * - PermissionService, JwtPermissionService: Permission checking services
- * - PermissionAuthorizationFilter: Authorization filter for web requests
- * - RequirePermissions: Permission annotation for method-level security
- * - SecurityConfiguration, ModularSecurityConfiguration, SharedSecurityConfiguration: Security configuration
- * - SecurityConfigurationRegistry, SecurityConfigurationRegistryImpl: Security config management
- * - SecurityContext, SecurityUtils: Security utilities and context
- * - authorization/ directory: Authorization-related utilities and helpers
+ * - SecurityContextHolder: Scoped Values-based security context management
+ * - SecurityContext: Backward-compatible security utility
+ * - DefaultSecurityContext: Security context implementation
+ * - AnonymousAuthentication: Public endpoint authentication
+ * - SimpleAuthentication: Basic authentication implementation
+ * - PermissionCheckFilter: WebFlux authorization filter
+ * - RouterFilterConfig: Route filtering configuration
+ * - SecurityUtils: Security utility functions
  */
 package com.bcbs239.regtech.core.infrastructure.securityauthorization;
 
