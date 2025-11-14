@@ -6,6 +6,7 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
+import com.bcbs239.regtech.iam.infrastructure.database.entities.RoleEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserRoleEntity;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +14,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 /**
  * Consolidated JPA repository for User aggregate operations using Spring Data JPA repositories.
@@ -26,13 +26,15 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     private final SpringDataUserRepository userRepository;
     private final SpringDataUserRoleRepository userRoleRepository;
     private final SpringDataUserBankAssignmentRepository userBankAssignmentRepository;
+    private final SpringDataRoleRepository roleRepository;
 
     @Autowired
-    public JpaUserRepository(ILogger asyncLogger, SpringDataUserRepository userRepository, SpringDataUserRoleRepository userRoleRepository, SpringDataUserBankAssignmentRepository userBankAssignmentRepository) {
+    public JpaUserRepository(ILogger asyncLogger, SpringDataUserRepository userRepository, SpringDataUserRoleRepository userRoleRepository, SpringDataUserBankAssignmentRepository userBankAssignmentRepository, SpringDataRoleRepository roleRepository) {
         this.asyncLogger = asyncLogger;
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.userBankAssignmentRepository = userBankAssignmentRepository;
+        this.roleRepository = roleRepository;
     }
 
 
@@ -127,7 +129,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
         try {
             return userRoleRepository.findByUserIdAndActiveTrue(userId.getValue())
                     .stream()
-                    .map(UserRoleEntity::toDomain)
+                    .map(entity -> convertToDomain(entity))
                     .toList();
         } catch (Exception e) {
             asyncLogger.asyncStructuredErrorLog("Failed to find user roles", e, Map.of("userId", userId.getValue(), "error", e.getMessage()));
@@ -143,7 +145,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
         try {
             return userRoleRepository.findByUserIdAndOrganizationIdAndActiveTrue(query.userId().getValue(), query.organizationId())
                     .stream()
-                    .map(UserRoleEntity::toDomain)
+                    .map(entity -> convertToDomain(entity))
                     .toList();
         } catch (Exception e) {
             asyncLogger.asyncStructuredErrorLog("Failed to find user org roles", e, Map.of("userId", query.userId().getValue(), "organizationId", query.organizationId(), "error", e.getMessage()));
@@ -152,31 +154,55 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     }
 
     /**
-     * Closure to save user role
+     * Convert UserRoleEntity to UserRole domain object by loading role from database
+     */
+    private UserRole convertToDomain(UserRoleEntity entity) {
+        try {
+            if (entity.getRoleId() == null) {
+                throw new IllegalStateException("Role ID is null for UserRoleEntity: " + entity.getId());
+            }
+
+            RoleEntity roleEntity = roleRepository.findById(entity.getRoleId())
+                    .orElseThrow(() -> new IllegalStateException("Role not found for ID: " + entity.getRoleId()));
+
+            String roleName = roleEntity.getName();
+            if (roleName == null) {
+                throw new IllegalStateException("Role name is null for role ID: " + entity.getRoleId());
+            }
+
+            return UserRole.create(
+                UserId.fromString(entity.getUserId()),
+                roleName,
+                entity.getOrganizationId()
+            );
+        } catch (Exception e) {
+            asyncLogger.asyncStructuredErrorLog("Failed to convert UserRoleEntity to domain", e,
+                Map.of("entityId", entity.getId(), "roleId", entity.getRoleId(), "error", e.getMessage()));
+            throw new RuntimeException("Failed to convert UserRoleEntity to domain: " + entity.getId(), e);
+        }
+    }
+
+    /**
+     * Closure to save a user role
      */
     @Override
     public Result<String> userRoleSaver(UserRole userRole) {
         try {
             UserRoleEntity entity = UserRoleEntity.fromDomain(userRole);
+
+            // Set roleId by looking up the role from database using role name
+            String roleId = roleRepository.findByName(userRole.getRoleName())
+                    .map(roleEntity -> roleEntity.getId())
+                    .orElseThrow(() -> new IllegalStateException("Role not found for name: " + userRole.getRoleName()));
+
+            entity.setRoleId(roleId);
+
             UserRoleEntity saved = userRoleRepository.save(entity);
             return Result.success(saved.getId());
         } catch (Exception e) {
             asyncLogger.asyncStructuredErrorLog("Failed to save user role", e, Map.of("userRole", userRole, "error", e.getMessage()));
             return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to save user role: " + e.getMessage(), "user.role.save.failed"));
         }
-    }
-
-    /**
-     * Closure to check if user has a specific role
-     */
-    public Function<UserRoleQuery, Boolean> userRoleChecker() {
-        return query -> {
-            try {
-                return userRoleRepository.existsByUserIdAndRoleAndActiveTrue(query.userId().getValue(), query.role());
-            } catch (Exception e) {
-                return false;
-            }
-        };
     }
 
     /**
@@ -188,10 +214,6 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                 .map(UserEntity::toDomain)
                 .toList();
     }
-
-
-
-    // Note: UserOrgQuery comes from the UserRepository nested record type
 
     @Override
     public Result<JwtToken> tokenGenerator(User user, String jwtSecretKey) {
@@ -206,10 +228,5 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
             return Result.failure(ErrorDetail.of("TOKEN_GENERATION_FAILED", ErrorType.SYSTEM_ERROR, "Failed to generate JWT token: " + e.getMessage(), "token.generation.failed"));
         }
     }
-
-    /**
-     * Query record for user role checking
-     */
-    public record UserRoleQuery(UserId userId, Bcbs239Role role) {}
 }
 

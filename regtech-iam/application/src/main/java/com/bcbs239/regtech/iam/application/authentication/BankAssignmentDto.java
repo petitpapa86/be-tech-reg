@@ -4,7 +4,6 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.BankId;
-import com.bcbs239.regtech.iam.domain.users.Bcbs239Role;
 
 /**
  * Bank Assignment DTO
@@ -14,7 +13,7 @@ import com.bcbs239.regtech.iam.domain.users.Bcbs239Role;
 public record BankAssignmentDto(
     BankId bankId,
     String bankName,
-    Bcbs239Role role
+    String roleName
 ) {
 
     public static Result<BankAssignmentDto> from(String bankId, String bankName, String role) {
@@ -23,16 +22,16 @@ public record BankAssignmentDto(
             return Result.failure(bankIdResult.getError().get());
         }
 
-        try {
-            Bcbs239Role bcbsRole = Bcbs239Role.valueOf(role.toUpperCase());
-            return Result.success(new BankAssignmentDto(
-                bankIdResult.getValue().get(),
-                bankName,
-                bcbsRole
-            ));
-        } catch (IllegalArgumentException e) {
-            return Result.failure(ErrorDetail.of("INVALID_ROLE", ErrorType.VALIDATION_ERROR, "Invalid role: " + role, "authentication.invalid.role"));
+        // Validate role name is not null or empty
+        if (role == null || role.trim().isEmpty()) {
+            return Result.failure(ErrorDetail.of("INVALID_ROLE", ErrorType.VALIDATION_ERROR, "Role cannot be null or empty", "authentication.invalid.role"));
         }
+
+        return Result.success(new BankAssignmentDto(
+            bankIdResult.getValue().get(),
+            bankName,
+            role.trim()
+        ));
     }
 }
 

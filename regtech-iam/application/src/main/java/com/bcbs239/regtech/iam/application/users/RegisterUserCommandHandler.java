@@ -71,7 +71,7 @@ public class RegisterUserCommandHandler {
         UserId userId = saveResult.getValue().get();
 
         com.bcbs239.regtech.iam.domain.users.UserRole adminRole = com.bcbs239.regtech.iam.domain.users.UserRole.create(
-                userId, Bcbs239Role.SYSTEM_ADMIN, "default-org"
+                userId, "SYSTEM_ADMIN", "default-org"
         );
 
         Result<String> roleSaveResult = userRepository.userRoleSaver(adminRole);

@@ -100,7 +100,7 @@ public class AuthenticateUserCommandHandler {
             Result<TenantContext> tenantContextResult = TenantContext.create(
                 bankIdResult.getValue().get(),
                 "Bank Name", // TODO: Get from bank service
-                Bcbs239Role.valueOf(assignment.getRole().toUpperCase())
+                assignment.getRole()
             );
             if (tenantContextResult.isFailure()) {
                 return Result.failure(tenantContextResult.getError().get());
