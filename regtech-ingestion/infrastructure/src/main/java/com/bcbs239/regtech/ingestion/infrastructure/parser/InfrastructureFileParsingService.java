@@ -1,0 +1,136 @@
+package com.bcbs239.regtech.ingestion.infrastructure.parser;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.ingestion.domain.file.FileContent;
+import com.bcbs239.regtech.ingestion.domain.model.CreditRiskMitigation;
+import com.bcbs239.regtech.ingestion.domain.model.LoanExposure;
+import com.bcbs239.regtech.ingestion.domain.model.ParsedFileData;
+import com.bcbs239.regtech.ingestion.domain.parsing.FileParsingService;
+import com.bcbs239.regtech.ingestion.infrastructure.config.IngestionProperties;
+import com.bcbs239.regtech.ingestion.infrastructure.performance.FileProcessingPerformanceOptimizer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+@Service
+public class InfrastructureFileParsingService implements FileParsingService {
+
+    private static final Logger log = LoggerFactory.getLogger(InfrastructureFileParsingService.class);
+
+    private final FileToLoanExposureParser parser;
+    private final FileProcessingPerformanceOptimizer optimizer;
+    private final int defaultMaxRecords;
+
+    public InfrastructureFileParsingService(FileToLoanExposureParser parser,
+                                           FileProcessingPerformanceOptimizer optimizer,
+                                           IngestionProperties ingestionProperties) {
+        this.parser = parser;
+        this.optimizer = optimizer;
+        this.defaultMaxRecords = ingestionProperties.parser().defaultMaxRecords();
+    }
+
+    @Override
+    public Result<ParsedFileData> parseFileContent(FileContent fileContent) {
+        log.info("Parsing file content: {}", fileContent);
+        
+        if (!fileContent.isSupportedFormat()) {
+            return Result.failure(ErrorDetail.of(
+                "UNSUPPORTED_FORMAT", 
+                ErrorType.VALIDATION_ERROR, 
+                "Unsupported file format: " + fileContent.getFormat(), 
+                "file.format.unsupported"
+            ));
+        }
+        
+        return switch (fileContent.getFormat()) {
+            case TRANSACTION_JSON -> parseJsonFile(fileContent.getStream(), fileContent.getFileName().value());
+            case BANK_STATEMENT_EXCEL -> parseExcelFile(fileContent.getStream(), fileContent.getFileName().value());
+            default -> Result.failure(ErrorDetail.of(
+                "UNSUPPORTED_FORMAT", 
+                ErrorType.VALIDATION_ERROR, 
+                "Format not yet implemented: " + fileContent.getFormat(), 
+                "file.format.not.implemented"
+            ));
+        };
+    }
+
+    private Result<ParsedFileData> parseJsonFile(InputStream fileStream, String fileName) {
+        try {
+            int maxRecords = decideMaxRecords();
+            
+            // Create virtual thread executor for concurrent parsing
+            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                // Submit both parsing tasks concurrently
+                Future<List<LoanExposure>> exposuresFuture = executor.submit(() -> 
+                    parser.parseJsonToLoanExposures(fileStream, maxRecords)
+                );
+                
+                Future<List<CreditRiskMitigation>> crmsFuture = executor.submit(() -> 
+                    parser.parseJsonToCreditRiskMitigations(fileStream, maxRecords)
+                );
+                
+                // Wait for both tasks to complete
+                List<LoanExposure> exposures = exposuresFuture.get();
+                List<CreditRiskMitigation> crms = crmsFuture.get();
+
+                Map<String,Object> metadata = new HashMap<>();
+                metadata.put("sourceFileName", fileName);
+                metadata.put("parsedRecordsLimit", maxRecords);
+
+                ParsedFileData data = new ParsedFileData(exposures, crms, metadata);
+                return Result.success(data);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Parsing interrupted for JSON file {}: {}", fileName, e.getMessage(), e);
+            return Result.failure(ErrorDetail.of("PARSING_ERROR", ErrorType.SYSTEM_ERROR, "Parsing interrupted: " + e.getMessage(), "file.parse.json.interrupted"));
+        } catch (ExecutionException e) {
+            log.error("Failed to parse JSON file {}: {}", fileName, e.getMessage(), e);
+            return Result.failure(ErrorDetail.of("PARSING_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse JSON file: " + e.getMessage(), "file.parse.json.failed"));
+        } catch (Exception e) {
+            log.error("Failed to parse JSON file {}: {}", fileName, e.getMessage(), e);
+            return Result.failure(ErrorDetail.of("PARSING_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse JSON file: " + e.getMessage(), "file.parse.json.failed"));
+        }
+    }
+
+    private Result<ParsedFileData> parseExcelFile(InputStream fileStream, String fileName) {
+        try {
+            int maxRecords = decideMaxRecords();
+            List<LoanExposure> exposures = parser.parseExcelToLoanExposures(fileStream, maxRecords);
+
+            Map<String,Object> metadata = new HashMap<>();
+            metadata.put("sourceFileName", fileName);
+            metadata.put("parsedRecordsLimit", maxRecords);
+
+            ParsedFileData data = new ParsedFileData(exposures, List.of(), metadata);
+            return Result.success(data);
+        } catch (Exception e) {
+            log.error("Failed to parse Excel file {}: {}", fileName, e.getMessage(), e);
+            return Result.failure(ErrorDetail.of("PARSING_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse Excel file: " + e.getMessage(), "file.parse.excel.failed"));
+        }
+    }
+
+    private int decideMaxRecords() {
+        // If optimizer indicates we can accept more files, be generous; otherwise use defaultLimit/2
+        if (optimizer.canAcceptMoreFiles()) {
+            return defaultMaxRecords;
+        } else {
+            return Math.max(100, defaultMaxRecords / 10);
+        }
+    }
+}
+
+
+
+
