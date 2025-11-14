@@ -4,12 +4,12 @@ package com.bcbs239.regtech.ingestion.infrastructure.security;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.infrastructure.securityauthorization.PermissionService;
 import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityContext;
 import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityUtils;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.ingestion.infrastructure.monitoring.IngestionLoggingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,12 +31,12 @@ public class IngestionSecurityService {
     private static final Logger logger = LoggerFactory.getLogger(IngestionSecurityService.class);
     
     private final PermissionService permissionService;
-    private final IngestionLoggingService loggingService;
+    private final ILogger domainLogger;
 
     public IngestionSecurityService(PermissionService permissionService, 
-                                  IngestionLoggingService loggingService) {
+                                  ILogger domainLogger) {
         this.permissionService = permissionService;
-        this.loggingService = loggingService;
+        this.domainLogger = domainLogger;
     }
 
     /**
@@ -236,7 +236,7 @@ public class IngestionSecurityService {
             details.put("bankId", maskBankId(bankId.value()));
         }
         
-        loggingService.logRequestFlowStep("SECURITY_ACCESS_ATTEMPT", operation, details);
+        domainLogger.asyncStructuredLog("SECURITY_ACCESS_ATTEMPT: " + operation, details);
     }
 
     private void logAccessAttempt(String operation, String authToken, String clientIp, String status) {
@@ -259,7 +259,7 @@ public class IngestionSecurityService {
             details.put("errorMessage", errorMessage);
         }
         
-        loggingService.logRequestFlowStep("SECURITY_PERMISSION_CHECK", checkType, details);
+        domainLogger.asyncStructuredLog("SECURITY_PERMISSION_CHECK: " + checkType, details);
     }
 
     private void logPermissionCheck(String checkType, String resource, String userContext, String result) {
@@ -287,7 +287,7 @@ public class IngestionSecurityService {
             details.put("errorMessage", errorMessage);
         }
         
-        loggingService.logRequestFlowStep("SECURITY_BATCH_ACCESS", "BATCH_ACCESS_CHECK", details);
+        domainLogger.asyncStructuredLog("SECURITY_BATCH_ACCESS: BATCH_ACCESS_CHECK", details);
     }
 
     private void logBatchAccessAttempt(BatchId batchId, BankId batchBankId, String userContext, String result) {

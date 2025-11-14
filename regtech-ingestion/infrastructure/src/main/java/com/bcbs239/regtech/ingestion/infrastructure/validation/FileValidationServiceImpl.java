@@ -3,10 +3,9 @@ package com.bcbs239.regtech.ingestion.infrastructure.validation;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler.FileValidationService;
-import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler.ValidationResult;
-import com.bcbs239.regtech.ingestion.application.model.ParsedFileData;
 import com.bcbs239.regtech.ingestion.domain.model.LoanExposure;
+import com.bcbs239.regtech.ingestion.domain.model.ParsedFileData;
+import com.bcbs239.regtech.ingestion.domain.validation.FileContentValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,24 +13,28 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * Implementation of file validation service for processed batch data.
+ * Implementation of file content validation service for processed batch data.
  * Validates structure and business rules of parsed file data.
  */
 @Service
-public class FileValidationServiceImpl implements FileValidationService {
+public class FileValidationServiceImpl implements FileContentValidationService {
 
     private static final Logger log = LoggerFactory.getLogger(FileValidationServiceImpl.class);
 
     @Override
-    public Result<ValidationResult> validateStructure(ParsedFileData parsedData) {
+    public <T> Result<ValidationResult> validateStructure(T parsedData) {
         log.debug("Validating structure of parsed file data");
 
-        if (parsedData == null) {
+        if (!(parsedData instanceof ParsedFileData data)) {
+            return Result.failure(ErrorDetail.of("INVALID_TYPE", ErrorType.SYSTEM_ERROR, "Expected ParsedFileData", "generic.error"));
+        }
+
+        if (data == null) {
             return Result.failure(ErrorDetail.of("NULL_DATA", ErrorType.SYSTEM_ERROR, "Parsed data cannot be null", "generic.error"));
         }
 
         // Validate exposures list
-        List<LoanExposure> exposures = parsedData.exposures();
+        List<LoanExposure> exposures = data.exposures();
         if (exposures == null) {
             return Result.failure(ErrorDetail.of("NULL_EXPOSURES", ErrorType.SYSTEM_ERROR, "Exposures list cannot be null", "generic.error"));
         }
@@ -70,14 +73,18 @@ public class FileValidationServiceImpl implements FileValidationService {
     }
 
     @Override
-    public Result<ValidationResult> validateBusinessRules(ParsedFileData parsedData) {
+    public <T> Result<ValidationResult> validateBusinessRules(T parsedData) {
         log.debug("Validating business rules of parsed file data");
 
-        if (parsedData == null || parsedData.exposures() == null) {
+        if (!(parsedData instanceof ParsedFileData data)) {
+            return Result.failure(ErrorDetail.of("INVALID_TYPE", ErrorType.SYSTEM_ERROR, "Expected ParsedFileData", "generic.error"));
+        }
+
+        if (data == null || data.exposures() == null) {
             return Result.failure(ErrorDetail.of("INVALID_DATA", ErrorType.SYSTEM_ERROR, "Parsed data or exposures cannot be null", "generic.error"));
         }
 
-        List<LoanExposure> exposures = parsedData.exposures();
+        List<LoanExposure> exposures = data.exposures();
 
         // Business rule: Loan IDs should be unique within the file
         long uniqueLoanIds = exposures.stream()
@@ -106,6 +113,5 @@ public class FileValidationServiceImpl implements FileValidationService {
         return Result.success(new ValidationResult(exposures.size()));
     }
 }
-
 
 

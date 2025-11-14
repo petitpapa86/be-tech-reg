@@ -3,14 +3,17 @@ package com.bcbs239.regtech.ingestion.application.batch.process;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.ingestion.application.model.ParsedFileData;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
+import com.bcbs239.regtech.ingestion.domain.file.FileContent;
 import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
+import com.bcbs239.regtech.ingestion.domain.model.ParsedFileData;
+import com.bcbs239.regtech.ingestion.domain.parsing.FileParsingService;
+import com.bcbs239.regtech.ingestion.domain.validation.FileContentValidationService;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +29,7 @@ public class ProcessBatchCommandHandler {
     
     private final IIngestionBatchRepository ingestionBatchRepository;
     private final FileParsingService fileParsingService;
-    private final FileValidationService fileValidationService;
+    private final FileContentValidationService fileContentValidationService;
     private final BankInfoEnrichmentService bankInfoEnrichmentService;
     private final S3StorageService s3StorageService;
     private final IngestionOutboxEventPublisher eventPublisher;
@@ -34,13 +37,13 @@ public class ProcessBatchCommandHandler {
     public ProcessBatchCommandHandler(
             IIngestionBatchRepository ingestionBatchRepository,
             FileParsingService fileParsingService,
-            FileValidationService fileValidationService,
+            FileContentValidationService fileContentValidationService,
             BankInfoEnrichmentService bankInfoEnrichmentService,
             S3StorageService s3StorageService,
             IngestionOutboxEventPublisher eventPublisher) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.fileParsingService = fileParsingService;
-        this.fileValidationService = fileValidationService;
+        this.fileContentValidationService = fileContentValidationService;
         this.bankInfoEnrichmentService = bankInfoEnrichmentService;
         this.s3StorageService = s3StorageService;
         this.eventPublisher = eventPublisher;
@@ -71,7 +74,13 @@ public class ProcessBatchCommandHandler {
             }
             
             // 3. Parse file content
-            Result<ParsedFileData> parseResult = parseFile(command, batch);
+            FileContent fileContent = FileContent.of(
+                command.fileStream(),
+                batch.getFileMetadata().fileName(),
+                batch.getFileMetadata().contentType()
+            );
+            
+            Result<ParsedFileData> parseResult = fileParsingService.parseFileContent(fileContent);
             if (parseResult.isFailure()) {
                 batch.markAsFailed(parseResult.getError().orElseThrow().getMessage());
                 ingestionBatchRepository.save(batch);
@@ -81,7 +90,7 @@ public class ProcessBatchCommandHandler {
             ParsedFileData parsedData = parseResult.getValue().orElseThrow();
             
             // 4. Validate structure and business rules
-            Result<ValidationResult> validationResult = validateFile(parsedData);
+            Result<FileContentValidationService.ValidationResult> validationResult = validateFile(parsedData);
             if (validationResult.isFailure()) {
                 batch.markAsFailed(validationResult.getError().orElseThrow().getMessage());
                 ingestionBatchRepository.save(batch);
@@ -89,7 +98,7 @@ public class ProcessBatchCommandHandler {
             }
             
             // 5. Mark as validated and update exposure count
-            ValidationResult validation = validationResult.getValue().orElseThrow();
+            FileContentValidationService.ValidationResult validation = validationResult.getValue().orElseThrow();
             Result<Void> validatedResult = batch.markAsValidated(validation.totalExposures());
             if (validatedResult.isFailure()) {
                 return validatedResult;
@@ -184,40 +193,18 @@ public class ProcessBatchCommandHandler {
         }
     }
     
-    private Result<ParsedFileData> parseFile(ProcessBatchCommand command, IngestionBatch batch) {
-        String fileName = batch.getFileMetadata().fileName();
-        String contentType = batch.getFileMetadata().contentType();
-        
-        return switch (contentType) {
-            case "application/json" -> fileParsingService.parseJsonFile(command.fileStream(), fileName);
-            case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> fileParsingService.parseExcelFile(command.fileStream(), fileName);
-            default -> Result.failure(ErrorDetail.of("UNSUPPORTED_CONTENT_TYPE", ErrorType.VALIDATION_ERROR, "Unsupported content type for parsing: " + contentType, "unsupported.content.type"));
-        };
-    }
-    
-    private Result<ValidationResult> validateFile(ParsedFileData parsedData) {
+    private Result<FileContentValidationService.ValidationResult> validateFile(ParsedFileData parsedData) {
         // First validate structure
-        Result<ValidationResult> structureResult = fileValidationService.validateStructure(parsedData);
+        Result<FileContentValidationService.ValidationResult> structureResult = fileContentValidationService.validateStructure(parsedData);
         if (structureResult.isFailure()) {
             return structureResult;
         }
         
         // Then validate business rules
-        return fileValidationService.validateBusinessRules(parsedData);
+        return fileContentValidationService.validateBusinessRules(parsedData);
     }
     
-    // These services will be migrated to infrastructure layer
-    // For now, creating placeholder interfaces
-    public interface FileParsingService {
-        Result<ParsedFileData> parseJsonFile(InputStream fileStream, String fileName);
-        Result<ParsedFileData> parseExcelFile(InputStream fileStream, String fileName);
-    }
-    
-    public interface FileValidationService {
-        Result<ValidationResult> validateStructure(ParsedFileData parsedData);
-        Result<ValidationResult> validateBusinessRules(ParsedFileData parsedData);
-    }
-    
+    // Application layer interfaces for infrastructure dependencies
     public interface BankInfoEnrichmentService {
         Result<BankInfo> enrichBankInfo(BankId bankId);
         Result<Void> validateBankStatus(BankInfo bankInfo);
@@ -231,9 +218,6 @@ public class ProcessBatchCommandHandler {
     
     public interface IngestionOutboxEventPublisher {
         void publishBatchIngestedEvent(BatchIngestedEvent event);
-    }
-
-    public record ValidationResult(int totalExposures) {
     }
 }
 

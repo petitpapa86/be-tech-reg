@@ -1,0 +1,23 @@
+# Ingestion Module Configuration
+ingestion:
+  # File upload settings
+  file:
+    max-size: 524288000  # 500MB in bytes
+    supported-types:
+      - application/json
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+  
+  # Async processing configuration
+  processing:
+    async-enabled: true
+    thread-pool-size: 10
+    queue-capacity: 100
+  
+  # Performance optimization settings
+  performance:
+    max-concurrent-files: 4      # Maximum number of files to process concurrently
+    chunk-size: 10000           # Default chunk size for processing large files
+  
+  # Parser settings
+  parser:
+    default-max-records: 10000  # Maximum records to parse per file by default

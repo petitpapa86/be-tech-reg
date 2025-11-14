@@ -17,7 +17,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableConfigurationProperties({
     IngestionProperties.class,
     S3Properties.class,
-    BankRegistryProperties.class
 })
 @ComponentScan(basePackages = {
     "com.bcbs239.regtech.modules.ingestion.domain",

@@ -6,9 +6,9 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;
+import com.bcbs239.regtech.ingestion.infrastructure.config.IngestionProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -30,11 +30,9 @@ public class FileProcessingPerformanceOptimizer {
     private final int chunkSize;
     private final AtomicInteger activeProcessingCount = new AtomicInteger(0);
 
-    public FileProcessingPerformanceOptimizer(
-            @Value("${ingestion.performance.max-concurrent-files:4}") int maxConcurrentFiles,
-            @Value("${ingestion.performance.chunk-size:10000}") int chunkSize) {
-        this.maxConcurrentFiles = maxConcurrentFiles;
-        this.chunkSize = chunkSize;
+    public FileProcessingPerformanceOptimizer(IngestionProperties ingestionProperties) {
+        this.maxConcurrentFiles = ingestionProperties.performance().maxConcurrentFiles();
+        this.chunkSize = ingestionProperties.performance().chunkSize();
         this.fileProcessingExecutor = Executors.newFixedThreadPool(
             maxConcurrentFiles,
             r -> {
