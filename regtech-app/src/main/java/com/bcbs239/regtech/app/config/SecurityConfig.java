@@ -24,6 +24,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/auth/register").permitAll()
                 .requestMatchers("/api/auth/forgot-password").permitAll()
+                .requestMatchers("/api/v1/users/register").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/swagger-ui/**").permitAll()
                 .requestMatchers("/v3/api-docs/**").permitAll()
@@ -31,6 +32,7 @@ public class SecurityConfig {
             )
             .csrf(csrf -> csrf
                 .ignoringRequestMatchers("/h2-console/**")
+                .ignoringRequestMatchers("/api/v1/users/register")
             )
             .headers(headers -> headers
                 .frameOptions().sameOrigin()
