@@ -3,16 +3,12 @@ package com.bcbs239.regtech.ingestion.application.batch.queries;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
-import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
-import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
-import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
+import com.bcbs239.regtech.ingestion.domain.batch.*;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,11 +23,11 @@ public class BatchStatusQueryHandler {
     private final IngestionSecurityService securityService;
     private final IngestionLoggingService loggingService;
     
-    // Estimated processing times per stage (in milliseconds)
-    private static final Map<BatchStatus, Long> ESTIMATED_STAGE_DURATIONS = Map.of(
-        BatchStatus.PARSING, 30_000L,      // 30 seconds
-        BatchStatus.VALIDATED, 15_000L,    // 15 seconds  
-        BatchStatus.STORING, 60_000L       // 60 seconds
+    // Estimated processing times per stage
+    private static final Map<BatchStatus, ProcessingDuration> ESTIMATED_STAGE_DURATIONS = Map.of(
+        BatchStatus.PARSING, new ProcessingDuration(30_000L),      // 30 seconds
+        BatchStatus.VALIDATED, new ProcessingDuration(15_000L),    // 15 seconds  
+        BatchStatus.STORING, new ProcessingDuration(60_000L)       // 60 seconds
     );
     
     public BatchStatusQueryHandler(
@@ -107,15 +103,18 @@ public class BatchStatusQueryHandler {
             loggingService.logRequestFlowStep("BATCH_STATUS_QUERY", "STATUS_RETRIEVED", context);
             
             // 8. Build and return status DTO
+            ProcessingStage processingStage = ProcessingStage.fromBatchStatus(batch.getStatus());
+            ProcessingDuration processingDuration = calculateProcessingDuration(batch);
+            
             BatchStatusDto statusDto = BatchStatusDto.builder()
                 .batchId(batch.getBatchId().value())
                 .bankId(batch.getBankId().value())
                 .status(batch.getStatus())
-                .processingStage(getProcessingStage(batch.getStatus()))
-                .progressPercentage(progressInfo.progressPercentage())
+                .processingStage(processingStage.value())
+                .progressPercentage(progressInfo.progressPercentage().value())
                 .uploadedAt(batch.getUploadedAt())
                 .completedAt(batch.getCompletedAt())
-                .processingDurationMs(calculateProcessingDuration(batch))
+                .processingDurationMs(processingDuration != null ? processingDuration.milliseconds() : null)
                 .estimatedCompletionTimeMs(progressInfo.estimatedCompletionTime())
                 .fileName(batch.getFileMetadata().fileName())
                 .contentType(batch.getFileMetadata().contentType())
@@ -137,65 +136,36 @@ public class BatchStatusQueryHandler {
     
     private ProgressInfo calculateProgress(IngestionBatch batch) {
         BatchStatus status = batch.getStatus();
-        Instant now = Instant.now();
         
-        int progressPercentage = switch (status) {
-            case UPLOADED -> 10;
-            case PARSING -> 30;
-            case VALIDATED -> 60;
-            case STORING -> 80;
-            case COMPLETED -> 100;
-            case FAILED -> 0; // Failed batches show 0% progress
-        };
+        // Use domain value object to calculate progress from status
+        ProgressPercentage progressPercentage = ProgressPercentage.fromBatchStatus(status);
         
-        Long estimatedCompletionTime = null;
+        // Use domain value object to calculate estimated completion time
+        FileSizeBytes fileSize = FileSizeBytes.create(batch.getFileMetadata().fileSizeBytes())
+            .getValue().orElseThrow();
+        FileSizeBytes baseSize = FileSizeBytes.fromMB(10); // Base: 10MB for estimation
         
-        // Calculate estimated completion time for in-progress batches
-        if (status != BatchStatus.COMPLETED && status != BatchStatus.FAILED) {
-            long elapsedMs = Duration.between(batch.getUploadedAt(), now).toMillis();
-            long remainingMs = 0;
-            
-            // Add remaining time for current and future stages
-            for (BatchStatus futureStatus : BatchStatus.values()) {
-                if (futureStatus.ordinal() > status.ordinal()) {
-                    remainingMs += ESTIMATED_STAGE_DURATIONS.getOrDefault(futureStatus, 0L);
-                }
-            }
-            
-            // Add partial time for current stage based on file size
-            if (ESTIMATED_STAGE_DURATIONS.containsKey(status)) {
-                long stageEstimate = ESTIMATED_STAGE_DURATIONS.get(status);
-                // Adjust based on file size (larger files take longer)
-                long fileSizeBytes = batch.getFileMetadata().fileSizeBytes();
-                double sizeMultiplier = Math.max(1.0, fileSizeBytes / (10.0 * 1024 * 1024)); // Base: 10MB
-                stageEstimate = (long) (stageEstimate * Math.min(sizeMultiplier, 5.0)); // Cap at 5x
-                
-                // Assume we're halfway through current stage
-                remainingMs += stageEstimate / 2;
-            }
-            
-            estimatedCompletionTime = now.toEpochMilli() + remainingMs;
-        }
+        Maybe<EstimatedCompletionTime> estimatedCompletion = EstimatedCompletionTime.calculate(
+            status,
+            ESTIMATED_STAGE_DURATIONS,
+            fileSize,
+            baseSize
+        );
+        
+        Long estimatedCompletionTime = estimatedCompletion.isPresent() 
+            ? estimatedCompletion.getValue().epochMillis() 
+            : null;
         
         return new ProgressInfo(progressPercentage, estimatedCompletionTime);
     }
     
-    private String getProcessingStage(BatchStatus status) {
-        return switch (status) {
-            case UPLOADED -> "Queued";
-            case PARSING -> "Parsing";
-            case VALIDATED -> "Enriching";
-            case STORING -> "Storing";
-            case COMPLETED -> "Completed";
-            case FAILED -> "Failed";
-        };
-    }
-    
-    private Long calculateProcessingDuration(IngestionBatch batch) {
+    private ProcessingDuration calculateProcessingDuration(IngestionBatch batch) {
         if (batch.getCompletedAt() != null) {
-            return Duration.between(batch.getUploadedAt(), batch.getCompletedAt()).toMillis();
+            return ProcessingDuration.between(batch.getUploadedAt(), batch.getCompletedAt())
+                .getValue().orElse(ProcessingDuration.zero());
         } else if (batch.getStatus() != BatchStatus.UPLOADED) {
-            return Duration.between(batch.getUploadedAt(), Instant.now()).toMillis();
+            return ProcessingDuration.fromStart(batch.getUploadedAt())
+                .getValue().orElse(ProcessingDuration.zero());
         }
         return null;
     }
@@ -203,22 +173,30 @@ public class BatchStatusQueryHandler {
     private Map<String, Object> buildPerformanceMetrics(IngestionBatch batch) {
         Map<String, Object> metrics = new HashMap<>();
         
-        // File size metrics
-        long fileSizeBytes = batch.getFileMetadata().fileSizeBytes();
-        metrics.put("fileSizeBytes", fileSizeBytes);
-        metrics.put("fileSizeMB", fileSizeBytes / (1024.0 * 1024.0));
+        // File size metrics using value object
+        FileSizeBytes fileSize = FileSizeBytes.create(batch.getFileMetadata().fileSizeBytes())
+            .getValue().orElseThrow();
+        metrics.put("fileSizeBytes", fileSize.value());
+        metrics.put("fileSizeMB", fileSize.toMB());
         
         // Processing metrics
         if (batch.getTotalExposures() != null) {
             metrics.put("totalExposures", batch.getTotalExposures());
             
-            Long processingDuration = calculateProcessingDuration(batch);
-            if (processingDuration != null && processingDuration > 0) {
-                double exposuresPerSecond = batch.getTotalExposures() / (processingDuration / 1000.0);
-                metrics.put("exposuresPerSecond", Math.round(exposuresPerSecond * 100.0) / 100.0);
+            ProcessingDuration processingDuration = calculateProcessingDuration(batch);
+            if (processingDuration != null && !processingDuration.isZero()) {
+                // Calculate throughput metrics using value object
+                Result<ThroughputMetrics> throughputResult = ThroughputMetrics.calculate(
+                    batch.getTotalExposures(),
+                    fileSize,
+                    processingDuration
+                );
                 
-                double mbPerSecond = (fileSizeBytes / (1024.0 * 1024.0)) / (processingDuration / 1000.0);
-                metrics.put("mbPerSecond", Math.round(mbPerSecond * 100.0) / 100.0);
+                if (throughputResult.isSuccess()) {
+                    ThroughputMetrics throughput = throughputResult.getValue().orElseThrow();
+                    metrics.put("exposuresPerSecond", throughput.recordsPerSecond());
+                    metrics.put("mbPerSecond", throughput.megabytesPerSecond());
+                }
             }
         }
         
@@ -246,7 +224,7 @@ public class BatchStatusQueryHandler {
         return links;
     }
     
-    private record ProgressInfo(int progressPercentage, Long estimatedCompletionTime) {}
+    private record ProgressInfo(ProgressPercentage progressPercentage, Long estimatedCompletionTime) {}
     
     // These services will be migrated to infrastructure layer
     // For now, creating placeholder interfaces

@@ -94,35 +94,12 @@ public class TemporaryFileStorageService {
     }
 
     /**
-     * Data structure for stored file information.
-     */
-    public static class FileData {
-        private final byte[] data;
-        private final String fileName;
-        private final String contentType;
-        private final long fileSize;
-
-        public FileData(byte[] data, String fileName, String contentType, long fileSize) {
-            this.data = data;
-            this.fileName = fileName;
-            this.contentType = contentType;
-            this.fileSize = fileSize;
-        }
+         * Data structure for stored file information.
+         */
+        public record FileData(byte[] data, String fileName, String contentType, long fileSize) {
 
         public InputStream getInputStream() {
-            return new ByteArrayInputStream(data);
+                return new ByteArrayInputStream(data);
+            }
         }
-
-        public String getFileName() {
-            return fileName;
-        }
-
-        public String getContentType() {
-            return contentType;
-        }
-
-        public long getFileSize() {
-            return fileSize;
-        }
-    }
 }

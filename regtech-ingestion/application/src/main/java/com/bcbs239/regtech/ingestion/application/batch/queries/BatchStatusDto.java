@@ -3,6 +3,7 @@ package com.bcbs239.regtech.ingestion.application.batch.queries;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 
 import java.time.Instant;
 import java.util.Map;
@@ -14,7 +15,7 @@ import java.util.Map;
 @Data
 @Builder
 public class BatchStatusDto {
-    
+
     private final String batchId;
     private final String bankId;
     private final BatchStatus status;
@@ -32,30 +33,50 @@ public class BatchStatusDto {
     private final String errorMessage;
     private final Map<String, Object> performanceMetrics;
     private final Map<String, String> downloadLinks;
-    
+
+    public BatchStatusDto(String batchId, String bankId, BatchStatus status, String processingStage, int progressPercentage, Instant uploadedAt, Instant completedAt, Long processingDurationMs, Long estimatedCompletionTimeMs, String fileName, String contentType, Long fileSizeBytes, Integer totalExposures, String s3Uri, String errorMessage, Map<String, Object> performanceMetrics, Map<String, String> downloadLinks) {
+        this.batchId = batchId;
+        this.bankId = bankId;
+        this.status = status;
+        this.processingStage = processingStage;
+        this.progressPercentage = progressPercentage;
+        this.uploadedAt = uploadedAt;
+        this.completedAt = completedAt;
+        this.processingDurationMs = processingDurationMs;
+        this.estimatedCompletionTimeMs = estimatedCompletionTimeMs;
+        this.fileName = fileName;
+        this.contentType = contentType;
+        this.fileSizeBytes = fileSizeBytes;
+        this.totalExposures = totalExposures;
+        this.s3Uri = s3Uri;
+        this.errorMessage = errorMessage;
+        this.performanceMetrics = performanceMetrics;
+        this.downloadLinks = downloadLinks;
+    }
+
     /**
      * Check if the batch processing is complete.
      */
     public boolean isCompleted() {
         return status == BatchStatus.COMPLETED;
     }
-    
+
     /**
      * Check if the batch processing has failed.
      */
     public boolean isFailed() {
         return status == BatchStatus.FAILED;
     }
-    
+
     /**
      * Check if the batch is currently being processed.
      */
     public boolean isInProgress() {
-        return status == BatchStatus.PARSING || 
-               status == BatchStatus.VALIDATED || 
+        return status == BatchStatus.PARSING ||
+               status == BatchStatus.VALIDATED ||
                status == BatchStatus.STORING;
     }
-    
+
     /**
      * Get human-readable status description.
      */
@@ -69,7 +90,7 @@ public class BatchStatusDto {
             case FAILED -> "Processing failed: " + (errorMessage != null ? errorMessage : "Unknown error");
         };
     }
-    
+
     /**
      * Get estimated time remaining in milliseconds.
      */
@@ -77,7 +98,7 @@ public class BatchStatusDto {
         if (estimatedCompletionTimeMs == null || isCompleted() || isFailed()) {
             return null;
         }
-        
+
         long remaining = estimatedCompletionTimeMs - System.currentTimeMillis();
         return Math.max(0, remaining);
     }

@@ -9,18 +9,13 @@ import java.util.List;
  */
 @ConfigurationProperties(prefix = "ingestion")
 public record IngestionProperties(
-    boolean enabled,
     FileProperties file,
-    ProcessingProperties processing,
-    OutboxProperties outbox
+    ProcessingProperties processing
 ) {
     
     public IngestionProperties {
-        // Set defaults if null
-        if (enabled == false) enabled = true;
         if (file == null) file = new FileProperties(524288000L, List.of("application/json", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
         if (processing == null) processing = new ProcessingProperties(true, 10, 100);
-        if (outbox == null) outbox = new OutboxProperties(true, 30000L, 60000L, 3, 86400000L, 30);
     }
     
     public record FileProperties(
@@ -33,15 +28,7 @@ public record IngestionProperties(
         int threadPoolSize,
         int queueCapacity
     ) {}
-    
-    public record OutboxProperties(
-        boolean enabled,
-        long processingInterval,
-        long retryInterval,
-        int maxRetries,
-        long cleanupInterval,
-        int cleanupRetentionDays
-    ) {}
+
 }
 
 

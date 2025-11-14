@@ -6,8 +6,7 @@ import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
  * Query for retrieving batch status information.
  */
 public record BatchStatusQuery(
-    BatchId batchId,
-    String authToken
-) {
-}
+        BatchId batchId,
+        String authToken
+) { }
 

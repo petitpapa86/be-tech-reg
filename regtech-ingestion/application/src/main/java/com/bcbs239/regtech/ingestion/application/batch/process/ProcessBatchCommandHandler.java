@@ -45,17 +45,7 @@ public class ProcessBatchCommandHandler {
         this.s3StorageService = s3StorageService;
         this.eventPublisher = eventPublisher;
     }
-    
-    /**
-     * Handle the process batch command.
-     * 1. Load batch from repository
-     * 2. Parse file content using FileParsingService
-     * 3. Validate structure and business rules
-     * 4. Enrich with bank information
-     * 5. Store in S3 with enterprise features
-     * 6. Update batch record
-     * 7. Publish events using existing CrossModuleEventBus
-     */
+
     @Transactional
     public Result<Void> handle(ProcessBatchCommand command) {
         try {
@@ -100,7 +90,7 @@ public class ProcessBatchCommandHandler {
             
             // 5. Mark as validated and update exposure count
             ValidationResult validation = validationResult.getValue().orElseThrow();
-            Result<Void> validatedResult = batch.markAsValidated(validation.getTotalExposures());
+            Result<Void> validatedResult = batch.markAsValidated(validation.totalExposures());
             if (validatedResult.isFailure()) {
                 return validatedResult;
             }
@@ -144,7 +134,7 @@ public class ProcessBatchCommandHandler {
                 batch.getFileMetadata(),
                 batch.getBatchId().value(),
                 batch.getBankId().value(),
-                validation.getTotalExposures()
+                validation.totalExposures()
             );
             
             if (s3Result.isFailure()) {
@@ -180,7 +170,7 @@ public class ProcessBatchCommandHandler {
                 batch.getBatchId().value(),
                 batch.getBankId().value(),
                 s3Reference.uri(),
-                validation.getTotalExposures(),
+                validation.totalExposures(),
                 batch.getFileMetadata().fileSizeBytes(),
                 Instant.now()
             );
@@ -242,17 +232,8 @@ public class ProcessBatchCommandHandler {
     public interface IngestionOutboxEventPublisher {
         void publishBatchIngestedEvent(BatchIngestedEvent event);
     }
-    
-    public static class ValidationResult {
-        private final int totalExposures;
-        
-        public ValidationResult(int totalExposures) {
-            this.totalExposures = totalExposures;
-        }
-        
-        public int getTotalExposures() {
-            return totalExposures;
-        }
+
+    public record ValidationResult(int totalExposures) {
     }
 }
 
