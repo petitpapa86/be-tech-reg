@@ -56,7 +56,7 @@ public class RoleEntity {
         this.level = level;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
-        this.version = 0L;
+        // Don't set version for new entities - let Hibernate handle it
     }
 
     // Getters

@@ -41,7 +41,8 @@ public class SecurityFilter implements Filter {
             "/api/auth/forgot-password",
             "/actuator/health",
             "/swagger-ui/**",
-            "/v3/api-docs/**"
+            "/v3/api-docs/**",
+            "/h2-console/**"
         );
     }
 

@@ -16,7 +16,7 @@ import java.time.Instant;
 public class RolePermissionEntity {
 
     @Id
-    @Column(name = "id", columnDefinition = "VARCHAR(36)")
+    @Column(name = "id", columnDefinition = "VARCHAR(100)")
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)

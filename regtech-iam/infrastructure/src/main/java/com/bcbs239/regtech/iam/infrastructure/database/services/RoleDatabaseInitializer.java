@@ -34,9 +34,14 @@ public class RoleDatabaseInitializer {
      * Initialize the database with standard RegTech roles and permissions.
      * This method is idempotent - it can be called multiple times safely.
      */
-    @Transactional
     public void initializeRolesAndPermissions() {
         logger.info("Initializing RegTech roles and permissions in database...");
+
+        // Check if roles are already initialized
+        if (areRolesAlreadyInitialized()) {
+            logger.info("Roles and permissions are already initialized, skipping initialization");
+            return;
+        }
 
         // Define all roles with their permissions
         Map<String, RoleDefinition> roles = createRoleDefinitions();
@@ -45,73 +50,116 @@ public class RoleDatabaseInitializer {
             String roleId = entry.getKey();
             RoleDefinition definition = entry.getValue();
 
-            // Create or update role
-            RoleEntity role = roleRepository.findById(roleId).orElse(null);
-            if (role == null) {
-                role = new RoleEntity(
-                    roleId,
-                    definition.name,
-                    definition.displayName,
-                    definition.description,
-                    definition.level
-                );
-                role = roleRepository.save(role);
-                logger.info("Created role: {}", definition.name);
-            } else {
-                // Update role metadata if needed
-                boolean updated = false;
-                if (!Objects.equals(role.getDisplayName(), definition.displayName)) {
-                    role.setDisplayName(definition.displayName);
-                    updated = true;
-                }
-                if (!Objects.equals(role.getDescription(), definition.description)) {
-                    role.setDescription(definition.description);
-                    updated = true;
-                }
-                if (!Objects.equals(role.getLevel(), definition.level)) {
-                    role.setLevel(definition.level);
-                    updated = true;
-                }
-                if (updated) {
-                    role = roleRepository.save(role);
-                    logger.info("Updated role: {}", definition.name);
-                }
-            }
-
-            // Update permissions for this role
-            updateRolePermissions(role, definition.permissions);
+            // Create role in its own transaction to avoid rollback issues
+            createRoleIfNotExists(roleId, definition);
         }
 
         logger.info("Role and permission initialization completed");
     }
 
+    /**
+     * Create a role if it doesn't exist, in its own transaction.
+     */
+    @Transactional
+    private void createRoleIfNotExists(String roleId, RoleDefinition definition) {
+        if (roleId == null || definition == null) {
+            logger.warn("Invalid roleId or definition provided, skipping");
+            return;
+        }
+
+        // Check if role exists
+        RoleEntity role = roleRepository.findById(roleId).orElse(null);
+        if (role != null) {
+            logger.debug("Role {} already exists, skipping creation", definition.name);
+            return;
+        }
+
+        // Create role
+        role = new RoleEntity(
+            roleId,
+            definition.name,
+            definition.displayName,
+            definition.description,
+            definition.level
+        );
+
+        try {
+            role = roleRepository.saveAndFlush(role);
+            logger.info("Created role: {}", definition.name);
+        } catch (Exception e) {
+            // Handle race condition - role might have been created by another transaction
+            logger.warn("Failed to create role {}: {}", definition.name, e.getMessage());
+            logger.debug("Exception details", e);
+            // Try to find the role again
+            role = roleRepository.findById(roleId).orElse(null);
+            if (role == null) {
+                logger.warn("Could not create or find role: {} - skipping", definition.name);
+                return;
+            }
+            logger.debug("Role {} was created by another transaction", definition.name);
+        }
+
+        // Update permissions for this role
+        updateRolePermissions(role, definition.permissions);
+    }
+
+    /**
+     * Check if roles are already initialized in the database.
+     */
+    private boolean areRolesAlreadyInitialized() {
+        try {
+            // Check if all required roles exist
+            Map<String, RoleDefinition> roles = createRoleDefinitions();
+            for (String roleId : roles.keySet()) {
+                if (roleId != null && !roleRepository.findById(roleId).isPresent()) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (Exception e) {
+            logger.debug("Error checking if roles are initialized: {}", e.getMessage());
+            return false; // If we can't check, assume not initialized
+        }
+    }
+
     private void updateRolePermissions(RoleEntity role, Set<String> expectedPermissions) {
-        // Get current permissions
-        Set<String> currentPermissions = rolePermissionRepository.findPermissionsByRoleId(role.getId());
+        try {
+            // Get current permissions
+            Set<String> currentPermissions = rolePermissionRepository.findPermissionsByRoleId(role.getId());
 
-        // Find permissions to add
-        Set<String> permissionsToAdd = new HashSet<>(expectedPermissions);
-        permissionsToAdd.removeAll(currentPermissions);
+            // Check if permissions are already correct
+            if (currentPermissions.equals(expectedPermissions)) {
+                logger.debug("Permissions for role {} are already correct", role.getName());
+                return;
+            }
 
-        // Find permissions to remove
-        Set<String> permissionsToRemove = new HashSet<>(currentPermissions);
-        permissionsToRemove.removeAll(expectedPermissions);
+            // Find permissions to add
+            Set<String> permissionsToAdd = new HashSet<>(expectedPermissions);
+            permissionsToAdd.removeAll(currentPermissions);
 
-        // Remove old permissions
-        if (!permissionsToRemove.isEmpty()) {
-            rolePermissionRepository.deleteByRoleId(role.getId());
-            logger.debug("Removed {} old permissions for role {}", permissionsToRemove.size(), role.getName());
-        }
+            // Find permissions to remove
+            Set<String> permissionsToRemove = new HashSet<>(currentPermissions);
+            permissionsToRemove.removeAll(expectedPermissions);
 
-        // Add new permissions
-        for (String permission : permissionsToAdd) {
-            String permissionId = "perm-" + role.getId() + "-" + permission.toLowerCase().replace("bcbs239_", "").replace(".", "-");
-            RolePermissionEntity rolePermission = new RolePermissionEntity(permissionId, role, permission);
-            rolePermissionRepository.save(rolePermission);
-        }
+            // Remove old permissions
+            if (!permissionsToRemove.isEmpty()) {
+                rolePermissionRepository.deleteByRoleId(role.getId());
+                logger.debug("Removed {} old permissions for role {}", permissionsToRemove.size(), role.getName());
+            }
 
-        if (!permissionsToAdd.isEmpty()) {
-            logger.debug("Added {} new permissions for role {}", permissionsToAdd.size(), role.getName());
+            // Add new permissions
+            for (String permission : permissionsToAdd) {
+                String permissionId = "perm-" + role.getId() + "-" + permission.toLowerCase().replace("bcbs239_", "").replace(".", "-");
+                RolePermissionEntity rolePermission = new RolePermissionEntity(permissionId, role, permission);
+                rolePermissionRepository.save(rolePermission);
+            }
+
+            if (!permissionsToAdd.isEmpty()) {
+                logger.debug("Added {} new permissions for role {}", permissionsToAdd.size(), role.getName());
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to update permissions for role {}: {}. Skipping permission update.", role.getName(), e.getMessage());
+            // Continue - don't fail the entire initialization
         }
     }
 

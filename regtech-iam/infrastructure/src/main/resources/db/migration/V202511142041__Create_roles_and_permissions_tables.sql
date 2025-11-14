@@ -19,7 +19,7 @@ CREATE INDEX IF NOT EXISTS idx_roles_level ON iam.roles (level);
 
 -- Create role_permissions table
 CREATE TABLE IF NOT EXISTS iam.role_permissions (
-    id VARCHAR(36) PRIMARY KEY,
+    id VARCHAR(100) PRIMARY KEY,
     role_id VARCHAR(36) NOT NULL,
     permission VARCHAR(100) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
