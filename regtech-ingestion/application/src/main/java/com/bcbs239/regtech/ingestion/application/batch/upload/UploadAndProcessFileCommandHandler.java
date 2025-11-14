@@ -5,7 +5,6 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommand;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler;
-import com.bcbs239.regtech.ingestion.domain.bankinfo.Bank;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.IBankInfoRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
@@ -15,49 +14,45 @@ import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 import com.bcbs239.regtech.ingestion.domain.file.ContentType;
 import com.bcbs239.regtech.ingestion.domain.file.FileName;
 import com.bcbs239.regtech.ingestion.domain.file.FileSize;
-import com.bcbs239.regtech.ingestion.application.batch.upload.TemporaryFileStorageService;
-import lombok.extern.slf4j.Slf4j;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Command handler for uploading and immediately processing a file.
  * Combines the upload and process operations into a single transaction.
  */
 @Component
-@Slf4j
+@EnableAsync
 public class UploadAndProcessFileCommandHandler {
 
     private final IIngestionBatchRepository ingestionBatchRepository;
     private final IBankInfoRepository bankInfoRepository;
     private final TemporaryFileStorageService temporaryFileStorage;
     private final ProcessBatchCommandHandler processBatchCommandHandler;
+    private final ILogger logger;
 
     public UploadAndProcessFileCommandHandler(
             IIngestionBatchRepository ingestionBatchRepository,
             IBankInfoRepository bankInfoRepository,
             TemporaryFileStorageService temporaryFileStorage,
-            ProcessBatchCommandHandler processBatchCommandHandler) {
+            ProcessBatchCommandHandler processBatchCommandHandler,
+            ILogger logger) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.bankInfoRepository = bankInfoRepository;
         this.temporaryFileStorage = temporaryFileStorage;
         this.processBatchCommandHandler = processBatchCommandHandler;
+        this.logger = logger;
     }
 
-    /**
-     * Handle the upload and process file command.
-     * 1. Validate file and bank information
-     * 2. Create IngestionBatch aggregate
-     * 3. Store file temporarily
-     * 4. Save initial batch record
-     * 5. Immediately process the batch
-     * 6. Clean up temporary file
-     * 7. Return batch ID for status tracking
-     */
     @Transactional
     public Result<BatchId> handle(UploadAndProcessFileCommand command) {
         long startTime = System.currentTimeMillis();
@@ -65,13 +60,11 @@ public class UploadAndProcessFileCommandHandler {
         BankId bankId = command.bankId();
 
         try {
-            // 1. Load and validate bank information
             Result<Void> bankValidationResult = validateBankInfo(bankId);
             if (bankValidationResult.isFailure()) {
                 return Result.failure(bankValidationResult.getError().orElseThrow());
             }
 
-            // 2. Validate file metadata
             Result<FileMetadata> fileValidationResult = validateFileMetadata(command);
             if (fileValidationResult.isFailure()) {
                 return Result.failure(fileValidationResult.getError().orElseThrow());
@@ -79,10 +72,8 @@ public class UploadAndProcessFileCommandHandler {
 
             FileMetadata fileMetadata = fileValidationResult.getValue().orElseThrow();
 
-            // 3. Generate unique batch ID
             BatchId batchId = BatchId.generate();
 
-            // 4. Store file temporarily and get reference key
             Result<String> tempStorageResult = temporaryFileStorage.storeFile(
                 command.fileStream(),
                 command.fileName(),
@@ -96,14 +87,12 @@ public class UploadAndProcessFileCommandHandler {
             String tempFileKey = tempStorageResult.getValue().orElseThrow();
 
             try {
-                // 5. Create IngestionBatch aggregate
                 IngestionBatch batch = new IngestionBatch(batchId, bankId, fileMetadata);
 
-                // 6. Log operation started
-                log.info("Upload and process started - BatchId: {}, BankId: {}, FileName: {}, Size: {} bytes",
-                        batchId.value(), bankId.value(), command.fileName(), command.fileSizeBytes());
+                logger.asyncStructuredLog("Upload and process started",
+                    Map.of("batchId", batchId.value(), "bankId", bankId.value(),
+                           "fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
 
-                // 7. Save initial batch record
                 Result<IngestionBatch> saveResult = ingestionBatchRepository.save(batch);
                 if (saveResult.isFailure()) {
                     return Result.failure(saveResult.getError().orElse(
@@ -112,30 +101,36 @@ public class UploadAndProcessFileCommandHandler {
                     ));
                 }
 
-                // 8. Immediately process the batch using the temporary file
-                Result<Void> processResult = processBatchWithTempFile(batchId, tempFileKey);
-                if (processResult.isFailure()) {
-                    // Batch processing failed, but batch record is already saved
-                    // The batch will be in FAILED status, which is acceptable
-                    log.warn("Batch processing failed for BatchId: {}, but batch record saved", batchId.value());
-                    return Result.failure(processResult.getError().orElseThrow());
-                }
+                // Start async batch processing
+                CompletableFuture<Result<Void>> processFuture = processBatchWithTempFile(batchId, tempFileKey);
 
-                // 9. Log successful completion
+                // Handle async processing completion (fire and forget)
+                processFuture.whenComplete((processResult, throwable) -> {
+                    if (throwable != null) {
+                        logger.asyncStructuredErrorLog("Async batch processing failed with exception",
+                            throwable, Map.of("batchId", batchId.value()));
+                    } else if (processResult != null && processResult.isFailure()) {
+                        logger.asyncStructuredLog("Async batch processing failed",
+                            Map.of("batchId", batchId.value(), "error", processResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error")));
+                    } else {
+                        logger.asyncStructuredLog("Async batch processing completed successfully",
+                            Map.of("batchId", batchId.value()));
+                    }
+                });
+
                 long duration = System.currentTimeMillis() - startTime;
-                log.info("Upload and process completed - BatchId: {}, BankId: {}, Duration: {}ms",
-                        batchId.value(), bankId.value(), duration);
+                logger.asyncStructuredLog("Upload completed, batch processing started asynchronously",
+                    Map.of("batchId", batchId.value(), "bankId", bankId.value(), "duration", duration));
 
-                // 10. Return batch ID for status tracking
                 return Result.success(batchId);
 
             } finally {
-                // 11. Always clean up temporary file
                 temporaryFileStorage.removeFile(tempFileKey);
             }
 
         } catch (Exception e) {
-            log.error("Unexpected error during upload and process: {}", e.getMessage(), e);
+            logger.asyncStructuredErrorLog("Unexpected error during upload and process",
+                e, Map.of("errorMessage", e.getMessage()));
             return Result.failure(ErrorDetail.of("UPLOAD_PROCESS_ERROR", ErrorType.SYSTEM_ERROR,
                 "Unexpected error during file upload and processing: " + e.getMessage(),
                 "upload.process.error"));
@@ -158,7 +153,6 @@ public class UploadAndProcessFileCommandHandler {
     }
 
     private Result<FileMetadata> validateFileMetadata(UploadAndProcessFileCommand command) {
-        // Create value objects
         Result<FileName> fileNameResult = FileName.create(command.fileName());
         if (fileNameResult.isFailure()) {
             return Result.failure(fileNameResult.getError().orElseThrow());
@@ -190,9 +184,11 @@ public class UploadAndProcessFileCommandHandler {
 
         // Log warnings for large files
         if (validatedContentType.isJson() && validatedFileSize.shouldWarnForJson()) {
-            log.warn("Large JSON file detected: {} ({} bytes)", command.fileName(), command.fileSizeBytes());
+            logger.asyncStructuredLog("Large JSON file detected",
+                Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
         } else if (validatedContentType.isExcel() && validatedFileSize.shouldWarnForExcel()) {
-            log.warn("Large Excel file detected: {} ({} bytes)", command.fileName(), command.fileSizeBytes());
+            logger.asyncStructuredLog("Large Excel file detected",
+                Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
         }
 
         // Calculate file checksum for integrity
@@ -210,30 +206,31 @@ public class UploadAndProcessFileCommandHandler {
         return Result.success(fileMetadata);
     }
 
-    private Result<Void> processBatchWithTempFile(BatchId batchId, String tempFileKey) {
+    @Async
+    private CompletableFuture<Result<Void>> processBatchWithTempFile(BatchId batchId, String tempFileKey) {
         try {
             // Retrieve the temporary file
             Result<TemporaryFileStorageService.FileData> fileDataResult =
                 temporaryFileStorage.retrieveFile(tempFileKey);
             if (fileDataResult.isFailure()) {
-                return Result.failure(fileDataResult.getError().orElseThrow());
+                return CompletableFuture.completedFuture(Result.failure(fileDataResult.getError().orElseThrow()));
             }
 
             TemporaryFileStorageService.FileData fileData = fileDataResult.getValue().orElseThrow();
 
-            // Create process command with the temporary file stream
             ProcessBatchCommand processCommand = new ProcessBatchCommand(
                 batchId,
                 fileData.getInputStream()
             );
 
-            // Execute the process command
-            return processBatchCommandHandler.handle(processCommand);
+            Result<Void> processResult = processBatchCommandHandler.handle(processCommand);
+            return CompletableFuture.completedFuture(processResult);
 
         } catch (Exception e) {
-            log.error("Failed to process batch with temporary file: {}", e.getMessage(), e);
-            return Result.failure(ErrorDetail.of("PROCESS_ERROR", ErrorType.SYSTEM_ERROR,
-                "Failed to process batch: " + e.getMessage(), "batch.process.error"));
+            logger.asyncStructuredErrorLog("Failed to process batch with temporary file",
+                e, Map.of("errorMessage", e.getMessage()));
+            return CompletableFuture.completedFuture(Result.failure(ErrorDetail.of("PROCESS_ERROR", ErrorType.SYSTEM_ERROR,
+                "Failed to process batch: " + e.getMessage(), "batch.process.error")));
         }
     }
 
@@ -243,7 +240,6 @@ public class UploadAndProcessFileCommandHandler {
             byte[] buffer = new byte[8192];
             int bytesRead;
 
-            // Reset stream if possible
             if (inputStream.markSupported()) {
                 inputStream.mark(Integer.MAX_VALUE);
             }
@@ -252,7 +248,6 @@ public class UploadAndProcessFileCommandHandler {
                 md.update(buffer, 0, bytesRead);
             }
 
-            // Reset stream for later use
             if (inputStream.markSupported()) {
                 inputStream.reset();
             }
@@ -265,7 +260,6 @@ public class UploadAndProcessFileCommandHandler {
             return sb.toString();
 
         } catch (NoSuchAlgorithmException | IOException e) {
-            // Return a placeholder checksum if calculation fails
             return "checksum_calculation_failed";
         }
     }

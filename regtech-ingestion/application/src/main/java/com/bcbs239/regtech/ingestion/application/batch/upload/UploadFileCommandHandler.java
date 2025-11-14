@@ -3,7 +3,7 @@ package com.bcbs239.regtech.ingestion.application.batch.upload;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.ingestion.domain.bankinfo.Bank;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.IBankInfoRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
@@ -13,13 +13,13 @@ import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 import com.bcbs239.regtech.ingestion.domain.file.ContentType;
 import com.bcbs239.regtech.ingestion.domain.file.FileName;
 import com.bcbs239.regtech.ingestion.domain.file.FileSize;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 
 /**
  * Command handler for uploading files for ingestion processing.
@@ -28,86 +28,88 @@ import java.security.NoSuchAlgorithmException;
 @Component
 public class UploadFileCommandHandler {
 
-    private static final Logger log = LoggerFactory.getLogger(UploadFileCommandHandler.class);
-
     private final IIngestionBatchRepository ingestionBatchRepository;
     private final IBankInfoRepository bankInfoRepository;
+    private final ILogger logger;
 
     public UploadFileCommandHandler(
             IIngestionBatchRepository ingestionBatchRepository,
-            IBankInfoRepository bankInfoRepository) {
+            IBankInfoRepository bankInfoRepository,
+            ILogger logger) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.bankInfoRepository = bankInfoRepository;
+        this.logger = logger;
     }
 
     /**
-     * Handle the upload file command.
-     * 1. Load bank information from database
-     * 2. Validate file size and content type
-     * 3. Create IngestionBatch aggregate
-     * 4. Store initial batch record
-     * 5. Return batch ID for status tracking
+     * Handle the upload file command using railway pattern.
+     * Chain validation and processing steps, where failure at any step
+     * short-circuits the entire operation.
      */
     public Result<BatchId> handle(UploadFileCommand command) {
         long startTime = System.currentTimeMillis();
-
         BankId bankId = command.bankId();
 
-        // 1. Load bank information from database
-        var bankInfo = bankInfoRepository.findByBankId(bankId);
-        if (bankInfo.isEmpty()) {
-            return Result.failure(ErrorDetail.of("BANK_NOT_FOUND", ErrorType.VALIDATION_ERROR,
-                String.format("Bank with ID '%s' not found", bankId.value()), "bank.not_found"));
-        }
+        return loadAndValidateBank(bankId)
+                .flatMap(bankInfo -> validateFileMetadata(command))
+                .flatMap(validatedData -> createBatch(command, bankId))
+                .flatMap(creationResult -> saveBatch(creationResult.batch(), creationResult.batchId(), bankId, startTime));
+    }
 
-        if (!bankInfo.get().isActive()) {
-            return Result.failure(ErrorDetail.of("BANK_INACTIVE", ErrorType.VALIDATION_ERROR,
-                String.format("Bank with ID '%s' is not active", bankId.value()), "bank.inactive"));
-        }
+    private Result<BankInfo> loadAndValidateBank(BankId bankId) {
+        return bankInfoRepository.findByBankId(bankId)
+                .filter(BankInfo::isActive)
+                .map(Result::success)
+                .orElse(Result.failure(ErrorDetail.of("BANK_NOT_FOUND", ErrorType.VALIDATION_ERROR,
+                    String.format("Bank with ID '%s' not found or inactive", bankId.value()), "bank.not_found")));
+    }
 
-        // 2. Validate file size and content type
-        // Create value objects
+    private Result<ValidatedFileData> validateFileMetadata(UploadFileCommand command) {
         Result<FileName> fileNameResult = FileName.create(command.fileName());
-        if (fileNameResult.isFailure()) {
-            return Result.failure(fileNameResult.getError().orElseThrow());
-        }
+        if (fileNameResult.isFailure()) return Result.failure(fileNameResult.getError().orElseThrow());
 
         Result<ContentType> contentTypeResult = ContentType.create(command.contentType());
-        if (contentTypeResult.isFailure()) {
-            return Result.failure(contentTypeResult.getError().orElseThrow());
-        }
+        if (contentTypeResult.isFailure()) return Result.failure(contentTypeResult.getError().orElseThrow());
 
         Result<FileSize> fileSizeResult = FileSize.create(command.fileSizeBytes());
-        if (fileSizeResult.isFailure()) {
-            return Result.failure(fileSizeResult.getError().orElseThrow());
-        }
+        if (fileSizeResult.isFailure()) return Result.failure(fileSizeResult.getError().orElseThrow());
 
-        // Get the value objects
-        FileName validatedFileName = fileNameResult.getValue().orElseThrow();
-        ContentType validatedContentType = contentTypeResult.getValue().orElseThrow();
-        FileSize validatedFileSize = fileSizeResult.getValue().orElseThrow();
+        FileName fileName = fileNameResult.getValue().orElseThrow();
+        ContentType contentType = contentTypeResult.getValue().orElseThrow();
+        FileSize fileSize = fileSizeResult.getValue().orElseThrow();
+
+        return validateFileExtensionAndLogWarnings(command, fileName, contentType, fileSize);
+    }
+
+    private Result<ValidatedFileData> validateFileExtensionAndLogWarnings(
+            UploadFileCommand command, FileName fileName, ContentType contentType, FileSize fileSize) {
 
         // Validate file extension based on content type
-        if (validatedContentType.isJson() && !validatedFileName.hasJsonExtension()) {
-            return Result.failure(ErrorDetail.of("INVALID_FILE_EXTENSION", ErrorType.SYSTEM_ERROR, "JSON files must have .json extension", "generic.error"));
-        } else if (validatedContentType.isExcel() && !validatedFileName.hasExcelExtension()) {
-            return Result.failure(ErrorDetail.of("INVALID_FILE_EXTENSION", ErrorType.SYSTEM_ERROR, "Excel files must have .xlsx or .xls extension", "generic.error"));
+        if (contentType.isJson() && !fileName.hasJsonExtension()) {
+            return Result.failure(ErrorDetail.of("INVALID_FILE_EXTENSION", ErrorType.SYSTEM_ERROR,
+                "JSON files must have .json extension", "generic.error"));
+        } else if (contentType.isExcel() && !fileName.hasExcelExtension()) {
+            return Result.failure(ErrorDetail.of("INVALID_FILE_EXTENSION", ErrorType.SYSTEM_ERROR,
+                "Excel files must have .xlsx or .xls extension", "generic.error"));
         }
 
         // Log warnings for large files
-        if (validatedContentType.isJson() && validatedFileSize.shouldWarnForJson()) {
-            log.warn("Large JSON file detected: {} ({} bytes)", command.fileName(), command.fileSizeBytes());
-        } else if (validatedContentType.isExcel() && validatedFileSize.shouldWarnForExcel()) {
-            log.warn("Large Excel file detected: {} ({} bytes)", command.fileName(), command.fileSizeBytes());
+        if (contentType.isJson() && fileSize.shouldWarnForJson()) {
+            logger.asyncStructuredLog("Large JSON file detected",
+                Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
+        } else if (contentType.isExcel() && fileSize.shouldWarnForExcel()) {
+            logger.asyncStructuredLog("Large Excel file detected",
+                Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
         }
 
-        // 3. Generate unique batch ID
+        return Result.success(new ValidatedFileData(fileName, contentType, fileSize));
+    }
+
+    private Result<BatchCreationResult> createBatch(UploadFileCommand command, BankId bankId) {
         BatchId batchId = BatchId.generate();
 
-        // 4. Calculate file checksum for integrity
         String md5Checksum = calculateMD5Checksum(command.fileStream());
 
-        // 5. Create file metadata
         FileMetadata fileMetadata = new FileMetadata(
                 command.fileName(),
                 command.contentType(),
@@ -116,14 +118,17 @@ public class UploadFileCommandHandler {
                 null
         );
 
-        // 6. Create IngestionBatch aggregate
         IngestionBatch batch = new IngestionBatch(batchId, bankId, fileMetadata);
 
-        // 7. Log file upload started for audit trail
-        log.info("File upload started - BatchId: {}, BankId: {}, FileName: {}, Size: {} bytes, ContentType: {}",
-                batchId.value(), bankId.value(), command.fileName(), command.fileSizeBytes(), command.contentType());
+        logger.asyncStructuredLog("File upload started",
+            Map.of("batchId", batchId.value(), "bankId", bankId.value(), "fileName", command.fileName(),
+                   "fileSize", command.fileSizeBytes(), "contentType", command.contentType()));
 
-        // 8. Store initial batch record
+        return Result.success(new BatchCreationResult(batch, batchId));
+    }
+
+    private Result<BatchId> saveBatch(IngestionBatch batch, BatchId batchId, BankId bankId, long startTime) {
+        // Store initial batch record
         Result<IngestionBatch> saveResult = ingestionBatchRepository.save(batch);
         if (saveResult.isFailure()) {
             return Result.failure(saveResult.getError().orElse(
@@ -131,11 +136,10 @@ public class UploadFileCommandHandler {
             ));
         }
 
-        // 9. Log successful upload completion for audit trail
         long duration = System.currentTimeMillis() - startTime;
-        log.info("File upload completed - BatchId: {}, BankId: {}, Duration: {}ms", batchId.value(), bankId.value(), duration);
+        logger.asyncStructuredLog("File upload completed",
+            Map.of("batchId", batchId.value(), "bankId", bankId.value(), "duration", duration));
 
-        // 10. Return batch ID for status tracking
         return Result.success(batchId);
     }
 
@@ -154,7 +158,6 @@ public class UploadFileCommandHandler {
                 md.update(buffer, 0, bytesRead);
             }
 
-            // Reset stream for later use
             if (inputStream.markSupported()) {
                 inputStream.reset();
             }
@@ -173,7 +176,12 @@ public class UploadFileCommandHandler {
         }
     }
 
-    // Note: JWT token validation and rate limiting are now handled at application level
-    // Logging is done directly using SLF4J logger
+}
+
+
+record ValidatedFileData(FileName fileName, ContentType contentType, FileSize fileSize) {
+}
+
+record BatchCreationResult(IngestionBatch batch, BatchId batchId) {
 }
 

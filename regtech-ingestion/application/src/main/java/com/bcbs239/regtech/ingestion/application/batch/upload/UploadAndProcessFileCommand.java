@@ -3,10 +3,7 @@ package com.bcbs239.regtech.ingestion.application.batch.upload;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import java.io.InputStream;
 
-/**
- * Command for uploading and immediately processing a file for ingestion.
- * Combines the upload and process operations into a single transaction.
- */
+
 public record UploadAndProcessFileCommand(
     InputStream fileStream,
     String fileName,

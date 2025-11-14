@@ -16,6 +16,7 @@
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-ingestion-domain</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
 		</dependency>
 		
 		<!-- Core module dependency for Result<T>, ErrorDetail, CrossModuleEventBus -->
