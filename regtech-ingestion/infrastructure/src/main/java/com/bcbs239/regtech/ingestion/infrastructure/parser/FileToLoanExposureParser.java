@@ -39,7 +39,7 @@ public class FileToLoanExposureParser {
      * Parse loan exposures from a JSON input stream. Expects a top-level object with a "loan_portfolio" array.
      * Stops after maxRecords to limit memory consumption.
      */
-    public List<LoanExposure> parseLoanExposuresFromJson(InputStream is, int maxRecords) throws IOException {
+    public List<LoanExposure> parseJsonToLoanExposures(InputStream is, int maxRecords) throws IOException {
         JsonFactory jf = objectMapper.getFactory();
         try (JsonParser jp = jf.createParser(is)) {
             // Traverse until we find the loan_portfolio field
@@ -72,7 +72,7 @@ public class FileToLoanExposureParser {
     /**
      * Parse credit risk mitigation entries from JSON top-level "credit_risk_mitigation" array.
      */
-    public List<CreditRiskMitigation> parseCreditRiskMitigationFromJson(InputStream is, int maxRecords) throws IOException {
+    public List<CreditRiskMitigation> parseJsonToCreditRiskMitigations(InputStream is, int maxRecords) throws IOException {
         JsonFactory jf = objectMapper.getFactory();
         try (JsonParser jp = jf.createParser(is)) {
             while (jp.nextToken() != null) {
@@ -105,7 +105,7 @@ public class FileToLoanExposureParser {
      * This implementation uses a simple in-memory XSSF read — for very large files the
      * architecture should use the streaming (SAX) API or offload to a specialized processor.
      */
-    public List<LoanExposure> parseLoanExposuresFromExcel(InputStream is, int maxRecords) throws IOException {
+    public List<LoanExposure> parseExcelToLoanExposures(InputStream is, int maxRecords) throws IOException {
         try (XSSFWorkbook workbook = new XSSFWorkbook(is)) {
             XSSFSheet sheet = workbook.getSheetAt(0);
             DataFormatter formatter = new DataFormatter();

@@ -28,7 +28,7 @@ class FileToLoanExposureParserTest {
     void parseFromJsonWithLimit() throws Exception {
         ClassPathResource resource = new ClassPathResource("test-data/enhanced_daily_loans_2024_09_12.json");
         try (InputStream is = resource.getInputStream()) {
-            List<LoanExposure> exposures = parser.parseLoanExposuresFromJson(is, 3);
+            List<LoanExposure> exposures = parser.parseJsonToLoanExposures(is, 3);
             assertThat(exposures).hasSize(3);
             assertThat(exposures.get(0).loanId()).isEqualTo("LOAN001");
         }
@@ -71,7 +71,7 @@ class FileToLoanExposureParserTest {
             byte[] bytes = out.toByteArray();
 
             try (InputStream is = new ByteArrayInputStream(bytes)) {
-                List<LoanExposure> exposures = parser.parseLoanExposuresFromExcel(is, 4);
+                List<LoanExposure> exposures = parser.parseExcelToLoanExposures(is, 4);
                 assertThat(exposures).hasSize(4);
                 assertThat(exposures.get(3).loanId()).isEqualTo("L4");
             }
