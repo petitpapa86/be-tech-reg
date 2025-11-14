@@ -10,7 +10,6 @@ import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQuery;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQueryHandler;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
-import com.bcbs239.regtech.ingestion.infrastructure.security.IngestionSecurityService;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -31,12 +30,9 @@ import static org.springframework.web.servlet.function.RouterFunctions.route;
 public class BatchStatusController extends BaseController implements IEndpoint {
     
     private final BatchStatusQueryHandler batchStatusQueryHandler;
-    private final IngestionSecurityService securityService;
-    
-    public BatchStatusController(BatchStatusQueryHandler batchStatusQueryHandler,
-                               IngestionSecurityService securityService) {
+
+    public BatchStatusController(BatchStatusQueryHandler batchStatusQueryHandler) {
         this.batchStatusQueryHandler = batchStatusQueryHandler;
-        this.securityService = securityService;
     }
     
     @Override
@@ -54,32 +50,33 @@ public class BatchStatusController extends BaseController implements IEndpoint {
         String authToken = request.headers().firstHeader("Authorization");
         
         // Validate JWT token and extract bank ID using existing security infrastructure
-        Result<BankId> bankIdResult = securityService.validateTokenAndExtractBankId(authToken);
-        if (bankIdResult.isFailure()) {
-            ErrorDetail error = bankIdResult.getError().orElseThrow();
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
-            assert responseEntity.getBody() != null;
-            return ServerResponse.status(responseEntity.getStatusCode())
-                .body(responseEntity.getBody());
-        }
-        
-        BankId bankId = bankIdResult.getValue().orElseThrow();
+//        Result<BankId> bankIdResult = securityService.validateTokenAndExtractBankId(authToken);
+//        if (bankIdResult.isFailure()) {
+//            ErrorDetail error = bankIdResult.getError().orElseThrow();
+//            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
+//            assert responseEntity.getBody() != null;
+//            return ServerResponse.status(responseEntity.getStatusCode())
+//                .body(responseEntity.getBody());
+//        }
+//
+//        BankId bankId = bankIdResult.getValue().orElseThrow();
         
         // Verify ingestion status permissions using existing security infrastructure
-        Result<Void> permissionResult = securityService.verifyIngestionPermissions("status");
-        if (permissionResult.isFailure()) {
-            ErrorDetail error = permissionResult.getError().orElseThrow();
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
-            assert responseEntity.getBody() != null;
-            return ServerResponse.status(responseEntity.getStatusCode())
-                .body(responseEntity.getBody());
-        }
+//        Result<Void> permissionResult = securityService.verifyIngestionPermissions("status");
+//        if (permissionResult.isFailure()) {
+//            ErrorDetail error = permissionResult.getError().orElseThrow();
+//            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
+//            assert responseEntity.getBody() != null;
+//            return ServerResponse.status(responseEntity.getStatusCode())
+//                .body(responseEntity.getBody());
+//        }
         
         // Validate request parameters
         Result<Void> validationResult = validateStatusRequest(batchIdStr, authToken);
         if (validationResult.isFailure()) {
             ErrorDetail error = validationResult.getError().orElseThrow();
             ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
+            assert responseEntity.getBody() != null;
             return ServerResponse.status(responseEntity.getStatusCode())
                 .body(responseEntity.getBody());
         }

@@ -3,8 +3,7 @@ package com.bcbs239.regtech.ingestion.presentation.batch.suggestion;
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.ingestion.application.files.SuggestFileSplittingCommand;
-import com.bcbs239.regtech.ingestion.application.files.SuggestFileSplittingCommandHandler;
+
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
@@ -28,11 +27,11 @@ import static org.springframework.web.servlet.function.RouterFunctions.route;
 @Component
 public class FileSplittingController extends BaseController implements IEndpoint {
 
-    private final SuggestFileSplittingCommandHandler handler;
+    //private final SuggestFileSplittingCommandHandler handler;
     private final Validator validator;
 
-    public FileSplittingController(SuggestFileSplittingCommandHandler handler, Validator validator) {
-        this.handler = handler;
+    public FileSplittingController( Validator validator) {
+       // this.handler = handler;
         this.validator = validator;
     }
 
@@ -52,8 +51,8 @@ public class FileSplittingController extends BaseController implements IEndpoint
         }
 
         FileMetadata metadata = new FileMetadata(dto.fileName(), dto.contentType(), dto.fileSizeBytes(), dto.md5Checksum(), dto.sha256Checksum());
-        SuggestFileSplittingCommand command = new SuggestFileSplittingCommand(metadata, null);
-        Result<FileSplittingSuggestion> result = handler.handle(command);
+        //SuggestFileSplittingCommand command = new SuggestFileSplittingCommand(metadata, null);
+        Result<FileSplittingSuggestion> result = null;// handler.handle(command);
 
         if (result.isSuccess()) {
             FileSplittingSuggestion suggestion = result.getValue().orElseThrow();
