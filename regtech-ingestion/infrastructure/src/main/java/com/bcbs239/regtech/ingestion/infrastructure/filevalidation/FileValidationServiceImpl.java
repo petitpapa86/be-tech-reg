@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.ingestion.infrastructure.validation;
+package com.bcbs239.regtech.ingestion.infrastructure.filevalidation;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
@@ -101,17 +101,11 @@ public class FileValidationServiceImpl implements FileContentValidationService {
             .mapToDouble(LoanExposure::grossExposureAmount)
             .sum();
 
-        if (totalExposure == 0) {
-            return Result.failure(ErrorDetail.of("ZERO_TOTAL_EXPOSURE", ErrorType.SYSTEM_ERROR, "Total gross exposure across all exposures cannot be zero", "generic.error"));
+        if (totalExposure <= 0) {
+            return Result.failure(ErrorDetail.of("INVALID_TOTAL_EXPOSURE", ErrorType.SYSTEM_ERROR, "Total exposure amount must be greater than zero", "generic.error"));
         }
 
-        // Warning for very high total exposure (this might be configurable)
-        if (totalExposure > 1_000_000_000) { // 1 billion
-            log.warn("Very high total exposure amount detected: {}", totalExposure);
-        }
-
+        log.info("Business rules validation passed for {} exposures with total exposure: {}", exposures.size(), totalExposure);
         return Result.success(new ValidationResult(exposures.size()));
     }
 }
-
-

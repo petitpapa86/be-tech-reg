@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.ingestion.infrastructure.batch.persistence;
+package com.bcbs239.regtech.ingestion.infrastructure.batchtracking.persistence;
 
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import org.springframework.data.jpa.repository.JpaRepository;

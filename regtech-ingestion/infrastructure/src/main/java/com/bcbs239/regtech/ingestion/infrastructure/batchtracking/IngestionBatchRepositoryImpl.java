@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.ingestion.infrastructure.batch;
+package com.bcbs239.regtech.ingestion.infrastructure.batchtracking;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
@@ -8,8 +8,8 @@ import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
-import com.bcbs239.regtech.ingestion.infrastructure.batch.persistence.IngestionBatchEntity;
-import com.bcbs239.regtech.ingestion.infrastructure.batch.persistence.IngestionBatchJpaRepository;
+import com.bcbs239.regtech.ingestion.infrastructure.batchtracking.persistence.IngestionBatchEntity;
+import com.bcbs239.regtech.ingestion.infrastructure.batchtracking.persistence.IngestionBatchJpaRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,10 +1,14 @@
 package com.bcbs239.regtech.ingestion.domain.bankinfo;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
+
 import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Value object representing bank information.
+ * Value object representing bank information with business logic.
  */
 public record BankInfo(
     BankId bankId,
@@ -43,10 +47,88 @@ public record BankInfo(
         return bankStatus == BankStatus.ACTIVE;
     }
     
+    /**
+     * Checks if the bank is suspended.
+     */
+    public boolean isSuspended() {
+        return bankStatus == BankStatus.SUSPENDED;
+    }
+    
+    /**
+     * Validates if the bank is eligible for processing.
+     * A bank is eligible if it's active and not suspended.
+     * 
+     * @return Result with success if eligible, failure with error details otherwise
+     */
+    public Result<Void> validateEligibilityForProcessing() {
+        if (bankStatus == BankStatus.INACTIVE) {
+            return Result.failure(ErrorDetail.of(
+                "INACTIVE_BANK",
+                ErrorType.BUSINESS_RULE_ERROR,
+                String.format("Bank '%s' is inactive and cannot process uploads", bankId.value()),
+                "bank.inactive"
+            ));
+        }
+        
+        if (bankStatus == BankStatus.SUSPENDED) {
+            return Result.failure(ErrorDetail.of(
+                "SUSPENDED_BANK",
+                ErrorType.BUSINESS_RULE_ERROR,
+                String.format("Bank '%s' is suspended and cannot process uploads", bankId.value()),
+                "bank.suspended"
+            ));
+        }
+        
+        if (bankStatus == BankStatus.NON_COMPLIANT) {
+            return Result.failure(ErrorDetail.of(
+                "NON_COMPLIANT_BANK",
+                ErrorType.BUSINESS_RULE_ERROR,
+                String.format("Bank '%s' is not in regulatory compliance", bankId.value()),
+                "bank.non.compliant"
+            ));
+        }
+        
+        if (!isFresh()) {
+            // Warning: stale data, but allow processing
+            // In production, this might trigger a refresh event
+            return Result.success(null);
+        }
+        
+        return Result.success(null);
+    }
+    
+    /**
+     * Create a new BankInfo with updated status.
+     * This supports event-driven updates to bank status.
+     */
+    public BankInfo withStatus(BankStatus newStatus) {
+        return new BankInfo(
+            this.bankId,
+            this.bankName,
+            this.bankCountry,
+            newStatus,
+            Instant.now() // Update timestamp when status changes
+        );
+    }
+    
+    /**
+     * Create a new BankInfo with refreshed timestamp.
+     */
+    public BankInfo withRefreshedTimestamp() {
+        return new BankInfo(
+            this.bankId,
+            this.bankName,
+            this.bankCountry,
+            this.bankStatus,
+            Instant.now()
+        );
+    }
+    
     public enum BankStatus {
         ACTIVE,
         INACTIVE,
-        SUSPENDED
+        SUSPENDED,
+        NON_COMPLIANT // Added for regulatory compliance status
     }
 }
 

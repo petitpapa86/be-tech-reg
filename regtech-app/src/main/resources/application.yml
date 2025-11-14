@@ -65,6 +65,11 @@ regtech:
   ingestion:
     compliance:
       enabled: true
+  
+  # Storage configuration
+  storage:
+    type: local # Options: 'local' for filesystem, 's3' for AWS S3 (default: s3)
+  
   s3:
     bucket: regtech-data-storage
     region: us-east-1

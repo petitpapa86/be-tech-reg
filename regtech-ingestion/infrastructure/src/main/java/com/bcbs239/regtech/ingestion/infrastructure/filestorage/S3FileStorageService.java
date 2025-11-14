@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.ingestion.infrastructure.storage;
+package com.bcbs239.regtech.ingestion.infrastructure.filestorage;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
@@ -7,9 +7,12 @@ import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
 import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
 import com.bcbs239.regtech.ingestion.infrastructure.config.S3Properties;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -24,11 +27,16 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
 
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkClientException;
+
 /**
  * S3 implementation of the FileStorageService.
  * Handles file storage operations using AWS S3.
+ * Active when storage.type=s3 or by default in production.
  */
 @Service
+@ConditionalOnProperty(name = "storage.type", havingValue = "s3", matchIfMissing = true)
 public class S3FileStorageService implements FileStorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(S3FileStorageService.class);
@@ -113,7 +121,7 @@ public class S3FileStorageService implements FileStorageService {
         } catch (IOException e) {
             logger.error("IO error while storing file {} for batch {}: {}", fileMetadata.fileName(), batchId, e.getMessage(), e);
             return Result.failure(ErrorDetail.of("FILE_READ_ERROR", ErrorType.SYSTEM_ERROR, "Failed to read file content: " + e.getMessage(), "storage.file.read.error"));
-        } catch (Exception e) {
+        } catch (AwsServiceException | SdkClientException e) {
             logger.error("Unexpected error while storing file {} for batch {}: {}", fileMetadata.fileName(), batchId, e.getMessage(), e);
             return Result.failure(ErrorDetail.of("STORAGE_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error during file storage: " + e.getMessage(), "storage.unexpected.error"));
         }
@@ -155,6 +163,3 @@ public class S3FileStorageService implements FileStorageService {
                 fileName);
     }
 }
-
-
-

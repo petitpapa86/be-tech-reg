@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.ingestion.infrastructure.parser;
+package com.bcbs239.regtech.ingestion.infrastructure.fileparsing;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;

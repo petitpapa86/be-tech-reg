@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.ingestion.infrastructure.parser;
+package com.bcbs239.regtech.ingestion.infrastructure.fileparsing;
 
 import com.bcbs239.regtech.ingestion.domain.model.*;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -158,7 +158,3 @@ public class FileToLoanExposureParser {
         }
     }
 }
-
-
-
-
