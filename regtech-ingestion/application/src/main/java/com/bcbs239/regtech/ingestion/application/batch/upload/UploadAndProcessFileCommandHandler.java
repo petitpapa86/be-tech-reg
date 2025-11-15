@@ -5,6 +5,7 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommand;
 import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler;
+import com.bcbs239.regtech.ingestion.application.common.TemporaryFileStorageService;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.IBankInfoRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
@@ -65,15 +66,7 @@ public class UploadAndProcessFileCommandHandler {
                 return Result.failure(bankValidationResult.getError().orElseThrow());
             }
 
-            Result<FileMetadata> fileValidationResult = validateFileMetadata(command);
-            if (fileValidationResult.isFailure()) {
-                return Result.failure(fileValidationResult.getError().orElseThrow());
-            }
-
-            FileMetadata fileMetadata = fileValidationResult.getValue().orElseThrow();
-
-            BatchId batchId = BatchId.generate();
-
+            // Store file FIRST before any other operations that might consume the stream
             Result<String> tempStorageResult = temporaryFileStorage.storeFile(
                 command.fileStream(),
                 command.fileName(),
@@ -87,6 +80,15 @@ public class UploadAndProcessFileCommandHandler {
             String tempFileKey = tempStorageResult.getValue().orElseThrow();
 
             try {
+                Result<FileMetadata> fileValidationResult = validateFileMetadata(command, tempFileKey);
+                if (fileValidationResult.isFailure()) {
+                    temporaryFileStorage.removeFile(tempFileKey); // Clean up on validation failure
+                    return Result.failure(fileValidationResult.getError().orElseThrow());
+                }
+
+                FileMetadata fileMetadata = fileValidationResult.getValue().orElseThrow();
+
+                BatchId batchId = BatchId.generate();
                 IngestionBatch batch = new IngestionBatch(batchId, bankId, fileMetadata);
 
                 logger.asyncStructuredLog("Upload and process started",
@@ -152,7 +154,7 @@ public class UploadAndProcessFileCommandHandler {
         return Result.success(null);
     }
 
-    private Result<FileMetadata> validateFileMetadata(UploadAndProcessFileCommand command) {
+    private Result<FileMetadata> validateFileMetadata(UploadAndProcessFileCommand command, String tempFileKey) {
         Result<FileName> fileNameResult = FileName.create(command.fileName());
         if (fileNameResult.isFailure()) {
             return Result.failure(fileNameResult.getError().orElseThrow());
@@ -191,8 +193,14 @@ public class UploadAndProcessFileCommandHandler {
                 Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
         }
 
-        // Calculate file checksum for integrity
-        String md5Checksum = calculateMD5Checksum(command.fileStream());
+        // Calculate MD5 checksum from stored file data (not from the already-consumed stream)
+        Result<TemporaryFileStorageService.FileData> fileDataResult = temporaryFileStorage.retrieveFile(tempFileKey);
+        if (fileDataResult.isFailure()) {
+            return Result.failure(fileDataResult.getError().orElseThrow());
+        }
+        
+        TemporaryFileStorageService.FileData fileData = fileDataResult.getValue().orElseThrow();
+        String md5Checksum = calculateMD5ChecksumFromBytes(fileData.data());
 
         // Create file metadata
         FileMetadata fileMetadata = new FileMetadata(
@@ -209,18 +217,9 @@ public class UploadAndProcessFileCommandHandler {
     @Async
     private CompletableFuture<Result<Void>> processBatchWithTempFile(BatchId batchId, String tempFileKey) {
         try {
-            // Retrieve the temporary file
-            Result<TemporaryFileStorageService.FileData> fileDataResult =
-                temporaryFileStorage.retrieveFile(tempFileKey);
-            if (fileDataResult.isFailure()) {
-                return CompletableFuture.completedFuture(Result.failure(fileDataResult.getError().orElseThrow()));
-            }
-
-            TemporaryFileStorageService.FileData fileData = fileDataResult.getValue().orElseThrow();
-
             ProcessBatchCommand processCommand = new ProcessBatchCommand(
                 batchId,
-                fileData.getInputStream()
+                tempFileKey
             );
 
             Result<Void> processResult = processBatchCommandHandler.handle(processCommand);
@@ -234,33 +233,17 @@ public class UploadAndProcessFileCommandHandler {
         }
     }
 
-    private String calculateMD5Checksum(java.io.InputStream inputStream) {
+    private String calculateMD5ChecksumFromBytes(byte[] data) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-
-            if (inputStream.markSupported()) {
-                inputStream.mark(Integer.MAX_VALUE);
-            }
-
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                md.update(buffer, 0, bytesRead);
-            }
-
-            if (inputStream.markSupported()) {
-                inputStream.reset();
-            }
-
-            byte[] digest = md.digest();
+            byte[] digest = md.digest(data);
             StringBuilder sb = new StringBuilder();
             for (byte b : digest) {
                 sb.append(String.format("%02x", b));
             }
             return sb.toString();
-
-        } catch (NoSuchAlgorithmException | IOException e) {
-            return "checksum_calculation_failed";
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("MD5 algorithm not available", e);
         }
     }
 }

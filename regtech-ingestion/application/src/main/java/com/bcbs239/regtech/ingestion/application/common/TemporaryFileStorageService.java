@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.ingestion.application.batch.upload;
+package com.bcbs239.regtech.ingestion.application.common;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
@@ -35,31 +35,36 @@ public class TemporaryFileStorageService {
             byte[] data = new byte[8192];
             int bytesRead;
             long totalBytesRead = 0;
+            long maxFileSize = 500L * 1024 * 1024; // 500MB max safety limit
 
             while ((bytesRead = fileStream.read(data, 0, data.length)) != -1) {
                 buffer.write(data, 0, bytesRead);
                 totalBytesRead += bytesRead;
 
-                // Safety check to prevent memory exhaustion
-                if (totalBytesRead > fileSize * 2) { // Allow some buffer but not too much
+                // Safety check to prevent memory exhaustion (using absolute max limit)
+                if (totalBytesRead > maxFileSize) {
                     return Result.failure(ErrorDetail.of("FILE_TOO_LARGE", ErrorType.VALIDATION_ERROR,
-                        "File size validation failed during storage", "file.storage.size.mismatch"));
+                        "File size exceeds maximum allowed size (500MB)", "file.storage.size.exceeded"));
                 }
             }
 
-            // Verify the actual size matches expected size
-            if (totalBytesRead != fileSize) {
-                return Result.failure(ErrorDetail.of("FILE_SIZE_MISMATCH", ErrorType.VALIDATION_ERROR,
-                    "Actual file size does not match expected size", "file.storage.size.mismatch"));
+            // Use actual bytes read as the file size (since fileSize param might be 0 or incorrect)
+            long actualFileSize = totalBytesRead;
+            
+            // Log warning if declared size doesn't match actual size
+            if (fileSize > 0 && fileSize != actualFileSize) {
+                log.warn("Declared file size ({}) doesn't match actual size ({}). Using actual size.", 
+                    fileSize, actualFileSize);
             }
 
             byte[] fileBytes = buffer.toByteArray();
             String referenceKey = UUID.randomUUID().toString();
 
-            FileData fileData = new FileData(fileBytes, fileName, contentType, fileSize);
+            FileData fileData = new FileData(fileBytes, fileName, contentType, actualFileSize);
             temporaryFiles.put(referenceKey, fileData);
 
-            log.debug("Stored temporary file with key: {}, size: {} bytes", referenceKey, fileSize);
+            log.info("Stored temporary file with key: {}, fileName: {}, contentType: {}, size: {} bytes, arrayLength: {}", 
+                referenceKey, fileName, contentType, actualFileSize, fileBytes.length);
 
             return Result.success(referenceKey);
 
@@ -76,10 +81,13 @@ public class TemporaryFileStorageService {
     public Result<FileData> retrieveFile(String referenceKey) {
         FileData fileData = temporaryFiles.get(referenceKey);
         if (fileData == null) {
+            log.warn("Temporary file not found for key: {}. Available keys: {}", referenceKey, temporaryFiles.keySet());
             return Result.failure(ErrorDetail.of("FILE_NOT_FOUND", ErrorType.NOT_FOUND_ERROR,
                 "Temporary file not found or expired", "file.storage.not.found"));
         }
 
+        log.info("Retrieved temporary file for key: {}, fileName: {}, dataLength: {}", 
+            referenceKey, fileData.fileName(), fileData.data() != null ? fileData.data().length : 0);
         return Result.success(fileData);
     }
 
@@ -94,12 +102,12 @@ public class TemporaryFileStorageService {
     }
 
     /**
-         * Data structure for stored file information.
-         */
-        public record FileData(byte[] data, String fileName, String contentType, long fileSize) {
+     * Data structure for stored file information.
+     */
+    public record FileData(byte[] data, String fileName, String contentType, long fileSize) {
 
         public InputStream getInputStream() {
-                return new ByteArrayInputStream(data);
-            }
+            return new ByteArrayInputStream(data);
         }
+    }
 }

@@ -4,9 +4,9 @@ import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.ingestion.application.common.TemporaryFileStorageService;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.IBankInfoRepository;
-import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
@@ -16,10 +16,10 @@ import com.bcbs239.regtech.ingestion.domain.model.ParsedFileData;
 import com.bcbs239.regtech.ingestion.domain.parsing.FileParsingService;
 import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
 import com.bcbs239.regtech.ingestion.domain.validation.FileContentValidationService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.InputStream;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -28,6 +28,7 @@ import java.util.Optional;
  * Handles the complete processing pipeline: parsing, validation, enrichment, storage, and event publishing.
  */
 @Component
+@Slf4j
 public class ProcessBatchCommandHandler {
     
     private final IIngestionBatchRepository ingestionBatchRepository;
@@ -36,6 +37,7 @@ public class ProcessBatchCommandHandler {
     private final IBankInfoRepository bankInfoRepository;
     private final FileStorageService fileStorageService;
     private final IIntegrationEventBus eventPublisher;
+    private final TemporaryFileStorageService temporaryFileStorage;
     
     public ProcessBatchCommandHandler(
             IIngestionBatchRepository ingestionBatchRepository,
@@ -43,18 +45,35 @@ public class ProcessBatchCommandHandler {
             FileContentValidationService fileContentValidationService,
             IBankInfoRepository bankInfoRepository,
             FileStorageService fileStorageService,
-            IIntegrationEventBus eventPublisher) {
+            IIntegrationEventBus eventPublisher,
+            TemporaryFileStorageService temporaryFileStorage) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.fileParsingService = fileParsingService;
         this.fileContentValidationService = fileContentValidationService;
         this.bankInfoRepository = bankInfoRepository;
         this.fileStorageService = fileStorageService;
         this.eventPublisher = eventPublisher;
+        this.temporaryFileStorage = temporaryFileStorage;
     }
 
     @Transactional
     public Result<Void> handle(ProcessBatchCommand command) {
         try {
+            // 0. Retrieve file data from temporary storage
+            Result<TemporaryFileStorageService.FileData> fileDataResult =
+                temporaryFileStorage.retrieveFile(command.tempFileKey());
+            if (fileDataResult.isFailure()) {
+                return Result.failure(fileDataResult.getError().orElseThrow());
+            }
+            
+            TemporaryFileStorageService.FileData fileData = 
+                fileDataResult.getValue().orElseThrow();
+            
+            // Log file data for debugging
+            log.info("Retrieved temporary file - key: {}, fileName: {}, contentType: {}, fileSize: {}, dataLength: {}", 
+                command.tempFileKey(), fileData.fileName(), fileData.contentType(), 
+                fileData.fileSize(), fileData.data() != null ? fileData.data().length : 0);
+            
             // 1. Load batch from repository
             IngestionBatch batch = ingestionBatchRepository.findByBatchId(command.batchId())
                 .orElse(null);
@@ -76,9 +95,9 @@ public class ProcessBatchCommandHandler {
                     ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to update batch status to PARSING", "database.error")));
             }
             
-            // 3. Parse file content
+            // 3. Parse file content (use fresh InputStream)
             FileContent fileContent = FileContent.of(
-                command.fileStream(),
+                fileData.getInputStream(),
                 batch.getFileMetadata().fileName(),
                 batch.getFileMetadata().contentType()
             );
@@ -152,9 +171,9 @@ public class ProcessBatchCommandHandler {
                 return attachResult;
             }
             
-            // 7. Store in S3 with enterprise features
+            // 7. Store in S3 with enterprise features (use fresh InputStream)
             Result<S3Reference> s3Result = fileStorageService.storeFile(
-                command.fileStream(),
+                fileData.getInputStream(),
                 batch.getFileMetadata(),
                 batch.getBatchId().value(),
                 batch.getBankId().value(),
@@ -201,9 +220,18 @@ public class ProcessBatchCommandHandler {
             
             eventPublisher.publish(event);
             
+            // 12. Cleanup temporary file storage
+            temporaryFileStorage.removeFile(command.tempFileKey());
+            
             return Result.success(null);
             
         } catch (Exception e) {
+            // Cleanup on error
+            try {
+                temporaryFileStorage.removeFile(command.tempFileKey());
+            } catch (Exception cleanupEx) {
+                // Log but don't fail - already have an error
+            }
             return Result.failure(ErrorDetail.of("PROCESS_HANDLER_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error during batch processing: " + e.getMessage(), "process.handler.error"));
         }
     }
