@@ -26,7 +26,7 @@ public class UserEntity {
 
     // Getters and setters
     @Id
-    @Column(name = "id", columnDefinition = "UUID")
+    @Column(name = "id", length = 36)
     private String id;
 
     @Column(name = "email", nullable = false, unique = true, length = 255)

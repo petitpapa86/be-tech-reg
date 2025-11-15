@@ -20,11 +20,11 @@ import java.time.Instant;
 public class UserRoleEntity {
 
     @Id
-    @Column(name = "id", columnDefinition = "UUID")
+    @Column(name = "id", length = 36)
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(name = "user_id", nullable = false, columnDefinition = "UUID")
+    @Column(name = "user_id", nullable = false, length = 36)
     private String userId;
 
     @Column(name = "role_id", length = 36)

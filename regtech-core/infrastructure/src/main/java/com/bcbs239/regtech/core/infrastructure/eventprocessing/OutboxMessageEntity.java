@@ -23,7 +23,7 @@ public class OutboxMessageEntity  {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(name = "id", columnDefinition = "UUID")
+    @Column(name = "id", length = 36)
     private String id;
 
     @Column(name = "type", nullable = false, length = 255)
