@@ -1,11 +1,14 @@
 package com.bcbs239.regtech.ingestion.application.batch.queries;
 
 
+import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
+import com.bcbs239.regtech.ingestion.domain.bankinfo.IBankInfoRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.*;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +23,8 @@ import java.util.Map;
 public class BatchStatusQueryHandler {
     
     private final IIngestionBatchRepository ingestionBatchRepository;
-    private final IngestionLoggingService loggingService;
+    private final IBankInfoRepository bankInfoRepository;
+    private final ILogger logger;
     
     // Estimated processing times per stage
     private static final Map<BatchStatus, ProcessingDuration> ESTIMATED_STAGE_DURATIONS = Map.of(
@@ -31,30 +35,21 @@ public class BatchStatusQueryHandler {
     
     public BatchStatusQueryHandler(
             IIngestionBatchRepository ingestionBatchRepository,
-            IngestionLoggingService loggingService) {
+            IBankInfoRepository bankInfoRepository,
+            ILogger logger) {
         this.ingestionBatchRepository = ingestionBatchRepository;
-        this.loggingService = loggingService;
+        this.bankInfoRepository = bankInfoRepository;
+        this.logger = logger;
     }
     
-    /**
-     * Handle the batch status query.
-     * 1. Validate JWT token and extract bank ID
-     * 2. Find batch by ID
-     * 3. Verify bank authorization (batch belongs to requesting bank)
-     * 4. Calculate progress and estimated completion time
-     * 5. Return comprehensive status information
-     */
     public Result<BatchStatusDto> handle(BatchStatusQuery query) {
         long startTime = System.currentTimeMillis();
         
         try {
             // 1. Validate JWT token and extract bank ID using existing security infrastructure
-            Result<BankId> bankIdResult = null//securityService.validateTokenAndExtractBankId(query.authToken());
-            if (bankIdResult.isFailure()) {
-                return Result.failure(bankIdResult.getError().orElseThrow());
-            }
-            
-            BankId requestingBankId = bankIdResult.getValue().orElseThrow();
+            // TODO: Implement security service integration
+            // Result<BankId> bankIdResult = securityService.validateTokenAndExtractBankId(query.authToken());
+            // For now, we'll use the batch's bank ID directly
             
             // 2. Find batch by ID
             IngestionBatch batch = ingestionBatchRepository.findByBatchId(query.batchId())
@@ -64,22 +59,51 @@ public class BatchStatusQueryHandler {
                 // Log access attempt for audit trail
                 Map<String, Object> context = Map.of(
                     "batchId", query.batchId().value(),
-                    "requestingBankId", requestingBankId.value(),
                     "result", "batch_not_found"
                 );
-                loggingService.logRequestFlowStep("BATCH_STATUS_QUERY", "BATCH_NOT_FOUND", context);
+                logger.asyncStructuredLog("BATCH_STATUS_QUERY - BATCH_NOT_FOUND", context);
                 
                 return Result.failure(ErrorDetail.of("BATCH_NOT_FOUND", ErrorType.NOT_FOUND_ERROR,
                     "Batch not found: " + query.batchId().value(), "batch.status.not.found"));
             }
             
-            // 3. Verify batch access permissions using existing security infrastructure
+            // 3. Retrieve and validate bank information
+            BankId batchBankId = batch.getBankId();
+            BankInfo bankInfo = bankInfoRepository.findByBankId(batchBankId).orElse(null);
+            
+            if (bankInfo == null) {
+                Map<String, Object> context = Map.of(
+                    "batchId", query.batchId().value(),
+                    "bankId", batchBankId.value(),
+                    "result", "bank_not_found"
+                );
+                logger.asyncStructuredLog("BATCH_STATUS_QUERY - BANK_NOT_FOUND", context);
+                
+                return Result.failure(ErrorDetail.of("BANK_NOT_FOUND", ErrorType.NOT_FOUND_ERROR,
+                    "Bank information not found: " + batchBankId.value(), "bank.not.found"));
+            }
+            
+            // 4. Validate bank eligibility
+            Result<Void> eligibilityResult = bankInfo.validateEligibilityForProcessing();
+            if (eligibilityResult.isFailure()) {
+                Map<String, Object> context = Map.of(
+                    "batchId", query.batchId().value(),
+                    "bankId", batchBankId.value(),
+                    "bankStatus", bankInfo.bankStatus().name(),
+                    "result", "bank_not_eligible"
+                );
+                logger.asyncStructuredLog("BATCH_STATUS_QUERY - BANK_NOT_ELIGIBLE", context);
+                
+                return Result.failure(eligibilityResult.getError().orElseThrow());
+            }
+            
+            // 5. Verify batch access permissions using existing security infrastructure
 //            Result<Void> accessResult = securityService.verifyBatchAccess(query.batchId(), batch.getBankId());
 //            if (accessResult.isFailure()) {
 //                return Result.failure(accessResult.getError().orElseThrow());
 //            }
             
-            // 4. Calculate progress and estimated completion time
+            // 6. Calculate progress and estimated completion time
             ProgressInfo progressInfo = calculateProgress(batch);
             
             // 5. Build performance metrics
@@ -92,12 +116,13 @@ public class BatchStatusQueryHandler {
             long duration = System.currentTimeMillis() - startTime;
             Map<String, Object> context = Map.of(
                 "batchId", batch.getBatchId().value(),
-                "requestingBankId", requestingBankId.value(),
+                "bankId", batchBankId.value(),
+                "bankName", bankInfo.bankName(),
                 "batchStatus", batch.getStatus().name(),
                 "durationMs", duration,
                 "result", "success"
             );
-            loggingService.logRequestFlowStep("BATCH_STATUS_QUERY", "STATUS_RETRIEVED", context);
+            logger.asyncStructuredLog("BATCH_STATUS_QUERY - STATUS_RETRIEVED", context);
             
             // 8. Build and return status DTO
             ProcessingStage processingStage = ProcessingStage.fromBatchStatus(batch.getStatus());
@@ -222,10 +247,5 @@ public class BatchStatusQueryHandler {
     }
     
     private record ProgressInfo(ProgressPercentage progressPercentage, Long estimatedCompletionTime) {}
-
-    
-    public interface IngestionLoggingService {
-        void logRequestFlowStep(String operation, String step, Map<String, Object> context);
-    }
 }
 
