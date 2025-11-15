@@ -19,12 +19,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @ComponentScan(basePackages = {
         "com.bcbs239.regtech.ingestion.domain",
-        "com.bcbs239.regtech.modules.ingestion.application",
-        "com.bcbs239.regtech.modules.ingestion.infrastructure",
-        "com.bcbs239.regtech.modules.ingestion.presentation"
+        "com.bcbs239.regtech.ingestion.application",
+        "com.bcbs239.regtech.ingestion.infrastructure",
+        "com.bcbs239.regtech.ingestion.presentation"
 })
-@EntityScan(basePackages = "com.bcbs239.regtech.modules.ingestion.infrastructure.*.persistence")
-@EnableJpaRepositories(basePackages = "com.bcbs239.regtech.modules.ingestion.infrastructure.*.persistence")
+@EntityScan(basePackages = "com.bcbs239.regtech.ingestion.infrastructure")
+@EnableJpaRepositories(basePackages = "com.bcbs239.regtech.ingestion.infrastructure")
 @ConditionalOnProperty(name = "ingestion.enabled", havingValue = "true", matchIfMissing = true)
 public class IngestionModuleConfiguration {
 

@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.ingestion.application.batch.process;
 
+import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -34,7 +35,7 @@ public class ProcessBatchCommandHandler {
     private final FileContentValidationService fileContentValidationService;
     private final IBankInfoRepository bankInfoRepository;
     private final FileStorageService fileStorageService;
-    private final IngestionOutboxEventPublisher eventPublisher;
+    private final IIntegrationEventBus eventPublisher;
     
     public ProcessBatchCommandHandler(
             IIngestionBatchRepository ingestionBatchRepository,
@@ -42,7 +43,7 @@ public class ProcessBatchCommandHandler {
             FileContentValidationService fileContentValidationService,
             IBankInfoRepository bankInfoRepository,
             FileStorageService fileStorageService,
-            IngestionOutboxEventPublisher eventPublisher) {
+            IIntegrationEventBus eventPublisher) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.fileParsingService = fileParsingService;
         this.fileContentValidationService = fileContentValidationService;
@@ -198,7 +199,7 @@ public class ProcessBatchCommandHandler {
                 Instant.now()
             );
             
-            eventPublisher.publishBatchIngestedEvent(event);
+            eventPublisher.publish(event);
             
             return Result.success(null);
             
@@ -217,9 +218,5 @@ public class ProcessBatchCommandHandler {
         // Then validate business rules
         return fileContentValidationService.validateBusinessRules(parsedData);
     }
-    
-    // Application layer interfaces for infrastructure dependencies
-    public interface IngestionOutboxEventPublisher {
-        void publishBatchIngestedEvent(BatchIngestedEvent event);
-    }
+
 }

@@ -16,7 +16,7 @@ import java.time.Instant;
 @Setter
 @Getter
 @Entity
-@Table(name = "bank_info", schema = "regtech")
+@Table(name = "bank_info", schema = "ingestion")
 public class BankInfoEntity {
 
     @Id

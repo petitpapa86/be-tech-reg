@@ -17,7 +17,7 @@ import java.util.Objects;
 @Setter
 @Getter
 @Entity
-@Table(name = "ingestion_batches", schema = "regtech")
+@Table(name = "ingestion_batches", schema = "ingestion")
 public class IngestionBatchEntity {
 
     // Getters and setters

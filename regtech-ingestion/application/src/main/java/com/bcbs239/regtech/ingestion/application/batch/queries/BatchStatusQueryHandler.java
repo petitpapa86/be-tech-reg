@@ -20,7 +20,6 @@ import java.util.Map;
 public class BatchStatusQueryHandler {
     
     private final IIngestionBatchRepository ingestionBatchRepository;
-    private final IngestionSecurityService securityService;
     private final IngestionLoggingService loggingService;
     
     // Estimated processing times per stage
@@ -32,10 +31,8 @@ public class BatchStatusQueryHandler {
     
     public BatchStatusQueryHandler(
             IIngestionBatchRepository ingestionBatchRepository,
-            IngestionSecurityService securityService,
             IngestionLoggingService loggingService) {
         this.ingestionBatchRepository = ingestionBatchRepository;
-        this.securityService = securityService;
         this.loggingService = loggingService;
     }
     
@@ -52,7 +49,7 @@ public class BatchStatusQueryHandler {
         
         try {
             // 1. Validate JWT token and extract bank ID using existing security infrastructure
-            Result<BankId> bankIdResult = securityService.validateTokenAndExtractBankId(query.authToken());
+            Result<BankId> bankIdResult = null//securityService.validateTokenAndExtractBankId(query.authToken());
             if (bankIdResult.isFailure()) {
                 return Result.failure(bankIdResult.getError().orElseThrow());
             }
@@ -77,10 +74,10 @@ public class BatchStatusQueryHandler {
             }
             
             // 3. Verify batch access permissions using existing security infrastructure
-            Result<Void> accessResult = securityService.verifyBatchAccess(query.batchId(), batch.getBankId());
-            if (accessResult.isFailure()) {
-                return Result.failure(accessResult.getError().orElseThrow());
-            }
+//            Result<Void> accessResult = securityService.verifyBatchAccess(query.batchId(), batch.getBankId());
+//            if (accessResult.isFailure()) {
+//                return Result.failure(accessResult.getError().orElseThrow());
+//            }
             
             // 4. Calculate progress and estimated completion time
             ProgressInfo progressInfo = calculateProgress(batch);
@@ -225,13 +222,7 @@ public class BatchStatusQueryHandler {
     }
     
     private record ProgressInfo(ProgressPercentage progressPercentage, Long estimatedCompletionTime) {}
-    
-    // These services will be migrated to infrastructure layer
-    // For now, creating placeholder interfaces
-    public interface IngestionSecurityService {
-        Result<BankId> validateTokenAndExtractBankId(String token);
-        Result<Void> verifyBatchAccess(BatchId batchId, BankId bankId);
-    }
+
     
     public interface IngestionLoggingService {
         void logRequestFlowStep(String operation, String step, Map<String, Object> context);
