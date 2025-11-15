@@ -29,10 +29,6 @@ public class FileValidationServiceImpl implements FileContentValidationService {
             return Result.failure(ErrorDetail.of("INVALID_TYPE", ErrorType.SYSTEM_ERROR, "Expected ParsedFileData", "generic.error"));
         }
 
-        if (data == null) {
-            return Result.failure(ErrorDetail.of("NULL_DATA", ErrorType.SYSTEM_ERROR, "Parsed data cannot be null", "generic.error"));
-        }
-
         // Validate exposures list
         List<LoanExposure> exposures = data.exposures();
         if (exposures == null) {

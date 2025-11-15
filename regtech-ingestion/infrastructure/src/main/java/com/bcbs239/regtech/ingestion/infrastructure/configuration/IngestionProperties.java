@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.ingestion.infrastructure.config;
+package com.bcbs239.regtech.ingestion.infrastructure.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

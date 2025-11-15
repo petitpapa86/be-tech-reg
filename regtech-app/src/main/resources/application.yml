@@ -66,15 +66,13 @@ iam:
       strict-mode: true
       audit-enabled: true
 
+# Storage configuration (must be at root level for @ConditionalOnProperty)
+storage:
+  type: local # Options: 'local' for filesystem, 's3' for AWS S3 (default: s3)
+
 # Ingestion Module Configuration
-regtech:
-  ingestion:
-    compliance:
-      enabled: true
-  
-  # Storage configuration
-  storage:
-    type: local # Options: 'local' for filesystem, 's3' for AWS S3 (default: s3)
+ingestion:
+  enabled: true
   
   s3:
     bucket: regtech-data-storage
@@ -90,15 +88,27 @@ regtech:
       - application/json
       - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
   
-  bank-registry:
-    base-url: ${BANK_REGISTRY_URL:http://localhost:8081}
-    timeout: 30000 # 30 seconds
-    retry-attempts: 3
-  
   processing:
     async-enabled: true
     thread-pool-size: 10
     queue-capacity: 100
+  
+  performance:
+    max-concurrent-files: 4
+    chunk-size: 10000
+  
+  parser:
+    default-max-records: 10000
+
+regtech:
+  ingestion:
+    compliance:
+      enabled: true
+  
+  bank-registry:
+    base-url: ${BANK_REGISTRY_URL:http://localhost:8081}
+    timeout: 30000 # 30 seconds
+    retry-attempts: 3
   
   outbox:
     enabled: true
