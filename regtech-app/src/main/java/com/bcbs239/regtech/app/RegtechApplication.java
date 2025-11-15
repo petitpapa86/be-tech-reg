@@ -25,8 +25,9 @@ import java.util.Arrays;
 @ComponentScan(basePackages = {
         "com.bcbs239.regtech.app",
         "com.bcbs239.regtech.core",
-        "com.bcbs239.regtech.iam.infrastructure.config",
-        "com.bcbs239.regtech.billing.infrastructure.configuration",
+        "com.bcbs239.regtech.iam",
+        "com.bcbs239.regtech.billing",
+        "com.bcbs239.regtech.ingestion.infrastructure.config",
 })
 @EntityScan(basePackages = {
         "com.bcbs239.regtech.core.infrastructure",
@@ -36,9 +37,8 @@ import java.util.Arrays;
 })
 @EnableAspectJAutoProxy
 public class RegtechApplication {
-    static void main(String[] args) {
+    public static void main(String[] args) {
         SpringApplication.run(RegtechApplication.class, args);
     }
-
 }
 

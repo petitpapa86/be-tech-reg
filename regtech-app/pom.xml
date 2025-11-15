@@ -55,9 +55,24 @@
             <artifactId>regtech-billing-domain</artifactId>
             <version>${project.version}</version>
         </dependency>
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-ingestion-presentation</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-ingestion-application</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-ingestion-infrastructure</artifactId>
+			<version>${project.version}</version>
+		</dependency>
 <!--		<dependency>-->
 <!--			<groupId>com.bcbs239</groupId>-->
-<!--			<artifactId>regtech-ingestion-presentation</artifactId>-->
+<!--			<artifactId>regtech-data-quality-presentation</artifactId>-->
 <!--			<version>${project.version}</version>-->
 <!--		</dependency>-->
 
