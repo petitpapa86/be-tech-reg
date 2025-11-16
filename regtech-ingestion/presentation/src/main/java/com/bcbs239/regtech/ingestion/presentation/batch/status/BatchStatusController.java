@@ -20,6 +20,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 import java.util.List;
 
 import static org.springframework.web.servlet.function.RequestPredicates.GET;
+import static org.springframework.web.servlet.function.RequestPredicates.POST;
 import static org.springframework.web.servlet.function.RouterFunctions.route;
 
 /**
@@ -38,6 +39,7 @@ public class BatchStatusController extends BaseController implements IEndpoint {
     @Override
     public RouterFunction<ServerResponse> mapEndpoint() {
         return route(GET("/api/v1/ingestion/batch/{batchId}/status"), this::handle)
+            .andRoute(POST("/api/v1/ingestion/batch/{batchId}/status"), this::handle)
             .withAttribute("tags", new String[]{"Status Queries", "Ingestion"})
             .withAttribute("permissions", new String[]{"ingestion:status:view"});
     }
@@ -50,14 +52,14 @@ public class BatchStatusController extends BaseController implements IEndpoint {
         String authToken = request.headers().firstHeader("Authorization");
 
         // Validate request parameters
-        Result<Void> validationResult = validateStatusRequest(batchIdStr, authToken);
-        if (validationResult.isFailure()) {
-            ErrorDetail error = validationResult.getError().orElseThrow();
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
-            assert responseEntity.getBody() != null;
-            return ServerResponse.status(responseEntity.getStatusCode())
-                .body(responseEntity.getBody());
-        }
+//        Result<Void> validationResult = validateStatusRequest(batchIdStr, authToken);
+//        if (validationResult.isFailure()) {
+//            ErrorDetail error = validationResult.getError().orElseThrow();
+//            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
+//            assert responseEntity.getBody() != null;
+//            return ServerResponse.status(responseEntity.getStatusCode())
+//                .body(responseEntity.getBody());
+//        }
         
         // Create query - IllegalArgumentException will be caught by IngestionExceptionHandler
         BatchStatusQuery query = new BatchStatusQuery(
