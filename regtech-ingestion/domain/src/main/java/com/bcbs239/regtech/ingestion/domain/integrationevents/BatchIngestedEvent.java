@@ -17,7 +17,6 @@ import java.time.Instant;
 public class BatchIngestedEvent extends IntegrationEvent {
     
     private static final String EVENT_VERSION = "1.0";
-    
     private final String batchId;
     private final String bankId;
     private final String s3Uri;

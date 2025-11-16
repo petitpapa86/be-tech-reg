@@ -1,16 +1,17 @@
 package com.bcbs239.regtech.dataquality.application.integration;
 
+import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
+import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommand;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommandHandler;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.event.EventListener;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,20 +24,30 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Specialized event listener for BatchIngested events that triggers quality validation.
- * Includes advanced features like event filtering, routing, and dead letter processing.
+ * 
+ * <p>Event Processing Flow:
+ * <ul>
+ *   <li>Events are filtered for validity (non-empty IDs, valid counts, not stale)</li>
+ *   <li>Idempotency is ensured by checking for existing quality reports</li>
+ *   <li>Failed events are persisted to IEventProcessingFailureRepository</li>
+ *   <li>EventRetryProcessor automatically retries failed events with exponential backoff</li>
+ *   <li>Permanently failed events (after max retries) remain in the repository for manual intervention</li>
+ * </ul>
+ * 
+ * <p>No manual retry logic is needed - the EventRetryProcessor handles all retry attempts
+ * and the failure repository serves as the dead letter queue for permanently failed events.
  */
 @Component
 public class BatchIngestedEventListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(BatchIngestedEventListener.class);
-
+    private final ILogger logger;
     private final ValidateBatchQualityCommandHandler commandHandler;
     private final IQualityReportRepository qualityReportRepository;
+    private final IEventProcessingFailureRepository failureRepository;
+    private final ObjectMapper objectMapper;
 
     // Event processing tracking
     private final Set<String> processedEvents = ConcurrentHashMap.newKeySet();
-    private final Map<String, Integer> retryCounters = new ConcurrentHashMap<>();
-    private final Map<String, Instant> lastProcessingAttempt = new ConcurrentHashMap<>();
 
     // Statistics
     private final AtomicInteger totalEventsReceived = new AtomicInteger(0);
@@ -44,45 +55,54 @@ public class BatchIngestedEventListener {
     private final AtomicInteger totalEventsFailed = new AtomicInteger(0);
     private final AtomicInteger totalEventsFiltered = new AtomicInteger(0);
 
-    // Configuration
-    private static final int MAX_RETRY_ATTEMPTS = 3;
-    private static final long RETRY_COOLDOWN_MINUTES = 5;
-    private static final int DEAD_LETTER_THRESHOLD = 5;
-
     public BatchIngestedEventListener(
+            ILogger logger,
             ValidateBatchQualityCommandHandler commandHandler,
-            IQualityReportRepository qualityReportRepository
+            IQualityReportRepository qualityReportRepository,
+            IEventProcessingFailureRepository failureRepository,
+            ObjectMapper objectMapper
     ) {
+        this.logger = logger;
         this.commandHandler = commandHandler;
         this.qualityReportRepository = qualityReportRepository;
+        this.failureRepository = failureRepository;
+        this.objectMapper = objectMapper;
     }
 
     /**
      * Main event handler for BatchIngested events.
      * Includes event filtering, routing logic, and error handling.
+     * Failed events are persisted to the failure repository for retry by EventRetryProcessor.
      */
     @EventListener
     @Async("qualityEventExecutor")
     @Transactional
-    @Retryable(value = {Exception.class}, maxAttempts = MAX_RETRY_ATTEMPTS,
-            backoff = @Backoff(delay = 2000, multiplier = 2))
     public void handleBatchIngestedEvent(BatchIngestedEvent event) {
         totalEventsReceived.incrementAndGet();
 
-        logger.info("Received BatchIngested event: batchId={}, bankId={}, s3Uri={}, expectedCount={}",
-                event.getBatchId(), event.getBankId(), event.getS3Uri(), event.getExpectedExposureCount());
+        logger.asyncStructuredLog("batch_ingested_event_received", Map.of(
+                "batchId", event.getBatchId(),
+                "bankId", event.getBankId(),
+                "s3Uri", event.getS3Uri(),
+                "totalExposures", String.valueOf(event.getTotalExposures())
+        ));
 
         try {
             // Event filtering
             if (!shouldProcessEvent(event)) {
                 totalEventsFiltered.incrementAndGet();
-                logger.info("Event filtered out for batch: {}", event.getBatchId());
+                logger.asyncStructuredLog("batch_ingested_event_filtered", Map.of(
+                        "batchId", event.getBatchId(),
+                        "reason", "failed_validation"
+                ));
                 return;
             }
 
             // Idempotency check
             if (!ensureIdempotency(event)) {
-                logger.info("Event already processed or in progress for batch: {}", event.getBatchId());
+                logger.asyncStructuredLog("batch_ingested_event_already_processed", Map.of(
+                        "batchId", event.getBatchId()
+                ));
                 return;
             }
 
@@ -90,12 +110,14 @@ public class BatchIngestedEventListener {
             routeEvent(event);
 
             totalEventsProcessed.incrementAndGet();
-            logger.info("Successfully processed BatchIngested event for batch: {}", event.getBatchId());
+            logger.asyncStructuredLog("batch_ingested_event_processed_successfully", Map.of(
+                    "batchId", event.getBatchId()
+            ));
 
         } catch (Exception e) {
             totalEventsFailed.incrementAndGet();
             handleEventProcessingError(event, e);
-            throw e; // Re-throw to trigger retry mechanism
+            // Don't re-throw - error is persisted for retry by EventRetryProcessor
         }
     }
 
@@ -105,39 +127,47 @@ public class BatchIngestedEventListener {
     private boolean shouldProcessEvent(BatchIngestedEvent event) {
         // Filter out events with invalid data
         if (event.getBatchId() == null || event.getBatchId().trim().isEmpty()) {
-            logger.warn("Filtering out event with null or empty batch ID");
+            logger.asyncStructuredLog("batch_ingested_event_invalid_batch_id", Map.of(
+                    "reason", "null_or_empty_batch_id"
+            ));
             return false;
         }
 
         if (event.getBankId() == null || event.getBankId().trim().isEmpty()) {
-            logger.warn("Filtering out event with null or empty bank ID for batch: {}", event.getBatchId());
+            logger.asyncStructuredLog("batch_ingested_event_invalid_bank_id", Map.of(
+                    "batchId", event.getBatchId(),
+                    "reason", "null_or_empty_bank_id"
+            ));
             return false;
         }
 
         if (event.getS3Uri() == null || event.getS3Uri().trim().isEmpty()) {
-            logger.warn("Filtering out event with null or empty S3 URI for batch: {}", event.getBatchId());
+            logger.asyncStructuredLog("batch_ingested_event_invalid_s3_uri", Map.of(
+                    "batchId", event.getBatchId(),
+                    "reason", "null_or_empty_s3_uri"
+            ));
             return false;
         }
 
-        if (event.getExpectedExposureCount() <= 0) {
-            logger.warn("Filtering out event with invalid exposure count for batch: {}", event.getBatchId());
+        if (event.getTotalExposures() <= 0) {
+            logger.asyncStructuredLog("batch_ingested_event_invalid_exposure_count", Map.of(
+                    "batchId", event.getBatchId(),
+                    "totalExposures", String.valueOf(event.getTotalExposures())
+            ));
             return false;
         }
 
         // Filter out events that are too old (older than 24 hours)
-        if (event.getTimestamp() != null) {
+        if (event.getCompletedAt() != null) {
             Instant cutoff = Instant.now().minusSeconds(24 * 60 * 60); // 24 hours ago
-            if (event.getTimestamp().isBefore(cutoff)) {
-                logger.warn("Filtering out stale event for batch: {} (timestamp: {})",
-                        event.getBatchId(), event.getTimestamp());
+            if (event.getCompletedAt().isBefore(cutoff)) {
+                logger.asyncStructuredLog("batch_ingested_event_stale", Map.of(
+                        "batchId", event.getBatchId(),
+                        "completedAt", event.getCompletedAt().toString(),
+                        "cutoff", cutoff.toString()
+                ));
                 return false;
             }
-        }
-
-        // Check if batch is in dead letter queue
-        if (isInDeadLetterQueue(event.getBatchId())) {
-            logger.warn("Filtering out event for batch in dead letter queue: {}", event.getBatchId());
-            return false;
         }
 
         return true;
@@ -154,23 +184,18 @@ public class BatchIngestedEventListener {
             return false;
         }
 
-        // Check if we're in retry cooldown period
-        if (isInRetryCooldown(event.getBatchId())) {
-            logger.info("Batch {} is in retry cooldown period", event.getBatchId());
-            return false;
-        }
-
         // Check database for existing quality report
         BatchId batchId = new BatchId(event.getBatchId());
         if (qualityReportRepository.existsByBatchId(batchId)) {
-            logger.info("Quality report already exists for batch: {}", event.getBatchId());
+            logger.asyncStructuredLog("batch_quality_report_already_exists", Map.of(
+                    "batchId", event.getBatchId()
+            ));
             processedEvents.add(eventKey);
             return false;
         }
 
         // Mark as being processed
         processedEvents.add(eventKey);
-        lastProcessingAttempt.put(event.getBatchId(), Instant.now());
 
         return true;
     }
@@ -179,11 +204,8 @@ public class BatchIngestedEventListener {
      * Route event to appropriate processing logic based on event characteristics.
      */
     private void routeEvent(BatchIngestedEvent event) {
-        // Determine processing priority based on file size and bank tier
-        ProcessingPriority priority = determinePriority(event);
-
         // Create command with appropriate configuration
-        ValidateBatchQualityCommand command = createValidationCommand(event, priority);
+        ValidateBatchQualityCommand command = createValidationCommand(event);
 
         // Dispatch command
         Result<Void> result = commandHandler.handle(command);
@@ -195,48 +217,18 @@ public class BatchIngestedEventListener {
     }
 
     /**
-     * Determine processing priority based on event characteristics.
-     */
-    private ProcessingPriority determinePriority(BatchIngestedEvent event) {
-        // High priority for small files or critical banks
-        if (event.getExpectedExposureCount() < 10000) {
-            return ProcessingPriority.HIGH;
-        }
-
-        // Check if bank is marked as critical in metadata
-        Map<String, Object> metadata = event.getFileMetadata();
-        if (metadata.containsKey("bankTier") && "CRITICAL".equals(metadata.get("bankTier"))) {
-            return ProcessingPriority.HIGH;
-        }
-
-        // Large files get normal priority
-        if (event.getExpectedExposureCount() > 100000) {
-            return ProcessingPriority.LOW;
-        }
-
-        return ProcessingPriority.NORMAL;
-    }
-
-    /**
      * Create validation command with appropriate configuration.
      */
-    private ValidateBatchQualityCommand createValidationCommand(BatchIngestedEvent event, ProcessingPriority priority) {
-        // Try to reuse a correlation id from metadata if available
-        String correlationId = null;
-        Map<String, Object> metadata = event.getFileMetadata();
-        if (metadata != null && metadata.containsKey("correlationId")) {
-            Object c = metadata.get("correlationId");
-            if (c instanceof String string) {
-                correlationId = string;
-            }
-        }
+    private ValidateBatchQualityCommand createValidationCommand(BatchIngestedEvent event) {
+        // Try to reuse a correlation id if available
+        String correlationId = event.getCorrelationId();
 
-        if (correlationId != null) {
+        if (correlationId != null && !correlationId.isEmpty()) {
             return ValidateBatchQualityCommand.withCorrelation(
                     new BatchId(event.getBatchId()),
                     new BankId(event.getBankId()),
                     event.getS3Uri(),
-                    event.getExpectedExposureCount(),
+                    event.getTotalExposures(),
                     correlationId
             );
         }
@@ -245,69 +237,87 @@ public class BatchIngestedEventListener {
                 new BatchId(event.getBatchId()),
                 new BankId(event.getBankId()),
                 event.getS3Uri(),
-                event.getExpectedExposureCount()
+                event.getTotalExposures()
         );
     }
 
     /**
-     * Handle event processing errors with retry logic and dead letter processing.
+     * Handle event processing errors by persisting to the failure repository.
+     * 
+     * <p>The IEventProcessingFailureRepository serves as the dead letter queue.
+     * The EventRetryProcessor will automatically:
+     * <ul>
+     *   <li>Retry failed events with exponential backoff</li>
+     *   <li>Track retry counts and attempt times</li>
+     *   <li>Mark events as permanently failed after max retries</li>
+     *   <li>Publish integration events for monitoring and alerting</li>
+     * </ul>
+     * 
+     * <p>No manual retry logic or dead letter queue implementation is needed here.
      */
     private void handleEventProcessingError(BatchIngestedEvent event, Exception error) {
         String batchId = event.getBatchId();
 
-        // Increment retry counter
-        int retryCount = retryCounters.merge(batchId, 1, Integer::sum);
+        logger.asyncStructuredErrorLog("batch_ingested_event_processing_error", error, Map.of(
+                "batchId", batchId,
+                "bankId", event.getBankId(),
+                "s3Uri", event.getS3Uri()
+        ));
 
-        logger.error("Error processing BatchIngested event for batch: {} (attempt {})",
-                batchId, retryCount, error);
+        // Persist failure to repository for retry by EventRetryProcessor
+        try {
+            String eventPayload = objectMapper.writeValueAsString(event);
+            
+            Map<String, String> metadata = Map.of(
+                "batchId", event.getBatchId(),
+                "bankId", event.getBankId(),
+                "s3Uri", event.getS3Uri(),
+                "totalExposures", String.valueOf(event.getTotalExposures()),
+                "correlationId", event.getCorrelationId() != null ? event.getCorrelationId() : "",
+                "eventId", event.getEventId() != null ? event.getEventId() : ""
+            );
+            
+            EventProcessingFailure failure = EventProcessingFailure.create(
+                event.getClass().getName(),
+                eventPayload,
+                error.getMessage() != null ? error.getMessage() : error.getClass().getName(),
+                getStackTraceAsString(error),
+                metadata,
+                5 // max retries - will be handled by EventRetryProcessor
+            );
+            
+            failureRepository.save(failure);
+            
+            logger.asyncStructuredLog("event_processing_failure_persisted", Map.of(
+                    "batchId", batchId,
+                    "message", "will_be_retried_by_EventRetryProcessor"
+            ));
+            
+        } catch (Exception saveEx) {
+            logger.asyncStructuredErrorLog("failed_to_persist_event_processing_failure", saveEx, Map.of(
+                    "batchId", batchId
+            ));
+        }
 
         // Remove from processed set to allow retry
         String eventKey = createEventKey(event);
         processedEvents.remove(eventKey);
+    }
 
-        // Check if we should move to dead letter queue
-        if (retryCount >= DEAD_LETTER_THRESHOLD) {
-            moveToDeadLetterQueue(event, error);
+    /**
+     * Get stack trace as string for error logging.
+     */
+    private String getStackTraceAsString(Exception e) {
+        if (e == null) return "";
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append(e.getClass().getName()).append(": ").append(e.getMessage()).append("\n");
+        
+        for (StackTraceElement element : e.getStackTrace()) {
+            sb.append("\tat ").append(element.toString()).append("\n");
         }
-    }
-
-    /**
-     * Move event to dead letter queue for manual processing.
-     */
-    private void moveToDeadLetterQueue(BatchIngestedEvent event, Exception error) {
-        logger.error("Moving batch {} to dead letter queue after {} failed attempts",
-                event.getBatchId(), DEAD_LETTER_THRESHOLD);
-
-        // In a real implementation, this would write to a dead letter table or queue
-        // For now, we'll just log and clean up tracking data
-
-        retryCounters.remove(event.getBatchId());
-        lastProcessingAttempt.remove(event.getBatchId());
-
-        // TODO: Implement actual dead letter queue storage
-        // deadLetterRepository.save(new DeadLetterEvent(event, error));
-    }
-
-    /**
-     * Check if batch is in dead letter queue.
-     */
-    private boolean isInDeadLetterQueue(String batchId) {
-        // TODO: Implement actual dead letter queue check
-        // return deadLetterRepository.existsByBatchId(batchId);
-        return false;
-    }
-
-    /**
-     * Check if batch is in retry cooldown period.
-     */
-    private boolean isInRetryCooldown(String batchId) {
-        Instant lastAttempt = lastProcessingAttempt.get(batchId);
-        if (lastAttempt == null) {
-            return false;
-        }
-
-        Instant cooldownEnd = lastAttempt.plusSeconds(RETRY_COOLDOWN_MINUTES * 60);
-        return Instant.now().isBefore(cooldownEnd);
+        
+        return sb.toString();
     }
 
     /**
@@ -317,7 +327,7 @@ public class BatchIngestedEventListener {
         return String.format("%s:%s:%s",
                 event.getBatchId(),
                 event.getBankId(),
-                event.getTimestamp() != null ? event.getTimestamp().toString() : "unknown");
+                event.getCompletedAt() != null ? event.getCompletedAt().toString() : "unknown");
     }
 
     /**
@@ -329,8 +339,7 @@ public class BatchIngestedEventListener {
                 totalEventsProcessed.get(),
                 totalEventsFailed.get(),
                 totalEventsFiltered.get(),
-                processedEvents.size(),
-                retryCounters.size()
+                processedEvents.size()
         );
     }
 
@@ -339,23 +348,20 @@ public class BatchIngestedEventListener {
      */
     public void clearCaches() {
         processedEvents.clear();
-        retryCounters.clear();
-        lastProcessingAttempt.clear();
-        logger.info("Cleared event processing caches");
-    }
-
-    /**
-     * Processing priority enumeration.
-     */
-    public enum ProcessingPriority {
-        HIGH, NORMAL, LOW
+        logger.asyncStructuredLog("event_processing_caches_cleared", Map.of(
+                "action", "cache_maintenance"
+        ));
     }
 
     /**
      * Event processing statistics.
      */
-    public record EventProcessingStatistics(int totalReceived, int totalProcessed, int totalFailed, int totalFiltered,
-                                            int currentlyProcessing, int inRetry) {
+    public record EventProcessingStatistics(
+            int totalReceived, 
+            int totalProcessed, 
+            int totalFailed, 
+            int totalFiltered,
+            int currentlyProcessing) {
 
         public double getSuccessRate() {
             return totalReceived > 0 ? (double) totalProcessed / totalReceived * 100.0 : 0.0;
@@ -369,9 +375,9 @@ public class BatchIngestedEventListener {
         public String toString() {
             return String.format(
                     "EventProcessingStatistics{received=%d, processed=%d, failed=%d, filtered=%d, " +
-                            "processing=%d, retry=%d, successRate=%.2f%%, failureRate=%.2f%%}",
+                            "processing=%d, successRate=%.2f%%, failureRate=%.2f%%}",
                     totalReceived, totalProcessed, totalFailed, totalFiltered,
-                    currentlyProcessing, inRetry, getSuccessRate(), getFailureRate()
+                    currentlyProcessing, getSuccessRate(), getFailureRate()
             );
         }
     }
