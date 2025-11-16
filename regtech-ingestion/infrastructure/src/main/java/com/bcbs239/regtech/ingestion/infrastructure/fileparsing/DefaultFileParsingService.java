@@ -1,10 +1,10 @@
 package com.bcbs239.regtech.ingestion.infrastructure.fileparsing;
 
+
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.file.FileContent;
-import com.bcbs239.regtech.ingestion.domain.model.CreditRiskMitigation;
 import com.bcbs239.regtech.ingestion.domain.model.LoanExposure;
 import com.bcbs239.regtech.ingestion.domain.model.ParsedFileData;
 import com.bcbs239.regtech.ingestion.domain.parsing.FileParsingService;
@@ -18,9 +18,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 @Service
 public class DefaultFileParsingService implements FileParsingService {
@@ -46,7 +43,7 @@ public class DefaultFileParsingService implements FileParsingService {
         if (!fileContent.isSupportedFormat()) {
             return Result.failure(ErrorDetail.of(
                 "UNSUPPORTED_FORMAT", 
-                ErrorType.VALIDATION_ERROR, 
+                ErrorType.VALIDATION_ERROR,
                 "Unsupported file format: " + fileContent.getFormat(), 
                 "file.format.unsupported"
             ));
@@ -68,32 +65,17 @@ public class DefaultFileParsingService implements FileParsingService {
         try {
             int maxRecords = decideMaxRecords();
             
-            // Create virtual thread executor for concurrent parsing
-            try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-                // Submit both parsing tasks concurrently
-                Future<List<LoanExposure>> exposuresFuture = executor.submit(() -> 
-                    parser.parseJsonToLoanExposures(fileStream, maxRecords)
-                );
-                
-                Future<List<CreditRiskMitigation>> crmsFuture = executor.submit(() -> 
-                    parser.parseJsonToCreditRiskMitigations(fileStream, maxRecords)
-                );
-                
-                // Wait for both tasks to complete
-                List<LoanExposure> exposures = exposuresFuture.get();
-                List<CreditRiskMitigation> crms = crmsFuture.get();
+            // Parse both loan exposures and credit risk mitigations in a single pass
+            // This is necessary because an InputStream can only be read once
+            FileToLoanExposureParser.JsonParsingResult result = 
+                parser.parseJsonToBothArrays(fileStream, maxRecords);
+            
+            Map<String,Object> metadata = new HashMap<>();
+            metadata.put("sourceFileName", fileName);
+            metadata.put("parsedRecordsLimit", maxRecords);
 
-                Map<String,Object> metadata = new HashMap<>();
-                metadata.put("sourceFileName", fileName);
-                metadata.put("parsedRecordsLimit", maxRecords);
-
-                ParsedFileData data = new ParsedFileData(exposures, crms, metadata);
-                return Result.success(data);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Parsing interrupted for JSON file {}: {}", fileName, e.getMessage(), e);
-            return Result.failure(ErrorDetail.of("PARSING_ERROR", ErrorType.SYSTEM_ERROR, "Parsing interrupted: " + e.getMessage(), "file.parse.json.interrupted"));
+            ParsedFileData data = new ParsedFileData(result.exposures(), result.crms(), metadata);
+            return Result.success(data);
         } catch (Exception e) {
             log.error("Failed to parse JSON file {}: {}", fileName, e.getMessage(), e);
             return Result.failure(ErrorDetail.of("PARSING_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse JSON file: " + e.getMessage(), "file.parse.json.failed"));

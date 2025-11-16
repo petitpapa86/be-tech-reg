@@ -101,6 +101,71 @@ public class FileToLoanExposureParser {
     }
 
     /**
+     * Result holder for combined JSON parsing.
+     */
+    public record JsonParsingResult(List<LoanExposure> exposures, List<CreditRiskMitigation> crms) {}
+
+    /**
+     * Parse both loan exposures and credit risk mitigations from a JSON input stream in a single pass.
+     * This is more efficient than parsing the same stream twice (which is actually impossible since
+     * InputStreams can only be read once).
+     */
+    public JsonParsingResult parseJsonToBothArrays(InputStream is, int maxRecords) throws IOException {
+        JsonFactory jf = objectMapper.getFactory();
+        List<LoanExposure> exposures = new ArrayList<>();
+        List<CreditRiskMitigation> crms = new ArrayList<>();
+        
+        try (JsonParser jp = jf.createParser(is)) {
+            // Traverse the entire JSON document
+            while (jp.nextToken() != null) {
+                if (jp.currentToken() == JsonToken.FIELD_NAME) {
+                    String fieldName = jp.currentName();
+                    
+                    // Parse loan_portfolio array
+                    if ("loan_portfolio".equals(fieldName)) {
+                        jp.nextToken(); // move to START_ARRAY
+                        if (jp.currentToken() == JsonToken.START_ARRAY) {
+                            while (jp.nextToken() != JsonToken.END_ARRAY) {
+                                LoanExposureDto dto = objectMapper.readValue(jp, LoanExposureDto.class);
+                                exposures.add(DomainMapper.toLoanExposure(dto));
+                                if (exposures.size() >= maxRecords) {
+                                    log.info("Reached maxRecords limit ({}) while parsing loan_portfolio", maxRecords);
+                                    // Skip remaining elements in this array
+                                    jp.skipChildren();
+                                    break;
+                                }
+                            }
+                        } else {
+                            log.warn("Expected loan_portfolio to be an array");
+                        }
+                    }
+                    // Parse credit_risk_mitigation array
+                    else if ("credit_risk_mitigation".equals(fieldName)) {
+                        jp.nextToken(); // move to START_ARRAY
+                        if (jp.currentToken() == JsonToken.START_ARRAY) {
+                            while (jp.nextToken() != JsonToken.END_ARRAY) {
+                                CreditRiskMitigationDto dto = objectMapper.readValue(jp, CreditRiskMitigationDto.class);
+                                crms.add(DomainMapper.toCrm(dto));
+                                if (crms.size() >= maxRecords) {
+                                    log.info("Reached maxRecords limit ({}) while parsing credit_risk_mitigation", maxRecords);
+                                    // Skip remaining elements in this array
+                                    jp.skipChildren();
+                                    break;
+                                }
+                            }
+                        } else {
+                            log.warn("Expected credit_risk_mitigation to be an array");
+                        }
+                    }
+                }
+            }
+        }
+        
+        log.info("Parsed JSON file: {} loan exposures, {} credit risk mitigations", exposures.size(), crms.size());
+        return new JsonParsingResult(exposures, crms);
+    }
+
+    /**
      * Parse loan exposures from an Excel (XLSX) input stream. Stops after maxRecords.
      * This implementation uses a simple in-memory XSSF read — for very large files the
      * architecture should use the streaming (SAX) API or offload to a specialized processor.

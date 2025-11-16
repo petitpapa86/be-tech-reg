@@ -48,29 +48,7 @@ public class BatchStatusController extends BaseController implements IEndpoint {
         
         // Extract auth token from header
         String authToken = request.headers().firstHeader("Authorization");
-        
-        // Validate JWT token and extract bank ID using existing security infrastructure
-//        Result<BankId> bankIdResult = securityService.validateTokenAndExtractBankId(authToken);
-//        if (bankIdResult.isFailure()) {
-//            ErrorDetail error = bankIdResult.getError().orElseThrow();
-//            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
-//            assert responseEntity.getBody() != null;
-//            return ServerResponse.status(responseEntity.getStatusCode())
-//                .body(responseEntity.getBody());
-//        }
-//
-//        BankId bankId = bankIdResult.getValue().orElseThrow();
-        
-        // Verify ingestion status permissions using existing security infrastructure
-//        Result<Void> permissionResult = securityService.verifyIngestionPermissions("status");
-//        if (permissionResult.isFailure()) {
-//            ErrorDetail error = permissionResult.getError().orElseThrow();
-//            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(error);
-//            assert responseEntity.getBody() != null;
-//            return ServerResponse.status(responseEntity.getStatusCode())
-//                .body(responseEntity.getBody());
-//        }
-        
+
         // Validate request parameters
         Result<Void> validationResult = validateStatusRequest(batchIdStr, authToken);
         if (validationResult.isFailure()) {
