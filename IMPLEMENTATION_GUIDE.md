@@ -1880,6 +1880,376 @@ public class BillingAccount extends Entity {
 }
 ```
 
+### Publishing Integration Events (Cross-Module Communication)
+
+**Purpose**: Integration events enable communication between bounded contexts (modules) without direct dependencies.
+
+**When to Use Integration Events**:
+- ✅ When a domain event needs to be consumed by another module (e.g., User registered → Create billing account)
+- ✅ When a business process completes and other modules need to react (e.g., Batch completed → Trigger quality validation)
+- ✅ To maintain module independence (no module-to-module imports)
+- ❌ For internal module communication (use domain events instead)
+
+---
+
+#### Step-by-Step: Publishing Integration Events
+
+**Step 1: Create Integration Event in Core Module**
+
+Integration events that are shared across modules should be in `regtech-core/domain/events/integration/`.
+
+```java
+// regtech-core/domain/src/main/java/com/bcbs239/regtech/core/domain/events/integration/BatchCompletedIntegrationEvent.java
+
+package com.bcbs239.regtech.core.domain.events.integration;
+
+import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
+import java.time.Instant;
+
+/**
+ * Integration event published when a batch completes processing.
+ * This event is shared across modules to enable cross-module reactions.
+ */
+public class BatchCompletedIntegrationEvent extends IntegrationEvent {
+    
+    public static final String EVENT_VERSION = "1.0";
+    
+    private final String batchId;
+    private final String bankId;
+    private final String s3Uri;
+    private final int totalExposures;
+    private final long fileSizeBytes;
+    private final Instant completedAt;
+    
+    public BatchCompletedIntegrationEvent(
+        String batchId,
+        String bankId,
+        String s3Uri,
+        int totalExposures,
+        long fileSizeBytes,
+        Instant completedAt
+    ) {
+        super("BatchCompletedIntegration");
+        this.batchId = batchId;
+        this.bankId = bankId;
+        this.s3Uri = s3Uri;
+        this.totalExposures = totalExposures;
+        this.fileSizeBytes = fileSizeBytes;
+        this.completedAt = completedAt;
+    }
+    
+    // Getters
+    public String getBatchId() { return batchId; }
+    public String getBankId() { return bankId; }
+    public String getS3Uri() { return s3Uri; }
+    public int getTotalExposures() { return totalExposures; }
+    public long getFileSizeBytes() { return fileSizeBytes; }
+    public Instant getCompletedAt() { return completedAt; }
+    
+    @Override
+    public String eventType() {
+        return "BatchCompletedIntegration";
+    }
+    
+    @Override
+    public String getVersion() {
+        return EVENT_VERSION;
+    }
+}
+```
+
+**Step 2: Create Event Publisher in Source Module**
+
+Create an event publisher that listens to the domain event and publishes the integration event.
+
+```java
+// regtech-ingestion/application/src/main/java/com/bcbs239/regtech/ingestion/application/batch/process/BatchCompletedEventPublisher.java
+
+package com.bcbs239.regtech.ingestion.application.batch.process;
+
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
+import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.ingestion.application.batch.IIntegrationEventBus;
+import com.bcbs239.regtech.ingestion.domain.events.BatchCompletedEvent;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
+
+import java.util.Map;
+
+/**
+ * Publishes BatchCompletedIntegrationEvent when BatchCompletedEvent occurs.
+ * Uses transactional event listener to ensure reliable event delivery.
+ */
+@Component
+public class BatchCompletedEventPublisher {
+
+    private final IIntegrationEventBus integrationEventBus;
+    private final ILogger asyncLogger;
+
+    public BatchCompletedEventPublisher(
+        IIntegrationEventBus integrationEventBus,
+        ILogger asyncLogger
+    ) {
+        this.integrationEventBus = integrationEventBus;
+        this.asyncLogger = asyncLogger;
+    }
+
+    /**
+     * Listens to BatchCompletedEvent and publishes BatchCompletedIntegrationEvent.
+     * 
+     * CRITICAL: Uses @TransactionalEventListener with BEFORE_COMMIT phase to ensure
+     * the integration event is published in the same transaction as the domain event.
+     * This guarantees reliable event delivery via the outbox pattern.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    public void handleBatchCompletedEvent(BatchCompletedEvent domainEvent) {
+        
+        // Skip if this is an outbox replay (avoid duplicate publishing)
+        if (CorrelationContext.isOutboxReplay()) {
+            asyncLogger.asyncStructuredLog("SKIPPING_BATCH_COMPLETED_INTEGRATION_EVENT_OUTBOX_REPLAY", Map.of(
+                "batchId", domainEvent.getBatchId(),
+                "reason", "Event is being replayed from outbox"
+            ));
+            return;
+        }
+        
+        asyncLogger.asyncStructuredLog("PUBLISHING_BATCH_COMPLETED_INTEGRATION_EVENT", Map.of(
+            "batchId", domainEvent.getBatchId(),
+            "bankId", domainEvent.getBankId(),
+            "totalExposures", String.valueOf(domainEvent.getTotalExposures()),
+            "correlationId", String.valueOf(CorrelationContext.correlationId())
+        ));
+
+        // Create integration event
+        BatchCompletedIntegrationEvent integrationEvent = new BatchCompletedIntegrationEvent(
+            domainEvent.getBatchId(),
+            domainEvent.getBankId(),
+            domainEvent.getS3Uri(),
+            domainEvent.getTotalExposures(),
+            domainEvent.getFileSizeBytes(),
+            domainEvent.getCompletedAt()
+        );
+
+        // Publish to integration event bus (will be saved to outbox)
+        integrationEventBus.publish(integrationEvent);
+        
+        asyncLogger.asyncStructuredLog("BATCH_COMPLETED_INTEGRATION_EVENT_PUBLISHED", Map.of(
+            "eventId", integrationEvent.getEventId(),
+            "batchId", integrationEvent.getBatchId()
+        ));
+    }
+}
+```
+
+**Key Points**:
+- ✅ Use `@TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)` to ensure atomicity
+- ✅ Check `CorrelationContext.isOutboxReplay()` to avoid duplicate publishing during outbox replay
+- ✅ Use `IIntegrationEventBus.publish()` which saves to outbox table
+- ✅ Include structured logging for traceability
+
+**Step 3: Add Dependencies**
+
+Ensure the application layer depends on core-domain:
+
+```xml
+<!-- regtech-ingestion/application/pom.xml -->
+<dependencies>
+    <dependency>
+        <groupId>com.bcbs239</groupId>
+        <artifactId>regtech-core-domain</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+    <!-- Other dependencies -->
+</dependencies>
+```
+
+**Step 4: Create Integration Adapter in Consumer Module**
+
+Create an adapter that receives the integration event and converts it to the consumer's domain event.
+
+```java
+// regtech-data-quality/application/src/main/java/com/bcbs239/regtech/dataquality/application/integration/BatchCompletedIntegrationAdapter.java
+
+package com.bcbs239.regtech.dataquality.application.integration;
+
+import com.bcbs239.regtech.core.domain.events.DomainEventBus;
+import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
+import com.bcbs239.regtech.core.domain.logging.ILogger;
+import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+
+/**
+ * Adapter that converts BatchCompletedIntegrationEvent to BatchIngestedEvent
+ * for the data-quality bounded context.
+ * 
+ * This adapter:
+ * - Listens for batch completion events from ingestion module
+ * - Converts to data-quality domain event (BatchIngestedEvent)
+ * - Publishes as replay to trigger quality validation workflows
+ * - Maintains module independence (no direct dependencies)
+ */
+@Component("dataQualityBatchCompletedIntegrationAdapter")
+public class BatchCompletedIntegrationAdapter {
+
+    private final DomainEventBus domainEventBus;
+    private final ILogger asyncLogger;
+
+    public BatchCompletedIntegrationAdapter(DomainEventBus domainEventBus, ILogger asyncLogger) {
+        this.domainEventBus = domainEventBus;
+        this.asyncLogger = asyncLogger;
+    }
+
+    /**
+     * Handles BatchCompletedIntegrationEvent from the integration event bus.
+     * Converts to BatchIngestedEvent and publishes as replay.
+     */
+    @EventListener
+    public void onBatchCompletedIntegrationEvent(BatchCompletedIntegrationEvent integrationEvent) {
+        asyncLogger.asyncStructuredLog("RECEIVED_BATCH_COMPLETED_INTEGRATION_EVENT", Map.of(
+            "eventType", "BATCH_COMPLETED_INTEGRATION_EVENT",
+            "integrationEventId", integrationEvent.getEventId(),
+            "batchId", integrationEvent.getBatchId(),
+            "bankId", integrationEvent.getBankId(),
+            "correlationId", integrationEvent.getCorrelationId()
+        ));
+
+        // Convert to data-quality domain event
+        BatchIngestedEvent batchIngestedEvent = new BatchIngestedEvent(
+            integrationEvent.getBatchId(),
+            integrationEvent.getBankId(),
+            integrationEvent.getS3Uri(),
+            integrationEvent.getTotalExposures(),
+            integrationEvent.getFileSizeBytes(),
+            integrationEvent.getCompletedAt()
+        );
+
+        // Publish as replay to trigger existing domain event handlers
+        domainEventBus.publishAsReplay(batchIngestedEvent);
+        
+        asyncLogger.asyncStructuredLog("PUBLISHED_BATCH_INGESTED_EVENT_AS_REPLAY", Map.of(
+            "eventType", "BATCH_INGESTED_EVENT_PUBLISHED",
+            "batchId", integrationEvent.getBatchId(),
+            "originalIntegrationEventId", integrationEvent.getEventId()
+        ));
+    }
+}
+```
+
+**Key Points**:
+- ✅ Use `@EventListener` to receive integration events
+- ✅ Convert integration event to consumer's domain event
+- ✅ Use `domainEventBus.publishAsReplay()` to trigger existing handlers
+- ✅ Adapter pattern maintains module independence
+
+---
+
+#### Integration Event Flow Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Source Module (Ingestion)                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  1. Domain Event Raised                                         │
+│     ↓ BatchCompletedEvent (in aggregate)                        │
+│                                                                  │
+│  2. Event Publisher Listens                                     │
+│     ↓ @TransactionalEventListener(BEFORE_COMMIT)               │
+│     ↓ BatchCompletedEventPublisher                             │
+│                                                                  │
+│  3. Create Integration Event                                    │
+│     ↓ BatchCompletedIntegrationEvent (in core module)          │
+│                                                                  │
+│  4. Publish to Outbox                                           │
+│     ↓ IIntegrationEventBus.publish()                           │
+│     ↓ Saved to outbox table (same transaction)                 │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+                              ↓ Outbox Processor
+                              ↓ (Background job)
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                       Event Bus / Inbox                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  5. Event Published to Bus                                      │
+│     ↓ OutboxProcessor reads and publishes                       │
+│                                                                  │
+│  6. Event Saved to Consumer Inbox                               │
+│     ↓ InboxProcessor receives and stores                        │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓
+                              ↓
+                              ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                Consumer Module (Data Quality)                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  7. Integration Adapter Receives                                │
+│     ↓ @EventListener                                            │
+│     ↓ BatchCompletedIntegrationAdapter                         │
+│                                                                  │
+│  8. Convert to Domain Event                                     │
+│     ↓ Create BatchIngestedEvent                                │
+│                                                                  │
+│  9. Publish as Replay                                           │
+│     ↓ domainEventBus.publishAsReplay()                         │
+│                                                                  │
+│ 10. Domain Event Handler Processes                              │
+│     ↓ BatchIngestedEventListener                               │
+│     ↓ Trigger quality validation workflows                      │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+#### Checklist: Publishing Integration Events
+
+**□ Step 1: Create Integration Event (Core Module)**
+- [ ] Create event in `regtech-core/domain/events/integration/`
+- [ ] Extend `IntegrationEvent`
+- [ ] Include all necessary data for consumers
+- [ ] Add version constant (e.g., `EVENT_VERSION = "1.0"`)
+- [ ] Document the event's purpose and consumers
+
+**□ Step 2: Create Event Publisher (Source Module)**
+- [ ] Create publisher in `<module>/application/.../`
+- [ ] Inject `IIntegrationEventBus` and `ILogger`
+- [ ] Use `@TransactionalEventListener(phase = BEFORE_COMMIT)`
+- [ ] Check `CorrelationContext.isOutboxReplay()` to avoid duplicates
+- [ ] Create integration event from domain event
+- [ ] Call `integrationEventBus.publish(integrationEvent)`
+- [ ] Add structured logging
+
+**□ Step 3: Add Dependencies**
+- [ ] Add `regtech-core-domain` dependency to source module's application `pom.xml`
+
+**□ Step 4: Create Integration Adapter (Consumer Module)**
+- [ ] Create adapter in `<consumer-module>/application/integration/`
+- [ ] Use `@EventListener` to receive integration event
+- [ ] Convert integration event to consumer's domain event
+- [ ] Use `domainEventBus.publishAsReplay()` to trigger handlers
+- [ ] Add structured logging
+- [ ] Name with pattern: `<EventName>IntegrationAdapter`
+
+**□ Step 5: Test End-to-End**
+- [ ] Trigger source domain event
+- [ ] Verify integration event saved to outbox
+- [ ] Verify outbox processor publishes event
+- [ ] Verify consumer receives event
+- [ ] Verify consumer's domain handler processes event
+- [ ] Check logs for correlation ID tracing
+
+---
+
 ### Consuming Events
 
 **Event Handler**:
