@@ -2,7 +2,7 @@ package com.bcbs239.regtech.iam.domain.users.events;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

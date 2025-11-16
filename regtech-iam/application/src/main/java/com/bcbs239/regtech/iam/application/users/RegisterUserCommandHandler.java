@@ -3,7 +3,7 @@ package com.bcbs239.regtech.iam.application.users;
 
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.shared.*;
-import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.iam.domain.users.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

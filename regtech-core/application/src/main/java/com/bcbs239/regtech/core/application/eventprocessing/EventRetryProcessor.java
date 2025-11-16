@@ -10,7 +10,7 @@ import com.bcbs239.regtech.core.domain.events.integration.EventProcessingPermane
 import com.bcbs239.regtech.core.domain.events.integration.EventPublishingFailed;
 import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;

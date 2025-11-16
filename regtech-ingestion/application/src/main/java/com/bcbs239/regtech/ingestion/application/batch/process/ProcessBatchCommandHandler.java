@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.ingestion.application.batch.process;
 
+import com.bcbs239.regtech.core.capabilities.outboxhandling.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
@@ -36,7 +37,7 @@ public class ProcessBatchCommandHandler {
     private final FileContentValidationService fileContentValidationService;
     private final IBankInfoRepository bankInfoRepository;
     private final FileStorageService fileStorageService;
-    private final IIntegrationEventBus eventPublisher;
+    private final BaseUnitOfWork unitOfWork;
     private final TemporaryFileStorageService temporaryFileStorage;
     
     public ProcessBatchCommandHandler(
@@ -45,14 +46,14 @@ public class ProcessBatchCommandHandler {
             FileContentValidationService fileContentValidationService,
             IBankInfoRepository bankInfoRepository,
             FileStorageService fileStorageService,
-            IIntegrationEventBus eventPublisher,
+            BaseUnitOfWork unitOfWork,
             TemporaryFileStorageService temporaryFileStorage) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.fileParsingService = fileParsingService;
         this.fileContentValidationService = fileContentValidationService;
         this.bankInfoRepository = bankInfoRepository;
         this.fileStorageService = fileStorageService;
-        this.eventPublisher = eventPublisher;
+        this.unitOfWork = unitOfWork;
         this.temporaryFileStorage = temporaryFileStorage;
     }
 
@@ -208,17 +209,9 @@ public class ProcessBatchCommandHandler {
                     ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to save completed batch", "database.error")));
             }
             
-            // 11. Publish events using existing CrossModuleEventBus
-            BatchIngestedEvent event = new BatchIngestedEvent(
-                batch.getBatchId().value(),
-                batch.getBankId().value(),
-                s3Reference.uri(),
-                validation.totalExposures(),
-                batch.getFileMetadata().fileSizeBytes(),
-                Instant.now()
-            );
-            
-            eventPublisher.publish(event);
+            // 11. save events through unit of work to outbox pattern
+            unitOfWork.registerEntity(batch);
+            unitOfWork.saveChanges();
             
             // 12. Cleanup temporary file storage
             temporaryFileStorage.removeFile(command.tempFileKey());

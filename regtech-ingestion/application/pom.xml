@@ -19,10 +19,16 @@
             <version>0.0.1-SNAPSHOT</version>
 		</dependency>
 		
-		<!-- Core module dependency for Result<T>, ErrorDetail, CrossModuleEventBus -->
+		<!-- Core module dependencies -->
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-core</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-core-domain</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 		
 		<!-- Spring Boot starters for application services -->

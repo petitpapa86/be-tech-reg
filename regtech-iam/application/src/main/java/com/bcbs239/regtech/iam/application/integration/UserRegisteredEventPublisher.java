@@ -2,7 +2,7 @@ package com.bcbs239.regtech.iam.application.integration;
 
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.UserRegisteredIntegrationEvent;
-import com.bcbs239.regtech.core.infrastructure.context.CorrelationContext;
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
