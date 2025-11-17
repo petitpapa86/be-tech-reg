@@ -36,10 +36,17 @@ public class BatchValidatedEvent extends DomainEvent {
         return getEventType();
     }
     
-    // Getters
+    // Getters with JsonProperty for proper serialization
+    @JsonProperty("batchId")
     public BatchId batchId() { return batchId; }
+    
+    @JsonProperty("bankId")
     public BankId bankId() { return bankId; }
+    
+    @JsonProperty("exposureCount")
     public int exposureCount() { return exposureCount; }
+    
+    @JsonProperty("validatedAt")
     public Instant validatedAt() { return validatedAt; }
 }
 

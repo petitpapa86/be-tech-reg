@@ -36,10 +36,17 @@ public class BatchStoredEvent extends DomainEvent {
         return getEventType();
     }
     
-    // Getters
+    // Getters with JsonProperty for proper serialization
+    @JsonProperty("batchId")
     public BatchId batchId() { return batchId; }
+    
+    @JsonProperty("bankId")
     public BankId bankId() { return bankId; }
+    
+    @JsonProperty("s3Reference")
     public S3Reference s3Reference() { return s3Reference; }
+    
+    @JsonProperty("storedAt")
     public Instant storedAt() { return storedAt; }
 }
 

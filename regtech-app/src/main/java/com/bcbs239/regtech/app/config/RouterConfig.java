@@ -24,12 +24,25 @@ public class RouterConfig {
     @Bean
     public RouterFunction<ServerResponse> combinedRoutes(
             List<RouterFunction<ServerResponse>> allRoutes) {
-        if (allRoutes.isEmpty()) {
-            return RouterFunctions.route().build();
+        // Filter out null routes and check if any remain
+        List<RouterFunction<ServerResponse>> validRoutes = allRoutes == null ? 
+            List.of() : 
+            allRoutes.stream()
+                .filter(route -> route != null)
+                .toList();
+        
+        // Return a simple GET endpoint if no routes are available
+        // This prevents the "No routes registered" error
+        if (validRoutes.isEmpty()) {
+            return RouterFunctions.route()
+                .GET("/", request -> ServerResponse.ok().body("RegTech Application - No routes configured"))
+                .build();
         }
         
-        return allRoutes.stream()
+        return validRoutes.stream()
             .reduce(RouterFunction::and)
-            .orElseGet(() -> RouterFunctions.route().build());
+            .orElseGet(() -> RouterFunctions.route()
+                .GET("/", request -> ServerResponse.ok().body("RegTech Application"))
+                .build());
     }
 }

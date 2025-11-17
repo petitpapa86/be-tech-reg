@@ -18,9 +18,20 @@ public class IngestionRoutesConfig {
 
     @Bean
     public RouterFunction<ServerResponse> ingestionRoutes(List<IEndpoint> endpoints) {
+        // If no endpoints, return a router with at least one dummy route to avoid build() error
+        if (endpoints == null || endpoints.isEmpty()) {
+            return RouterFunctions.route()
+                .GET("/api/ingestion/health", request -> 
+                    ServerResponse.ok().body("Ingestion module - no endpoints configured"))
+                .build();
+        }
+        
         return endpoints.stream()
             .map(IEndpoint::mapEndpoint)
             .reduce(RouterFunction::and)
-            .orElseGet(() -> RouterFunctions.route().build());
+            .orElseGet(() -> RouterFunctions.route()
+                .GET("/api/ingestion/health", request -> 
+                    ServerResponse.ok().body("Ingestion module ready"))
+                .build());
     }
 }

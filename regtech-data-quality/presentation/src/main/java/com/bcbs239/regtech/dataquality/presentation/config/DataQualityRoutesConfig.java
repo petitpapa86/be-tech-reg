@@ -18,9 +18,20 @@ public class DataQualityRoutesConfig {
 
     @Bean
     public RouterFunction<ServerResponse> dataQualityRoutes(List<IEndpoint> endpoints) {
+        // If no endpoints, return a router with at least one dummy route to avoid build() error
+        if (endpoints == null || endpoints.isEmpty()) {
+            return RouterFunctions.route()
+                .GET("/api/data-quality/health", request -> 
+                    ServerResponse.ok().body("Data Quality module - no endpoints configured"))
+                .build();
+        }
+        
         return endpoints.stream()
             .map(IEndpoint::mapEndpoints)
             .reduce(RouterFunction::and)
-            .orElseGet(() -> RouterFunctions.route().build());
+            .orElseGet(() -> RouterFunctions.route()
+                .GET("/api/data-quality/health", request -> 
+                    ServerResponse.ok().body("Data Quality module ready"))
+                .build());
     }
 }

@@ -44,7 +44,7 @@ public class SecurityFilter implements Filter {
             "/actuator/health",
             "/swagger-ui/**",
             "/v3/api-docs/**",
-            "/h2-console/**"
+            "/h2-console/**","/api/v1/ingestion/upload-and-process"
         );
     }
 

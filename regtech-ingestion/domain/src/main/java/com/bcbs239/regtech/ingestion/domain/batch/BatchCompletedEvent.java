@@ -43,12 +43,23 @@ public class BatchCompletedEvent extends DomainEvent {
         return getEventType();
     }
     
-    // Getters
+    // Getters with JsonProperty for proper serialization
+    @JsonProperty("batchId")
     public BatchId batchId() { return batchId; }
+    
+    @JsonProperty("bankId")
     public BankId bankId() { return bankId; }
+    
+    @JsonProperty("s3Reference")
     public S3Reference s3Reference() { return s3Reference; }
+    
+    @JsonProperty("totalExposures")
     public int totalExposures() { return totalExposures; }
+    
+    @JsonProperty("fileSizeBytes")
     public long fileSizeBytes() { return fileSizeBytes; }
+    
+    @JsonProperty("completedAt")
     public Instant completedAt() { return completedAt; }
 }
 
