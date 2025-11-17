@@ -1,6 +1,4 @@
-package com.bcbs239.regtech.dataquality.infrastructure.validation;
-
-import org.springframework.stereotype.Component;
+package com.bcbs239.regtech.dataquality.domain.validation.validators;
 
 import java.util.Map;
 import java.util.Set;
@@ -8,9 +6,8 @@ import java.util.Set;
 /**
  * Utility class for validating internal ratings and their consistency with risk categories.
  */
-@Component
 public class RatingValidator {
-    
+
     /**
      * Valid internal rating scales.
      * This represents a typical bank's internal rating system.
@@ -18,33 +15,33 @@ public class RatingValidator {
     private static final Set<String> VALID_INTERNAL_RATINGS = Set.of(
         // High quality ratings
         "AAA", "AA+", "AA", "AA-", "A+", "A", "A-",
-        
+
         // Investment grade ratings
         "BBB+", "BBB", "BBB-",
-        
+
         // Sub-investment grade ratings
         "BB+", "BB", "BB-", "B+", "B", "B-",
-        
+
         // Poor quality ratings
         "CCC+", "CCC", "CCC-", "CC", "C",
-        
+
         // Default
         "D",
-        
+
         // Numeric scale (1-10, where 1 is best)
         "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-        
+
         // Alternative letter scale
         "1A", "1B", "1C", "2A", "2B", "2C", "3A", "3B", "3C", "4A", "4B", "4C", "5"
     );
-    
+
     /**
      * Valid risk categories based on regulatory classifications.
      */
     private static final Set<String> VALID_RISK_CATEGORIES = Set.of(
         "MINIMAL", "LOW", "MODERATE", "HIGH", "VERY_HIGH", "EXTREME", "DEFAULT"
     );
-    
+
     /**
      * Mapping of internal ratings to expected risk categories.
      */
@@ -102,10 +99,10 @@ public class RatingValidator {
         Map.entry("D", Set.of("DEFAULT")),
         Map.entry("10", Set.of("EXTREME", "DEFAULT"))
     );
-    
+
     /**
      * Validate if an internal rating is valid.
-     * 
+     *
      * @param internalRating the internal rating to validate
      * @return true if the rating is valid, false otherwise
      */
@@ -113,14 +110,14 @@ public class RatingValidator {
         if (internalRating == null || internalRating.trim().isEmpty()) {
             return false;
         }
-        
+
         String normalizedRating = internalRating.trim().toUpperCase();
         return VALID_INTERNAL_RATINGS.contains(normalizedRating);
     }
-    
+
     /**
      * Validate if a risk category is valid.
-     * 
+     *
      * @param riskCategory the risk category to validate
      * @return true if the risk category is valid, false otherwise
      */
@@ -128,14 +125,14 @@ public class RatingValidator {
         if (riskCategory == null || riskCategory.trim().isEmpty()) {
             return false;
         }
-        
+
         String normalizedCategory = riskCategory.trim().toUpperCase();
         return VALID_RISK_CATEGORIES.contains(normalizedCategory);
     }
-    
+
     /**
      * Check if an internal rating is consistent with a risk category.
-     * 
+     *
      * @param internalRating the internal rating
      * @param riskCategory the risk category
      * @return true if they are consistent, false otherwise
@@ -144,23 +141,23 @@ public class RatingValidator {
         if (!isValidInternalRating(internalRating) || !isValidRiskCategory(riskCategory)) {
             return false;
         }
-        
+
         String normalizedRating = internalRating.trim().toUpperCase();
         String normalizedCategory = riskCategory.trim().toUpperCase();
-        
+
         Set<String> expectedCategories = RATING_RISK_CATEGORY_MAPPING.get(normalizedRating);
         if (expectedCategories != null) {
             return expectedCategories.contains(normalizedCategory);
         }
-        
+
         // If no specific mapping exists, allow any valid combination
         // This provides flexibility for banks with custom rating systems
         return true;
     }
-    
+
     /**
      * Get the expected risk categories for an internal rating.
-     * 
+     *
      * @param internalRating the internal rating
      * @return set of expected risk categories, or empty set if rating not found
      */
@@ -168,14 +165,14 @@ public class RatingValidator {
         if (!isValidInternalRating(internalRating)) {
             return Set.of();
         }
-        
+
         String normalizedRating = internalRating.trim().toUpperCase();
         return RATING_RISK_CATEGORY_MAPPING.getOrDefault(normalizedRating, Set.of());
     }
-    
+
     /**
      * Get the normalized internal rating (uppercase, trimmed).
-     * 
+     *
      * @param internalRating the internal rating to normalize
      * @return the normalized internal rating, or null if invalid
      */
@@ -185,10 +182,10 @@ public class RatingValidator {
         }
         return internalRating.trim().toUpperCase();
     }
-    
+
     /**
      * Get the normalized risk category (uppercase, trimmed).
-     * 
+     *
      * @param riskCategory the risk category to normalize
      * @return the normalized risk category, or null if invalid
      */
@@ -198,10 +195,10 @@ public class RatingValidator {
         }
         return riskCategory.trim().toUpperCase();
     }
-    
+
     /**
      * Check if an internal rating indicates investment grade.
-     * 
+     *
      * @param internalRating the internal rating to check
      * @return true if it's investment grade, false otherwise
      */
@@ -209,19 +206,19 @@ public class RatingValidator {
         if (!isValidInternalRating(internalRating)) {
             return false;
         }
-        
+
         String normalizedRating = internalRating.trim().toUpperCase();
         Set<String> investmentGradeRatings = Set.of(
             "AAA", "AA+", "AA", "AA-", "A+", "A", "A-", "BBB+", "BBB", "BBB-",
             "1", "2", "3", "4", "1A", "1B", "1C", "2A", "2B", "2C"
         );
-        
+
         return investmentGradeRatings.contains(normalizedRating);
     }
-    
+
     /**
      * Check if an internal rating indicates default.
-     * 
+     *
      * @param internalRating the internal rating to check
      * @return true if it indicates default, false otherwise
      */
@@ -229,28 +226,26 @@ public class RatingValidator {
         if (!isValidInternalRating(internalRating)) {
             return false;
         }
-        
+
         String normalizedRating = internalRating.trim().toUpperCase();
         return Set.of("D", "10", "5").contains(normalizedRating);
     }
-    
+
     /**
      * Get all valid internal ratings.
-     * 
+     *
      * @return set of all valid internal ratings
      */
     public static Set<String> getAllValidInternalRatings() {
         return Set.copyOf(VALID_INTERNAL_RATINGS);
     }
-    
+
     /**
      * Get all valid risk categories.
-     * 
+     *
      * @return set of all valid risk categories
      */
     public static Set<String> getAllValidRiskCategories() {
         return Set.copyOf(VALID_RISK_CATEGORIES);
     }
 }
-
-

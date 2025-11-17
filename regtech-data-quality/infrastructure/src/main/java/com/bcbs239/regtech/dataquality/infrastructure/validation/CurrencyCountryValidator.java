@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.validation;
 
+import com.bcbs239.regtech.dataquality.domain.validation.validators.CountryValidator;
+import com.bcbs239.regtech.dataquality.domain.validation.validators.CurrencyValidator;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;

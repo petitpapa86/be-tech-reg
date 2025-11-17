@@ -1,15 +1,12 @@
-package com.bcbs239.regtech.dataquality.infrastructure.validation;
-
-import org.springframework.stereotype.Component;
+package com.bcbs239.regtech.dataquality.domain.validation.validators;
 
 import java.util.Set;
 
 /**
  * Utility class for validating country codes according to ISO 3166-1 alpha-2 standard.
  */
-@Component
 public class CountryValidator {
-    
+
     /**
      * Set of valid ISO 3166-1 alpha-2 country codes.
      * This includes all officially assigned country codes.
@@ -32,7 +29,7 @@ public class CountryValidator {
         "TR", "TT", "TV", "TW", "TZ", "UA", "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI",
         "VN", "VU", "WF", "WS", "YE", "YT", "ZA", "ZM", "ZW"
     );
-    
+
     /**
      * Set of EU member countries (as of 2024).
      */
@@ -40,7 +37,7 @@ public class CountryValidator {
         "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT", "LV",
         "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE"
     );
-    
+
     /**
      * Set of G20 countries.
      */
@@ -48,10 +45,10 @@ public class CountryValidator {
         "AR", "AU", "BR", "CA", "CN", "FR", "DE", "IN", "ID", "IT", "JP", "KR", "MX", "RU", "SA", "ZA",
         "TR", "GB", "US"
     );
-    
+
     /**
      * Validate if a country code is a valid ISO 3166-1 alpha-2 code.
-     * 
+     *
      * @param countryCode the country code to validate
      * @return true if the country code is valid, false otherwise
      */
@@ -59,25 +56,25 @@ public class CountryValidator {
         if (countryCode == null || countryCode.trim().isEmpty()) {
             return false;
         }
-        
+
         String normalizedCode = countryCode.trim().toUpperCase();
-        
+
         // Check format: exactly 2 alphabetic characters
         if (normalizedCode.length() != 2) {
             return false;
         }
-        
+
         if (!normalizedCode.matches("^[A-Z]{2}$")) {
             return false;
         }
-        
+
         // Check against known valid countries
         return VALID_COUNTRIES.contains(normalizedCode);
     }
-    
+
     /**
      * Get the normalized country code (uppercase, trimmed).
-     * 
+     *
      * @param countryCode the country code to normalize
      * @return the normalized country code, or null if invalid
      */
@@ -87,10 +84,10 @@ public class CountryValidator {
         }
         return countryCode.trim().toUpperCase();
     }
-    
+
     /**
      * Check if a country is an EU member.
-     * 
+     *
      * @param countryCode the country code to check
      * @return true if it's an EU member, false otherwise
      */
@@ -100,10 +97,10 @@ public class CountryValidator {
         }
         return EU_COUNTRIES.contains(countryCode.trim().toUpperCase());
     }
-    
+
     /**
      * Check if a country is a G20 member.
-     * 
+     *
      * @param countryCode the country code to check
      * @return true if it's a G20 member, false otherwise
      */
@@ -113,32 +110,31 @@ public class CountryValidator {
         }
         return G20_COUNTRIES.contains(countryCode.trim().toUpperCase());
     }
-    
+
     /**
      * Get all valid country codes.
-     * 
+     *
      * @return set of all valid country codes
      */
     public static Set<String> getAllValidCountries() {
         return Set.copyOf(VALID_COUNTRIES);
     }
-    
+
     /**
      * Get all EU member country codes.
-     * 
+     *
      * @return set of EU member country codes
      */
     public static Set<String> getEUCountries() {
         return Set.copyOf(EU_COUNTRIES);
     }
-    
+
     /**
      * Get all G20 member country codes.
-     * 
+     *
      * @return set of G20 member country codes
      */
     public static Set<String> getG20Countries() {
         return Set.copyOf(G20_COUNTRIES);
     }
 }
-

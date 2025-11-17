@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.dataquality.infrastructure.scoring;
+package com.bcbs239.regtech.dataquality.application.scoring;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -309,4 +309,3 @@ public class QualityScoringEngineImpl implements QualityScoringEngine {
         }
     }
 }
-
