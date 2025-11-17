@@ -19,7 +19,7 @@ public class DataQualityRoutesConfig {
     @Bean
     public RouterFunction<ServerResponse> dataQualityRoutes(List<IEndpoint> endpoints) {
         return endpoints.stream()
-            .map(IEndpoint::mapEndpoint)
+            .map(IEndpoint::mapEndpoints)
             .reduce(RouterFunction::and)
             .orElseGet(() -> RouterFunctions.route().build());
     }

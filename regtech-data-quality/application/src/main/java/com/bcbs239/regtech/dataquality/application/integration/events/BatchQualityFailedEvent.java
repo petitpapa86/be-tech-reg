@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.dataquality.application.integration.events;
 
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import lombok.Getter;
@@ -13,6 +14,8 @@ import java.util.Map;
  */
 @Getter
 public class BatchQualityFailedEvent extends com.bcbs239.regtech.core.domain.events.IntegrationEvent {
+    private static final String EVENT_TYPE = "BatchQualityFailed";
+    
     private final BatchId batchId;
     private final BankId bankId;
     private final String errorMessage;
@@ -27,12 +30,18 @@ public class BatchQualityFailedEvent extends com.bcbs239.regtech.core.domain.eve
             Map<String, Object> errorDetails,
             Map<String, Object> processingMetadata
     ) {
+        super(batchId.value(), Maybe.none(), EVENT_TYPE);
         this.batchId = batchId;
         this.bankId = bankId;
         this.errorMessage = errorMessage;
         this.errorDetails = errorDetails != null ? errorDetails : new HashMap<>();
         this.processingMetadata = processingMetadata != null ? processingMetadata : new HashMap<>();
         this.timestamp = Instant.now();
+    }
+
+    @Override
+    public String eventType() {
+        return EVENT_TYPE;
     }
 
     @Override

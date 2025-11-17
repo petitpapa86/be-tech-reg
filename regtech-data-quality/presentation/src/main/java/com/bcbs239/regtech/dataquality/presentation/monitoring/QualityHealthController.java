@@ -11,6 +11,8 @@ import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
+import java.util.Map;
+
 /**
  * Health and monitoring controller for the data quality module.
  * Provides system health checks, database connectivity, S3 availability, and performance metrics.
@@ -90,11 +92,22 @@ public class QualityHealthController implements IEndpoint {
     /**
      * Get validation engine status and performance metrics.
      * Endpoint: GET /api/v1/data-quality/health/validation-engine
+     * 
+     * Note: Validation is now done through value object factory methods (DDD approach),
+     * so this returns a simple UP status indicating the validation capability is available.
      */
     public ServerResponse getValidationEngineHealth(ServerRequest request) {
         logger.debug("Processing validation engine health check request");
         
-        HealthCheckResult result = healthChecker.checkValidationEngineHealth();
+        // Validation engine is always available (built into domain value objects)
+        HealthCheckResult result = new HealthCheckResult(
+            "UP",
+            "Validation engine is available (DDD value object validation)",
+            Map.of(
+                "type", "domain-driven-validation",
+                "location", "value object factory methods"
+            )
+        );
         return responseHandler.handleComponentHealthResponse("validation-engine", result);
     }
     
