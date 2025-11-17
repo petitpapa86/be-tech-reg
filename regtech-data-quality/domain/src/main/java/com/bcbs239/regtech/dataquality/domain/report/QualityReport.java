@@ -10,12 +10,14 @@ import com.bcbs239.regtech.dataquality.domain.report.events.*;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
+import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Quality Report aggregate root that manages the lifecycle of data quality validation
@@ -64,7 +66,6 @@ public class QualityReport extends Entity {
         report.batchId = batchId;
         report.bankId = bankId;
         report.status = QualityStatus.PENDING;
-        report.scores = null; // Will be set when calculated
         report.createdAt = Instant.now();
         report.updatedAt = Instant.now();
         
@@ -86,6 +87,7 @@ public class QualityReport extends Entity {
         }
         
         this.status = QualityStatus.IN_PROGRESS;
+        this.processingStartTime = Instant.now();
         this.updatedAt = Instant.now();
         
         addDomainEvent(new QualityValidationStartedEvent(
@@ -93,6 +95,71 @@ public class QualityReport extends Entity {
         ));
         
         return Result.success();
+    }
+    
+    /**
+     * Executes the complete quality validation workflow on exposure data.
+     * This is the primary business logic method that orchestrates:
+     * 1. Validation of exposures using value object factory method
+     * 2. Recording validation results
+     * 3. Calculation of quality scores using value object factory method
+     * 4. Publishing domain events
+     * 
+     * <p>This method encapsulates the core business process of quality validation,
+     * ensuring that the aggregate maintains its invariants and consistency.</p>
+     * 
+     * @param exposures The exposure records to validate
+     * @return Result containing ValidationResult for further processing (e.g., S3 storage)
+     */
+    public Result<ValidationResult> executeQualityValidation(List<ExposureRecord> exposures) {
+        // Guard: Ensure we're in the correct state
+        if (!isInProgress()) {
+            return Result.failure(ErrorDetail.of(
+                "INVALID_STATE_TRANSITION",
+                ErrorType.VALIDATION_ERROR,
+                "Cannot execute validation from status: " + status + ". Must be IN_PROGRESS.",
+                "quality.report.invalid.state.transition"
+            ));
+        }
+        
+        // Guard: Validate inputs
+        if (exposures == null || exposures.isEmpty()) {
+            return Result.failure(ErrorDetail.of(
+                "INVALID_INPUT",
+                ErrorType.VALIDATION_ERROR,
+                "Exposure list cannot be null or empty",
+                "quality.report.exposures.invalid"
+            ));
+        }
+        
+        // Business Logic: Execute validation using value object factory method
+        // ValidationResult knows how to create itself by applying specifications
+        ValidationResult validation = ValidationResult.validate(exposures);
+        
+        // Business Logic: Store validation summary
+        this.validationSummary = validation.summary();
+        this.updatedAt = Instant.now();
+        
+        // Emit domain event for validation results
+        addDomainEvent(new QualityResultsRecordedEvent(
+            reportId, batchId, bankId, validationSummary, updatedAt
+        ));
+        
+        // Business Logic: Calculate quality scores using value object factory method
+        // QualityScores knows how to create itself from validation results
+        QualityScores qualityScores = QualityScores.calculateFrom(validation);
+        
+        // Business Logic: Store quality scores
+        this.scores = qualityScores;
+        this.updatedAt = Instant.now();
+        
+        // Emit domain event for score calculation
+        addDomainEvent(new QualityScoresCalculatedEvent(
+            reportId, batchId, bankId, qualityScores, updatedAt
+        ));
+        
+        // Return validation result for further processing (e.g., S3 storage by application layer)
+        return Result.success(validation);
     }
     
     /**
@@ -193,6 +260,7 @@ public class QualityReport extends Entity {
     /**
      * Completes the quality validation process successfully.
      * Transitions to COMPLETED status and raises completion event.
+     * Calculates processing duration for auditing purposes.
      */
     public Result<Void> completeValidation() {
         if (!isInProgress()) {
@@ -223,6 +291,13 @@ public class QualityReport extends Entity {
         }
         
         this.status = QualityStatus.COMPLETED;
+        this.processingEndTime = Instant.now();
+        
+        // Calculate processing duration for audit/monitoring
+        if (processingStartTime != null) {
+            this.processingDurationMs = processingEndTime.toEpochMilli() - processingStartTime.toEpochMilli();
+        }
+        
         this.updatedAt = Instant.now();
         
         addDomainEvent(new QualityValidationCompletedEvent(

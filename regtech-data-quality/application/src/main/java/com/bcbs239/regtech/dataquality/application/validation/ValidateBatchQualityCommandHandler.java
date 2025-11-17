@@ -1,11 +1,9 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
-import com.bcbs239.regtech.dataquality.application.scoring.QualityScoringEngine;
 import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityCompletedEvent;
 import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityFailedEvent;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
@@ -24,14 +22,27 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Command handler for validating batch quality using the railway pattern.
- * Orchestrates the complete quality validation workflow including:
- * 1. Creating quality report
- * 2. Downloading exposure data from S3
- * 3. Validating quality across six dimensions
- * 4. Calculating quality scores
- * 5. Storing detailed results in S3
- * 6. Publishing completion events
+ * Command handler for validating batch quality using proper DDD approach.
+ * 
+ * <p>This handler delegates business logic to the aggregate root and value object factories:
+ * <ul>
+ *   <li>{@link QualityReport#executeQualityValidation} - Aggregate orchestrates validation workflow</li>
+ *   <li>{@link ValidationResult#validate} - Value object factory applies specifications</li>
+ *   <li>{@link QualityScores#calculateFrom} - Value object factory calculates scores</li>
+ *   <li>Application layer only handles: transactions, infrastructure (S3, events), and persistence</li>
+ * </ul>
+ * 
+ * <p>Application layer responsibilities:</p>
+ * <ol>
+ *   <li>Transaction management (@Transactional)</li>
+ *   <li>Downloading data from S3 (infrastructure)</li>
+ *   <li>Calling aggregate business methods</li>
+ *   <li>Storing results in S3 (infrastructure)</li>
+ *   <li>Publishing integration events (infrastructure)</li>
+ *   <li>Saving aggregates to repository</li>
+ * </ol>
+ * 
+ * <p>This is proper DDD - business logic lives in aggregates and value objects, application layer only coordinates infrastructure.</p>
  */
 @Component
 public class ValidateBatchQualityCommandHandler {
@@ -39,21 +50,15 @@ public class ValidateBatchQualityCommandHandler {
     private static final Logger logger = LoggerFactory.getLogger(ValidateBatchQualityCommandHandler.class);
     
     private final IQualityReportRepository qualityReportRepository;
-    private final QualityValidationEngine validationEngine;
-    private final QualityScoringEngine scoringEngine;
     private final S3StorageService s3StorageService;
     private final IIntegrationEventBus eventBus;
     
     public ValidateBatchQualityCommandHandler(
         IQualityReportRepository qualityReportRepository,
-        QualityValidationEngine validationEngine,
-        QualityScoringEngine scoringEngine,
         S3StorageService s3StorageService,
         IIntegrationEventBus eventBus
     ) {
         this.qualityReportRepository = qualityReportRepository;
-        this.validationEngine = validationEngine;
-        this.scoringEngine = scoringEngine;
         this.s3StorageService = s3StorageService;
         this.eventBus = eventBus;
     }
@@ -113,59 +118,24 @@ public class ValidateBatchQualityCommandHandler {
         }
         List<ExposureRecord> exposures = exposuresResult.getValueOrThrow();
         
-        // Validate quality
-        logger.debug("Starting quality validation for {} exposures", exposures.size());
+        // Execute quality validation using aggregate business logic
+        logger.debug("Executing quality validation for {} exposures", exposures.size());
         
-        Result<ValidationResult> validationResult = validationEngine.validateExposures(exposures)
-            .map(validation -> {
-                logger.info("Quality validation completed: {}/{} exposures valid, {} total errors", 
-                    validation.validExposures(), validation.totalExposures(), validation.allErrors().size());
-                return validation;
-            });
+        Result<ValidationResult> validationResult = report.executeQualityValidation(exposures);
         
         if (validationResult.isFailure()) {
-            logger.error("Failed to validate exposure quality: {}", 
+            logger.error("Failed to execute quality validation: {}", 
                 validationResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
-            markReportAsFailed(report, "Quality validation failed");
+            markReportAsFailed(report, "Failed to execute quality validation");
             return Result.failure(validationResult.errors());
         }
+        
         ValidationResult validation = validationResult.getValueOrThrow();
+        QualityScores scores = report.getScores(); // Scores calculated by aggregate
         
-        // Record validation results
-        Result<Void> recordResult = report.recordValidationResults(validation);
-        if (recordResult.isFailure()) {
-            logger.error("Failed to record validation results: {}", 
-                recordResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
-            markReportAsFailed(report, "Failed to record validation results");
-            return recordResult;
-        }
-        
-        // Calculate quality scores
-        logger.debug("Calculating quality scores from validation results");
-        
-        Result<QualityScores> scoresResult = scoringEngine.calculateScores(validation)
-            .map(scores -> {
-                logger.info("Quality scores calculated: Overall={}, Grade={}", 
-                    scores.overallScore(), scores.grade());
-                return scores;
-            });
-        
-        if (scoresResult.isFailure()) {
-            logger.error("Failed to calculate quality scores: {}", 
-                scoresResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
-            markReportAsFailed(report, "Failed to calculate quality scores");
-            return Result.failure(scoresResult.errors());
-        }
-        QualityScores scores = scoresResult.getValueOrThrow();
-        
-        // Record quality scores
-        Result<Void> scoreRecordResult = report.calculateScores(scores);
-        if (scoreRecordResult.isFailure()) {
-            logger.error("Failed to record quality scores: {}", 
-                scoreRecordResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
-            markReportAsFailed(report, "Failed to record quality scores");
-            return scoreRecordResult;
-        }
+        logger.info("Quality validation completed: {}/{} exposures valid, {} total errors, Overall score: {}", 
+            validation.validExposures(), validation.totalExposures(), validation.allErrors().size(),
+            scores.overallScore());
         
         // Store detailed results in S3
         logger.debug("Storing detailed validation results in S3 for batch {}", command.batchId().value());

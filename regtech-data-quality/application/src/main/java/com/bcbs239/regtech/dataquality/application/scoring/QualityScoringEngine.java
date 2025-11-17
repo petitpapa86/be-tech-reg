@@ -8,7 +8,12 @@ import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 /**
  * Service interface for calculating quality scores based on validation results.
  * Implements weighted scoring across all six quality dimensions.
+ * 
+ * @deprecated This interface violates DDD principles by putting domain logic in application layer.
+ * Use {@link QualityScores#calculateFrom(ValidationResult)} instead - the value object knows how to create itself.
+ * This interface will be removed in a future version.
  */
+@Deprecated(since = "2.0", forRemoval = true)
 public interface QualityScoringEngine {
     
     /**

@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.dataquality.presentation.monitoring;
 
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
-import com.bcbs239.regtech.dataquality.application.validation.QualityValidationEngine;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +11,10 @@ import java.util.Map;
 
 /**
  * Health checker for data quality module components.
- * Performs health checks on database, S3, and validation engine.
+ * Performs health checks on database and S3.
+ * 
+ * <p>Note: No longer checks validation engine as validation is now done through
+ * value object factory methods (proper DDD approach).</p>
  */
 @Component
 public class QualityHealthChecker {
@@ -21,16 +23,13 @@ public class QualityHealthChecker {
     
     private final IQualityReportRepository qualityReportRepository;
     private final S3StorageService s3StorageService;
-    private final QualityValidationEngine validationEngine;
     
     public QualityHealthChecker(
         IQualityReportRepository qualityReportRepository,
-        S3StorageService s3StorageService,
-        QualityValidationEngine validationEngine
+        S3StorageService s3StorageService
     ) {
         this.qualityReportRepository = qualityReportRepository;
         this.s3StorageService = s3StorageService;
-        this.validationEngine = validationEngine;
     }
     
     /**
@@ -123,45 +122,6 @@ public class QualityHealthChecker {
     }
     
     /**
-     * Checks validation engine status and performance.
-     */
-    public HealthCheckResult checkValidationEngineHealth() {
-        try {
-            Instant startTime = Instant.now();
-            
-            if (validationEngine == null) {
-                return new HealthCheckResult(
-                    "DOWN",
-                    "Validation engine not available",
-                    Map.of("error", "Engine is null")
-                );
-            }
-            
-            // Test validation engine (this would typically involve a simple validation)
-            // For now, we'll just verify the engine is injected properly
-            long duration = java.time.Duration.between(startTime, Instant.now()).toMillis();
-            
-            return new HealthCheckResult(
-                "UP",
-                "Validation engine is operational",
-                Map.of(
-                    "responseTime", duration + "ms",
-                    "engine", "active",
-                    "specifications", "loaded"
-                )
-            );
-            
-        } catch (Exception e) {
-            logger.error("Validation engine health check failed: {}", e.getMessage(), e);
-            return new HealthCheckResult(
-                "DOWN",
-                "Validation engine health check failed",
-                Map.of("error", e.getMessage())
-            );
-        }
-    }
-    
-    /**
      * Performs comprehensive health check of all components.
      */
     public ModuleHealthResult checkModuleHealth() {
@@ -170,12 +130,9 @@ public class QualityHealthChecker {
         // Check all components
         HealthCheckResult databaseHealth = checkDatabaseHealth();
         HealthCheckResult s3Health = checkS3Health();
-        HealthCheckResult validationHealth = checkValidationEngineHealth();
         
         // Determine overall status
-        boolean isHealthy = databaseHealth.isHealthy() && 
-                           s3Health.isHealthy() && 
-                           validationHealth.isHealthy();
+        boolean isHealthy = databaseHealth.isHealthy() && s3Health.isHealthy();
         
         String overallStatus = isHealthy ? "UP" : "DOWN";
         long checkDuration = java.time.Duration.between(startTime, Instant.now()).toMillis();
@@ -184,7 +141,6 @@ public class QualityHealthChecker {
             overallStatus,
             databaseHealth,
             s3Health,
-            validationHealth,
             checkDuration,
             Instant.now()
         );
@@ -218,7 +174,6 @@ public class QualityHealthChecker {
         String overallStatus,
         HealthCheckResult databaseHealth,
         HealthCheckResult s3Health,
-        HealthCheckResult validationHealth,
         long checkDurationMs,
         Instant timestamp
     ) {
@@ -229,8 +184,7 @@ public class QualityHealthChecker {
         public Map<String, Object> toResponseMap() {
             Map<String, Object> healthStatus = Map.of(
                 "database", databaseHealth.toMap(),
-                "s3", s3Health.toMap(),
-                "validationEngine", validationHealth.toMap()
+                "s3", s3Health.toMap()
             );
             
             return Map.of(
@@ -244,4 +198,3 @@ public class QualityHealthChecker {
         }
     }
 }
-

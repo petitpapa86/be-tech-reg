@@ -9,7 +9,12 @@ import java.util.List;
 /**
  * Service interface for validating exposure data across all quality dimensions.
  * Implements the six-dimensional quality validation using the Specification pattern.
+ * 
+ * @deprecated This interface violates DDD principles by putting domain logic in application layer.
+ * Use {@link ValidationResult#validate(List)} instead - the value object knows how to create itself.
+ * This interface will be removed in a future version.
  */
+@Deprecated(since = "2.0", forRemoval = true)
 public interface QualityValidationEngine {
     
     /**

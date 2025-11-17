@@ -1,8 +1,13 @@
 package com.bcbs239.regtech.dataquality.domain.quality;
 
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
+
 /**
  * Value object representing complete quality assessment results including
  * individual dimension scores, overall weighted score, and quality grade.
+ * 
+ * <p>This value object includes static factory methods to calculate scores from validation results.
+ * This is proper DDD - the value object knows how to create itself from domain rules.</p>
  */
 public record QualityScores(
     double completenessScore,
@@ -70,6 +75,41 @@ public record QualityScores(
             overall,
             grade
         );
+    }
+    
+    /**
+     * Factory method to calculate quality scores from validation results.
+     * 
+     * <p>This is the proper DDD approach - the value object knows how to create itself
+     * from validation results using default quality weights.</p>
+     * 
+     * @param validationResult The validation results to score
+     * @return QualityScores containing dimension scores and overall score
+     */
+    public static QualityScores calculateFrom(ValidationResult validationResult) {
+        return calculateFrom(validationResult, QualityWeights.defaultWeights());
+    }
+    
+    /**
+     * Factory method to calculate quality scores from validation results with custom weights.
+     * 
+     * @param validationResult The validation results to score
+     * @param weights Custom weights for dimension scoring
+     * @return QualityScores with custom weighted calculation
+     */
+    public static QualityScores calculateFrom(ValidationResult validationResult, QualityWeights weights) {
+        if (validationResult == null) {
+            throw new IllegalArgumentException("Validation result cannot be null");
+        }
+        if (weights == null) {
+            throw new IllegalArgumentException("Quality weights cannot be null");
+        }
+        
+        // Get dimension scores from validation result
+        DimensionScores dimensions = validationResult.dimensionScores();
+        
+        // Calculate overall score using weights
+        return calculate(dimensions, weights);
     }
     
     /**
