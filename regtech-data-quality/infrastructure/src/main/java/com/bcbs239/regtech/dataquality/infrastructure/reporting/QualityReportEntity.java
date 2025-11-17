@@ -15,7 +15,7 @@ import java.util.Objects;
  * Maps to the quality_reports table in the database.
  */
 @Entity
-@Table(name = "quality_reports", indexes = {
+@Table(name = "quality_reports", schema = "dataquality", indexes = {
     @Index(name = "idx_quality_reports_batch_id", columnList = "batch_id", unique = true),
     @Index(name = "idx_quality_reports_bank_id", columnList = "bank_id"),
     @Index(name = "idx_quality_reports_status", columnList = "status"),

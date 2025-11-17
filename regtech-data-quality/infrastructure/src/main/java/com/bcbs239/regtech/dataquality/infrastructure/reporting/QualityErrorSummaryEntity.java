@@ -20,7 +20,7 @@ import java.util.Objects;
 @Setter
 @Getter
 @Entity
-@Table(name = "quality_error_summaries", indexes = {
+@Table(name = "quality_error_summaries", schema = "dataquality", indexes = {
     @Index(name = "idx_error_summaries_batch_id", columnList = "batch_id"),
     @Index(name = "idx_error_summaries_batch_dimension", columnList = "batch_id, dimension"),
     @Index(name = "idx_error_summaries_batch_severity", columnList = "batch_id, severity"),
