@@ -26,6 +26,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -50,7 +51,7 @@ public class S3StorageServiceImpl implements S3StorageService {
     private final S3Client s3Client;
     private final ObjectMapper objectMapper;
     private final JsonFactory jsonFactory;
-    private final ExecutorService executorService;
+    private ExecutorService executorService;
     
     // Configuration properties
     @Value("${data-quality.s3.results-bucket:regtech-quality-results}")
@@ -69,6 +70,10 @@ public class S3StorageServiceImpl implements S3StorageService {
         this.s3Client = s3Client;
         this.objectMapper = new ObjectMapper();
         this.jsonFactory = new JsonFactory();
+    }
+    
+    @PostConstruct
+    public void init() {
         this.executorService = Executors.newFixedThreadPool(maxConcurrentUploads);
     }
     

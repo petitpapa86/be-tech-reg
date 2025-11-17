@@ -48,7 +48,7 @@ public class BatchCompletedIntegrationAdapter {
      */
     @EventListener
     public void onBatchCompletedIntegrationEvent(BatchCompletedIntegrationEvent integrationEvent) {
-        asyncLogger.asyncStructuredLog("Received BatchCompletedIntegrationEvent in data-quality module", Map.of(
+        asyncLogger.asyncStructuredLog("🔔 BatchCompletedIntegrationAdapter invoked!", Map.of(
             "eventType", "BATCH_COMPLETED_INTEGRATION_EVENT",
             "integrationEventId", integrationEvent.getEventId(),
             "batchId", integrationEvent.getBatchId(),
@@ -57,7 +57,8 @@ public class BatchCompletedIntegrationAdapter {
             "totalExposures", integrationEvent.getTotalExposures(),
             "fileSizeBytes", integrationEvent.getFileSizeBytes(),
             "completedAt", integrationEvent.getCompletedAt().toString(),
-            "correlationId", integrationEvent.getCorrelationId()
+            "correlationId", integrationEvent.getCorrelationId(),
+            "isInboxReplay", String.valueOf(com.bcbs239.regtech.core.domain.context.CorrelationContext.isInboxReplay())
         ));
 
         // Convert BatchCompletedIntegrationEvent to BatchIngestedEvent

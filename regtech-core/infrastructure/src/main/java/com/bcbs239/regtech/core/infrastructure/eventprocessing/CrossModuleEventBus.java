@@ -2,6 +2,7 @@ package com.bcbs239.regtech.core.infrastructure.eventprocessing;
 
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -65,11 +66,28 @@ public class CrossModuleEventBus implements IIntegrationEventBus, InitializingBe
         }
 
         // We acquired a permit; publish in a virtual thread and release permit when done
+        // Capture the current ScopedValue context to propagate to the virtual thread
+        String correlationId = CorrelationContext.correlationId();
+        String causationId = CorrelationContext.causationId();
+        String boundedContext = CorrelationContext.boundedContext();
+        boolean isOutboxReplay = CorrelationContext.isOutboxReplay();
+        boolean isInboxReplay = CorrelationContext.isInboxReplay();
+        
         Thread.ofVirtual().start(() -> {
             try {
-                logger.info("📤 ASYNC Publishing cross-module event: {} with data: {}", event.getClass().getSimpleName(), event);
-                eventPublisher.publishEvent(event);
-                logger.debug("✅ Successfully published cross-module event: {}", event.getClass().getSimpleName());
+                // Re-establish the ScopedValue context in the virtual thread
+                var scope = java.lang.ScopedValue.where(CorrelationContext.CORRELATION_ID, correlationId)
+                        .where(CorrelationContext.CAUSATION_ID, causationId)
+                        .where(CorrelationContext.BOUNDED_CONTEXT, boundedContext)
+                        .where(CorrelationContext.OUTBOX_REPLAY, isOutboxReplay)
+                        .where(CorrelationContext.INBOX_REPLAY, isInboxReplay);
+                
+                scope.run(() -> {
+                    logger.debug("Publishing cross-module event in virtual thread: {} (correlationId={}, isOutboxReplay={}, isInboxReplay={})", 
+                            event.getClass().getSimpleName(), correlationId, isOutboxReplay, isInboxReplay);
+                    eventPublisher.publishEvent(event);
+                    logger.debug("Successfully published cross-module event: {}", event.getClass().getSimpleName());
+                });
             } catch (Exception e) {
                 logger.error("❌ Failed to publish cross-module event: {} - {}", event.getClass().getSimpleName(), e.getMessage(), e);
             } finally {
@@ -79,7 +97,7 @@ public class CrossModuleEventBus implements IIntegrationEventBus, InitializingBe
     }
 
     public void publishEventSynchronously(Object event) {
-        logger.info("📤 SYNC Publishing cross-module event: {} with data: {}", event.getClass().getSimpleName(), event);
+        logger.debug("Publishing cross-module event synchronously: {}", event.getClass().getSimpleName());
         eventPublisher.publishEvent(event);
     }
 

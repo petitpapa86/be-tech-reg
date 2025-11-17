@@ -26,14 +26,18 @@ public class IntegrationEventReceiver {
     @Transactional
     public void onIntegrationEvent(IntegrationEvent event) {
         // Skip saving events that are being replayed from inbox to prevent loops
-        if (CorrelationContext.isInboxReplay()) {
-            logger.debug("Skipping inbox save for inbox-replayed integration event: {}", event.getClass().getSimpleName());
+        boolean isInboxReplay = CorrelationContext.isInboxReplay();
+        logger.info("📨 IntegrationEventReceiver: event={}, isInboxReplay={}", 
+                event.getClass().getSimpleName(), isInboxReplay);
+        
+        if (isInboxReplay) {
+            logger.info("✅ Skipping inbox save (replay): {}", event.getClass().getSimpleName());
             return;
         }
         
         // check for existing message to ensure idempotency could be added here
         try {
-            logger.info("Received integration event: {}", event.getClass().getSimpleName());
+            logger.info("💾 Saving to inbox: {}", event.getClass().getSimpleName());
             InboxMessage entry = InboxMessage.fromIntegrationEvent(event, mapper);
             inboxRepository.save(entry);
             logger.debug("Saved inbox message for eventId={}", entry.getId());
