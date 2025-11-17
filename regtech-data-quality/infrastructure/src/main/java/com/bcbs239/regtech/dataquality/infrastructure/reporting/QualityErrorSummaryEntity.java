@@ -40,10 +40,10 @@ public class QualityErrorSummaryEntity {
     @Column(name = "id")
     private Long id;
     
-    @Column(name = "batch_id", nullable = false, length = 36)
+    @Column(name = "batch_id", nullable = false, length = 255)
     private String batchId;
     
-    @Column(name = "bank_id", nullable = false, length = 36)
+    @Column(name = "bank_id", nullable = false, length = 255)
     private String bankId;
     
     @Column(name = "rule_code", nullable = false, length = 100)

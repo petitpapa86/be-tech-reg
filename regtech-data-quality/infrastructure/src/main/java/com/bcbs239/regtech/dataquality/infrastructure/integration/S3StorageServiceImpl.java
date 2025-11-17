@@ -54,6 +54,9 @@ public class S3StorageServiceImpl implements S3StorageService {
     private ExecutorService executorService;
     
     // Configuration properties
+    @Value("${storage.type:s3}")
+    private String storageType;
+    
     @Value("${data-quality.s3.results-bucket:regtech-quality-results}")
     private String resultsBucket;
     
@@ -65,6 +68,9 @@ public class S3StorageServiceImpl implements S3StorageService {
     
     @Value("${data-quality.s3.max-concurrent-uploads:3}")
     private int maxConcurrentUploads;
+    
+    @Value("${storage.local.base-path:${user.dir}/data}")
+    private String localBasePath;
     
     public S3StorageServiceImpl(S3Client s3Client) {
         this.s3Client = s3Client;
@@ -80,21 +86,28 @@ public class S3StorageServiceImpl implements S3StorageService {
     @Override
     @Retryable(value = {S3Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public Result<List<ExposureRecord>> downloadExposures(String s3Uri) {
-        logger.info("Starting download of exposures from S3 URI: {}", s3Uri);
+        logger.info("Starting download of exposures from URI: {}", s3Uri);
         long startTime = System.currentTimeMillis();
         
         try {
-            // Parse S3 URI
-            S3Reference s3Reference = parseS3Uri(s3Uri);
-            if (s3Reference == null) {
-                return Result.failure("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI format: " + s3Uri, "s3_uri");
+            List<ExposureRecord> exposures;
+            
+            // Check if it's a local file URI
+            if (s3Uri != null && s3Uri.startsWith("file://")) {
+                exposures = downloadFromLocalFile(s3Uri);
+            } else {
+                // Parse S3 URI
+                S3Reference s3Reference = parseS3Uri(s3Uri);
+                if (s3Reference == null) {
+                    return Result.failure("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI format: " + s3Uri, "s3_uri");
+                }
+                
+                // Download and parse with streaming from S3
+                exposures = downloadAndParseStreaming(s3Reference);
             }
             
-            // Download and parse with streaming
-            List<ExposureRecord> exposures = downloadAndParseStreaming(s3Reference);
-            
             long duration = System.currentTimeMillis() - startTime;
-            logger.info("Successfully downloaded {} exposures from S3 in {} ms", exposures.size(), duration);
+            logger.info("Successfully downloaded {} exposures in {} ms", exposures.size(), duration);
             
             return Result.success(exposures);
             
@@ -103,11 +116,80 @@ public class S3StorageServiceImpl implements S3StorageService {
             return Result.failure("S3_DOWNLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to download from S3: " + e.getMessage(), "s3_download");
         } catch (IOException e) {
             logger.error("IO error parsing exposures from: {}", s3Uri, e);
-            return Result.failure("S3_PARSE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse JSON from S3: " + e.getMessage(), "json_parsing");
+            return Result.failure("S3_PARSE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse JSON: " + e.getMessage(), "json_parsing");
         } catch (Exception e) {
             logger.error("Unexpected error downloading exposures from: {}", s3Uri, e);
             return Result.failure("S3_DOWNLOAD_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error downloading exposures: " + e.getMessage(), "system");
         }
+    }
+    
+    /**
+     * Downloads and parses exposures from a local file URI
+     */
+    private List<ExposureRecord> downloadFromLocalFile(String fileUri) throws IOException {
+        // Convert file:// URI to file path
+        String filePath = fileUri.replace("file:///", "").replace("file://", "");
+        // Handle URL encoding (e.g., %20 -> space)
+        filePath = java.net.URLDecoder.decode(filePath, "UTF-8");
+        
+        logger.info("Reading exposures from local file: {}", filePath);
+        
+        java.nio.file.Path path = java.nio.file.Paths.get(filePath);
+        if (!java.nio.file.Files.exists(path)) {
+            throw new IOException("File not found: " + filePath);
+        }
+        
+        // Parse JSON from local file
+        List<ExposureRecord> exposures = new ArrayList<>();
+        try (JsonParser parser = jsonFactory.createParser(java.nio.file.Files.newInputStream(path))) {
+            JsonNode rootNode = objectMapper.readTree(parser);
+            
+            // Check if it's a direct array or an object with nested array
+            JsonNode arrayNode;
+            if (rootNode.isArray()) {
+                // Direct array format
+                arrayNode = rootNode;
+            } else if (rootNode.isObject() && rootNode.has("loan_portfolio")) {
+                // Nested format with loan_portfolio array
+                arrayNode = rootNode.get("loan_portfolio");
+            } else {
+                throw new IOException("Expected JSON array or object with 'loan_portfolio' field");
+            }
+            
+            // Parse each exposure
+            for (JsonNode exposureNode : arrayNode) {
+                ExposureRecord exposure = parseExposureRecord(exposureNode);
+                exposures.add(exposure);
+                
+                // Log progress for large files
+                if (exposures.size() % 10000 == 0) {
+                    logger.debug("Parsed {} exposures so far", exposures.size());
+                }
+            }
+        }
+        
+        logger.info("Successfully read {} exposures from local file", exposures.size());
+        return exposures;
+    }
+    
+    /**
+     * Stores data to local filesystem
+     */
+    private S3Reference storeToLocalFile(String key, String content, Map<String, String> metadata) throws IOException {
+        // Create full file path
+        java.nio.file.Path basePath = java.nio.file.Paths.get(localBasePath);
+        java.nio.file.Path fullPath = basePath.resolve(key);
+        
+        // Create parent directories if they don't exist
+        java.nio.file.Files.createDirectories(fullPath.getParent());
+        
+        // Write content to file
+        java.nio.file.Files.writeString(fullPath, content, StandardCharsets.UTF_8);
+        
+        logger.info("Successfully stored file to local path: {}", fullPath);
+        
+        // Return a file:// URI as S3Reference (bucket will be "local", key is the relative path)
+        return S3Reference.of("local", key, "0");
     }
     
     @Override
@@ -117,9 +199,8 @@ public class S3StorageServiceImpl implements S3StorageService {
         long startTime = System.currentTimeMillis();
         
         try {
-            // Create S3 key for detailed results
-            String s3Key = String.format("quality/quality_%s.json", batchId.value());
-            String s3Uri = String.format("s3://%s/%s", resultsBucket, s3Key);
+            // Create key for detailed results
+            String key = String.format("quality/quality_%s.json", batchId.value());
             
             // Serialize validation result to JSON
             String jsonContent = serializeValidationResult(validationResult);
@@ -127,16 +208,20 @@ public class S3StorageServiceImpl implements S3StorageService {
             // Create metadata
             Map<String, String> metadata = createMetadata(batchId, validationResult);
             
-            // Upload to S3 with encryption
-            uploadWithEncryption(resultsBucket, s3Key, jsonContent, metadata);
-            
-            // Construct an S3Reference; use a placeholder version id when not available
-            S3Reference s3Reference = S3Reference.of(resultsBucket, s3Key, "0");
+            // Store based on storage type
+            S3Reference reference;
+            if ("local".equalsIgnoreCase(storageType)) {
+                reference = storeToLocalFile(key, jsonContent, metadata);
+            } else {
+                // Upload to S3 with encryption
+                uploadWithEncryption(resultsBucket, key, jsonContent, metadata);
+                reference = S3Reference.of(resultsBucket, key, "0");
+            }
 
             long duration = System.currentTimeMillis() - startTime;
             logger.info("Successfully stored detailed results for batch {} in {} ms", batchId.value(), duration);
 
-            return Result.success(s3Reference);
+            return Result.success(reference);
             
         } catch (S3Exception e) {
             logger.error("S3 error storing detailed results for batch: {}", batchId.value(), e);
@@ -156,10 +241,9 @@ public class S3StorageServiceImpl implements S3StorageService {
         long startTime = System.currentTimeMillis();
 
         try {
-            // Create S3 key for detailed results
-            String s3Key = String.format("quality/quality_%s.json", batchId.value());
-            String s3Uri = String.format("s3://%s/%s", resultsBucket, s3Key);
-
+            // Create key for results
+            String key = String.format("quality/quality_%s.json", batchId.value());
+            
             // Serialize validation result to JSON
             String jsonContent = serializeValidationResult(validationResult);
 
@@ -167,16 +251,20 @@ public class S3StorageServiceImpl implements S3StorageService {
             Map<String, String> merged = createMetadata(batchId, validationResult);
             if (metadata != null) merged.putAll(metadata);
 
-            // Upload to S3 with encryption
-            uploadWithEncryption(resultsBucket, s3Key, jsonContent, merged);
-
-            // Construct an S3Reference; use a placeholder version id when not available
-            S3Reference s3Reference = S3Reference.of(resultsBucket, s3Key, "0");
+            // Store based on storage type
+            S3Reference reference;
+            if ("local".equalsIgnoreCase(storageType)) {
+                reference = storeToLocalFile(key, jsonContent, merged);
+            } else {
+                // Upload to S3 with encryption
+                uploadWithEncryption(resultsBucket, key, jsonContent, merged);
+                reference = S3Reference.of(resultsBucket, key, "0");
+            }
 
             long duration = System.currentTimeMillis() - startTime;
             logger.info("Successfully stored detailed results for batch {} in {} ms", batchId.value(), duration);
 
-            return Result.success(s3Reference);
+            return Result.success(reference);
 
         } catch (S3Exception e) {
             logger.error("S3 error storing detailed results for batch: {}", batchId.value(), e);
@@ -255,16 +343,55 @@ public class S3StorageServiceImpl implements S3StorageService {
      * Parse a single exposure record from JSON node.
      */
     private ExposureRecord parseExposureRecord(JsonNode node) {
+        // Support both field naming conventions (camelCase and snake_case)
+        String exposureId = getTextValue(node, "exposureId");
+        if (exposureId == null || exposureId.isEmpty()) {
+            exposureId = getTextValue(node, "exposure_id");
+        }
+        
+        String counterpartyId = getTextValue(node, "counterpartyId");
+        if (counterpartyId == null || counterpartyId.isEmpty()) {
+            counterpartyId = getTextValue(node, "borrower_id");
+        }
+        
+        String leiCode = getTextValue(node, "leiCode");
+        if (leiCode == null || leiCode.isEmpty()) {
+            leiCode = getTextValue(node, "counterparty_lei");
+        }
+        
+        String country = getTextValue(node, "country");
+        if (country == null || country.isEmpty()) {
+            country = getTextValue(node, "country_code");
+            if (country == null || country.isEmpty()) {
+                country = getTextValue(node, "borrower_country");
+            }
+        }
+        
+        String productType = getTextValue(node, "productType");
+        if (productType == null || productType.isEmpty()) {
+            productType = getTextValue(node, "loan_type");
+        }
+        
+        // Try to get amount from various fields
+        java.math.BigDecimal amount = null;
+        if (node.has("amount")) {
+            amount = node.get("amount").decimalValue();
+        } else if (node.has("gross_exposure_amount")) {
+            amount = node.get("gross_exposure_amount").decimalValue();
+        } else if (node.has("loan_amount")) {
+            amount = node.get("loan_amount").decimalValue();
+        }
+        
         return ExposureRecord.builder()
-            .exposureId(getTextValue(node, "exposureId"))
-            .counterpartyId(getTextValue(node, "counterpartyId"))
-            .amount(node.has("amount") ? node.get("amount").decimalValue() : null)
+            .exposureId(exposureId)
+            .counterpartyId(counterpartyId)
+            .amount(amount)
             .currency(getTextValue(node, "currency"))
-            .country(getTextValue(node, "country"))
+            .country(country)
             .sector(getTextValue(node, "sector"))
             .counterpartyType(getTextValue(node, "counterpartyType"))
-            .productType(getTextValue(node, "productType"))
-            .leiCode(getTextValue(node, "leiCode"))
+            .productType(productType)
+            .leiCode(leiCode)
             .internalRating(getTextValue(node, "internalRating"))
             .riskCategory(getTextValue(node, "riskCategory"))
             .riskWeight(node.has("riskWeight") ? node.get("riskWeight").decimalValue() : null)

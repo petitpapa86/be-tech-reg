@@ -34,17 +34,18 @@ public class SecurityFilter implements Filter {
         this.authenticationService = authenticationService;
         // Define public paths that don't require authentication
         this.publicPaths = Set.of(
-            "/api/public/**",
-            "/api/health",
-            "/api/auth/login",
-            "/api/auth/register",
-            "/api/auth/forgot-password",
-            "/api/v1/users/register",
-            "/api/v1/ingestion/**",
-            "/actuator/health",
-            "/swagger-ui/**",
-            "/v3/api-docs/**",
-            "/h2-console/**","/api/v1/ingestion/upload-and-process"
+                "/api/public/**",
+                "/api/health",
+                "/api/auth/login",
+                "/api/auth/register",
+                "/api/auth/forgot-password",
+                "/api/v1/users/register",
+                "/api/v1/ingestion/**",
+                "/actuator/health",
+                "/swagger-ui/**",
+                "/v3/api-docs/**",
+                "/h2-console/**", "/api/v1/ingestion/upload-and-process",
+                "/api/v1/data-quality/reports/**"
         );
     }
 
@@ -91,13 +92,13 @@ public class SecurityFilter implements Filter {
             httpResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             httpResponse.setContentType("application/json");
             httpResponse.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"" +
-                e.getMessage().replace("\"", "\\\"") + "\"}");
+                    e.getMessage().replace("\"", "\\\"") + "\"}");
         }
     }
 
     private boolean isPublicPath(String path) {
         return publicPaths.stream()
-            .anyMatch(pattern -> matchesPattern(path, pattern));
+                .anyMatch(pattern -> matchesPattern(path, pattern));
     }
 
     private boolean matchesPattern(String path, String pattern) {

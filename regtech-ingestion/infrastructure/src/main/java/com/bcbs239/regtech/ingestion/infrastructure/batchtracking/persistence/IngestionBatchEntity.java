@@ -22,10 +22,10 @@ public class IngestionBatchEntity {
 
     // Getters and setters
     @Id
-    @Column(name = "batch_id", length = 100)
+    @Column(name = "batch_id", length = 255)
     private String batchId;
     
-    @Column(name = "bank_id", length = 20, nullable = false)
+    @Column(name = "bank_id", length = 255, nullable = false)
     private String bankId;
     
     @Column(name = "bank_name", length = 100)

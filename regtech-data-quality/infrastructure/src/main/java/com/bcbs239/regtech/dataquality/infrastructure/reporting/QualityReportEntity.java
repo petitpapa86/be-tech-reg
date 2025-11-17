@@ -27,16 +27,14 @@ import java.util.Objects;
 public class QualityReportEntity {
     
     @Id
-    @Column(name = "report_id", nullable = false, length = 36)
+    @Column(name = "report_id", nullable = false, length = 255)
     private String reportId;
-    
-    @Column(name = "batch_id", nullable = false, length = 36, unique = true)
+
+    @Column(name = "batch_id", nullable = false, length = 255, unique = true)
     private String batchId;
-    
-    @Column(name = "bank_id", nullable = false, length = 36)
-    private String bankId;
-    
-    @Enumerated(EnumType.STRING)
+
+    @Column(name = "bank_id", nullable = false, length = 255)
+    private String bankId;    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private QualityStatus status;
     
@@ -63,7 +61,7 @@ public class QualityReportEntity {
     private BigDecimal overallScore;
     
     @Enumerated(EnumType.STRING)
-    @Column(name = "quality_grade", length = 2)
+    @Column(name = "quality_grade", length = 20)
     private QualityGrade qualityGrade;
     
     // Validation Summary

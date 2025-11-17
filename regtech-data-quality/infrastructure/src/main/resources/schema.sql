@@ -1,8 +1,8 @@
 -- Data Quality Tables
 CREATE TABLE IF NOT EXISTS dataquality.quality_reports (
     report_id VARCHAR(36) NOT NULL PRIMARY KEY,
-    batch_id VARCHAR(36) NOT NULL UNIQUE,
-    bank_id VARCHAR(36) NOT NULL,
+    batch_id VARCHAR(255) NOT NULL UNIQUE,
+    bank_id VARCHAR(255) NOT NULL,
     status VARCHAR(20) NOT NULL,
     completeness_score DECIMAL(5,2),
     accuracy_score DECIMAL(5,2),
@@ -36,8 +36,8 @@ CREATE TABLE IF NOT EXISTS dataquality.quality_reports (
 
 CREATE TABLE IF NOT EXISTS dataquality.quality_error_summaries (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    batch_id VARCHAR(36) NOT NULL,
-    bank_id VARCHAR(36) NOT NULL,
+    batch_id VARCHAR(255) NOT NULL,
+    bank_id VARCHAR(255) NOT NULL,
     rule_code VARCHAR(100) NOT NULL,
     dimension VARCHAR(20) NOT NULL,
     severity VARCHAR(20) NOT NULL,
