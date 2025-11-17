@@ -2,8 +2,11 @@ package com.bcbs239.regtech.ingestion.domain.batch;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Domain event raised when batch processing completes successfully.
@@ -17,16 +20,22 @@ public class BatchCompletedEvent extends DomainEvent {
     private final long fileSizeBytes;
     private final Instant completedAt;
     
-    public BatchCompletedEvent(BatchId batchId, BankId bankId, S3Reference s3Reference, 
-                              int totalExposures, long fileSizeBytes, Instant completedAt, 
-                              String correlationId) {
+    @JsonCreator
+    public BatchCompletedEvent(
+            @JsonProperty("batchId") BatchId batchId, 
+            @JsonProperty("bankId") BankId bankId, 
+            @JsonProperty("s3Reference") S3Reference s3Reference, 
+            @JsonProperty("totalExposures") int totalExposures, 
+            @JsonProperty("fileSizeBytes") long fileSizeBytes, 
+            @JsonProperty("completedAt") Instant completedAt, 
+            @JsonProperty("correlationId") String correlationId) {
         super(correlationId, "BatchCompletedEvent");
-        this.batchId = batchId;
-        this.bankId = bankId;
-        this.s3Reference = s3Reference;
+        this.batchId = Objects.requireNonNull(batchId, "batchId cannot be null");
+        this.bankId = Objects.requireNonNull(bankId, "bankId cannot be null");
+        this.s3Reference = Objects.requireNonNull(s3Reference, "s3Reference cannot be null");
         this.totalExposures = totalExposures;
         this.fileSizeBytes = fileSizeBytes;
-        this.completedAt = completedAt;
+        this.completedAt = Objects.requireNonNull(completedAt, "completedAt cannot be null");
     }
     
     @Override

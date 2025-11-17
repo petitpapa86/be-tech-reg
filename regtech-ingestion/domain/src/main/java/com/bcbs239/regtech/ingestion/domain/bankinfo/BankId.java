@@ -1,12 +1,16 @@
 package com.bcbs239.regtech.ingestion.domain.bankinfo;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import java.util.Objects;
 
 /**
  * Value object representing a bank identifier.
  */
-public record BankId(String value) {
+public record BankId(@JsonValue String value) {
     
+    @JsonCreator
     public BankId {
         Objects.requireNonNull(value, "BankId value cannot be null");
         if (value.trim().isEmpty()) {

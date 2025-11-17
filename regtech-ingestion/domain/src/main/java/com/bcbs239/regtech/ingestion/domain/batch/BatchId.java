@@ -1,5 +1,8 @@
 package com.bcbs239.regtech.ingestion.domain.batch;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
@@ -9,11 +12,12 @@ import java.util.UUID;
  * Value object representing a unique batch identifier.
  * Format: "batch_YYYYMMDD_HHMMSS_UUID"
  */
-public record BatchId(String value) {
+public record BatchId(@JsonValue String value) {
     
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
     private static final String PREFIX = "batch_";
     
+    @JsonCreator
     public BatchId {
         Objects.requireNonNull(value, "BatchId value cannot be null");
         if (value.trim().isEmpty()) {

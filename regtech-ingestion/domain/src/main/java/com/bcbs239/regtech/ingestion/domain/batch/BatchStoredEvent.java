@@ -2,6 +2,8 @@ package com.bcbs239.regtech.ingestion.domain.batch;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 
@@ -15,7 +17,13 @@ public class BatchStoredEvent extends DomainEvent {
     private final S3Reference s3Reference;
     private final Instant storedAt;
     
-    public BatchStoredEvent(BatchId batchId, BankId bankId, S3Reference s3Reference, Instant storedAt, String correlationId) {
+    @JsonCreator
+    public BatchStoredEvent(
+            @JsonProperty("batchId") BatchId batchId, 
+            @JsonProperty("bankId") BankId bankId, 
+            @JsonProperty("s3Reference") S3Reference s3Reference, 
+            @JsonProperty("storedAt") Instant storedAt, 
+            @JsonProperty("correlationId") String correlationId) {
         super(correlationId, "BatchStoredEvent");
         this.batchId = batchId;
         this.bankId = bankId;

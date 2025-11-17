@@ -2,6 +2,8 @@ package com.bcbs239.regtech.ingestion.domain.batch;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 
@@ -15,7 +17,13 @@ public class BatchValidatedEvent extends DomainEvent {
     private final int exposureCount;
     private final Instant validatedAt;
     
-    public BatchValidatedEvent(BatchId batchId, BankId bankId, int exposureCount, Instant validatedAt, String correlationId) {
+    @JsonCreator
+    public BatchValidatedEvent(
+            @JsonProperty("batchId") BatchId batchId, 
+            @JsonProperty("bankId") BankId bankId, 
+            @JsonProperty("exposureCount") int exposureCount, 
+            @JsonProperty("validatedAt") Instant validatedAt, 
+            @JsonProperty("correlationId") String correlationId) {
         super(correlationId, "BatchValidatedEvent");
         this.batchId = batchId;
         this.bankId = bankId;

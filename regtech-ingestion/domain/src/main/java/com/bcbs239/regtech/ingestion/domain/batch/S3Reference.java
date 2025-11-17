@@ -1,17 +1,21 @@
 package com.bcbs239.regtech.ingestion.domain.batch;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Objects;
 
 /**
  * Value object representing a reference to a file stored in S3.
  */
 public record S3Reference(
-    String bucket,
-    String key,
-    String versionId,
-    String uri
+    @JsonProperty("bucket") String bucket,
+    @JsonProperty("key") String key,
+    @JsonProperty("versionId") String versionId,
+    @JsonProperty("uri") String uri
 ) {
     
+    @JsonCreator
     public S3Reference {
         Objects.requireNonNull(bucket, "S3 bucket cannot be null");
         Objects.requireNonNull(key, "S3 key cannot be null");
