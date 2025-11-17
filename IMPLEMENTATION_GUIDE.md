@@ -1157,7 +1157,6 @@ public record CreateSubscriptionCommand(
 ```
 
 ---
-
 ### 3. Repository Pattern
 
 **Domain Interface** (in domain layer):
@@ -1165,7 +1164,7 @@ public record CreateSubscriptionCommand(
 public interface IUserRepository {
     Result<User> findById(String userId);
     Result<User> save(User user);
-    Result<List<User>> findByRole(Bcbs239Role role);
+    Result<List<User>> findByRoleName(String roleName);
 }
 ```
 
@@ -1275,28 +1274,23 @@ public class UserController extends BaseController {
 
 **Role-Based Access Control**:
 
-**Roles** (defined in `Bcbs239Role.java`):
-```java
-public enum Bcbs239Role {
-    VIEWER(1, Set.of(
-        Permission.BCBS239_VIEW_REPORTS,
-        Permission.BCBS239_VIEW_VIOLATIONS
-    )),
-    
-    DATA_ANALYST(2, Set.of(
-        Permission.BCBS239_UPLOAD_FILES,
-        Permission.BCBS239_DOWNLOAD_FILES,
-        Permission.BCBS239_VIEW_REPORTS,
-        Permission.BCBS239_GENERATE_REPORTS,
-        Permission.BCBS239_VALIDATE_DATA
-    )),
-    
-    RISK_MANAGER(3, Set.of(
-        Permission.BCBS239_MANAGE_VIOLATIONS,
-        Permission.BCBS239_APPROVE_DATA,
-        Permission.BCBS239_REJECT_DATA
-        // ... more permissions
-    )),
+**Roles** (stored in database):
+Roles are now database-driven. See `ROLES_REFERENCE.md` for the complete list of roles and permissions.
+
+Example role definitions:
+```sql
+INSERT INTO roles (id, name, display_name, description, level) VALUES
+('role-1', 'VIEWER', 'Basic Viewer', 'Can only view reports and data', 1),
+('role-2', 'DATA_ANALYST', 'Data Analyst', 'Can upload files and view reports', 2),
+('role-3', 'RISK_MANAGER', 'Risk Manager', 'Can manage violations and generate reports', 3);
+
+INSERT INTO role_permissions (id, role_id, permission) VALUES
+('perm-1', 'role-1', 'BCBS239_VIEW_REPORTS'),
+('perm-2', 'role-1', 'BCBS239_VIEW_VIOLATIONS'),
+('perm-3', 'role-2', 'BCBS239_UPLOAD_FILES'),
+('perm-4', 'role-2', 'BCBS239_DOWNLOAD_FILES'),
+('perm-5', 'role-2', 'BCBS239_VIEW_REPORTS');
+```
     
     SYSTEM_ADMIN(5, Set.of(
         Permission.SYSTEM_ADMIN,
@@ -1348,10 +1342,10 @@ public class GetUserProfileHandler {
         // Get current user from security context
         SecurityContext securityContext = SecurityContextHolder.getContext();
         String currentUserId = securityContext.getUserId();
-        Bcbs239Role role = securityContext.getRole();
+        Set<String> roles = securityContext.getRoles();
         
         // Business logic
-        return Result.success(new UserProfileResponse(currentUserId, role));
+        return Result.success(new UserProfileResponse(currentUserId, roles));
     }
 }
 ```

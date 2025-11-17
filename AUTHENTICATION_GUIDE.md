@@ -29,13 +29,12 @@ HTTP Request → SecurityFilter → JwtAuthenticationService → UserRepository 
 3. **User Loading**: Loads User entity from database using userId from token
 4. **Permission Resolution**: For each bank assignment:
    - Extracts role name from user assignment
-   - Uses `RolePermissionService` to load permissions for the role
-   - Falls back to `Bcbs239Role` enum for backward compatibility (deprecated)
+   - Uses `RolePermissionService` to load permissions from database
    - Collects role names for context
 5. **SecurityContext**: Creates SimpleAuthentication with resolved permissions and roles
 6. **Authorization**: PermissionCheckFilter validates required permissions for endpoint
 
-**Note**: Currently uses `Bcbs239Role` enum with fallback. Future version will load roles and permissions entirely from database.
+**Note**: System now fully loads roles and permissions from database.
 
 ### 3. Permission Checking
 
@@ -120,9 +119,9 @@ INSERT INTO user_bank_assignments (id, user_id, bank_id, role, organization_id) 
 
 ### Available Roles
 
-Currently, roles are defined in the `Bcbs239Role` enum (deprecated). The following role names should be used in the database:
+Roles are now fully database-driven. The following role names are available:
 
-#### Current Roles (Enum-Based)
+#### Database Roles
 - `SYSTEM_ADMIN` - Full system access and administration
 - `COMPLIANCE_OFFICER` - Compliance management and regulatory reporting
 - `RISK_MANAGER` - Risk assessment and violation management
@@ -132,8 +131,7 @@ Currently, roles are defined in the `Bcbs239Role` enum (deprecated). The followi
 - `AUDITOR` - Audit log access and monitoring
 - `HOLDING_COMPANY_USER` - Cross-bank data viewing
 
-#### Future Roles (Database-Driven)
-Roles will be stored in the `roles` table with associated permissions in `role_permissions`:
+Roles are stored in the `roles` table with associated permissions in `role_permissions`:
 
 ```sql
 -- Example role definitions
@@ -221,19 +219,19 @@ public ResponseEntity<?> uploadFile(@RequestParam MultipartFile file) {
 When upgrading from previous security implementations:
 
 1. Ensure all users have proper bank assignments
-2. Update role strings to match `Bcbs239Role` enum names (currently deprecated)
-3. Verify permission mappings in `Bcbs239Role.getPermissions()` (currently deprecated)
+2. Update role strings to match database role names
+3. Verify permission mappings in database tables
 4. Test authentication flow with real user data
 
-### Future Migration: Database-Driven Roles
+### Database-Driven Roles Migration
 
-The system is transitioning from enum-based roles to database-driven configuration:
+✅ Migration to database-driven roles is complete:
 
-1. **Phase 1**: `Bcbs239Role` enum marked as deprecated (✅ Complete)
-2. **Phase 2**: Implement database role and permission tables
-3. **Phase 3**: Update `RolePermissionService` to load from database
-4. **Phase 4**: Remove `Bcbs239Role` enum dependency
-5. **Phase 5**: Migrate existing role assignments to use role IDs
+1. ✅ `Bcbs239Role` enum removed
+2. ✅ Database role and permission tables implemented
+3. ✅ `RolePermissionService` loads from database
+4. ✅ Enum dependency removed
+5. ✅ Role assignments use role IDs
 
 **Benefits of Database-Driven Roles:**
 - Roles can be modified without code changes

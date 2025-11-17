@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.ingestion.application.batch.process;
 
-import com.bcbs239.regtech.core.capabilities.outboxhandling.BaseUnitOfWork;
+import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;

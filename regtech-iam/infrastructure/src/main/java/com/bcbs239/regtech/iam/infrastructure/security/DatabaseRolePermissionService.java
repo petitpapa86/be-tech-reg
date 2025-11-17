@@ -10,13 +10,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Implementation of RolePermissionService.
- * Loads permissions from database with fallback to enum for backward compatibility.
+ * Loads permissions from database.
  */
 @Service
 public class DatabaseRolePermissionService implements RolePermissionService {
@@ -44,9 +43,9 @@ public class DatabaseRolePermissionService implements RolePermissionService {
                 return Result.success(permissions);
             }
 
-            // Fallback to enum for backward compatibility (can be removed once all roles are migrated)
-            logger.warn("No permissions found in database for role {}, falling back to enum", roleName);
-            return loadPermissionsFromEnum(roleName);
+            // No permissions found in database
+            logger.warn("No permissions found in database for role {}", roleName);
+            return Result.success(Set.of());
 
         } catch (Exception e) {
             logger.error("Error loading permissions for role {}: {}", roleName, e.getMessage());
@@ -72,9 +71,9 @@ public class DatabaseRolePermissionService implements RolePermissionService {
                 return Result.success(roles);
             }
 
-            // Fallback to enum for backward compatibility
-            logger.warn("No roles found in database, falling back to enum");
-            return loadRolesFromEnum();
+            // No roles found in database
+            logger.warn("No roles found in database");
+            return Result.success(Set.of());
 
         } catch (Exception e) {
             logger.error("Error loading all roles: {}", e.getMessage());
@@ -83,53 +82,6 @@ public class DatabaseRolePermissionService implements RolePermissionService {
                 ErrorType.SYSTEM_ERROR,
                 "Failed to load available roles",
                 "roles.load.failed"
-            ));
-        }
-    }
-
-    /**
-     * Fallback method to load permissions from enum (for backward compatibility).
-     * TODO: Remove this method once all roles are migrated to database.
-     */
-    @Deprecated
-    private Result<Set<String>> loadPermissionsFromEnum(String roleName) {
-        try {
-            // Import here to avoid circular dependency issues
-            com.bcbs239.regtech.iam.domain.users.Bcbs239Role role =
-                com.bcbs239.regtech.iam.domain.users.Bcbs239Role.valueOf(roleName.toUpperCase());
-            Set<String> permissions = role.getPermissions();
-
-            logger.debug("Loaded {} permissions for role {} from enum", permissions.size(), roleName);
-            return Result.success(permissions);
-
-        } catch (IllegalArgumentException e) {
-            logger.warn("Unknown role: {}, returning empty permissions", roleName);
-            return Result.success(Set.of());
-        }
-    }
-
-    /**
-     * Fallback method to load roles from enum (for backward compatibility).
-     * TODO: Remove this method once all roles are migrated to database.
-     */
-    @Deprecated
-    private Result<Set<String>> loadRolesFromEnum() {
-        try {
-            Set<String> roles = new HashSet<>();
-            for (com.bcbs239.regtech.iam.domain.users.Bcbs239Role role :
-                 com.bcbs239.regtech.iam.domain.users.Bcbs239Role.values()) {
-                roles.add(role.name().toLowerCase());
-            }
-
-            return Result.success(roles);
-
-        } catch (Exception e) {
-            logger.error("Error loading roles from enum: {}", e.getMessage());
-            return Result.failure(ErrorDetail.of(
-                "ENUM_ROLES_LOAD_FAILED",
-                ErrorType.SYSTEM_ERROR,
-                "Failed to load roles from enum",
-                "enum.roles.load.failed"
             ));
         }
     }

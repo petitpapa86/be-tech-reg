@@ -37,17 +37,16 @@ regtech-iam/
 ├── pom.xml                                 # Parent pom with modules
 └── documentation files...
 ```
-
 ## Layer Organization
 
 ### 1. Domain Layer (`regtech-iam-domain`)
 **Location**: `regtech-iam/domain/`
-**Contents**: 13 files including:
+**Contents**: 11 files including:
 - User aggregate root with lifecycle management
 - Value objects: Email, Password, UserId, BankId, JwtToken
 - Domain services: UserRepository interface
-- Enums: UserStatus, UserRole, Bcbs239Role
-- Domain concepts: TenantContext, RoleMapping
+- Enums: UserStatus, UserRole
+- Domain concepts: TenantContext
 
 **Dependencies**:
 - regtech-core

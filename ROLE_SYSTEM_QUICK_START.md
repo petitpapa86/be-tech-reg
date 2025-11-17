@@ -27,24 +27,21 @@ GROUP BY r.name;
 - Check logs for: `"Loaded X permissions for role Y from database"`
 - Verify no enum fallback warnings (unless you have custom roles)
 
-## 🔧 Next Phase: Full Migration (Optional)
+## 🔧 Database-Driven Role System
 
-When ready to remove enum dependencies:
+The role system is now fully database-driven:
 
-### Update User Assignment
+### User Assignment
 ```java
-// Instead of:
-userRole.setRole(Bcbs239Role.SYSTEM_ADMIN);
-
-// Use:
+// Use database roles:
 RoleEntity role = roleRepository.findByName("SYSTEM_ADMIN");
 userRole.setRoleId(role.getId());
 ```
 
-### Update Domain Objects
-- Modify `UserRole` to work with role IDs
-- Update `TenantContext` role resolution
-- Remove enum imports gradually
+### Domain Objects
+- `UserRole` works with role IDs
+- `TenantContext` resolves roles from database
+- All enum dependencies removed
 
 ## 📊 Role Hierarchy Reference
 

@@ -5,14 +5,12 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import java.util.Set;
 
 /**
- * Service for loading role permissions.
- * Supports both enum-based (deprecated) and database-driven permission loading.
+ * Service for loading role permissions from database.
  */
 public interface RolePermissionService {
 
     /**
-     * Load permissions for a given role name.
-     * First tries database, falls back to Bcbs239Role enum for backward compatibility.
+     * Load permissions for a given role name from database.
      *
      * @param roleName The role name (e.g., "SYSTEM_ADMIN")
      * @return Set of permission strings
