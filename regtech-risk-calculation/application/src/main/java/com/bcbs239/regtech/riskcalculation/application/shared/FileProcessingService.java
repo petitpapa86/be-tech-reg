@@ -8,12 +8,15 @@ import com.bcbs239.regtech.riskcalculation.domain.calculation.CalculatedExposure
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankId;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -42,13 +45,18 @@ public class FileProcessingService {
     /**
      * Downloads and parses exposure data from the given URI.
      * Uses streaming JSON parsing to minimize memory usage for large files.
+     * Monitors memory usage during processing and logs metrics.
      * 
      * @param sourceUri The URI of the source file containing exposures
      * @param bankId The bank ID for context
      * @return Result containing the list of calculated exposures or error details
      */
     public Result<List<CalculatedExposure>> downloadAndParseExposures(FileStorageUri sourceUri, BankId bankId) {
-        log.info("Downloading and parsing exposures from: {}", sourceUri.uri());
+        long startTime = System.currentTimeMillis();
+        long startMemory = getUsedMemory();
+        
+        log.info("Starting file download and parsing [uri:{},startMemory:{}MB]", 
+            sourceUri.uri(), startMemory / (1024 * 1024));
         
         try {
             // Download file content
@@ -58,37 +66,34 @@ public class FileProcessingService {
             }
             
             String fileContent = downloadResult.getValue().get();
+            long afterDownloadMemory = getUsedMemory();
+            long downloadMemoryDelta = afterDownloadMemory - startMemory;
             
-            // Parse JSON content
-            JsonNode rootNode = objectMapper.readTree(fileContent);
+            log.info("File downloaded [uri:{},size:{}bytes,memoryUsed:{}MB]", 
+                sourceUri.uri(), fileContent.length(), downloadMemoryDelta / (1024 * 1024));
             
-            // Extract exposures array
-            JsonNode exposuresNode = rootNode.get("exposures");
-            if (exposuresNode == null || !exposuresNode.isArray()) {
-                return Result.failure(ErrorDetail.of(
-                    "INVALID_FILE_FORMAT",
-                    ErrorType.BUSINESS_RULE_ERROR,
-                    "File does not contain valid exposures array",
-                    "file.processing.invalid.format"
-                ));
-            }
+            // Use streaming JSON parser to minimize memory usage
+            List<CalculatedExposure> exposures = parseExposuresStreaming(fileContent, bankId);
             
-            // Parse exposures with currency conversion
-            List<CalculatedExposure> exposures = new ArrayList<>();
-            for (JsonNode exposureNode : exposuresNode) {
-                Result<CalculatedExposure> exposureResult = parseExposure(exposureNode, bankId);
-                if (exposureResult.isFailure()) {
-                    log.warn("Failed to parse exposure, skipping: {}", exposureResult.getError().get().getMessage());
-                    continue;
-                }
-                exposures.add(exposureResult.getValue().get());
-            }
+            long endTime = System.currentTimeMillis();
+            long endMemory = getUsedMemory();
+            long totalMemoryDelta = endMemory - startMemory;
+            long peakMemory = getPeakMemoryUsage();
+            long duration = endTime - startTime;
             
-            log.info("Successfully parsed {} exposures from file", exposures.size());
+            // Structured logging with comprehensive metrics
+            log.info("File processing completed [uri:{},exposures:{},duration:{}ms,memoryDelta:{}MB,peakMemory:{}MB,throughput:{}/sec]",
+                sourceUri.uri(), exposures.size(), duration, 
+                totalMemoryDelta / (1024 * 1024), peakMemory / (1024 * 1024),
+                exposures.size() * 1000 / Math.max(duration, 1));
+            
+            // Check for memory usage alerts
+            checkMemoryUsageAlerts(totalMemoryDelta, peakMemory);
+            
             return Result.success(exposures);
             
         } catch (IOException e) {
-            log.error("Failed to parse JSON content from: {}", sourceUri.uri(), e);
+            log.error("Failed to parse JSON content from: {} [error:{}]", sourceUri.uri(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "FILE_PARSING_ERROR",
                 ErrorType.SYSTEM_ERROR,
@@ -96,13 +101,112 @@ public class FileProcessingService {
                 "file.processing.parsing.error"
             ));
         } catch (Exception e) {
-            log.error("Unexpected error processing file: {}", sourceUri.uri(), e);
+            log.error("Unexpected error processing file: {} [error:{}]", sourceUri.uri(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "FILE_PROCESSING_ERROR",
                 ErrorType.SYSTEM_ERROR,
                 "Unexpected error processing file: " + e.getMessage(),
                 "file.processing.unexpected.error"
             ));
+        }
+    }
+    
+    /**
+     * Parses exposures using streaming JSON parser to minimize memory usage.
+     * This approach processes one exposure at a time without loading the entire array into memory.
+     */
+    private List<CalculatedExposure> parseExposuresStreaming(String fileContent, BankId bankId) throws IOException {
+        List<CalculatedExposure> exposures = new ArrayList<>();
+        int parsedCount = 0;
+        int skippedCount = 0;
+        
+        try (InputStream inputStream = new ByteArrayInputStream(fileContent.getBytes());
+             JsonParser parser = objectMapper.getFactory().createParser(inputStream)) {
+            
+            // Navigate to the exposures array
+            boolean foundExposuresArray = false;
+            while (parser.nextToken() != null) {
+                if (parser.getCurrentToken() == JsonToken.FIELD_NAME && 
+                    "exposures".equals(parser.getCurrentName())) {
+                    // Move to the array start token
+                    parser.nextToken();
+                    if (parser.getCurrentToken() == JsonToken.START_ARRAY) {
+                        foundExposuresArray = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!foundExposuresArray) {
+                throw new IOException("File does not contain valid exposures array");
+            }
+            
+            // Stream parse each exposure object
+            while (parser.nextToken() != JsonToken.END_ARRAY) {
+                if (parser.getCurrentToken() == JsonToken.START_OBJECT) {
+                    // Parse single exposure object
+                    JsonNode exposureNode = objectMapper.readTree(parser);
+                    Result<CalculatedExposure> exposureResult = parseExposure(exposureNode, bankId);
+                    
+                    if (exposureResult.isSuccess()) {
+                        exposures.add(exposureResult.getValue().get());
+                        parsedCount++;
+                        
+                        // Log progress for large files
+                        if (parsedCount % 1000 == 0) {
+                            long currentMemory = getUsedMemory();
+                            log.debug("Streaming parse progress [parsed:{},memory:{}MB]", 
+                                parsedCount, currentMemory / (1024 * 1024));
+                        }
+                    } else {
+                        skippedCount++;
+                        log.warn("Failed to parse exposure, skipping [error:{}]", 
+                            exposureResult.getError().get().getMessage());
+                    }
+                }
+            }
+        }
+        
+        log.info("Streaming parse completed [parsed:{},skipped:{}]", parsedCount, skippedCount);
+        return exposures;
+    }
+    
+    /**
+     * Gets the current used memory in bytes.
+     */
+    private long getUsedMemory() {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.totalMemory() - runtime.freeMemory();
+    }
+    
+    /**
+     * Gets the peak memory usage in bytes.
+     */
+    private long getPeakMemoryUsage() {
+        Runtime runtime = Runtime.getRuntime();
+        return runtime.totalMemory();
+    }
+    
+    /**
+     * Checks memory usage and logs alerts if thresholds are exceeded.
+     */
+    private void checkMemoryUsageAlerts(long memoryDelta, long peakMemory) {
+        Runtime runtime = Runtime.getRuntime();
+        long maxMemory = runtime.maxMemory();
+        double memoryUsagePercent = (double) peakMemory / maxMemory * 100.0;
+        
+        // Alert if memory usage exceeds 80%
+        if (memoryUsagePercent > 80.0) {
+            log.warn("HIGH MEMORY USAGE ALERT [usage:{}%,peak:{}MB,max:{}MB]",
+                String.format("%.2f", memoryUsagePercent),
+                peakMemory / (1024 * 1024),
+                maxMemory / (1024 * 1024));
+        }
+        
+        // Alert if memory delta exceeds 500MB
+        long memoryDeltaMB = memoryDelta / (1024 * 1024);
+        if (memoryDeltaMB > 500) {
+            log.warn("LARGE MEMORY ALLOCATION ALERT [delta:{}MB]", memoryDeltaMB);
         }
     }
     

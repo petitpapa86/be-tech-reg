@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.presentation.monitoring;
 
+import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.IBatchSummaryRepository;
 import org.springframework.stereotype.Component;
 
@@ -15,9 +16,13 @@ import java.util.Map;
 public class RiskCalculationMetricsCollector {
     
     private final IBatchSummaryRepository batchSummaryRepository;
+    private final PerformanceMetrics performanceMetrics;
     
-    public RiskCalculationMetricsCollector(IBatchSummaryRepository batchSummaryRepository) {
+    public RiskCalculationMetricsCollector(
+            IBatchSummaryRepository batchSummaryRepository,
+            PerformanceMetrics performanceMetrics) {
         this.batchSummaryRepository = batchSummaryRepository;
+        this.performanceMetrics = performanceMetrics;
     }
     
     /**
@@ -54,83 +59,11 @@ public class RiskCalculationMetricsCollector {
     }
     
     /**
-     * Collects module-specific metrics.
-     * In a real implementation, these would be collected from actual usage statistics.
+     * Collects module-specific metrics from the PerformanceMetrics component.
      */
     private Map<String, Object> collectModuleMetrics() {
-        // These would be collected from actual usage in a real implementation
-        return Map.of(
-            "totalBatchesProcessed", getTotalBatchesProcessed(),
-            "averageProcessingTime", getAverageProcessingTime(),
-            "errorRate", getErrorRate(),
-            "lastProcessedBatch", getLastProcessedBatch(),
-            "activeCalculations", getActiveCalculations(),
-            "throughputPerHour", getThroughputPerHour(),
-            "averageExposuresPerBatch", getAverageExposuresPerBatch()
-        );
-    }
-    
-    /**
-     * Gets the total number of batches processed.
-     * Placeholder implementation - would query actual repository statistics.
-     */
-    private long getTotalBatchesProcessed() {
-        // In real implementation, would query repository for count
-        return 0L; // Placeholder
-    }
-    
-    /**
-     * Gets the average processing time in milliseconds.
-     * Placeholder implementation - would calculate from actual metrics.
-     */
-    private double getAverageProcessingTime() {
-        // In real implementation, would calculate from processing metrics
-        return 0.0; // Placeholder
-    }
-    
-    /**
-     * Gets the error rate percentage.
-     * Placeholder implementation - would calculate from actual error logs.
-     */
-    private double getErrorRate() {
-        // In real implementation, would calculate from error metrics
-        return 0.0; // Placeholder
-    }
-    
-    /**
-     * Gets the last processed batch ID.
-     * Placeholder implementation - would query actual repository.
-     */
-    private String getLastProcessedBatch() {
-        // In real implementation, would query repository for last batch
-        return "none"; // Placeholder
-    }
-    
-    /**
-     * Gets the number of active calculations.
-     * Placeholder implementation - would query actual thread pool metrics.
-     */
-    private int getActiveCalculations() {
-        // In real implementation, would query thread pool for active tasks
-        return 0; // Placeholder
-    }
-    
-    /**
-     * Gets the processing throughput per hour.
-     * Placeholder implementation - would calculate from actual metrics.
-     */
-    private double getThroughputPerHour() {
-        // In real implementation, would calculate from processing metrics
-        return 0.0; // Placeholder
-    }
-    
-    /**
-     * Gets the average number of exposures per batch.
-     * Placeholder implementation - would calculate from actual batch data.
-     */
-    private double getAverageExposuresPerBatch() {
-        // In real implementation, would calculate from batch summaries
-        return 0.0; // Placeholder
+        PerformanceMetrics.MetricsSnapshot snapshot = performanceMetrics.getSnapshot();
+        return snapshot.toMap();
     }
     
     /**

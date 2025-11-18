@@ -3,6 +3,7 @@ package com.bcbs239.regtech.riskcalculation.application.calculation;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchSummary;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.IBatchSummaryRepository;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchSummaryId;
@@ -25,6 +26,7 @@ public class CalculateRiskMetricsCommandHandler {
     
     private final IBatchSummaryRepository batchSummaryRepository;
     private final RiskCalculationService riskCalculationService;
+    private final PerformanceMetrics performanceMetrics;
     
     /**
      * Handles the risk metrics calculation command.
@@ -43,6 +45,9 @@ public class CalculateRiskMetricsCommandHandler {
         log.info("Starting risk calculation [batchId:{},bankId:{},sourceUri:{}]", 
             command.batchId().value(), command.bankId().value(), command.sourceFileUri().uri());
         
+        // Record batch start for performance tracking
+        performanceMetrics.recordBatchStart(command.batchId().value());
+        
         BatchSummary batchSummary = null;
         
         try {
@@ -50,6 +55,7 @@ public class CalculateRiskMetricsCommandHandler {
             if (batchSummaryRepository.existsByBatchId(command.batchId())) {
                 log.warn("Batch already exists, skipping duplicate processing [batchId:{}]", 
                     command.batchId().value());
+                performanceMetrics.recordBatchSuccess(command.batchId().value(), 0);
                 return Result.success(null);
             }
             
@@ -85,6 +91,9 @@ public class CalculateRiskMetricsCommandHandler {
                 log.error("Risk calculation failed [batchId:{},error:{}]", 
                     command.batchId().value(), errorMessage);
                 
+                // Record failure for performance tracking
+                performanceMetrics.recordBatchFailure(command.batchId().value(), errorMessage);
+                
                 // Mark batch as failed and persist error status
                 Result<Void> failResult = batchSummary.failCalculation(errorMessage);
                 if (failResult.isFailure()) {
@@ -105,6 +114,12 @@ public class CalculateRiskMetricsCommandHandler {
             
             log.info("Risk calculation completed successfully [batchId:{},status:{}]", 
                 command.batchId().value(), batchSummary.getStatus());
+            
+            // Record successful completion with exposure count
+            performanceMetrics.recordBatchSuccess(
+                command.batchId().value(), 
+                command.expectedExposures().count());
+            
             return Result.success(null);
             
         } catch (Exception e) {
@@ -112,10 +127,13 @@ public class CalculateRiskMetricsCommandHandler {
             log.error("Unexpected error during risk calculation [batchId:{},error:{}]", 
                 command.batchId().value(), e.getMessage(), e);
             
+            // Record failure for performance tracking
+            String errorMessage = "Unexpected error: " + e.getMessage();
+            performanceMetrics.recordBatchFailure(command.batchId().value(), errorMessage);
+            
             // Attempt to mark batch as failed if we have a batch summary
             if (batchSummary != null) {
                 try {
-                    String errorMessage = "Unexpected error: " + e.getMessage();
                     batchSummary.failCalculation(errorMessage);
                     batchSummaryRepository.save(batchSummary);
                     log.info("Marked batch as failed due to unexpected error [batchId:{}]",

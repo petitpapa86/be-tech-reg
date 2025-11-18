@@ -1,77 +1,59 @@
 package com.bcbs239.regtech.riskcalculation.application.shared;
 
-import lombok.Builder;
 import lombok.Getter;
 
 /**
- * Configuration for retry policies used in file processing operations.
- * Defines retry behavior including maximum attempts and backoff strategy.
+ * Retry policy configuration for file download operations.
+ * Implements exponential backoff strategy with configurable parameters.
  */
 @Getter
-@Builder
 public class RetryPolicy {
     
-    /**
-     * Maximum number of retry attempts (default: 3)
-     */
-    @Builder.Default
-    private final int maxAttempts = 3;
+    private final int maxAttempts;
+    private final long initialBackoffMillis;
+    private final double backoffMultiplier;
+    private final long maxBackoffMillis;
     
-    /**
-     * Initial backoff delay in milliseconds (default: 1000ms = 1s)
-     */
-    @Builder.Default
-    private final long initialBackoffMillis = 1000L;
-    
-    /**
-     * Backoff multiplier for exponential backoff (default: 2.0)
-     */
-    @Builder.Default
-    private final double backoffMultiplier = 2.0;
-    
-    /**
-     * Maximum backoff delay in milliseconds (default: 10000ms = 10s)
-     */
-    @Builder.Default
-    private final long maxBackoffMillis = 10000L;
-    
-    /**
-     * Creates a default retry policy with standard settings.
-     * - 3 maximum attempts
-     * - 1s initial backoff
-     * - 2x exponential multiplier
-     * - 10s maximum backoff
-     * 
-     * @return Default retry policy
-     */
-    public static RetryPolicy defaultPolicy() {
-        return RetryPolicy.builder().build();
+    private RetryPolicy(int maxAttempts, long initialBackoffMillis, double backoffMultiplier, long maxBackoffMillis) {
+        this.maxAttempts = maxAttempts;
+        this.initialBackoffMillis = initialBackoffMillis;
+        this.backoffMultiplier = backoffMultiplier;
+        this.maxBackoffMillis = maxBackoffMillis;
     }
     
     /**
-     * Calculates the backoff delay for a given attempt number.
-     * Uses exponential backoff: initialBackoff * (multiplier ^ (attemptNumber - 1))
-     * Capped at maxBackoffMillis.
-     * 
-     * @param attemptNumber The current attempt number (1-based)
-     * @return Backoff delay in milliseconds
+     * Creates a default retry policy with 3 attempts and exponential backoff.
+     * Initial backoff: 1000ms, multiplier: 2.0, max backoff: 8000ms
+     */
+    public static RetryPolicy defaultPolicy() {
+        return new RetryPolicy(3, 1000L, 2.0, 8000L);
+    }
+    
+    /**
+     * Creates a custom retry policy with specified parameters.
+     */
+    public static RetryPolicy custom(int maxAttempts, long initialBackoffMillis, 
+                                    double backoffMultiplier, long maxBackoffMillis) {
+        return new RetryPolicy(maxAttempts, initialBackoffMillis, backoffMultiplier, maxBackoffMillis);
+    }
+    
+    /**
+     * Determines if another retry should be attempted.
+     */
+    public boolean shouldRetry(int attemptNumber) {
+        return attemptNumber < maxAttempts;
+    }
+    
+    /**
+     * Calculates the backoff delay for the given attempt number using exponential backoff.
+     * Formula: min(initialBackoff * (multiplier ^ (attemptNumber - 1)), maxBackoff)
      */
     public long calculateBackoff(int attemptNumber) {
         if (attemptNumber <= 0) {
             return 0L;
         }
         
-        double backoff = initialBackoffMillis * Math.pow(backoffMultiplier, attemptNumber - 1);
-        return Math.min((long) backoff, maxBackoffMillis);
-    }
-    
-    /**
-     * Validates if another retry attempt should be made.
-     * 
-     * @param currentAttempt The current attempt number (1-based)
-     * @return true if more retries are allowed, false otherwise
-     */
-    public boolean shouldRetry(int currentAttempt) {
-        return currentAttempt < maxAttempts;
+        long backoff = (long) (initialBackoffMillis * Math.pow(backoffMultiplier, attemptNumber - 1));
+        return Math.min(backoff, maxBackoffMillis);
     }
 }
