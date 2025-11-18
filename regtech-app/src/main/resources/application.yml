@@ -288,3 +288,129 @@ regtech:
       parallel-execution: false  # Execute rules sequentially for now
     rules-migration:
       enabled: true  # Run once to populate initial rules, then disable
+
+# Risk Calculation Module Configuration
+risk-calculation:
+  enabled: true
+  
+  # File storage configuration
+  storage:
+    # Use profile-based storage selection (s3 for production, local for development)
+    s3:
+      bucket: regtech-risk-calculations
+      region: us-east-1
+      prefix: calculations/
+      access-key: ${AWS_ACCESS_KEY_ID:}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:}
+      endpoint: ${AWS_S3_ENDPOINT:} # For localstack testing
+      encryption: AES256
+    
+    local:
+      base-path: ./data/risk-calculations
+      create-directories: true
+  
+  # Processing configuration
+  processing:
+    async-enabled: true
+    thread-pool-size: 5
+    queue-capacity: 50
+    timeout-seconds: 300 # 5 minutes
+  
+  # Currency conversion configuration
+  currency:
+    base-currency: EUR
+    cache-enabled: true
+    cache-ttl: 3600 # 1 hour in seconds
+    provider:
+      timeout: 30000 # 30 seconds
+      retry-attempts: 3
+  
+  # Performance settings
+  performance:
+    max-concurrent-calculations: 3
+    streaming-parser-enabled: true
+    memory-threshold-mb: 512
+  
+  # Geographic classification
+  geographic:
+    home-country: IT
+    eu-countries:
+      - AT # Austria
+      - BE # Belgium
+      - BG # Bulgaria
+      - HR # Croatia
+      - CY # Cyprus
+      - CZ # Czech Republic
+      - DK # Denmark
+      - EE # Estonia
+      - FI # Finland
+      - FR # France
+      - DE # Germany
+      - GR # Greece
+      - HU # Hungary
+      - IE # Ireland
+      - IT # Italy
+      - LV # Latvia
+      - LT # Lithuania
+      - LU # Luxembourg
+      - MT # Malta
+      - NL # Netherlands
+      - PL # Poland
+      - PT # Portugal
+      - RO # Romania
+      - SK # Slovakia
+      - SI # Slovenia
+      - ES # Spain
+      - SE # Sweden
+  
+  # Concentration thresholds
+  concentration:
+    high-threshold: 0.25 # HHI > 0.25 is considered high concentration
+    moderate-threshold: 0.15 # HHI between 0.15-0.25 is moderate
+    precision: 4 # Decimal places for HHI calculation
+
+---
+# Development profile overrides
+spring:
+  config:
+    activate:
+      on-profile: development
+
+risk-calculation:
+  storage:
+    type: local # Use local filesystem in development
+  
+  processing:
+    thread-pool-size: 2 # Reduced for development
+  
+  currency:
+    provider:
+      # Mock provider for development
+      mock-enabled: true
+
+logging:
+  level:
+    com.bcbs239.regtech.riskcalculation: DEBUG
+
+---
+# Production profile overrides
+spring:
+  config:
+    activate:
+      on-profile: production
+
+risk-calculation:
+  storage:
+    type: s3 # Use S3 in production
+  
+  processing:
+    thread-pool-size: 10 # Increased for production
+  
+  currency:
+    provider:
+      # Real exchange rate provider for production
+      mock-enabled: false
+
+logging:
+  level:
+    com.bcbs239.regtech.riskcalculation: INFO

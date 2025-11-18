@@ -150,14 +150,21 @@
   - Add error message persistence and retrieval
   - _Requirements: 8.3, 8.4_
 
-- [ ] 7. Configure integration with existing modules
-- [ ] 7.1 Set up event bus integration
+- [x] 7. Configure integration with existing modules
+
+
+
+- [x] 7.1 Set up event bus integration
+
+
   - Configure integration with regtech-core event bus
   - Add event serialization and deserialization
   - Set up inbox/outbox pattern for reliable event delivery
   - _Requirements: 1.1, 7.1_
 
-- [ ] 7.2 Add module to main application
+
+- [x] 7.2 Add module to main application
+
   - Update regtech-app POM to include risk-calculation module dependencies
   - Configure Spring Boot auto-configuration
   - Add profile-specific configurations

@@ -85,7 +85,7 @@ public class BatchCompletedIntegrationAdapter {
             }
             
             // Log structured error for monitoring and alerting
-            asyncLogger.logError(
+            asyncLogger.asyncStructuredLog(
                 "Risk calculation failed for batch: " + event.getBatchId().value(),
                 java.util.Map.of(
                     "batchId", event.getBatchId().value(),
