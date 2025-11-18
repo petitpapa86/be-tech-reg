@@ -35,4 +35,9 @@ public class AnonymousAuthentication implements Authentication {
     public boolean isAuthenticated() {
         return false;
     }
+
+    @Override
+    public String getBankId() {
+        return null;
+    }
 }

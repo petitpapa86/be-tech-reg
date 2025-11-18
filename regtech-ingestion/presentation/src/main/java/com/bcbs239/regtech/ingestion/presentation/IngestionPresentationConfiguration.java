@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Import;
  */
 @Configuration
 @Import(IngestionModuleConfiguration.class)
-@ComponentScan(basePackages = "com.bcbs239.regtech.modules.ingestion.presentation")
+@ComponentScan(basePackages = "com.bcbs239.regtech.ingestion.presentation")
 public class IngestionPresentationConfiguration {
     
     // Presentation-specific configuration beans will be added here

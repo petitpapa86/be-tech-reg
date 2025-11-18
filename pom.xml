@@ -28,6 +28,7 @@
 		<url/>
 	</scm>
 	<properties>
+		<!-- Project targets preview features in JDK 25; please use JDK 25 to build locally and enable preview features -->
 		<java.version>25</java.version>
 		<project.version>0.0.1-SNAPSHOT</project.version>
 		
@@ -35,6 +36,8 @@
 		<testcontainers.version>1.19.3</testcontainers.version>
 		<aws.sdk.version>2.21.29</aws.sdk.version>
 		<poi.version>5.2.4</poi.version>
+		<!-- Lombok version shared across modules -->
+		<lombok.version>1.18.42</lombok.version>
 	</properties>
 	
 	<modules>
@@ -43,6 +46,7 @@
 		<module>regtech-billing</module>
 		<module>regtech-ingestion</module>
 		<module>regtech-data-quality</module>
+		<module>regtech-risk-calculation</module>
 		<module>regtech-app</module>
 	</modules>
 	
@@ -58,6 +62,13 @@
 			</dependency>
 			
 			<!-- AWS SDK BOM -->
+						<!-- shared dependency versions -->
+						<dependency>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+							<scope>provided</scope>
+						</dependency>
 			<dependency>
 				<groupId>software.amazon.awssdk</groupId>
 				<artifactId>bom</artifactId>
@@ -67,6 +78,9 @@
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
+
+	<!-- Lombok management (move into main dependencyManagement) -->
+	<!-- Lombok version is defined by the ${lombok.version} property above -->
 	<build>
 		<plugins>
 			<plugin>

@@ -15,7 +15,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * This configuration class sets up the modular structure and enables
  * the necessary Spring features for the ingestion module.
  */
-@Configuration
+@Configuration("ingestionInfrastructureConfiguration")
 @EnableAsync
 @EnableScheduling
 @EnableConfigurationProperties({IngestionProperties.class, S3Properties.class})

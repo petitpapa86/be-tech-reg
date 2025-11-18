@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.modules.dataquality.presentation.monitoring;
 
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
-import com.bcbs239.regtech.dataquality.application.validation.QualityValidationEngine;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.presentation.monitoring.QualityHealthChecker;
 import com.bcbs239.regtech.dataquality.presentation.monitoring.QualityHealthChecker.HealthCheckResult;
@@ -26,17 +25,13 @@ class QualityHealthCheckerTest {
     @Mock
     private S3StorageService s3StorageService;
     
-    @Mock
-    private QualityValidationEngine validationEngine;
-    
     private QualityHealthChecker healthChecker;
     
     @BeforeEach
     void setUp() {
         healthChecker = new QualityHealthChecker(
             qualityReportRepository,
-            s3StorageService,
-            validationEngine
+            s3StorageService
         );
     }
     
@@ -63,17 +58,6 @@ class QualityHealthCheckerTest {
     }
     
     @Test
-    void shouldCheckValidationEngineHealth() {
-        // When
-        HealthCheckResult result = healthChecker.checkValidationEngineHealth();
-        
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo("UP");
-        assertThat(result.isHealthy()).isTrue();
-    }
-    
-    @Test
     void shouldCheckModuleHealth() {
         // When
         ModuleHealthResult result = healthChecker.checkModuleHealth();
@@ -84,14 +68,13 @@ class QualityHealthCheckerTest {
         assertThat(result.isHealthy()).isTrue();
         assertThat(result.databaseHealth()).isNotNull();
         assertThat(result.s3Health()).isNotNull();
-        assertThat(result.validationHealth()).isNotNull();
     }
     
     @Test
     void shouldReturnDownWhenRepositoryIsNull() {
         // Given
         QualityHealthChecker checkerWithNullRepo = new QualityHealthChecker(
-            null, s3StorageService, validationEngine
+            null, s3StorageService
         );
         
         // When

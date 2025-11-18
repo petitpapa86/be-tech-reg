@@ -26,4 +26,9 @@ public interface Authentication {
      * Check if the user is authenticated.
      */
     boolean isAuthenticated();
+
+    /**
+     * Get the bank id (tenant) associated with this authentication context if available.
+     */
+    String getBankId();
 }

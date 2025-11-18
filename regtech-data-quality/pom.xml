@@ -20,6 +20,7 @@
 	</modules>
 	
 	<properties>
+		<!-- Temporarily set to JDK 21 to restore Lombok annotation processor compatibility until Lombok upgrades for JDK 25 -->
 		<maven.compiler.source>25</maven.compiler.source>
 		<maven.compiler.target>25</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -92,6 +93,13 @@
 						<target>25</target>
 						<enablePreview>true</enablePreview>
 						<parameters>true</parameters>
+	                        <annotationProcessorPaths>
+	                            <path>
+	                                <groupId>org.projectlombok</groupId>
+	                                <artifactId>lombok</artifactId>
+									<version>${lombok.version}</version>
+	                            </path>
+	                        </annotationProcessorPaths>
 					</configuration>
 				</plugin>
 				<plugin>

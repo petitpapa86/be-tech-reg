@@ -3,7 +3,7 @@ package com.bcbs239.regtech.ingestion.presentation.health;
 
 import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
-import com.bcbs239.regtech.ingestion.infrastructure.health.IngestionModuleHealthIndicator;
+import com.bcbs239.regtech.core.domain.monitoring.ModuleHealthIndicator;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import com.bcbs239.regtech.ingestion.presentation.constants.Tags;
 import org.springframework.boot.actuate.health.Health;
@@ -25,9 +25,9 @@ import static org.springframework.web.servlet.function.RouterFunctions.route;
 @Component
 public class IngestionHealthController extends BaseController implements IEndpoint {
 
-    private final IngestionModuleHealthIndicator healthIndicator;
+    private final ModuleHealthIndicator healthIndicator;
 
-    public IngestionHealthController(IngestionModuleHealthIndicator healthIndicator) {
+    public IngestionHealthController(ModuleHealthIndicator healthIndicator) {
         this.healthIndicator = healthIndicator;
     }
 

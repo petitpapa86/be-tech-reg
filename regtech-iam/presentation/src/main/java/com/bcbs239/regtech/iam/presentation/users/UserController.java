@@ -2,7 +2,7 @@ package com.bcbs239.regtech.iam.presentation.users;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityContext;
+import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityContextHolder;
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
@@ -107,9 +107,10 @@ public class UserController extends BaseController {
 
     private ServerResponse getUserProfileHandler(ServerRequest request) {
         try {
-            String userId = SecurityContext.getCurrentUserId();
-            String bankId = SecurityContext.getCurrentBankId();
-            Set<String> permissions = SecurityContext.getCurrentUserPermissions();
+            var ctx = SecurityContextHolder.getContext();
+            String userId = ctx != null ? ctx.getUserId() : null;
+            String bankId = ctx != null && ctx.getAuthentication() != null ? ctx.getAuthentication().getBankId() : null;
+            Set<String> permissions = ctx != null && ctx.getAuthentication() != null ? ctx.getAuthentication().getPermissions() : Set.of();
 
             UserProfileResponse profile = new UserProfileResponse(userId, bankId, permissions);
             ApiResponse<UserProfileResponse> response = ApiResponse.success(

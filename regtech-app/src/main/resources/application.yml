@@ -1,6 +1,8 @@
 spring:
   application:
     name: regtech
+  main:
+    allow-bean-definition-overriding: true
   profiles:
     active: development
   mvc:
@@ -275,3 +277,14 @@ outbox:
   batch-size: 10
   # Toggle parallel processing (not yet implemented)
   parallel-processing-enabled: false
+
+# Data Quality Rules Engine Configuration
+regtech:
+  dataquality:
+    rules-engine:
+      enabled: true  # Enable database-driven rules engine
+      cache-enabled: true
+      cache-ttl: 300  # 5 minutes
+      parallel-execution: false  # Execute rules sequentially for now
+    rules-migration:
+      enabled: true  # Run once to populate initial rules, then disable

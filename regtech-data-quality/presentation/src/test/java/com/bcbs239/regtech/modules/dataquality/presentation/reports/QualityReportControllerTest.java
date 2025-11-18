@@ -32,9 +32,6 @@ class QualityReportControllerTest {
     private QualityRequestValidator requestValidator;
     
     @Mock
-    private QualitySecurityService securityService;
-    
-    @Mock
     private QualityResponseHandler responseHandler;
     
     private QualityReportController controller;
@@ -45,7 +42,6 @@ class QualityReportControllerTest {
             qualityReportQueryHandler, 
             trendsQueryHandler,
             requestValidator,
-            securityService,
             responseHandler
         );
     }

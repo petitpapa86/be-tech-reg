@@ -101,6 +101,7 @@ public class JwtAuthenticationService implements AuthenticationService {
             Set<String> permissions = new HashSet<>();
             Set<String> roles = new HashSet<>();
 
+            String bankId = null;
             for (User.BankAssignment assignment : user.getBankAssignments()) {
                 String roleName = assignment.getRole().toUpperCase();
 
@@ -113,9 +114,12 @@ public class JwtAuthenticationService implements AuthenticationService {
                 }
 
                 roles.add(roleName.toLowerCase());
+                if (bankId == null && assignment.getBankId() != null) {
+                    bankId = assignment.getBankId();
+                }
             }
 
-            return new SimpleAuthentication(userId, permissions, roles);
+            return new SimpleAuthentication(userId, bankId, permissions, roles);
 
         } catch (AuthenticationException e) {
             throw e;

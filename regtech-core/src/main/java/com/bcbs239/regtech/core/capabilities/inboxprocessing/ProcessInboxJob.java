@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.capabilities.inboxprocessing;
+package com.bcbs239.regtech.core.inboxprocessing;
 
 import com.bcbs239.regtech.core.capabilities.eventmanagement.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Scheduled coordinator for inbox message processing.
  * Delegates fetching and per-message processing to dedicated components.
  */
-@Component
+@Component("capabilitiesProcessInboxJob")
 public class ProcessInboxJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessInboxJob.class);
