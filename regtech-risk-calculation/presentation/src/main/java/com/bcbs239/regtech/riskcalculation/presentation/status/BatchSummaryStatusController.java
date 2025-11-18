@@ -41,7 +41,7 @@ public class BatchSummaryStatusController implements IEndpoint {
      * handled by BatchSummaryStatusRoutes to avoid circular dependencies.
      */
     @Override
-    public RouterFunction<ServerResponse> mapEndpoints() {
+    public RouterFunction<ServerResponse> mapEndpoint() {
         // This is handled by BatchSummaryStatusRoutes to avoid circular dependency
         throw new UnsupportedOperationException(
             "Endpoint mapping is handled by BatchSummaryStatusRoutes component"

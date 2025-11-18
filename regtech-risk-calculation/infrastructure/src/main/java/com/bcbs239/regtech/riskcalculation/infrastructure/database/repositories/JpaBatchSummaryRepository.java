@@ -53,7 +53,7 @@ public class JpaBatchSummaryRepository implements IBatchSummaryRepository {
                 Map.of("batchId", batchSummary.getBatchId().value(),
                        "eventType", "BATCH_SUMMARY_SAVE_ERROR"), e);
             
-            return Result.failure(ErrorDetail.of("BATCH_SUMMARY_SAVE_FAILED", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("BATCH_SUMMARY_SAVE_FAILED", ErrorType.SYSTEM_ERROR,
                 "Failed to save batch summary: " + e.getMessage(), "batch.summary.save.failed"));
         }
     }
@@ -117,7 +117,7 @@ public class JpaBatchSummaryRepository implements IBatchSummaryRepository {
                 Map.of("bankId", bankId.value(),
                        "eventType", "BATCH_SUMMARY_FIND_BY_BANK_ERROR"), e);
 
-            return Result.failure(ErrorDetail.of("BATCH_SUMMARY_FIND_BY_BANK_FAILED", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("BATCH_SUMMARY_FIND_BY_BANK_FAILED", ErrorType.SYSTEM_ERROR,
                 "Failed to find batch summaries for bank: " + e.getMessage(), "batch.summary.find.by.bank.failed"));
         }
     }
@@ -141,7 +141,7 @@ public class JpaBatchSummaryRepository implements IBatchSummaryRepository {
                 Map.of("page", page, "size", size,
                        "eventType", "BATCH_SUMMARY_FIND_ALL_ERROR"), e);
 
-            return Result.failure(ErrorDetail.of("BATCH_SUMMARY_FIND_ALL_FAILED", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("BATCH_SUMMARY_FIND_ALL_FAILED", ErrorType.SYSTEM_ERROR,
                 "Failed to find batch summaries: " + e.getMessage(), "batch.summary.find.all.failed"));
         }
     }
@@ -169,7 +169,7 @@ public class JpaBatchSummaryRepository implements IBatchSummaryRepository {
                 Map.of("batchSummaryId", batchSummaryId.value(),
                        "eventType", "BATCH_SUMMARY_DELETE_ERROR"), e);
 
-            return Result.failure(ErrorDetail.of("BATCH_SUMMARY_DELETE_FAILED", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("BATCH_SUMMARY_DELETE_FAILED", ErrorType.SYSTEM_ERROR,
                 "Failed to delete batch summary: " + e.getMessage(), "batch.summary.delete.failed"));
         }
     }

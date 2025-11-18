@@ -12,12 +12,15 @@ import com.bcbs239.regtech.riskcalculation.domain.calculation.SectorBreakdown;
 import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
 import com.bcbs239.regtech.riskcalculation.domain.shared.enums.SectorCategory;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.AmountEur;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.PercentageOfTotal;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.TotalAmountEur;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.TotalExposures;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -100,17 +103,17 @@ public class ConcentrationCalculationService {
         Map<GeographicRegion, List<CalculatedExposure>> groupedByRegion = exposures.stream()
             .collect(Collectors.groupingBy(CalculatedExposure::getGeographicRegion));
         
-        return GeographicBreakdown.builder()
-            .italyAmount(calculateRegionAmount(groupedByRegion, GeographicRegion.ITALY))
-            .italyCount(calculateRegionCount(groupedByRegion, GeographicRegion.ITALY))
-            .italyPercentage(calculateRegionPercentage(groupedByRegion, GeographicRegion.ITALY, totalAmount))
-            .euOtherAmount(calculateRegionAmount(groupedByRegion, GeographicRegion.EU_OTHER))
-            .euOtherCount(calculateRegionCount(groupedByRegion, GeographicRegion.EU_OTHER))
-            .euOtherPercentage(calculateRegionPercentage(groupedByRegion, GeographicRegion.EU_OTHER, totalAmount))
-            .nonEuropeanAmount(calculateRegionAmount(groupedByRegion, GeographicRegion.NON_EUROPEAN))
-            .nonEuropeanCount(calculateRegionCount(groupedByRegion, GeographicRegion.NON_EUROPEAN))
-            .nonEuropeanPercentage(calculateRegionPercentage(groupedByRegion, GeographicRegion.NON_EUROPEAN, totalAmount))
-            .build();
+        return new GeographicBreakdown(
+            calculateRegionTotalAmount(groupedByRegion, GeographicRegion.ITALY),
+            calculateRegionPercentage(groupedByRegion, GeographicRegion.ITALY, totalAmount),
+            calculateRegionTotalCount(groupedByRegion, GeographicRegion.ITALY),
+            calculateRegionTotalAmount(groupedByRegion, GeographicRegion.EU_OTHER),
+            calculateRegionPercentage(groupedByRegion, GeographicRegion.EU_OTHER, totalAmount),
+            calculateRegionTotalCount(groupedByRegion, GeographicRegion.EU_OTHER),
+            calculateRegionTotalAmount(groupedByRegion, GeographicRegion.NON_EUROPEAN),
+            calculateRegionPercentage(groupedByRegion, GeographicRegion.NON_EUROPEAN, totalAmount),
+            calculateRegionTotalCount(groupedByRegion, GeographicRegion.NON_EUROPEAN)
+        );
     }
     
     /**
@@ -120,23 +123,23 @@ public class ConcentrationCalculationService {
         Map<SectorCategory, List<CalculatedExposure>> groupedBySector = exposures.stream()
             .collect(Collectors.groupingBy(CalculatedExposure::getSectorCategory));
         
-        return SectorBreakdown.builder()
-            .retailMortgageAmount(calculateSectorAmount(groupedBySector, SectorCategory.RETAIL_MORTGAGE))
-            .retailMortgageCount(calculateSectorCount(groupedBySector, SectorCategory.RETAIL_MORTGAGE))
-            .retailMortgagePercentage(calculateSectorPercentage(groupedBySector, SectorCategory.RETAIL_MORTGAGE, totalAmount))
-            .sovereignAmount(calculateSectorAmount(groupedBySector, SectorCategory.SOVEREIGN))
-            .sovereignCount(calculateSectorCount(groupedBySector, SectorCategory.SOVEREIGN))
-            .sovereignPercentage(calculateSectorPercentage(groupedBySector, SectorCategory.SOVEREIGN, totalAmount))
-            .corporateAmount(calculateSectorAmount(groupedBySector, SectorCategory.CORPORATE))
-            .corporateCount(calculateSectorCount(groupedBySector, SectorCategory.CORPORATE))
-            .corporatePercentage(calculateSectorPercentage(groupedBySector, SectorCategory.CORPORATE, totalAmount))
-            .bankingAmount(calculateSectorAmount(groupedBySector, SectorCategory.BANKING))
-            .bankingCount(calculateSectorCount(groupedBySector, SectorCategory.BANKING))
-            .bankingPercentage(calculateSectorPercentage(groupedBySector, SectorCategory.BANKING, totalAmount))
-            .otherAmount(calculateSectorAmount(groupedBySector, SectorCategory.OTHER))
-            .otherCount(calculateSectorCount(groupedBySector, SectorCategory.OTHER))
-            .otherPercentage(calculateSectorPercentage(groupedBySector, SectorCategory.OTHER, totalAmount))
-            .build();
+        return new SectorBreakdown(
+            calculateSectorTotalAmount(groupedBySector, SectorCategory.RETAIL_MORTGAGE),
+            calculateSectorPercentage(groupedBySector, SectorCategory.RETAIL_MORTGAGE, totalAmount),
+            calculateSectorTotalCount(groupedBySector, SectorCategory.RETAIL_MORTGAGE),
+            calculateSectorTotalAmount(groupedBySector, SectorCategory.SOVEREIGN),
+            calculateSectorPercentage(groupedBySector, SectorCategory.SOVEREIGN, totalAmount),
+            calculateSectorTotalCount(groupedBySector, SectorCategory.SOVEREIGN),
+            calculateSectorTotalAmount(groupedBySector, SectorCategory.CORPORATE),
+            calculateSectorPercentage(groupedBySector, SectorCategory.CORPORATE, totalAmount),
+            calculateSectorTotalCount(groupedBySector, SectorCategory.CORPORATE),
+            calculateSectorTotalAmount(groupedBySector, SectorCategory.BANKING),
+            calculateSectorPercentage(groupedBySector, SectorCategory.BANKING, totalAmount),
+            calculateSectorTotalCount(groupedBySector, SectorCategory.BANKING),
+            calculateSectorTotalAmount(groupedBySector, SectorCategory.OTHER),
+            calculateSectorPercentage(groupedBySector, SectorCategory.OTHER, totalAmount),
+            calculateSectorTotalCount(groupedBySector, SectorCategory.OTHER)
+        );
     }
     
     /**
@@ -148,48 +151,38 @@ public class ConcentrationCalculationService {
     }
     
     // Helper methods for region calculations
-    private AmountEur calculateRegionAmount(Map<GeographicRegion, List<CalculatedExposure>> grouped, GeographicRegion region) {
-        return new AmountEur(grouped.getOrDefault(region, List.of()).stream()
+    private TotalAmountEur calculateRegionTotalAmount(Map<GeographicRegion, List<CalculatedExposure>> grouped, GeographicRegion region) {
+        BigDecimal total = grouped.getOrDefault(region, List.of()).stream()
             .map(exposure -> exposure.getAmountEur().value())
-            .reduce(BigDecimal.ZERO, BigDecimal::add));
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new TotalAmountEur(total);
     }
     
-    private int calculateRegionCount(Map<GeographicRegion, List<CalculatedExposure>> grouped, GeographicRegion region) {
-        return grouped.getOrDefault(region, List.of()).size();
+    private TotalExposures calculateRegionTotalCount(Map<GeographicRegion, List<CalculatedExposure>> grouped, GeographicRegion region) {
+        return TotalExposures.of(grouped.getOrDefault(region, List.of()).size());
     }
     
-    private BigDecimal calculateRegionPercentage(Map<GeographicRegion, List<CalculatedExposure>> grouped, 
+    private PercentageOfTotal calculateRegionPercentage(Map<GeographicRegion, List<CalculatedExposure>> grouped, 
                                                GeographicRegion region, TotalAmountEur totalAmount) {
-        AmountEur regionAmount = calculateRegionAmount(grouped, region);
-        if (totalAmount.value().compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO;
-        }
-        return regionAmount.value()
-            .divide(totalAmount.value(), 4, BigDecimal.ROUND_HALF_UP)
-            .multiply(new BigDecimal("100"))
-            .setScale(2, BigDecimal.ROUND_HALF_UP);
+        TotalAmountEur regionAmount = calculateRegionTotalAmount(grouped, region);
+        return PercentageOfTotal.calculate(regionAmount, totalAmount);
     }
     
     // Helper methods for sector calculations
-    private AmountEur calculateSectorAmount(Map<SectorCategory, List<CalculatedExposure>> grouped, SectorCategory sector) {
-        return new AmountEur(grouped.getOrDefault(sector, List.of()).stream()
+    private TotalAmountEur calculateSectorTotalAmount(Map<SectorCategory, List<CalculatedExposure>> grouped, SectorCategory sector) {
+        BigDecimal total = grouped.getOrDefault(sector, List.of()).stream()
             .map(exposure -> exposure.getAmountEur().value())
-            .reduce(BigDecimal.ZERO, BigDecimal::add));
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return new TotalAmountEur(total);
     }
     
-    private int calculateSectorCount(Map<SectorCategory, List<CalculatedExposure>> grouped, SectorCategory sector) {
-        return grouped.getOrDefault(sector, List.of()).size();
+    private TotalExposures calculateSectorTotalCount(Map<SectorCategory, List<CalculatedExposure>> grouped, SectorCategory sector) {
+        return TotalExposures.of(grouped.getOrDefault(sector, List.of()).size());
     }
     
-    private BigDecimal calculateSectorPercentage(Map<SectorCategory, List<CalculatedExposure>> grouped, 
+    private PercentageOfTotal calculateSectorPercentage(Map<SectorCategory, List<CalculatedExposure>> grouped, 
                                                SectorCategory sector, TotalAmountEur totalAmount) {
-        AmountEur sectorAmount = calculateSectorAmount(grouped, sector);
-        if (totalAmount.value().compareTo(BigDecimal.ZERO) == 0) {
-            return BigDecimal.ZERO;
-        }
-        return sectorAmount.value()
-            .divide(totalAmount.value(), 4, BigDecimal.ROUND_HALF_UP)
-            .multiply(new BigDecimal("100"))
-            .setScale(2, BigDecimal.ROUND_HALF_UP);
+        TotalAmountEur sectorAmount = calculateSectorTotalAmount(grouped, sector);
+        return PercentageOfTotal.calculate(sectorAmount, totalAmount);
     }
 }

@@ -322,8 +322,8 @@ public class BatchSummaryEntity {
         }
 
         return new ConcentrationIndices(
-            HerfindahlIndex.of(herfindahlGeographic),
-            HerfindahlIndex.of(herfindahlSector)
+            new HerfindahlIndex(herfindahlGeographic),
+            new HerfindahlIndex(herfindahlSector)
         );
     }
 }

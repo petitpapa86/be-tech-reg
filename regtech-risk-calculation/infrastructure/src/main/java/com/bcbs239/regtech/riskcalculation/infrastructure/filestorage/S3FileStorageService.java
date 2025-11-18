@@ -118,21 +118,21 @@ public class S3FileStorageService implements IFileStorageService {
             LoggingConfiguration.logStructured("S3 error downloading exposure file",
                 Map.of("uri", uri.uri(), "eventType", "EXPOSURE_DOWNLOAD_S3_ERROR"), e);
             
-            return Result.failure(ErrorDetail.of("S3_DOWNLOAD_ERROR", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("S3_DOWNLOAD_ERROR", ErrorType.SYSTEM_ERROR,
                 "Failed to download file from S3: " + e.getMessage(), "file.storage.s3.download.error"));
 
         } catch (IOException e) {
             LoggingConfiguration.logStructured("IO error parsing exposure file",
                 Map.of("uri", uri.uri(), "eventType", "EXPOSURE_DOWNLOAD_IO_ERROR"), e);
             
-            return Result.failure(ErrorDetail.of("FILE_PARSE_ERROR", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("FILE_PARSE_ERROR", ErrorType.SYSTEM_ERROR,
                 "Failed to parse exposure file: " + e.getMessage(), "file.storage.parse.error"));
 
         } catch (Exception e) {
             LoggingConfiguration.logStructured("Unexpected error downloading exposure file",
                 Map.of("uri", uri.uri(), "eventType", "EXPOSURE_DOWNLOAD_ERROR"), e);
             
-            return Result.failure(ErrorDetail.of("DOWNLOAD_ERROR", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("DOWNLOAD_ERROR", ErrorType.SYSTEM_ERROR,
                 "Unexpected error downloading file: " + e.getMessage(), "file.storage.download.error"));
         }
     }
@@ -175,14 +175,14 @@ public class S3FileStorageService implements IFileStorageService {
             LoggingConfiguration.logStructured("S3 error uploading calculation results",
                 Map.of("batchId", batchId, "bankId", bankId, "eventType", "CALCULATION_UPLOAD_S3_ERROR"), e);
             
-            return Result.failure(ErrorDetail.of("S3_UPLOAD_ERROR", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("S3_UPLOAD_ERROR", ErrorType.SYSTEM_ERROR,
                 "Failed to upload results to S3: " + e.getMessage(), "file.storage.s3.upload.error"));
 
         } catch (Exception e) {
             LoggingConfiguration.logStructured("Unexpected error uploading calculation results",
                 Map.of("batchId", batchId, "bankId", bankId, "eventType", "CALCULATION_UPLOAD_ERROR"), e);
             
-            return Result.failure(ErrorDetail.of("UPLOAD_ERROR", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("UPLOAD_ERROR", ErrorType.SYSTEM_ERROR,
                 "Unexpected error uploading results: " + e.getMessage(), "file.storage.upload.error"));
         }
     }
@@ -207,14 +207,14 @@ public class S3FileStorageService implements IFileStorageService {
             LoggingConfiguration.logStructured("S3 service health check failed",
                 Map.of("bucket", bucketName, "eventType", "S3_HEALTH_CHECK_FAILED"), e);
             
-            return Result.failure(ErrorDetail.of("S3_HEALTH_CHECK_FAILED", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("S3_HEALTH_CHECK_FAILED", ErrorType.SYSTEM_ERROR,
                 "S3 service is not available: " + e.getMessage(), "file.storage.s3.health.check.failed"));
 
         } catch (Exception e) {
             LoggingConfiguration.logStructured("Unexpected error during S3 health check",
                 Map.of("bucket", bucketName, "eventType", "S3_HEALTH_CHECK_ERROR"), e);
             
-            return Result.failure(ErrorDetail.of("S3_HEALTH_CHECK_ERROR", ErrorType.INFRASTRUCTURE_ERROR,
+            return Result.failure(ErrorDetail.of("S3_HEALTH_CHECK_ERROR", ErrorType.SYSTEM_ERROR,
                 "Unexpected error during S3 health check: " + e.getMessage(), "file.storage.s3.health.check.error"));
         }
     }

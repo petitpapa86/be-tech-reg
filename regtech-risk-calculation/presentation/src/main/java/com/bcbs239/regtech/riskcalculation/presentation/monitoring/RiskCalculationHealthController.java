@@ -47,7 +47,7 @@ public class RiskCalculationHealthController implements IEndpoint {
      * handled by RiskCalculationHealthRoutes to avoid circular dependencies.
      */
     @Override
-    public RouterFunction<ServerResponse> mapEndpoints() {
+    public RouterFunction<ServerResponse> mapEndpoint() {
         // This is handled by RiskCalculationHealthRoutes to avoid circular dependency
         throw new UnsupportedOperationException(
             "Endpoint mapping is handled by RiskCalculationHealthRoutes component"

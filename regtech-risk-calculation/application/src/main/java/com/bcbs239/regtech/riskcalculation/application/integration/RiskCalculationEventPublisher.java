@@ -65,8 +65,8 @@ public class RiskCalculationEventPublisher {
                     domainEvent.getTotalExposures().count(),
                     domainEvent.getTotalAmountEur().value(),
                     Instant.now(),
-                    domainEvent.getConcentrationIndices().getHerfindahlGeographic().value(),
-                    domainEvent.getConcentrationIndices().getHerfindahlSector().value()
+                    domainEvent.getConcentrationIndices().geographicHerfindahl().value(),
+                    domainEvent.getConcentrationIndices().sectorHerfindahl().value()
                 );
             
             // Log structured event data for monitoring

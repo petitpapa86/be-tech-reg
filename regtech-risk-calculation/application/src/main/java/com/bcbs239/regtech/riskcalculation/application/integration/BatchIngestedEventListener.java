@@ -157,20 +157,20 @@ public class BatchIngestedEventListener {
             String stackTrace = exception != null ? getStackTrace(exception) : null;
             
             Map<String, String> metadata = Map.of(
-                "batchId", event.getBatchId(),
-                "bankId", event.getBankId(),
-                "s3Uri", event.getS3Uri(),
+                "batchId", String.valueOf(event.getBatchId()),
+                "bankId", String.valueOf(event.getBankId()),
+                "s3Uri", String.valueOf(event.getS3Uri()),
                 "totalExposures", String.valueOf(event.getTotalExposures()),
-                "eventVersion", event.getEventVersion()
+                "eventVersion", String.valueOf(event.getEventVersion())
             );
             
             EventProcessingFailure failure = EventProcessingFailure.createWithMetadata(
-                event.getBatchId(),
                 event.getClass().getName(),
                 eventPayload,
+                metadata,
                 errorMessage,
                 stackTrace,
-                metadata
+                3 // maxRetries
             );
             
             Result<EventProcessingFailure> saveResult = failureRepository.save(failure);

@@ -37,15 +37,6 @@ public class RiskCalculationConfiguration {
     }
 
     /**
-     * Configuration properties for risk calculation module
-     */
-    @Bean
-    @ConfigurationProperties(prefix = "risk-calculation")
-    public RiskCalculationProperties riskCalculationProperties() {
-        return new RiskCalculationProperties();
-    }
-
-    /**
      * Development profile specific configuration
      */
     @Configuration

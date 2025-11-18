@@ -135,7 +135,7 @@ public class BatchSummary extends Entity {
         
         addDomainEvent(new BatchCalculationCompletedEvent(
             this.batchId, this.bankId, this.resultFileUri, 
-            this.totalExposures, this.totalAmountEur, Instant.now()));
+            this.totalExposures, this.totalAmountEur, this.concentrationIndices, Instant.now()));
         
         return Result.success(null);
     }

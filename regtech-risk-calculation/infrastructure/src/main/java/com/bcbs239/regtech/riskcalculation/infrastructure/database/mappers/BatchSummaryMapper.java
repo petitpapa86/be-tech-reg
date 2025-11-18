@@ -311,8 +311,8 @@ public class BatchSummaryMapper {
         }
 
         return new ConcentrationIndices(
-            HerfindahlIndex.of(entity.getHerfindahlGeographic()),
-            HerfindahlIndex.of(entity.getHerfindahlSector())
+            new HerfindahlIndex(entity.getHerfindahlGeographic()),
+            new HerfindahlIndex(entity.getHerfindahlSector())
         );
     }
 }

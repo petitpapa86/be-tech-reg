@@ -91,6 +91,20 @@ public class CalculatedExposure extends Entity {
     }
     
     /**
+     * Set geographic region classification
+     */
+    public void setGeographicRegion(GeographicRegion geographicRegion) {
+        this.geographicRegion = Objects.requireNonNull(geographicRegion, "Geographic region cannot be null");
+    }
+    
+    /**
+     * Set sector category classification
+     */
+    public void setSectorCategory(SectorCategory sectorCategory) {
+        this.sectorCategory = Objects.requireNonNull(sectorCategory, "Sector category cannot be null");
+    }
+    
+    /**
      * Calculate percentage of total portfolio
      * DDD: Ask the object to do the work
      */

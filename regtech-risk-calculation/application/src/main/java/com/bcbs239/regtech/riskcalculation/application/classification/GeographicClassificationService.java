@@ -30,12 +30,9 @@ public class GeographicClassificationService {
         log.debug("Classifying exposure {} geographically for bank {}", 
             exposure.getId().value(), bankId.value());
         
-        // Determine bank home country (assuming Italian bank for now)
-        Country bankHomeCountry = new Country("IT");
-        
         // Ask the domain classifier to perform the classification
         exposure.setGeographicRegion(
-            geographicClassifier.classify(exposure.getCountry(), bankHomeCountry)
+            geographicClassifier.classify(exposure.getCountry())
         );
         
         log.debug("Exposure {} classified as geographic region: {}", 

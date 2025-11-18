@@ -56,7 +56,7 @@ public class CurrencyConversionService implements com.bcbs239.regtech.riskcalcul
         try {
             // If already in EUR, no conversion needed
             if (currency.isEur()) {
-                AmountEur eurAmount = AmountEur.from(amount);
+                AmountEur eurAmount = AmountEur.of(amount.value());
                 log.debug("Amount already in EUR: {}", eurAmount.value());
                 return Result.success(eurAmount);
             }
