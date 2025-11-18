@@ -1,10 +1,9 @@
-package com.bcbs239.regtech.modules.dataquality.domain.report;
+package com.bcbs239.regtech.dataquality.domain.report;
 
-import com.bcbs239.regtech.core.shared.Result;
+
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
-import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
-import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import com.bcbs239.regtech.dataquality.domain.report.events.*;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
@@ -55,9 +54,9 @@ class QualityReportTest {
         assertTrue(report.getDomainEvents().get(0) instanceof QualityValidationStartedEvent);
         
         QualityValidationStartedEvent event = (QualityValidationStartedEvent) report.getDomainEvents().get(0);
-        assertEquals(report.getReportId(), event.reportId());
-        assertEquals(batchId, event.batchId());
-        assertEquals(bankId, event.bankId());
+        assertEquals(report.getReportId(), event.getReportId());
+        assertEquals(batchId, event.getBatchId());
+        assertEquals(bankId, event.getBankId());
     }
     
     @Test
@@ -222,7 +221,7 @@ class QualityReportTest {
         assertTrue(report.getDomainEvents().get(1) instanceof QualityValidationFailedEvent);
         
         QualityValidationFailedEvent event = (QualityValidationFailedEvent) report.getDomainEvents().get(1);
-        assertEquals(errorMessage, event.errorMessage());
+        assertEquals(errorMessage, event.getErrorMessage());
     }
     
     @Test

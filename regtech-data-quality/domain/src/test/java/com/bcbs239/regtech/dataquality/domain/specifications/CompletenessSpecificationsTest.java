@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.domain.specifications;
+package com.bcbs239.regtech.dataquality.domain.specifications;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.specifications.Specification;
@@ -94,9 +94,9 @@ class CompletenessSpecificationsTest {
 
         // Then
         assertTrue(result.isFailure());
-        assertEquals(2, result.getErrors().size());
-        assertTrue(result.getErrors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_AMOUNT_MISSING")));
-        assertTrue(result.getErrors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_CURRENCY_MISSING")));
+        assertEquals(2, result.errors().size());
+        assertTrue(result.errors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_AMOUNT_MISSING")));
+        assertTrue(result.errors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_CURRENCY_MISSING")));
     }
 
     @Test
@@ -329,10 +329,10 @@ class CompletenessSpecificationsTest {
 
         // Then
         assertTrue(result.isFailure());
-        assertEquals(3, result.getErrors().size());
-        assertTrue(result.getErrors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_AMOUNT_MISSING")));
-        assertTrue(result.getErrors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_LEI_MISSING")));
-        assertTrue(result.getErrors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_INTERNAL_RATING_MISSING")));
+        assertEquals(3, result.errors().size());
+        assertTrue(result.errors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_AMOUNT_MISSING")));
+        assertTrue(result.errors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_LEI_MISSING")));
+        assertTrue(result.errors().stream().anyMatch(e -> e.getCode().equals("COMPLETENESS_INTERNAL_RATING_MISSING")));
     }
 
     @Test
@@ -359,7 +359,7 @@ class CompletenessSpecificationsTest {
                 .build()
         );
 
-        com.bcbs239.regtech.core.shared.Specification<java.util.List<ExposureRecord>> spec = 
+        Specification<java.util.List<ExposureRecord>> spec =
             UniquenessSpecifications.hasUniqueExposureIds();
 
         // When
@@ -393,7 +393,7 @@ class CompletenessSpecificationsTest {
                 .build()
         );
 
-        com.bcbs239.regtech.core.shared.Specification<java.util.List<ExposureRecord>> spec = 
+        Specification<java.util.List<ExposureRecord>> spec =
             UniquenessSpecifications.hasUniqueExposureIds();
 
         // When

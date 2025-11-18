@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.modules.dataquality.domain.specifications;
+package com.bcbs239.regtech.dataquality.domain.specifications;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.specifications.Specification;

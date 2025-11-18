@@ -1,7 +1,8 @@
-package com.bcbs239.regtech.modules.dataquality.domain.specifications;
+package com.bcbs239.regtech.dataquality.domain.specifications;
 
-import com.bcbs239.regtech.core.shared.Result;
-import com.bcbs239.regtech.core.shared.Specification;
+
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.specifications.Specification;
 import com.bcbs239.regtech.dataquality.domain.specifications.ConsistencySpecifications;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import org.junit.jupiter.api.DisplayName;
@@ -9,6 +10,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 @DisplayName("ConsistencySpecifications Tests")
 class ConsistencySpecificationsTest {
