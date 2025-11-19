@@ -26,7 +26,7 @@ import java.nio.file.Paths;
 @Profile("development")
 @RequiredArgsConstructor
 @Slf4j
-public class LocalFileStorageService {
+public class LocalFileStorageService implements IFileStorageService {
     
     private final ObjectMapper objectMapper;
     
