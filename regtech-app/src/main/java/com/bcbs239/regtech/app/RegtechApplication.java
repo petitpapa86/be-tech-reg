@@ -22,20 +22,22 @@ import org.springframework.scheduling.annotation.EnableAsync;
         "com.bcbs239.regtech.iam",
         "com.bcbs239.regtech.billing",
         "com.bcbs239.regtech.ingestion.infrastructure.configuration",
-        "com.bcbs239.regtech.riskcalculation"
-}, excludeFilters = {
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.health.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.capabilities.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.domain.*"),
-        @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.inboxprocessing.*")
-})
+        // "com.bcbs239.regtech.riskcalculation"
+}
+//        excludeFilters = {
+//                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.health.*"),
+//                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.capabilities.*"),
+//                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.domain.*"),
+//                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.inboxprocessing.*")
+//        }
+)
 @EntityScan(basePackages = {
         "com.bcbs239.regtech.core.infrastructure",
-        "com.bcbs239.regtech.riskcalculation.infrastructure"
+       // "com.bcbs239.regtech.riskcalculation.infrastructure"
 })
 @EnableJpaRepositories(basePackages = {
         "com.bcbs239.regtech.core.infrastructure",
-        "com.bcbs239.regtech.riskcalculation.infrastructure"
+       // "com.bcbs239.regtech.riskcalculation.infrastructure"
 })
 @EnableAspectJAutoProxy
 public class RegtechApplication {

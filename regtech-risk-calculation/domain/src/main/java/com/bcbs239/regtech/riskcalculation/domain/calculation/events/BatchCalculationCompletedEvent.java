@@ -9,7 +9,7 @@ import java.time.Instant;
 /**
  * Domain event published when risk calculation completes successfully for a batch
  */
-public class  extends DomainEvent {
+public class BatchCalculationCompletedEvent  extends DomainEvent {
     
     private final BatchId batchId;
     private final BankId bankId;
