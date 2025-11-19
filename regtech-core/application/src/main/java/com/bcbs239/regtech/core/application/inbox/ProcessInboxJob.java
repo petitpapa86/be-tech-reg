@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.core.application.inbox;
 
-import com.bcbs239.regtech.core.application.eventprocessing.IntegrationEventDeserializer;
+import com.bcbs239.regtech.core.application.eventprocessing.CoreIntegrationEventDeserializer;
 import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
@@ -28,9 +28,9 @@ public class ProcessInboxJob {
     private final IInboxMessageRepository inboxMessageRepository;
     private final DomainEventBus dispatcher;
     private final InboxOptions inboxOptions;
-    private final IntegrationEventDeserializer deserializer;
+    private final CoreIntegrationEventDeserializer deserializer;
 
-    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository, DomainEventBus dispatcher, InboxOptions inboxOptions, IntegrationEventDeserializer deserializer) {
+    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository, DomainEventBus dispatcher, InboxOptions inboxOptions, CoreIntegrationEventDeserializer deserializer) {
         this.inboxMessageRepository = inboxMessageRepository;
         this.dispatcher = dispatcher;
         this.inboxOptions = inboxOptions;

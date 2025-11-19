@@ -30,7 +30,7 @@ import java.time.format.DateTimeFormatter;
  *   ├── batch_20240331_002.json
  *   └── ...
  */
-@Service
+@Service("ingestionLocalFileStorageService")
 @ConditionalOnProperty(name = "storage.type", havingValue = "local", matchIfMissing = false)
 public class LocalFileStorageService implements FileStorageService {
 

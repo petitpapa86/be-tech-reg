@@ -33,9 +33,5 @@ public class SagaConfiguration {
         return Executors.newScheduledThreadPool(5);
     }
 
-    @Bean
-    public TimeoutScheduler timeoutScheduler(ScheduledExecutorService executor) {
-        return new com.bcbs239.regtech.core.infrastructure.saga.TimeoutSchedulerService(executor);
-    }
 }
 

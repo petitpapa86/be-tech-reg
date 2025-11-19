@@ -20,18 +20,15 @@ import org.springframework.scheduling.annotation.EnableAsync;
         "com.bcbs239.regtech.core",
         "com.bcbs239.regtech.iam",
         "com.bcbs239.regtech.billing",
-        "com.bcbs239.regtech.dataquality",
         "com.bcbs239.regtech.ingestion.infrastructure.configuration",
         "com.bcbs239.regtech.riskcalculation"
 })
 @EntityScan(basePackages = {
         "com.bcbs239.regtech.core.infrastructure",
-        "com.bcbs239.regtech.dataquality.infrastructure",
         "com.bcbs239.regtech.riskcalculation.infrastructure"
 })
 @EnableJpaRepositories(basePackages = {
         "com.bcbs239.regtech.core.infrastructure",
-        "com.bcbs239.regtech.dataquality.infrastructure",
         "com.bcbs239.regtech.riskcalculation.infrastructure"
 })
 @EnableAspectJAutoProxy

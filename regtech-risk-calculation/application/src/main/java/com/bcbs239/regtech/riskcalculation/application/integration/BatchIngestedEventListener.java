@@ -31,7 +31,7 @@ import java.util.Map;
  * - Error handling with EventProcessingFailure repository
  * - Structured logging for monitoring
  */
-@Component
+@Component("riskCalculationBatchIngestedEventListener")
 @RequiredArgsConstructor
 @Slf4j
 public class BatchIngestedEventListener {
