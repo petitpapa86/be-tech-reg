@@ -246,3 +246,28 @@ The Report Generation Module generates HTML and XBRL-XML reports for Large Expos
 3. WHEN database insert permanently fails, THE Report Generation Module SHALL create fallback record in report_metadata_failures table with S3 URIs for later reconciliation
 4. WHEN scheduled orphaned file cleanup job runs daily, THE Report Generation Module SHALL identify S3 files without corresponding database records and delete files older than 7 days
 5. WHEN reconciliation job runs, THE Report Generation Module SHALL attempt to insert records from report_metadata_failures table into report_generation_summaries table
+
+
+### Requirement 19
+
+**User Story:** As a system operator, I want circuit breaker pattern for S3 operations, so that cascading failures are prevented when S3 service is degraded.
+
+#### Acceptance Criteria
+
+1. WHEN S3 operations experience 10 consecutive failures OR failure rate exceeds 50% over 5-minute window, THE Report Generation Module SHALL open circuit breaker using Resilience4j
+2. WHEN circuit breaker is OPEN, THE Report Generation Module SHALL block S3 operations immediately, save files to local filesystem, and emit metric report.s3.circuit.breaker.open
+3. WHEN circuit breaker remains OPEN for 5 minutes, THE Report Generation Module SHALL transition to HALF_OPEN state and allow 1 test operation
+4. WHEN test operation in HALF_OPEN state succeeds, THE Report Generation Module SHALL close circuit breaker and resume normal S3 operations
+5. WHEN circuit breaker closes, THE Report Generation Module SHALL emit metric report.s3.circuit.breaker.closed and allow deferred uploads to proceed
+
+### Requirement 20
+
+**User Story:** As a system developer, I want idempotency guarantees at all levels, so that duplicate event processing or retries produce consistent results without side effects.
+
+#### Acceptance Criteria
+
+1. WHEN duplicate BatchCalculationCompletedEvent arrives with same event ID, THE Report Generation Module SHALL detect duplicate and skip processing without error
+2. WHEN report generation is triggered for batch_id that already has COMPLETED status, THE Report Generation Module SHALL skip regeneration and return existing record
+3. WHEN report generation is triggered for batch_id with FAILED or PARTIAL status, THE Report Generation Module SHALL allow regeneration and overwrite previous record
+4. WHEN S3 PutObject is called with same key and content, THE Report Generation Module SHALL rely on S3 natural idempotency with versioning enabled
+5. WHEN database insert encounters UNIQUE constraint violation on report_id, THE Report Generation Module SHALL catch exception, query existing record, and proceed without error
