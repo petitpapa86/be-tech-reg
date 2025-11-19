@@ -5,7 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
-import org.springframework.context.annotation.FilterType;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableAsync;
 
@@ -18,26 +17,20 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableAsync
 @ComponentScan(basePackages = {
         "com.bcbs239.regtech.app",
-        "com.bcbs239.regtech.core",
+        // include only the 'application' slice of core to avoid scanning domain/infrastructure modules that
+        // may declare colliding beans (e.g. SagaConfiguration, health indicators, processors)
+        "com.bcbs239.regtech.core.application",
+        // include specific infrastructure packages needed at runtime (logger implementation)
+        "com.bcbs239.regtech.core.infrastructure.logging",
         "com.bcbs239.regtech.iam",
         "com.bcbs239.regtech.billing",
-        "com.bcbs239.regtech.ingestion.infrastructure.configuration",
-        // "com.bcbs239.regtech.riskcalculation"
-}
-//        excludeFilters = {
-//                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.health.*"),
-//                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.capabilities.*"),
-//                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.domain.*"),
-//                @ComponentScan.Filter(type = FilterType.REGEX, pattern = "com.bcbs239.regtech.core.inboxprocessing.*")
-//        }
-)
+        "com.bcbs239.regtech.ingestion.infrastructure.configuration"
+})
 @EntityScan(basePackages = {
-        "com.bcbs239.regtech.core.infrastructure",
-       // "com.bcbs239.regtech.riskcalculation.infrastructure"
+        "com.bcbs239.regtech.core.infrastructure"
 })
 @EnableJpaRepositories(basePackages = {
-        "com.bcbs239.regtech.core.infrastructure",
-       // "com.bcbs239.regtech.riskcalculation.infrastructure"
+        "com.bcbs239.regtech.core.infrastructure"
 })
 @EnableAspectJAutoProxy
 public class RegtechApplication {
@@ -45,4 +38,3 @@ public class RegtechApplication {
         SpringApplication.run(RegtechApplication.class, args);
     }
 }
-

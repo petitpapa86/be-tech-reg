@@ -16,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Scheduled coordinator for inbox message processing.
@@ -51,7 +50,7 @@ public class ProcessInboxJob {
         }
 
         int batchSize = Math.max(1, inboxOptions.getBatchSize());
-        List<InboxMessage> toProcess = pendingMessages.stream().limit(batchSize).collect(Collectors.toList());
+        List<InboxMessage> toProcess = pendingMessages.stream().limit(batchSize).toList();
 
         logger.info("Processing {} inbox messages (batch size {})", toProcess.size(), batchSize);
 
@@ -88,4 +87,3 @@ public class ProcessInboxJob {
         }
     }
 }
-
