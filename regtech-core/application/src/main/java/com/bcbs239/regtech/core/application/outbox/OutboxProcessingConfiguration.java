@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.core.application.outbox;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
@@ -11,10 +10,6 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties({OutboxOptions.class})
 public class OutboxProcessingConfiguration {
 
-    @Bean
-    public OutboxOptions outboxOptions() {
-        return new OutboxOptions();
-    }
 }
 
 

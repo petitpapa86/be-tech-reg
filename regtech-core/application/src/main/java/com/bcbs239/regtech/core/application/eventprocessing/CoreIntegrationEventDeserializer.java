@@ -7,7 +7,9 @@ import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
 
+@Component("coreIntegrationEventDeserializer")
 public class CoreIntegrationEventDeserializer {
 
     private final ObjectMapper objectMapper;

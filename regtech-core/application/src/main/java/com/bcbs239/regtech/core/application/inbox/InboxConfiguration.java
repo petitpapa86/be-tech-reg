@@ -10,10 +10,6 @@ import java.time.Duration;
 @EnableConfigurationProperties(InboxOptions.class)
 public class InboxConfiguration {
 
-    @Bean
-    public InboxOptions inboxOptions() {
-        return new InboxOptions();
-    }
 }
 
 
