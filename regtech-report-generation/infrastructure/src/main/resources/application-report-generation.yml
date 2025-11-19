@@ -1,0 +1,166 @@
+# Report Generation Module Configuration
+report-generation:
+  enabled: true
+  
+  # S3 storage configuration
+  s3:
+    bucket: risk-analysis
+    html-prefix: reports/html/
+    xbrl-prefix: reports/xbrl/
+  
+  # Local fallback configuration
+  fallback:
+    local-path: /tmp/deferred-reports/
+    retry-interval-minutes: 30
+    max-retry-attempts: 5
+  
+  # Async processing configuration
+  async:
+    thread-pool-size: 5
+    queue-capacity: 50
+    thread-name-prefix: report-gen-
+  
+  # Performance targets (in milliseconds)
+  performance:
+    data-fetch-target: 500
+    html-generation-target: 1400
+    xbrl-generation-target: 800
+    s3-upload-target: 800
+    file-download-timeout: 30000 # 30 seconds
+
+# AWS Configuration
+aws:
+  region: eu-west-1
+  s3:
+    endpoint: ${AWS_S3_ENDPOINT:} # For LocalStack in development
+  access-key-id: ${AWS_ACCESS_KEY_ID:}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 1
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5m
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - software.amazon.awssdk.services.s3.model.S3Exception
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+        ignoreExceptions:
+          - java.lang.IllegalArgumentException
+          - java.lang.IllegalStateException
+    instances:
+      s3-upload:
+        baseConfig: default
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 10s
+        waitDurationInOpenState: 5m
+        permittedNumberOfCallsInHalfOpenState: 1
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        recordExceptions:
+          - software.amazon.awssdk.services.s3.model.S3Exception
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+        ignoreExceptions:
+          - software.amazon.awssdk.services.s3.model.NoSuchBucketException
+          - software.amazon.awssdk.core.exception.SdkClientException
+
+  # Retry configuration for transient failures
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - software.amazon.awssdk.services.s3.model.S3Exception
+          - java.io.IOException
+          - java.net.SocketTimeoutException
+        ignoreExceptions:
+          - software.amazon.awssdk.services.s3.model.NoSuchBucketException
+          - java.lang.IllegalArgumentException
+    instances:
+      s3-operations:
+        baseConfig: default
+
+# Thymeleaf Configuration
+spring:
+  thymeleaf:
+    prefix: classpath:/templates/reports/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: true # Enable caching in production
+    check-template-location: true
+
+---
+# Development profile overrides
+spring:
+  config:
+    activate:
+      on-profile: development
+
+report-generation:
+  s3:
+    bucket: risk-analysis-dev
+  
+  async:
+    thread-pool-size: 2
+
+# Disable Thymeleaf caching in development
+spring:
+  thymeleaf:
+    cache: false
+
+# Use LocalStack for S3 in development
+aws:
+  s3:
+    endpoint: http://localhost:4566
+
+# More lenient circuit breaker in development
+resilience4j:
+  circuitbreaker:
+    instances:
+      s3-upload:
+        failureRateThreshold: 80
+        waitDurationInOpenState: 1m
+
+---
+# Production profile overrides
+spring:
+  config:
+    activate:
+      on-profile: production
+
+report-generation:
+  s3:
+    bucket: risk-analysis-prod
+  
+  async:
+    thread-pool-size: 10
+    queue-capacity: 100
+
+# Enable Thymeleaf caching in production
+spring:
+  thymeleaf:
+    cache: true
+
+# Stricter circuit breaker in production
+resilience4j:
+  circuitbreaker:
+    instances:
+      s3-upload:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 5m
