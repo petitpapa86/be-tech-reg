@@ -4,6 +4,7 @@ import com.bcbs239.regtech.riskcalculation.domain.calculation.GeographicBreakdow
 import com.bcbs239.regtech.riskcalculation.domain.calculation.SectorBreakdown;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.ConcentrationIndices;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.TotalAmountEur;
+import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.Objects;
  * Domain service for calculating concentration metrics
  * Implements business logic for computing Herfindahl-Hirschman indices
  */
+@Service
 public class ConcentrationCalculator {
     
     /**

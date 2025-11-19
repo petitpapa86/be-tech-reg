@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * Scheduled coordinator for inbox message processing.
  * Delegates fetching and per-message processing to dedicated components.
  */
-@Component("mainProcessInboxJob")
+@Component
 public class ProcessInboxJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessInboxJob.class);

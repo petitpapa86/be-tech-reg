@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * Simple dispatcher for domain events.
  * Currently just logs the event - can be extended to register handlers.
  */
-@Component("applicationDomainEventDispatcher")
+@Component
 public class DomainEventDispatcher {
 
     private static final Logger logger = LoggerFactory.getLogger(DomainEventDispatcher.class);

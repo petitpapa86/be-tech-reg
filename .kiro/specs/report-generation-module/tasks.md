@@ -89,14 +89,20 @@ This implementation plan breaks down the Report Generation Module into discrete,
   - Ensure events are raised by GeneratedReport aggregate using raiseEvent() method
   - _Requirements: 11.1, 12.2_
 
-- [-] 6. Implement domain repository interface
+- [x] 6. Implement domain repository interface
+
+
 
 
   - Create IGeneratedReportRepository interface
   - Define methods: findByBatchId, findByReportId, save, existsByBatchId
   - _Requirements: 10.1_
 
-- [ ] 7. Implement domain services interfaces
+- [x] 7. Implement domain services interfaces
+
+
+
+
   - Create HtmlReportGenerator interface with generate() method
   - Create XbrlReportGenerator interface with generate() method
   - Create XbrlValidator interface with validate() method
