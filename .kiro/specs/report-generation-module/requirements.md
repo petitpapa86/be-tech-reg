@@ -151,15 +151,15 @@ The Report Generation Module generates HTML and XBRL-XML reports for Large Expos
 
 ### Requirement 11
 
-**User Story:** As a system integrator, I want the module to publish ReportGeneratedEvent using outbox pattern, so that downstream systems reliably receive report availability notifications.
+**User Story:** As a system integrator, I want the module to publish ReportGeneratedEvent using transactional outbox pattern, so that downstream systems reliably receive report availability notifications even if publication initially fails.
 
 #### Acceptance Criteria
 
-1. WHEN report generation completes, THE Report Generation Module SHALL create Generated_Report aggregate with domain event
+1. WHEN report generation completes, THE Report Generation Module SHALL create Generated_Report aggregate with ReportGeneratedEvent domain event
 2. WHEN saving the aggregate, THE Report Generation Module SHALL register it with BaseUnitOfWork using unitOfWork.registerEntity(generatedReport)
-3. WHEN calling unitOfWork.saveChanges(), THE Report Generation Module SHALL persist both aggregate and domain events atomically in same transaction
-4. WHEN domain events are persisted to outbox, THE Report Generation Module SHALL use ReportGenerationEventPublisher with IIntegrationEventBus for publishing
-5. WHEN OutboxProcessor publishes events, THE Report Generation Module SHALL transform domain events to ReportGeneratedIntegrationEvent for cross-module communication
+3. WHEN calling unitOfWork.saveChanges(), THE Report Generation Module SHALL persist both aggregate and domain events atomically to database in same transaction
+4. WHEN OutboxProcessor scheduled job runs, THE Report Generation Module SHALL use ReportGenerationEventPublisher with IIntegrationEventBus to publish events from outbox table
+5. WHEN event publication fails, THE Report Generation Module SHALL rely on OutboxProcessor retry mechanism (every 60 seconds, up to 5 retries with exponential backoff) to ensure eventual delivery
 
 ### Requirement 12
 
