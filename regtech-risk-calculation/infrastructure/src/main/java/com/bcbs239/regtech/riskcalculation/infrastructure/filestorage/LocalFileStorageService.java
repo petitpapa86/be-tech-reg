@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * Local filesystem implementation of file storage service.
@@ -32,6 +33,104 @@ public class LocalFileStorageService implements IFileStorageService {
     
     @Value("${risk-calculation.storage.local.base-path:./data/risk-calculation}")
     private String basePath;
+    
+    @Override
+    public Result<List<ExposureRecord>> downloadExposures(FileStorageUri uri) {
+        try {
+            // Extract file path from URI
+            String filePath = uri.uri().replace("file://", "");
+            Path path = Paths.get(filePath);
+            
+            // Read and parse JSON file
+            ExposureRecord[] records = objectMapper.readValue(path.toFile(), ExposureRecord[].class);
+            
+            log.info("Downloaded {} exposure records from local storage [uri:{}]", 
+                records.length, uri.uri());
+            
+            return Result.success(java.util.Arrays.asList(records));
+            
+        } catch (IOException e) {
+            log.error("Failed to download exposures from local storage [uri:{},error:{}]", 
+                uri.uri(), e.getMessage(), e);
+            
+            return Result.failure(ErrorDetail.of(
+                "LOCAL_DOWNLOAD_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to download exposures from local filesystem: " + e.getMessage(),
+                "file.storage.local.download.error"
+            ));
+        }
+    }
+    
+    @Override
+    public Result<FileStorageUri> uploadCalculationResults(String batchId, String bankId, String calculationResults) {
+        try {
+            // Create directory if it doesn't exist
+            Path directoryPath = Paths.get(basePath);
+            if (!Files.exists(directoryPath)) {
+                Files.createDirectories(directoryPath);
+            }
+            
+            // Create file path
+            String fileName = String.format("%s-%s-results.json", batchId, bankId);
+            Path filePath = directoryPath.resolve(fileName);
+            
+            // Write content to file
+            Files.writeString(filePath, calculationResults);
+            
+            // Generate URI
+            String uri = String.format("file://%s", filePath.toAbsolutePath());
+            
+            log.info("Uploaded calculation results locally [batchId:{},bankId:{},path:{}]", 
+                batchId, bankId, filePath.toAbsolutePath());
+            
+            return Result.success(new FileStorageUri(uri));
+            
+        } catch (IOException e) {
+            log.error("Failed to upload results locally [batchId:{},bankId:{},error:{}]", 
+                batchId, bankId, e.getMessage(), e);
+            
+            return Result.failure(ErrorDetail.of(
+                "LOCAL_UPLOAD_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to upload results to local filesystem: " + e.getMessage(),
+                "file.storage.local.upload.error"
+            ));
+        }
+    }
+    
+    @Override
+    public Result<Boolean> checkServiceHealth() {
+        try {
+            // Check if base directory exists or can be created
+            Path directoryPath = Paths.get(basePath);
+            if (!Files.exists(directoryPath)) {
+                Files.createDirectories(directoryPath);
+            }
+            
+            // Verify we can write to the directory
+            if (!Files.isWritable(directoryPath)) {
+                return Result.failure(ErrorDetail.of(
+                    "LOCAL_STORAGE_NOT_WRITABLE",
+                    ErrorType.SYSTEM_ERROR,
+                    "Local storage directory is not writable: " + basePath,
+                    "file.storage.local.not.writable"
+                ));
+            }
+            
+            log.debug("Local file storage health check passed [basePath:{}]", basePath);
+            return Result.success(true);
+            
+        } catch (Exception e) {
+            log.error("Local file storage health check failed [error:{}]", e.getMessage(), e);
+            return Result.failure(ErrorDetail.of(
+                "LOCAL_STORAGE_HEALTH_CHECK_FAILED",
+                ErrorType.SYSTEM_ERROR,
+                "Local storage health check failed: " + e.getMessage(),
+                "file.storage.local.health.error"
+            ));
+        }
+    }
     
     /**
      * Stores calculation results to local filesystem.
