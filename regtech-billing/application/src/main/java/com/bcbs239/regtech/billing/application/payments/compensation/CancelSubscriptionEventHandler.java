@@ -3,9 +3,10 @@ package com.bcbs239.regtech.billing.application.payments.compensation;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -23,20 +24,18 @@ import java.util.Map;
 public class CancelSubscriptionEventHandler {
 
     private final SubscriptionRepository subscriptionRepository;
-    private final ILogger asyncLogger;
+    private static final Logger log = LoggerFactory.getLogger(CancelSubscriptionEventHandler.class);
 
     public CancelSubscriptionEventHandler(
-            SubscriptionRepository subscriptionRepository,
-            ILogger asyncLogger) {
+            SubscriptionRepository subscriptionRepository) {
         this.subscriptionRepository = subscriptionRepository;
-        this.asyncLogger = asyncLogger;
     }
 
     @EventListener
     @Async("sagaTaskExecutor")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void handle(CancelSubscriptionEvent event) {
-        asyncLogger.asyncStructuredLog("CANCEL_SUBSCRIPTION_COMPENSATION_STARTED", Map.of(
+        log.info("CANCEL_SUBSCRIPTION_COMPENSATION_STARTED; details={}", Map.of(
             "sagaId", event.sagaId(),
             "subscriptionId", event.stripeSubscriptionId(),
             "userId", event.userId(),
@@ -50,7 +49,7 @@ public class CancelSubscriptionEventHandler {
             // Update local subscription status
             Result<StripeSubscriptionId> stripeIdResult = StripeSubscriptionId.fromString(event.stripeSubscriptionId());
             if (stripeIdResult.isFailure()) {
-                asyncLogger.asyncStructuredErrorLog("INVALID_STRIPE_SUBSCRIPTION_ID", null, Map.of(
+                log.error("INVALID_STRIPE_SUBSCRIPTION_ID; details={}", Map.of(
                     "sagaId", event.sagaId(),
                     "subscriptionId", event.stripeSubscriptionId()
                 ));
@@ -64,23 +63,23 @@ public class CancelSubscriptionEventHandler {
                 subscription.cancel(LocalDate.now());
                 subscriptionRepository.save(subscription);
                 
-                asyncLogger.asyncStructuredLog("SUBSCRIPTION_CANCELLED_SUCCESSFULLY", Map.of(
+                log.info("SUBSCRIPTION_CANCELLED_SUCCESSFULLY; details={}", Map.of(
                     "sagaId", event.sagaId(),
                     "stripeSubscriptionId", event.stripeSubscriptionId(),
                     "subscriptionId", subscription.getId().value()
                 ));
             } else {
-                asyncLogger.asyncStructuredLog("SUBSCRIPTION_NOT_FOUND_FOR_CANCELLATION", Map.of(
+                log.info("SUBSCRIPTION_NOT_FOUND_FOR_CANCELLATION; details={}", Map.of(
                     "sagaId", event.sagaId(),
                     "stripeSubscriptionId", event.stripeSubscriptionId()
                 ));
             }
 
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("SUBSCRIPTION_CANCELLATION_EXCEPTION", e, Map.of(
+            log.error("SUBSCRIPTION_CANCELLATION_EXCEPTION; details={}", Map.of(
                 "sagaId", event.sagaId(),
                 "subscriptionId", event.stripeSubscriptionId()
-            ));
+            ), e);
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.billing.application.payments.compensation;
 
-import com.bcbs239.regtech.core.domain.logging.ILogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -22,21 +23,20 @@ import java.util.Map;
 @Component
 public class NotifyUserEventHandler {
 
-    private final ILogger asyncLogger;
+    private static final Logger log = LoggerFactory.getLogger(NotifyUserEventHandler.class);
     // TODO: Inject notification services in production
     // private final EmailService emailService;
     // private final SmsService smsService;
     // private final PushNotificationService pushNotificationService;
 
-    public NotifyUserEventHandler(ILogger asyncLogger) {
-        this.asyncLogger = asyncLogger;
+    public NotifyUserEventHandler() {
     }
 
     @EventListener
     @Async("sagaTaskExecutor")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void handle(NotifyUserEvent event) {
-        asyncLogger.asyncStructuredLog("NOTIFY_USER_COMPENSATION_STARTED", Map.of(
+        log.info("NOTIFY_USER_COMPENSATION_STARTED; details={}", Map.of(
             "sagaId", event.sagaId(),
             "userId", event.userId(),
             "notificationType", event.notificationType().name(),
@@ -45,23 +45,8 @@ public class NotifyUserEventHandler {
 
         try {
             // TODO: Send actual notification in production
-            // switch (event.notificationType()) {
-            //     case PAYMENT_REFUNDED -> {
-            //         emailService.sendEmail(event.userId(), event.subject(), event.message());
-            //         smsService.sendSms(event.userId(), "Payment refunded - check your email for details");
-            //     }
-            //     case SUBSCRIPTION_CANCELLED -> {
-            //         emailService.sendEmail(event.userId(), event.subject(), event.message());
-            //     }
-            //     case SETUP_FAILED, PAYMENT_FAILED -> {
-            //         emailService.sendEmail(event.userId(), event.subject(), event.message());
-            //         pushNotificationService.send(event.userId(), event.subject());
-            //     }
-            // }
 
-            // For now, publish the notification to application event bus
-            // Other systems can listen to this for actual email/SMS sending
-            asyncLogger.asyncStructuredLog("USER_NOTIFICATION_PUBLISHED", Map.of(
+            log.info("USER_NOTIFICATION_PUBLISHED; details={}", Map.of(
                 "sagaId", event.sagaId(),
                 "userId", event.userId(),
                 "notificationType", event.notificationType().name(),
@@ -71,11 +56,11 @@ public class NotifyUserEventHandler {
             ));
 
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("USER_NOTIFICATION_EXCEPTION", e, Map.of(
+            log.error("USER_NOTIFICATION_EXCEPTION; details={}", Map.of(
                 "sagaId", event.sagaId(),
                 "userId", event.userId(),
                 "notificationType", event.notificationType().name()
-            ));
+            ), e);
         }
     }
 }

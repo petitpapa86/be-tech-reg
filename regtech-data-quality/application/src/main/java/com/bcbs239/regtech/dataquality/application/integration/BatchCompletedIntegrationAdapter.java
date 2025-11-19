@@ -2,8 +2,9 @@ package com.bcbs239.regtech.dataquality.application.integration;
 
 import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -30,11 +31,10 @@ import java.util.Map;
 public class BatchCompletedIntegrationAdapter {
 
     private final DomainEventBus domainEventBus;
-    private final ILogger asyncLogger;
+    private static final Logger log = LoggerFactory.getLogger(BatchCompletedIntegrationAdapter.class);
 
-    public BatchCompletedIntegrationAdapter(DomainEventBus domainEventBus, ILogger asyncLogger) {
+    public BatchCompletedIntegrationAdapter(DomainEventBus domainEventBus) {
         this.domainEventBus = domainEventBus;
-        this.asyncLogger = asyncLogger;
     }
 
     /**
@@ -48,7 +48,7 @@ public class BatchCompletedIntegrationAdapter {
      */
     @EventListener
     public void onBatchCompletedIntegrationEvent(BatchCompletedIntegrationEvent integrationEvent) {
-        asyncLogger.asyncStructuredLog("🔔 BatchCompletedIntegrationAdapter invoked!", Map.of(
+        log.info("🔔 BatchCompletedIntegrationAdapter invoked! details={}", Map.of(
             "eventType", "BATCH_COMPLETED_INTEGRATION_EVENT",
             "integrationEventId", integrationEvent.getEventId(),
             "batchId", integrationEvent.getBatchId(),
@@ -77,7 +77,7 @@ public class BatchCompletedIntegrationAdapter {
         // This will trigger the BatchIngestedEventListener to process the batch
         domainEventBus.publishAsReplay(batchIngestedEvent);
         
-        asyncLogger.asyncStructuredLog("Published BatchIngestedEvent as replay for data-quality processing", Map.of(
+        log.info("Published BatchIngestedEvent as replay for data-quality processing; details={}", Map.of(
             "eventType", "BATCH_INGESTED_EVENT_PUBLISHED",
             "eventId", batchIngestedEvent.getEventId(),
             "batchId", integrationEvent.getBatchId(),

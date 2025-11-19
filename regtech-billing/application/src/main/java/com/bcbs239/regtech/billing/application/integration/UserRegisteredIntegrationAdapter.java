@@ -2,7 +2,8 @@ package com.bcbs239.regtech.billing.application.integration;
 
 import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.UserRegisteredIntegrationEvent;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -21,16 +22,15 @@ import java.util.Map;
 public class UserRegisteredIntegrationAdapter {
 
     private final DomainEventBus domainEventBus;
-    private final ILogger asyncLogger;
+    private static final Logger log = LoggerFactory.getLogger(UserRegisteredIntegrationAdapter.class);
 
-    public UserRegisteredIntegrationAdapter(DomainEventBus domainEventBus, ILogger asyncLogger) {
+    public UserRegisteredIntegrationAdapter(DomainEventBus domainEventBus) {
         this.domainEventBus = domainEventBus;
-        this.asyncLogger = asyncLogger;
     }
 
     @EventListener
     public void onIntegrationEvent(UserRegisteredIntegrationEvent integrationEvent) {
-        asyncLogger.asyncStructuredLog("Adapting UserRegisteredIntegrationEvent to BillingUserRegisteredEvent", Map.of(
+        log.info("Adapting UserRegisteredIntegrationEvent to BillingUserRegisteredEvent; details={}", Map.of(
             "eventType", "INTEGRATION_EVENT_ADAPTER",
             "integrationEventId", integrationEvent.getEventId(),
             "userId", integrationEvent.getUserId(),
@@ -50,7 +50,7 @@ public class UserRegisteredIntegrationAdapter {
         // Publish as replay so existing billing handlers receive it
         domainEventBus.publishAsReplay(billingEvent);
 
-        asyncLogger.asyncStructuredLog("Published BillingUserRegisteredEvent to domain event bus", Map.of(
+        log.info("Published BillingUserRegisteredEvent to domain event bus; details={}", Map.of(
             "eventType", "BILLING_EVENT_PUBLISHED",
             "eventId", billingEvent.getEventId(),
             "userId", billingEvent.getUserId()

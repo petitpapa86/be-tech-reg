@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.riskcalculation.application.integration;
 
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationCompletedEvent;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationFailedEvent;
@@ -26,8 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class BatchCompletedIntegrationAdapter {
     
     private final RiskCalculationEventPublisher eventPublisher;
-    private final ILogger asyncLogger;
-    
+
     /**
      * Handles successful batch calculation completion.
      * Publishes integration events to notify downstream modules.
@@ -85,8 +83,9 @@ public class BatchCompletedIntegrationAdapter {
             }
             
             // Log structured error for monitoring and alerting
-            asyncLogger.asyncStructuredLog(
-                "Risk calculation failed for batch: " + event.getBatchId().value(),
+            log.info(
+                "Risk calculation failed for batch: {} , details={}",
+                event.getBatchId().value(),
                 java.util.Map.of(
                     "batchId", event.getBatchId().value(),
                     "bankId", event.getBankId().value(),

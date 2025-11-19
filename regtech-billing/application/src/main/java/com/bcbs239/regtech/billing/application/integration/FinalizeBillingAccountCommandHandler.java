@@ -6,9 +6,10 @@ import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BillingAccountActivatedEvent;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -21,15 +22,13 @@ import java.util.Map;
 public class FinalizeBillingAccountCommandHandler {
 
     private final BillingAccountRepository billingAccountRepository;
-    private final ILogger asyncLogger;
     private final IIntegrationEventBus integrationEventBus;
+    private static final Logger log = LoggerFactory.getLogger(FinalizeBillingAccountCommandHandler.class);
 
 
     public FinalizeBillingAccountCommandHandler(
-            BillingAccountRepository billingAccountRepository,
-            ILogger asyncLogger, IIntegrationEventBus integrationEventBus) {
+            BillingAccountRepository billingAccountRepository, IIntegrationEventBus integrationEventBus) {
         this.billingAccountRepository = billingAccountRepository;
-        this.asyncLogger = asyncLogger;
         this.integrationEventBus = integrationEventBus;
     }
 
@@ -39,7 +38,7 @@ public class FinalizeBillingAccountCommandHandler {
     public void handle(FinalizeBillingAccountCommand command) {
         String billingAccountIdStr = (String) command.payload().get("billingAccountId");
 
-        asyncLogger.asyncStructuredLog("FINALIZE_BILLING_ACCOUNT_COMMAND_RECEIVED", Map.of(
+        log.info("FINALIZE_BILLING_ACCOUNT_COMMAND_RECEIVED; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "billingAccountId", String.valueOf(billingAccountIdStr)
         ));
@@ -52,20 +51,20 @@ public class FinalizeBillingAccountCommandHandler {
             billingAccount.finalizeAccount();
             Result<BillingAccountId> saveResult = billingAccountRepository.update(billingAccount);
             if (saveResult.isFailure()) {
-                asyncLogger.asyncStructuredLog("FAILED_TO_FINALIZE_BILLING_ACCOUNT", Map.of(
+                log.error("FAILED_TO_FINALIZE_BILLING_ACCOUNT; details={}", Map.of(
                         "sagaId", String.valueOf(command.sagaId()),
                         "billingAccountId", String.valueOf(billingAccountIdStr),
                         "error", String.valueOf(saveResult.getError())
                 ));
             } else {
-                asyncLogger.asyncStructuredLog("BILLING_ACCOUNT_FINALIZED", Map.of(
+                log.info("BILLING_ACCOUNT_FINALIZED; details={}", Map.of(
                         "sagaId", String.valueOf(command.sagaId()),
                         "billingAccountId", String.valueOf(billingAccountIdStr)
                 ));
                 publishBillingActivatedEvent(billingAccount.getUserId().getValue(), command.getCorrelationId());
             }
         } else {
-            asyncLogger.asyncStructuredLog("BILLING_ACCOUNT_NOT_FOUND", Map.of(
+            log.info("BILLING_ACCOUNT_NOT_FOUND; details={}", Map.of(
                     "sagaId", String.valueOf(command.sagaId()),
                     "billingAccountId", String.valueOf(billingAccountIdStr)
             ));
@@ -82,10 +81,9 @@ public class FinalizeBillingAccountCommandHandler {
             integrationEventBus.publish(event);
 
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("BILLING_ACTIVATED_EVENT_PUBLICATION_FAILED", e, java.util.Map.of(
+            log.error("BILLING_ACTIVATED_EVENT_PUBLICATION_FAILED; details={}", java.util.Map.of(
                     "error", e.getMessage()
-            ));
+            ), e);
         }
     }
 }
-

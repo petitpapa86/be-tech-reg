@@ -8,10 +8,11 @@ import com.bcbs239.regtech.core.domain.events.integration.EventHandlerExecutionF
 import com.bcbs239.regtech.core.domain.events.integration.EventHandlerInvocationFailed;
 import com.bcbs239.regtech.core.domain.events.integration.EventProcessingPermanentlyFailed;
 import com.bcbs239.regtech.core.domain.events.integration.EventPublishingFailed;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -32,22 +33,20 @@ public class EventRetryProcessor {
     private final IEventProcessingFailureRepository failureRepository;
     private final ObjectMapper objectMapper;
     private final EventRetryOptions retryOptions;
-    private final ILogger structuredLogger;
     private final ApplicationContext applicationContext;
     private final IIntegrationEventBus eventBus;
+    private static final Logger log = LoggerFactory.getLogger(EventRetryProcessor.class);
 
     @Autowired
     public EventRetryProcessor(
             IEventProcessingFailureRepository failureRepository,
             ObjectMapper objectMapper,
             EventRetryOptions retryOptions,
-            ILogger structuredLogger,
             ApplicationContext applicationContext,
             IIntegrationEventBus eventBus) {
         this.failureRepository = failureRepository;
         this.objectMapper = objectMapper;
         this.retryOptions = retryOptions;
-        this.structuredLogger = structuredLogger;
         this.applicationContext = applicationContext;
         this.eventBus = eventBus;
     }
@@ -70,13 +69,10 @@ public class EventRetryProcessor {
             return;
         }
 
-        structuredLogger.asyncStructuredLog(
-                "event retry processing",
-                Map.of(
-                        "failureCount", String.valueOf(failures.size()),
-                        "batchSize", String.valueOf(retryOptions.getBatchSize())
-                )
-        );
+        log.info("event retry processing; details={}", Map.of(
+                "failureCount", String.valueOf(failures.size()),
+                "batchSize", String.valueOf(retryOptions.getBatchSize())
+        ));
 
         int processedCount = 0;
         for (EventProcessingFailure failure : failures) {
@@ -110,15 +106,12 @@ public class EventRetryProcessor {
                         publishPermanentFailureEvent(failedFast);
                     }
 
-                    structuredLogger.asyncStructuredLog(
-                            "event retry failed fast",
-                            Map.of(
-                                    "failureId", failure.getId(),
-                                    "eventType", failure.getEventType(),
-                                    "userId", failure.getUserId(),
-                                    "retryCount", String.valueOf(failedFast.getRetryCount())
-                            )
-                    );
+                    log.info("event retry failed fast; details={}", Map.of(
+                            "failureId", failure.getId(),
+                            "eventType", failure.getEventType(),
+                            "userId", failure.getUserId(),
+                            "retryCount", String.valueOf(failedFast.getRetryCount())
+                    ));
                     continue;
                 }
 
@@ -127,9 +120,7 @@ public class EventRetryProcessor {
                 failureRepository.save(succeededFailure);
                 processedCount++;
 
-                structuredLogger.asyncStructuredLog(
-                        "event retry succeeded",
-                        Map.of(
+                log.info("event retry succeeded; details={}", Map.of(
                                 "failureId", failure.getId(),
                                 "eventType", failure.getEventType(),
                                 "userId", failure.getUserId(),
@@ -138,24 +129,17 @@ public class EventRetryProcessor {
                 );
 
             } catch (Exception e) {
-                structuredLogger.asyncStructuredErrorLog(
-                        "event retry processing exception",
-                        e,
-                        Map.of(
-                                "failureId", failure.getId(),
-                                "eventType", failure.getEventType(),
-                                "userId", failure.getUserId()
-                        )
-                );
+                log.error("event retry processing exception; details={}", Map.of(
+                        "failureId", failure.getId(),
+                        "eventType", failure.getEventType(),
+                        "userId", failure.getUserId()
+                ), e);
             }
         }
 
-        structuredLogger.asyncStructuredLog(
-                "event retry completed",
-                Map.of(
-                        "successfulRetries", String.valueOf(processedCount)
-                )
-        );
+        log.info("event retry completed; details={}", Map.of(
+                "successfulRetries", String.valueOf(processedCount)
+        ));
     }
 
     /**
@@ -176,16 +160,12 @@ public class EventRetryProcessor {
             failureRepository.save(failedFailure);
 
             // Log deserialization failure
-            structuredLogger.asyncStructuredErrorLog(
-                    "event retry deserialization failed",
-                    e,
-                    Map.of(
-                            "failureId", failure.getId(),
-                            "eventType", failure.getEventType(),
-                            "userId", failure.getUserId(),
-                            "retryCount", String.valueOf(failedFailure.getRetryCount())
-                    )
-            );
+            log.error("event retry deserialization failed; details={}", Map.of(
+                    "failureId", failure.getId(),
+                    "eventType", failure.getEventType(),
+                    "userId", failure.getUserId(),
+                    "retryCount", String.valueOf(failedFailure.getRetryCount())
+            ), e);
 
             // Notify team about deserialization failure
             publishDeserializationFailureNotification(failedFailure, e);
@@ -236,15 +216,12 @@ public class EventRetryProcessor {
                     // Invoke the event handler
                     method.invoke(handler, event);
 
-                    structuredLogger.asyncStructuredLog(
-                            "event retry handler invoked",
-                            Map.of(
-                                    "failureId", failure.getId(),
-                                    "eventType", failure.getEventType(),
-                                    "handlerClass", handler.getClass().getSimpleName(),
-                                    "handlerMethod", method.getName()
-                            )
-                    );
+                    log.info("event retry handler invoked; details={}", Map.of(
+                            "failureId", failure.getId(),
+                            "eventType", failure.getEventType(),
+                            "handlerClass", handler.getClass().getSimpleName(),
+                            "handlerMethod", method.getName()
+                    ));
 
                     return true;
 
@@ -261,17 +238,13 @@ public class EventRetryProcessor {
                     failureRepository.save(failedFailure);
 
                     // Log handler execution failure
-                    structuredLogger.asyncStructuredErrorLog(
-                            "event retry handler execution failed",
-                            cause,
-                            Map.of(
-                                    "failureId", failure.getId(),
-                                    "eventType", failure.getEventType(),
-                                    "handlerClass", handler.getClass().getSimpleName(),
-                                    "handlerMethod", method.getName(),
-                                    "retryCount", String.valueOf(failedFailure.getRetryCount())
-                            )
-                    );
+                    log.error("event retry handler execution failed; details={}", Map.of(
+                            "failureId", failure.getId(),
+                            "eventType", failure.getEventType(),
+                            "handlerClass", handler.getClass().getSimpleName(),
+                            "handlerMethod", method.getName(),
+                            "retryCount", String.valueOf(failedFailure.getRetryCount())
+                    ), cause);
 
                     // Notify team about handler execution failure
                     publishHandlerExecutionFailureNotification(failedFailure, handler, method, cause);
@@ -291,17 +264,13 @@ public class EventRetryProcessor {
                     );
                     failureRepository.save(failedFailure);
 
-                    structuredLogger.asyncStructuredErrorLog(
-                            "event retry handler invocation error",
-                            e,
-                            Map.of(
-                                    "failureId", failure.getId(),
-                                    "eventType", failure.getEventType(),
-                                    "handlerClass", handler.getClass().getSimpleName(),
-                                    "handlerMethod", method.getName(),
-                                    "retryCount", String.valueOf(failedFailure.getRetryCount())
-                            )
-                    );
+                    log.error("event retry handler invocation error; details={}", Map.of(
+                            "failureId", failure.getId(),
+                            "eventType", failure.getEventType(),
+                            "handlerClass", handler.getClass().getSimpleName(),
+                            "handlerMethod", method.getName(),
+                            "retryCount", String.valueOf(failedFailure.getRetryCount())
+                    ), e);
 
                     // Notify team about handler execution failure
                     publishHandlerExecutionFailureNotification(failedFailure, handler, method, e);
@@ -317,14 +286,11 @@ public class EventRetryProcessor {
         }
 
         // No suitable handler found
-        structuredLogger.asyncStructuredLog(
-                "event retry no handler found",
-                Map.of(
-                        "failureId", failure.getId(),
-                        "eventType", failure.getEventType(),
-                        "error", "No suitable event handler could be found for this event type"
-                )
-        );
+        log.info("event retry no handler found; details={}", Map.of(
+                "failureId", failure.getId(),
+                "eventType", failure.getEventType(),
+                "userId", failure.getUserId()
+        ));
 
         return false;
     }
@@ -345,26 +311,19 @@ public class EventRetryProcessor {
                     uniqueId
             ));
 
-            structuredLogger.asyncStructuredLog(
-                    "event retry permanently failed",
-                    Map.of(
-                            "failureId", failure.getId(),
-                            "eventType", failure.getEventType(),
-                            "userId", failure.getUserId(),
-                            "retryCount", String.valueOf(failure.getRetryCount()),
-                            "uniqueId", uniqueId
-                    )
-            );
+            log.info("event retry permanently failed; details={}", Map.of(
+                    "failureId", failure.getId(),
+                    "eventType", failure.getEventType(),
+                    "userId", failure.getUserId(),
+                    "retryCount", String.valueOf(failure.getRetryCount()),
+                    "uniqueId", uniqueId
+            ));
         } catch (Exception pubEx) {
-            structuredLogger.asyncStructuredErrorLog(
-                    "event retry publish permanently failed",
-                    pubEx,
-                    Map.of(
-                            "failureId", failure.getId(),
-                            "eventType", failure.getEventType(),
-                            "userId", failure.getUserId()
-                    )
-            );
+            log.error("event retry publish permanently failed; details={}", Map.of(
+                    "failureId", failure.getId(),
+                    "eventType", failure.getEventType(),
+                    "userId", failure.getUserId()
+            ), pubEx);
 
             // Notify team about event publishing failure
             publishEventPublishingFailureNotification(failure, pubEx);
@@ -388,22 +347,17 @@ public class EventRetryProcessor {
                     uniqueId
             ));
 
-            structuredLogger.asyncStructuredLog(
-                    "event deserialization failure notification published",
-                    Map.of(
-                            "failureId", failure.getId(),
-                            "eventType", failure.getEventType(),
-                            "userId", failure.getUserId(),
-                            "retryCount", String.valueOf(failure.getRetryCount()),
-                            "uniqueId", uniqueId
-                    )
-            );
+            log.info("event deserialization failure notification published; details={}", Map.of(
+                    "failureId", failure.getId(),
+                    "eventType", failure.getEventType(),
+                    "userId", failure.getUserId(),
+                    "retryCount", String.valueOf(failure.getRetryCount()),
+                    "uniqueId", uniqueId
+            ));
         } catch (Exception notifyEx) {
-            structuredLogger.asyncStructuredErrorLog(
-                    "Failed to publish deserialization failure notification",
-                    notifyEx,
-                    Map.of("failureId", failure.getId())
-            );
+            log.error("Failed to publish deserialization failure notification; details={}", Map.of(
+                    "failureId", failure.getId()
+            ), notifyEx);
         }
     }
 
@@ -423,22 +377,17 @@ public class EventRetryProcessor {
                     uniqueId
             ));
 
-            structuredLogger.asyncStructuredLog(
-                    "event handler invocation failure notification published",
-                    Map.of(
-                            "failureId", failure.getId(),
-                            "eventType", failure.getEventType(),
-                            "userId", failure.getUserId(),
-                            "retryCount", String.valueOf(failure.getRetryCount()),
-                            "uniqueId", uniqueId
-                    )
-            );
+            log.info("event handler invocation failure notification published; details={}", Map.of(
+                    "failureId", failure.getId(),
+                    "eventType", failure.getEventType(),
+                    "userId", failure.getUserId(),
+                    "retryCount", String.valueOf(failure.getRetryCount()),
+                    "uniqueId", uniqueId
+            ));
         } catch (Exception notifyEx) {
-            structuredLogger.asyncStructuredErrorLog(
-                    "Failed to publish handler invocation failure notification",
-                    notifyEx,
-                    Map.of("failureId", failure.getId())
-            );
+            log.error("Failed to publish handler invocation failure notification; details={}", Map.of(
+                    "failureId", failure.getId()
+            ), notifyEx);
         }
     }
 
@@ -465,23 +414,18 @@ public class EventRetryProcessor {
                     uniqueId
             ));
 
-            structuredLogger.asyncStructuredLog(
-                    "event handler execution failure notification published",
-                    Map.of(
-                            "failureId", failure.getId(),
-                            "eventType", failure.getEventType(),
-                            "userId", failure.getUserId(),
-                            "handlerClass", handler.getClass().getSimpleName(),
-                            "handlerMethod", method.getName(),
-                            "uniqueId", uniqueId
-                    )
-            );
+            log.info("event handler execution failure notification published; details={}", Map.of(
+                    "failureId", failure.getId(),
+                    "eventType", failure.getEventType(),
+                    "userId", failure.getUserId(),
+                    "handlerClass", handler.getClass().getSimpleName(),
+                    "handlerMethod", method.getName(),
+                    "uniqueId", uniqueId
+            ));
         } catch (Exception notifyEx) {
-            structuredLogger.asyncStructuredErrorLog(
-                    "Failed to publish handler execution failure notification",
-                    notifyEx,
-                    Map.of("failureId", failure.getId())
-            );
+            log.error("Failed to publish handler execution failure notification; details={}", Map.of(
+                    "failureId", failure.getId()
+            ), notifyEx);
         }
     }
 
@@ -500,21 +444,16 @@ public class EventRetryProcessor {
                     uniqueId
             ));
 
-            structuredLogger.asyncStructuredLog(
-                    "event publishing failure notification published",
-                    Map.of(
-                            "failureId", failure.getId(),
-                            "eventType", failure.getEventType(),
-                            "userId", failure.getUserId(),
-                            "uniqueId", uniqueId
-                    )
-            );
+            log.info("event publishing failure notification published; details={}", Map.of(
+                    "failureId", failure.getId(),
+                    "eventType", failure.getEventType(),
+                    "userId", failure.getUserId(),
+                    "uniqueId", uniqueId
+            ));
         } catch (Exception notifyEx) {
-            structuredLogger.asyncStructuredErrorLog(
-                    "Failed to publish event publishing failure notification",
-                    notifyEx,
-                    Map.of("failureId", failure.getId())
-            );
+            log.error("Failed to publish event publishing failure notification; details={}", Map.of(
+                    "failureId", failure.getId()
+            ), notifyEx);
         }
     }
 

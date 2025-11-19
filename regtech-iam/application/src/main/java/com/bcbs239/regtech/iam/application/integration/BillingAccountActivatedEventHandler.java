@@ -3,9 +3,10 @@ package com.bcbs239.regtech.iam.application.integration;
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
 import com.bcbs239.regtech.core.domain.events.integration.BillingAccountActivatedEvent;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -21,18 +22,16 @@ import java.util.Map;
 public class BillingAccountActivatedEventHandler {
 
     private final UserRepository userRepository;
-    private final ILogger logger;
     private final IEventProcessingFailureRepository failureRepository;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private static final Logger log = LoggerFactory.getLogger(BillingAccountActivatedEventHandler.class);
 
     @Autowired
     public BillingAccountActivatedEventHandler(
             UserRepository userRepository,
-            ILogger logger,
             IEventProcessingFailureRepository failureRepository,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
         this.userRepository = userRepository;
-        this.logger = logger;
         this.failureRepository = failureRepository;
         this.objectMapper = objectMapper;
     }
@@ -40,7 +39,7 @@ public class BillingAccountActivatedEventHandler {
     @EventListener
     public void handle(BillingAccountActivatedEvent event) {
 
-        logger.asyncStructuredLog("BILLING_ACCOUNT_ACTIVATED_EVENT_RECEIVED", Map.of(
+        log.info("BILLING_ACCOUNT_ACTIVATED_EVENT_RECEIVED; details={}", Map.of(
                 "eventType", "BillingAccountActivatedEvent",
                 "userId", event.getUserId()
         ));
@@ -51,7 +50,7 @@ public class BillingAccountActivatedEventHandler {
     var userMaybe = userRepository.userLoader(userId);
     if (userMaybe.isEmpty()) {
         String errorMsg = "User with ID " + event.getUserId() + " not found";
-        logger.asyncStructuredErrorLog("USER_NOT_FOUND", new IllegalStateException(errorMsg), Map.of(
+        log.error("USER_NOT_FOUND; details={}", Map.of(
             "eventType", "BillingAccountActivatedEvent",
             "userId", event.getUserId()
         ));
@@ -73,10 +72,10 @@ public class BillingAccountActivatedEventHandler {
         );
         failureRepository.save(failure);
         } catch (Exception saveEx) {
-        logger.asyncStructuredErrorLog("EVENT_PROCESSING_FAILURE_SAVE_ERROR", saveEx, Map.of(
+        log.error("EVENT_PROCESSING_FAILURE_SAVE_ERROR; details={}", Map.of(
             "eventType", "BillingAccountActivatedEvent",
             "userId", event.getUserId()
-        ));
+        ), saveEx);
         }
 
         throw new IllegalStateException(errorMsg);
@@ -100,7 +99,7 @@ public class BillingAccountActivatedEventHandler {
         Result<String> roleSaveResult = userRepository.userRoleSaver(userRole);
         if (roleSaveResult.isFailure()) {
         String errorMsg = "Failed to save user role: " + roleSaveResult.getError().get().getMessage();
-        logger.asyncStructuredErrorLog("USER_ROLE_SAVE_FAILED", new IllegalStateException(errorMsg), Map.of(
+        log.error("USER_ROLE_SAVE_FAILED; details={}", Map.of(
             "eventType", "BillingAccountActivatedEvent",
             "userId", event.getUserId(),
             "error", roleSaveResult.getError().get().getMessage()
@@ -123,10 +122,10 @@ public class BillingAccountActivatedEventHandler {
             );
             failureRepository.save(failure);
         } catch (Exception saveEx) {
-            logger.asyncStructuredErrorLog("EVENT_PROCESSING_FAILURE_SAVE_ERROR", saveEx, Map.of(
+            log.error("EVENT_PROCESSING_FAILURE_SAVE_ERROR; details={}", Map.of(
                 "eventType", "BillingAccountActivatedEvent",
                 "userId", event.getUserId()
-            ));
+            ), saveEx);
         }
 
         throw new IllegalStateException(errorMsg);
@@ -136,7 +135,7 @@ public class BillingAccountActivatedEventHandler {
     Result<UserId> saveResult = userRepository.userSaver(user);
     if (saveResult.isFailure()) {
         String errorMsg = "Failed to save user: " + saveResult.getError().get().getMessage();
-        logger.asyncStructuredErrorLog("USER_ACTIVATION_FAILED", new IllegalStateException(errorMsg), Map.of(
+        log.error("USER_ACTIVATION_FAILED; details={}", Map.of(
             "eventType", "BillingAccountActivatedEvent",
             "userId", event.getUserId(),
             "error", saveResult.getError().get().getMessage()
@@ -159,17 +158,17 @@ public class BillingAccountActivatedEventHandler {
         );
         failureRepository.save(failure);
         } catch (Exception saveEx) {
-        logger.asyncStructuredErrorLog("EVENT_PROCESSING_FAILURE_SAVE_ERROR", saveEx, Map.of(
+        log.error("EVENT_PROCESSING_FAILURE_SAVE_ERROR; details={}", Map.of(
             "eventType", "BillingAccountActivatedEvent",
             "userId", event.getUserId()
-        ));
+        ), saveEx);
         }
 
         throw new IllegalStateException(errorMsg);
     }
 
         if (madeChange) {
-            logger.asyncStructuredLog("USER_ACTIVATED_SUCCESSFULLY", Map.of(
+            log.info("USER_ACTIVATED_SUCCESSFULLY; details={}", Map.of(
                     "eventType", "BillingAccountActivatedEvent",
                     "userId", event.getUserId(),
                     "newStatus", UserStatus.ACTIVE.name()

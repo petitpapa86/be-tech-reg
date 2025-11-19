@@ -2,9 +2,10 @@ package com.bcbs239.regtech.ingestion.application.batch.process;
 
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchCompletedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -23,13 +24,11 @@ import java.util.Map;
 public class BatchCompletedEventPublisher {
 
     private final IIntegrationEventBus integrationEventBus;
-    private final ILogger logger;
+    private static final Logger log = LoggerFactory.getLogger(BatchCompletedEventPublisher.class);
 
     public BatchCompletedEventPublisher(
-            IIntegrationEventBus integrationEventBus,
-            ILogger logger) {
+            IIntegrationEventBus integrationEventBus) {
         this.integrationEventBus = integrationEventBus;
-        this.logger = logger;
     }
 
     /**
@@ -77,10 +76,7 @@ public class BatchCompletedEventPublisher {
         details.put("totalExposures", event.totalExposures());
         details.put("completedAt", event.completedAt().toString());
 
-        logger.asyncStructuredLog(
-                "Published BatchCompletedIntegrationEvent for batch: " + event.batchId().value(),
-                details
-        );
+        log.info("Published BatchCompletedIntegrationEvent for batch: {} details={}", event.batchId().value(), details);
     }
 
     private void logEventSkipped(BatchCompletedEvent event) {
@@ -89,10 +85,7 @@ public class BatchCompletedEventPublisher {
         details.put("batchId", event.batchId().value());
         details.put("reason", "Outbox replay - skipping to avoid duplicate");
 
-        logger.asyncStructuredLog(
-                "Skipped BatchCompletedIntegrationEvent publishing for batch: " + event.batchId().value(),
-                details
-        );
+        log.info("Skipped BatchCompletedIntegrationEvent publishing for batch: {} details={}", event.batchId().value(), details);
     }
 
     private void logEventPublishingError(BatchCompletedEvent event, Exception ex) {
@@ -102,10 +95,6 @@ public class BatchCompletedEventPublisher {
         details.put("bankId", event.bankId().value());
         details.put("errorMessage", ex.getMessage());
 
-        logger.asyncStructuredErrorLog(
-                "Failed to publish BatchCompletedIntegrationEvent for batch: " + event.batchId().value(),
-                ex,
-                details
-        );
+        log.error("Failed to publish BatchCompletedIntegrationEvent for batch: {} details={}", event.batchId().value(), details, ex);
     }
 }

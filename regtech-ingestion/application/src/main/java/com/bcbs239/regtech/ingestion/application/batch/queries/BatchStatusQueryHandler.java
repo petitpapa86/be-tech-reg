@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.ingestion.application.batch.queries;
 
 
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
@@ -10,6 +9,8 @@ import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.IBankInfoRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -22,10 +23,10 @@ import java.util.Map;
 @Component
 public class BatchStatusQueryHandler {
     
+    private static final Logger log = LoggerFactory.getLogger(BatchStatusQueryHandler.class);
     private final IIngestionBatchRepository ingestionBatchRepository;
     private final IBankInfoRepository bankInfoRepository;
-    private final ILogger logger;
-    
+
     // Estimated processing times per stage
     private static final Map<BatchStatus, ProcessingDuration> ESTIMATED_STAGE_DURATIONS = Map.of(
         BatchStatus.PARSING, new ProcessingDuration(30_000L),      // 30 seconds
@@ -35,11 +36,9 @@ public class BatchStatusQueryHandler {
     
     public BatchStatusQueryHandler(
             IIngestionBatchRepository ingestionBatchRepository,
-            IBankInfoRepository bankInfoRepository,
-            ILogger logger) {
+            IBankInfoRepository bankInfoRepository) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.bankInfoRepository = bankInfoRepository;
-        this.logger = logger;
     }
     
     public Result<BatchStatusDto> handle(BatchStatusQuery query) {
@@ -61,8 +60,8 @@ public class BatchStatusQueryHandler {
                     "batchId", query.batchId().value(),
                     "result", "batch_not_found"
                 );
-                logger.asyncStructuredLog("BATCH_STATUS_QUERY - BATCH_NOT_FOUND", context);
-                
+                log.info("BATCH_STATUS_QUERY - BATCH_NOT_FOUND; details={}", context);
+
                 return Result.failure(ErrorDetail.of("BATCH_NOT_FOUND", ErrorType.NOT_FOUND_ERROR,
                     "Batch not found: " + query.batchId().value(), "batch.status.not.found"));
             }
@@ -77,8 +76,8 @@ public class BatchStatusQueryHandler {
                     "bankId", batchBankId.value(),
                     "result", "bank_not_found"
                 );
-                logger.asyncStructuredLog("BATCH_STATUS_QUERY - BANK_NOT_FOUND", context);
-                
+                log.info("BATCH_STATUS_QUERY - BANK_NOT_FOUND; details={}", context);
+
                 return Result.failure(ErrorDetail.of("BANK_NOT_FOUND", ErrorType.NOT_FOUND_ERROR,
                     "Bank information not found: " + batchBankId.value(), "bank.not.found"));
             }
@@ -92,8 +91,8 @@ public class BatchStatusQueryHandler {
                     "bankStatus", bankInfo.bankStatus().name(),
                     "result", "bank_not_eligible"
                 );
-                logger.asyncStructuredLog("BATCH_STATUS_QUERY - BANK_NOT_ELIGIBLE", context);
-                
+                log.info("BATCH_STATUS_QUERY - BANK_NOT_ELIGIBLE; details={}", context);
+
                 return Result.failure(eligibilityResult.getError().orElseThrow());
             }
             
@@ -122,8 +121,8 @@ public class BatchStatusQueryHandler {
                 "durationMs", duration,
                 "result", "success"
             );
-            logger.asyncStructuredLog("BATCH_STATUS_QUERY - STATUS_RETRIEVED", context);
-            
+            log.info("BATCH_STATUS_QUERY - STATUS_RETRIEVED; details={}", context);
+
             // 8. Build and return status DTO
             ProcessingStage processingStage = ProcessingStage.fromBatchStatus(batch.getStatus());
             ProcessingDuration processingDuration = calculateProcessingDuration(batch);
@@ -248,4 +247,3 @@ public class BatchStatusQueryHandler {
     
     private record ProgressInfo(ProgressPercentage progressPercentage, Long estimatedCompletionTime) {}
 }
-

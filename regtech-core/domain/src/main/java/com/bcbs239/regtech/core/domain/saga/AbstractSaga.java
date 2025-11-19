@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.core.domain.saga;
 
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
@@ -29,21 +28,19 @@ public abstract class AbstractSaga<T> {
     
     // Inject the timeout scheduler (for retries and timeouts)
     protected final TimeoutScheduler timeoutScheduler;
-    protected final ILogger logger;
 
     
     private final List<SagaCommand> commandsToDispatch = new ArrayList<>();
     private final List<SagaMessage> processedEvents = new ArrayList<>();
     private final Map<Class<? extends SagaMessage>, Consumer<SagaMessage>> eventHandlers = new HashMap<>();
 
-    protected AbstractSaga(SagaId id, String sagaType, T data, TimeoutScheduler timeoutScheduler, ILogger logger) {
+    protected AbstractSaga(SagaId id, String sagaType, T data, TimeoutScheduler timeoutScheduler) {
         this.id = id;
         this.sagaType = sagaType;
         this.data = data;
         this.status = SagaStatus.STARTED;
         this.startedAt = Instant.now();
         this.timeoutScheduler = timeoutScheduler;
-        this.logger = logger;
     }
 
     // Functional handler registration - pure closure approach
@@ -53,7 +50,7 @@ public abstract class AbstractSaga<T> {
             E typedEvent = (E) event;
             handler.accept(typedEvent);
         });
-        logger.asyncStructuredLog("SAGA_EVENT_HANDLER_REGISTERED", Map.of(
+        log.info("SAGA_EVENT_HANDLER_REGISTERED; details={}", Map.of(
             "sagaId", id,
             "sagaType", sagaType,
             "eventType", eventType.getSimpleName()
@@ -63,7 +60,7 @@ public abstract class AbstractSaga<T> {
     // Handle incoming events
     public void handle(SagaMessage event) {
         if (isCompleted()) {
-            logger.asyncStructuredLog("SAGA_EVENT_IGNORED", Map.of(
+            log.info("SAGA_EVENT_IGNORED; details={}", Map.of(
                 "sagaId", id,
                 "sagaType", sagaType,
                 "eventType", event.eventType()
@@ -80,7 +77,7 @@ public abstract class AbstractSaga<T> {
             }
         }
          if (handler != null) {
-             logger.asyncStructuredLog("SAGA_EVENT_PROCESSED", Map.of(
+             log.info("SAGA_EVENT_PROCESSED; details={}", Map.of(
                  "sagaId", id,
                  "sagaType", sagaType,
                  "eventType", event.eventType()
@@ -89,7 +86,7 @@ public abstract class AbstractSaga<T> {
              processedEvents.add(event);
              updateStatus();
          } else {
-             logger.asyncStructuredLog("SAGA_EVENT_IGNORED", Map.of(
+             log.info("SAGA_EVENT_IGNORED; details={}", Map.of(
                  "sagaId", id,
                  "sagaType", sagaType,
                  "eventType", event.eventType()
@@ -102,7 +99,7 @@ public abstract class AbstractSaga<T> {
     // Command dispatching
     protected void dispatchCommand(SagaCommand command) {
         commandsToDispatch.add(command);
-        logger.asyncStructuredLog("SAGA_COMMAND_DISPATCHED", Map.of(
+        log.info("SAGA_COMMAND_DISPATCHED; details={}", Map.of(
             "sagaId", id,
             "sagaType", sagaType,
             "commandType", command.commandType(),
@@ -131,12 +128,11 @@ public abstract class AbstractSaga<T> {
     protected void complete() {
         this.status = SagaStatus.COMPLETED;
         this.completedAt = Instant.now();
-        logger.asyncStructuredLog("SAGA_COMPLETED", Map.of(
+        log.info("SAGA_COMPLETED; details={}", Map.of(
             "sagaId", id,
             "sagaType", sagaType,
             "completedAt", completedAt.toString()
         ));
-    
     }
 
     // Enhanced failure method
@@ -178,7 +174,7 @@ public abstract class AbstractSaga<T> {
         this.status = SagaStatus.FAILED;
         this.completedAt = Instant.now();
         this.errors.add(error);
-        logger.asyncStructuredLog("SAGA_FAILED", Map.of(
+        log.info("SAGA_FAILED; details={}", Map.of(
             "sagaId", id,
             "sagaType", sagaType,
             "completedAt", completedAt.toString(),
@@ -207,7 +203,7 @@ public abstract class AbstractSaga<T> {
     protected void fail(String reason) {
         this.status = SagaStatus.FAILED;
         this.completedAt = Instant.now();
-        logger.asyncStructuredLog("SAGA_FAILED", Map.of(
+        log.info("SAGA_FAILED; details={}", Map.of(
             "sagaId", id,
             "sagaType", sagaType,
             "completedAt", completedAt.toString(),
@@ -240,4 +236,3 @@ public abstract class AbstractSaga<T> {
     }
     
 }
-

@@ -2,7 +2,6 @@ package com.bcbs239.regtech.dataquality.application.integration;
 
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommand;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommandHandler;
@@ -11,6 +10,8 @@ import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -40,7 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Component
 public class BatchIngestedEventListener {
 
-    private final ILogger logger;
+    private static final Logger log = LoggerFactory.getLogger(BatchIngestedEventListener.class);
     private final ValidateBatchQualityCommandHandler commandHandler;
     private final IQualityReportRepository qualityReportRepository;
     private final IEventProcessingFailureRepository failureRepository;
@@ -56,13 +57,11 @@ public class BatchIngestedEventListener {
     private final AtomicInteger totalEventsFiltered = new AtomicInteger(0);
 
     public BatchIngestedEventListener(
-            ILogger logger,
             ValidateBatchQualityCommandHandler commandHandler,
             IQualityReportRepository qualityReportRepository,
             IEventProcessingFailureRepository failureRepository,
             ObjectMapper objectMapper
     ) {
-        this.logger = logger;
         this.commandHandler = commandHandler;
         this.qualityReportRepository = qualityReportRepository;
         this.failureRepository = failureRepository;
@@ -80,7 +79,7 @@ public class BatchIngestedEventListener {
     public void handleBatchIngestedEvent(BatchIngestedEvent event) {
         totalEventsReceived.incrementAndGet();
 
-        logger.asyncStructuredLog("batch_ingested_event_received", Map.of(
+        log.info("batch_ingested_event_received; details={}", Map.of(
                 "batchId", event.getBatchId(),
                 "bankId", event.getBankId(),
                 "s3Uri", event.getS3Uri(),
@@ -91,7 +90,7 @@ public class BatchIngestedEventListener {
             // Event filtering
             if (!shouldProcessEvent(event)) {
                 totalEventsFiltered.incrementAndGet();
-                logger.asyncStructuredLog("batch_ingested_event_filtered", Map.of(
+                log.info("batch_ingested_event_filtered; details={}", Map.of(
                         "batchId", event.getBatchId(),
                         "reason", "failed_validation"
                 ));
@@ -100,7 +99,7 @@ public class BatchIngestedEventListener {
 
             // Idempotency check
             if (!ensureIdempotency(event)) {
-                logger.asyncStructuredLog("batch_ingested_event_already_processed", Map.of(
+                log.info("batch_ingested_event_already_processed; details={}", Map.of(
                         "batchId", event.getBatchId()
                 ));
                 return;
@@ -110,7 +109,7 @@ public class BatchIngestedEventListener {
             routeEvent(event);
 
             totalEventsProcessed.incrementAndGet();
-            logger.asyncStructuredLog("batch_ingested_event_processed_successfully", Map.of(
+            log.info("batch_ingested_event_processed_successfully; details={}", Map.of(
                     "batchId", event.getBatchId()
             ));
 
@@ -127,14 +126,14 @@ public class BatchIngestedEventListener {
     private boolean shouldProcessEvent(BatchIngestedEvent event) {
         // Filter out events with invalid data
         if (event.getBatchId() == null || event.getBatchId().trim().isEmpty()) {
-            logger.asyncStructuredLog("batch_ingested_event_invalid_batch_id", Map.of(
+            log.info("batch_ingested_event_invalid_batch_id; details={}", Map.of(
                     "reason", "null_or_empty_batch_id"
             ));
             return false;
         }
 
         if (event.getBankId() == null || event.getBankId().trim().isEmpty()) {
-            logger.asyncStructuredLog("batch_ingested_event_invalid_bank_id", Map.of(
+            log.info("batch_ingested_event_invalid_bank_id; details={}", Map.of(
                     "batchId", event.getBatchId(),
                     "reason", "null_or_empty_bank_id"
             ));
@@ -142,7 +141,7 @@ public class BatchIngestedEventListener {
         }
 
         if (event.getS3Uri() == null || event.getS3Uri().trim().isEmpty()) {
-            logger.asyncStructuredLog("batch_ingested_event_invalid_s3_uri", Map.of(
+            log.info("batch_ingested_event_invalid_s3_uri; details={}", Map.of(
                     "batchId", event.getBatchId(),
                     "reason", "null_or_empty_s3_uri"
             ));
@@ -150,7 +149,7 @@ public class BatchIngestedEventListener {
         }
 
         if (event.getTotalExposures() <= 0) {
-            logger.asyncStructuredLog("batch_ingested_event_invalid_exposure_count", Map.of(
+            log.info("batch_ingested_event_invalid_exposure_count; details={}", Map.of(
                     "batchId", event.getBatchId(),
                     "totalExposures", String.valueOf(event.getTotalExposures())
             ));
@@ -161,7 +160,7 @@ public class BatchIngestedEventListener {
         if (event.getCompletedAt() != null) {
             Instant cutoff = Instant.now().minusSeconds(24 * 60 * 60); // 24 hours ago
             if (event.getCompletedAt().isBefore(cutoff)) {
-                logger.asyncStructuredLog("batch_ingested_event_stale", Map.of(
+                log.info("batch_ingested_event_stale; details={}", Map.of(
                         "batchId", event.getBatchId(),
                         "completedAt", event.getCompletedAt().toString(),
                         "cutoff", cutoff.toString()
@@ -187,7 +186,7 @@ public class BatchIngestedEventListener {
         // Check database for existing quality report
         BatchId batchId = new BatchId(event.getBatchId());
         if (qualityReportRepository.existsByBatchId(batchId)) {
-            logger.asyncStructuredLog("batch_quality_report_already_exists", Map.of(
+            log.info("batch_quality_report_already_exists; details={}", Map.of(
                     "batchId", event.getBatchId()
             ));
             processedEvents.add(eventKey);
@@ -258,11 +257,11 @@ public class BatchIngestedEventListener {
     private void handleEventProcessingError(BatchIngestedEvent event, Exception error) {
         String batchId = event.getBatchId();
 
-        logger.asyncStructuredErrorLog("batch_ingested_event_processing_error", error, Map.of(
+        log.error("batch_ingested_event_processing_error; details={}", Map.of(
                 "batchId", batchId,
                 "bankId", event.getBankId(),
                 "s3Uri", event.getS3Uri()
-        ));
+        ), error);
 
         // Persist failure to repository for retry by EventRetryProcessor
         try {
@@ -288,15 +287,15 @@ public class BatchIngestedEventListener {
             
             failureRepository.save(failure);
             
-            logger.asyncStructuredLog("event_processing_failure_persisted", Map.of(
+            log.info("event_processing_failure_persisted; details={}", Map.of(
                     "batchId", batchId,
                     "message", "will_be_retried_by_EventRetryProcessor"
             ));
             
         } catch (Exception saveEx) {
-            logger.asyncStructuredErrorLog("failed_to_persist_event_processing_failure", saveEx, Map.of(
+            log.error("failed_to_persist_event_processing_failure; details={}", Map.of(
                     "batchId", batchId
-            ));
+            ), saveEx);
         }
 
         // Remove from processed set to allow retry
@@ -348,7 +347,7 @@ public class BatchIngestedEventListener {
      */
     public void clearCaches() {
         processedEvents.clear();
-        logger.asyncStructuredLog("event_processing_caches_cleared", Map.of(
+        log.info("event_processing_caches_cleared; details={}", Map.of(
                 "action", "cache_maintenance"
         ));
     }
@@ -382,5 +381,4 @@ public class BatchIngestedEventListener {
         }
     }
 }
-
 

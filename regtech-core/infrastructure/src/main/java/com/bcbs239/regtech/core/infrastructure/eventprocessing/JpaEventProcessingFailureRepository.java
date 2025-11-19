@@ -8,9 +8,10 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 
 import java.util.Map;
 
@@ -27,15 +28,14 @@ import java.util.stream.Collectors;
 public class JpaEventProcessingFailureRepository implements IEventProcessingFailureRepository {
     private final EventProcessingFailureJpaRepository jpaRepository;
     private final EventProcessingFailureMapper mapper;
-    private final ILogger asyncLogger;
+
+    private static final Logger log = LoggerFactory.getLogger(JpaEventProcessingFailureRepository.class);
 
     public JpaEventProcessingFailureRepository(
             EventProcessingFailureJpaRepository jpaRepository,
-            EventProcessingFailureMapper mapper,
-            ILogger asyncLogger) {
+            EventProcessingFailureMapper mapper) {
         this.jpaRepository = jpaRepository;
         this.mapper = mapper;
-        this.asyncLogger = asyncLogger;
     }
 
     @Override
@@ -45,10 +45,10 @@ public class JpaEventProcessingFailureRepository implements IEventProcessingFail
             EventProcessingFailureEntity saved = jpaRepository.save(entity);
             return Result.success(mapper.toDomain(saved));
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("EVENT_PROCESSING_FAILURE_SAVE_FAILED", e, Map.of(
+            log.error("EVENT_PROCESSING_FAILURE_SAVE_FAILED; details={}", Map.of(
                     "eventType", failure.getEventType(),
                     "error", e.getMessage()
-            ));
+            ), e);
             return Result.failure(ErrorDetail.of(
                     "EVENT_PROCESSING_FAILURE_SAVE_FAILED",
                     ErrorType.SYSTEM_ERROR,
@@ -72,9 +72,9 @@ public class JpaEventProcessingFailureRepository implements IEventProcessingFail
 
             return Result.success(failures);
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("EVENT_PROCESSING_FAILURE_FIND_RETRY_FAILED", e, Map.of(
+            log.error("EVENT_PROCESSING_FAILURE_FIND_RETRY_FAILED; details={}", Map.of(
                     "error", e.getMessage()
-            ));
+            ), e);
             return Result.failure(ErrorDetail.of(
                     "EVENT_PROCESSING_FAILURE_FIND_RETRY_FAILED",
                     ErrorType.SYSTEM_ERROR,
@@ -93,10 +93,10 @@ public class JpaEventProcessingFailureRepository implements IEventProcessingFail
                     .collect(Collectors.toList());
             return Result.success(failures);
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("EVENT_PROCESSING_FAILURE_FIND_BY_USER_FAILED", e, Map.of(
+            log.error("EVENT_PROCESSING_FAILURE_FIND_BY_USER_FAILED; details={}", Map.of(
                     "userId", userId,
                     "error", e.getMessage()
-            ));
+            ), e);
 
             return Result.failure(ErrorDetail.of(
                     "EVENT_PROCESSING_FAILURE_FIND_BY_USER_FAILED",
@@ -118,10 +118,10 @@ public class JpaEventProcessingFailureRepository implements IEventProcessingFail
                     "event.processing.failure.not.found"
             )));
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("EVENT_PROCESSING_FAILURE_FIND_BY_ID_FAILED", e, Map.of(
+            log.error("EVENT_PROCESSING_FAILURE_FIND_BY_ID_FAILED; details={}", Map.of(
                     "id", id,
                     "error", e.getMessage()
-            ));
+            ), e);
 
             return Result.failure(ErrorDetail.of(
                     "EVENT_PROCESSING_FAILURE_FIND_BY_ID_FAILED",
@@ -143,10 +143,10 @@ public class JpaEventProcessingFailureRepository implements IEventProcessingFail
             );
             return Result.success(deletedCount);
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("EVENT_PROCESSING_FAILURE_DELETE_FAILED", e, Map.of(
+            log.error("EVENT_PROCESSING_FAILURE_DELETE_FAILED; details={}", Map.of(
                     "daysOld", daysOld,
                     "error", e.getMessage()
-            ));
+            ), e);
 
             return Result.failure(ErrorDetail.of(
                     "EVENT_PROCESSING_FAILURE_DELETE_FAILED",

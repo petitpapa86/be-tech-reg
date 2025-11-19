@@ -1,9 +1,10 @@
 package com.bcbs239.regtech.billing.application.payments.compensation;
 
 import com.bcbs239.regtech.billing.domain.payments.PaymentService;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -19,11 +20,10 @@ import java.util.Map;
 @Component
 public class VoidInvoiceEventHandler {
 
-    private final ILogger asyncLogger;
+    private static final Logger log = LoggerFactory.getLogger(VoidInvoiceEventHandler.class);
     private final PaymentService paymentService;
 
-    public VoidInvoiceEventHandler(ILogger asyncLogger, PaymentService paymentService) {
-        this.asyncLogger = asyncLogger;
+    public VoidInvoiceEventHandler(PaymentService paymentService) {
         this.paymentService = paymentService;
     }
 
@@ -31,7 +31,7 @@ public class VoidInvoiceEventHandler {
     @Async("sagaTaskExecutor")
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public void handle(VoidInvoiceEvent event) {
-        asyncLogger.asyncStructuredLog("VOID_INVOICE_COMPENSATION_STARTED", Map.of(
+        log.info("VOID_INVOICE_COMPENSATION_STARTED; details={}", Map.of(
             "sagaId", event.sagaId(),
             "invoiceId", event.stripeInvoiceId(),
             "userId", event.userId(),
@@ -42,12 +42,12 @@ public class VoidInvoiceEventHandler {
             Result<Void> voidResult = paymentService.voidInvoice(event.stripeInvoiceId());
             
             if (voidResult.isSuccess()) {
-                asyncLogger.asyncStructuredLog("INVOICE_VOIDED_SUCCESSFULLY", Map.of(
+                log.info("INVOICE_VOIDED_SUCCESSFULLY; details={}", Map.of(
                     "sagaId", event.sagaId(),
                     "invoiceId", event.stripeInvoiceId()
                 ));
             } else {
-                asyncLogger.asyncStructuredErrorLog("INVOICE_VOID_FAILED", null, Map.of(
+                log.error("INVOICE_VOID_FAILED; details={}", Map.of(
                     "sagaId", event.sagaId(),
                     "invoiceId", event.stripeInvoiceId(),
                     "error", voidResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error")
@@ -55,10 +55,10 @@ public class VoidInvoiceEventHandler {
             }
 
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("INVOICE_VOID_EXCEPTION", e, Map.of(
+            log.error("INVOICE_VOID_EXCEPTION; details={}", Map.of(
                 "sagaId", event.sagaId(),
                 "invoiceId", event.stripeInvoiceId()
-            ));
+            ), e);
         }
     }
 }

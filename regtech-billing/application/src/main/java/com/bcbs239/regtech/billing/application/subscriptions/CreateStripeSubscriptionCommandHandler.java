@@ -13,11 +13,12 @@ import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptio
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
 
 import com.bcbs239.regtech.core.application.saga.SagaManager;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.infrastructure.eventprocessing.CrossModuleEventBus;
 import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -38,21 +39,19 @@ public class CreateStripeSubscriptionCommandHandler {
     private final SubscriptionRepository subscriptionRepository;
     private final CrossModuleEventBus crossModuleEventBus;
     private final SagaManager sagaManager;
-    private final ILogger asyncLogger;
+    private static final Logger log = LoggerFactory.getLogger(CreateStripeSubscriptionCommandHandler.class);
 
     public CreateStripeSubscriptionCommandHandler(
             PaymentService paymentService,
             BillingAccountRepository billingAccountRepository,
             SubscriptionRepository subscriptionRepository,
             CrossModuleEventBus crossModuleEventBus,
-            SagaManager sagaManager, ILogger asyncLogger
-    ) {
+            SagaManager sagaManager) {
         this.paymentService = paymentService;
         this.billingAccountRepository = billingAccountRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.crossModuleEventBus = crossModuleEventBus;
         this.sagaManager = sagaManager;
-        this.asyncLogger = asyncLogger;
     }
 
     /**
@@ -66,7 +65,7 @@ public class CreateStripeSubscriptionCommandHandler {
     public void handle(CreateStripeSubscriptionCommand command) {
         // Diagnostic log to confirm the command arrived at the handler
         try {
-            asyncLogger.asyncStructuredLog("CREATE_STRIPE_SUBSCRIPTION_COMMAND_RECEIVED", Map.of(
+            log.info("CREATE_STRIPE_SUBSCRIPTION_COMMAND_RECEIVED; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "stripeCustomerId", command.getStripeCustomerId(),
                 "userId", command.getUserId(),
@@ -74,14 +73,14 @@ public class CreateStripeSubscriptionCommandHandler {
                 "paymentMethodId", command.getPaymentMethodId()
             ));
         } catch (Exception e) {
-            // ignore logging failures
+            // ignore logging errors
         }
 
         // Get existing billing account
         UserId userId = UserId.fromString(command.getUserId());
         Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository.findByUserId(userId);
         if (billingAccountMaybe.isEmpty()) {
-            asyncLogger.asyncStructuredErrorLog("BILLING_ACCOUNT_NOT_FOUND", null, Map.of(
+            log.error("BILLING_ACCOUNT_NOT_FOUND; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "userId", command.getUserId()
             ));
@@ -93,7 +92,7 @@ public class CreateStripeSubscriptionCommandHandler {
         // Verify billing account has Stripe customer ID (should have been set by CreateStripeCustomerCommandHandler)
         StripeCustomerId customerId = new StripeCustomerId(command.getStripeCustomerId());
         if (billingAccount.getStripeCustomerId().isEmpty()) {
-            asyncLogger.asyncStructuredErrorLog("BILLING_ACCOUNT_MISSING_CUSTOMER_ID", null, Map.of(
+            log.error("BILLING_ACCOUNT_MISSING_CUSTOMER_ID; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "billingAccountId", billingAccount.getId().value()
             ));
@@ -120,7 +119,7 @@ public class CreateStripeSubscriptionCommandHandler {
             String errorMsg = subscriptionResult.getError()
                 .map(err -> err.getMessage())
                 .orElse("Unknown error");
-            asyncLogger.asyncStructuredErrorLog("CREATE_SUBSCRIPTION_FAILED", null, Map.of(
+            log.error("CREATE_SUBSCRIPTION_FAILED; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "stripeCustomerId", command.getStripeCustomerId(),
                 "errorMessage", errorMsg,
@@ -132,7 +131,7 @@ public class CreateStripeSubscriptionCommandHandler {
         PaymentService.SubscriptionCreationResult stripeSubscription = subscriptionResult.getValue().get();
         Result<StripeSubscriptionId> stripeSubscriptionIdResult = StripeSubscriptionId.fromString(stripeSubscription.subscriptionId());
         if (stripeSubscriptionIdResult.isFailure()) {
-            asyncLogger.asyncStructuredErrorLog("INVALID_STRIPE_SUBSCRIPTION_ID", null, Map.of(
+            log.error("INVALID_STRIPE_SUBSCRIPTION_ID; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "subscriptionId", stripeSubscription.subscriptionId(),
                 "error", stripeSubscriptionIdResult.getError()
@@ -145,14 +144,14 @@ public class CreateStripeSubscriptionCommandHandler {
         BillingAccountId billingAccountId = billingAccount.getId();
         
         // Debug: Log what we're looking for
-        asyncLogger.asyncStructuredLog("SEARCHING_FOR_PENDING_SUBSCRIPTION", Map.of(
+        log.info("SEARCHING_FOR_PENDING_SUBSCRIPTION; details={}", Map.of(
             "sagaId", command.sagaId(),
             "billingAccountId", billingAccountId.value()
         ));
         
         Maybe<Subscription> subscriptionMaybe = subscriptionRepository.findActiveByBillingAccountId(billingAccountId);
         if (subscriptionMaybe.isEmpty()) {
-            asyncLogger.asyncStructuredErrorLog("PENDING_SUBSCRIPTION_NOT_FOUND", null, Map.of(
+            log.error("PENDING_SUBSCRIPTION_NOT_FOUND; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "billingAccountId", billingAccountId.value()
             ));
@@ -164,17 +163,17 @@ public class CreateStripeSubscriptionCommandHandler {
         // Update subscription with Stripe subscription ID
         Result<Void> updateSubscriptionResult = subscription.updateStripeSubscriptionId(stripeSubscriptionId);
         if (updateSubscriptionResult.isFailure()) {
-            asyncLogger.asyncStructuredErrorLog("UPDATE_STRIPE_SUBSCRIPTION_ID_FAILED", null, Map.of(
+            log.error("UPDATE_STRIPE_SUBSCRIPTION_ID_FAILED; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "error", updateSubscriptionResult.getError()
             ));
             return;
         }
-        
+
         // Activate subscription after successful Stripe subscription creation
         Result<Void> activateResult = subscription.activate();
         if (activateResult.isFailure()) {
-            asyncLogger.asyncStructuredErrorLog("SUBSCRIPTION_ACTIVATION_FAILED", null, Map.of(
+            log.error("SUBSCRIPTION_ACTIVATION_FAILED; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "error", activateResult.getError()
             ));
@@ -184,22 +183,22 @@ public class CreateStripeSubscriptionCommandHandler {
         // Save updated billing account (use update since it already has an ID)
         Result<BillingAccountId> saveAccountResult;
         try {
-            asyncLogger.asyncStructuredLog("UPDATING_BILLING_ACCOUNT", Map.of(
+            log.info("UPDATING_BILLING_ACCOUNT; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "billingAccountId", billingAccount.getId().value()
             ));
             saveAccountResult = billingAccountRepository.update(billingAccount);
-            asyncLogger.asyncStructuredLog("BILLING_ACCOUNT_UPDATED", Map.of(
+            log.info("BILLING_ACCOUNT_UPDATED; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "billingAccountId", billingAccount.getId().value()
             ));
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("BILLING_ACCOUNT_UPDATE_EXCEPTION", e, Map.of(
+            log.error("BILLING_ACCOUNT_UPDATE_EXCEPTION; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "billingAccountId", billingAccount.getId().value(),
                 "exceptionType", e.getClass().getName(),
                 "exceptionMessage", e.getMessage()
-            ));
+            ), e);
             return;
         }
         
@@ -207,7 +206,7 @@ public class CreateStripeSubscriptionCommandHandler {
             String errorMsg = saveAccountResult.getError()
                 .map(err -> err.getMessage())
                 .orElse("Unknown error");
-            asyncLogger.asyncStructuredErrorLog("SAVE_BILLING_ACCOUNT_FAILED", null, Map.of(
+            log.error("SAVE_BILLING_ACCOUNT_FAILED; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "errorMessage", errorMsg
             ));
@@ -217,23 +216,23 @@ public class CreateStripeSubscriptionCommandHandler {
         // Save subscription (use update since it already has an ID)
         Result<SubscriptionId> saveSubscriptionResult;
         try {
-            asyncLogger.asyncStructuredLog("UPDATING_SUBSCRIPTION", Map.of(
+            log.info("UPDATING_SUBSCRIPTION; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "subscriptionId", subscription.getId().value(),
                 "status", subscription.getStatus().name()
             ));
             saveSubscriptionResult = subscriptionRepository.update(subscription);
-            asyncLogger.asyncStructuredLog("SUBSCRIPTION_UPDATED", Map.of(
+            log.info("SUBSCRIPTION_UPDATED; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "subscriptionId", subscription.getId().value()
             ));
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("SUBSCRIPTION_UPDATE_EXCEPTION", e, Map.of(
+            log.error("SUBSCRIPTION_UPDATE_EXCEPTION; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "subscriptionId", subscription.getId().value(),
                 "exceptionType", e.getClass().getName(),
                 "exceptionMessage", e.getMessage()
-            ));
+            ), e);
             return;
         }
         
@@ -241,7 +240,7 @@ public class CreateStripeSubscriptionCommandHandler {
             String errorMsg = saveSubscriptionResult.getError()
                 .map(err -> err.getMessage())
                 .orElse("Unknown error");
-            asyncLogger.asyncStructuredErrorLog("SAVE_SUBSCRIPTION_FAILED", null, Map.of(
+            log.error("SAVE_SUBSCRIPTION_FAILED; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "errorMessage", errorMsg
             ));
@@ -260,15 +259,15 @@ public class CreateStripeSubscriptionCommandHandler {
 
         try {
             sagaManager.processEvent(ev);
-            asyncLogger.asyncStructuredLog("STRIPE_SUBSCRIPTION_CREATED_PROCESSED_BY_SAGAMANAGER", Map.of(
+            log.info("STRIPE_SUBSCRIPTION_CREATED_PROCESSED_BY_SAGAMANAGER; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "stripeSubscriptionId", stripeSubscriptionId.value()
             ));
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("SAGA_MANAGER_PROCESS_FAILED", e, Map.of(
+            log.error("SAGA_MANAGER_PROCESS_FAILED; details={}", Map.of(
                 "sagaId", command.sagaId(),
                 "error", e.getMessage()
-            ));
+            ), e);
             crossModuleEventBus.publishEventSynchronously(ev);
         }
     }

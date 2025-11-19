@@ -2,7 +2,6 @@ package com.bcbs239.regtech.riskcalculation.application.integration;
 
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
 import com.bcbs239.regtech.riskcalculation.application.calculation.CalculateRiskMetricsCommand;
@@ -39,7 +38,6 @@ public class BatchIngestedEventListener {
     private final CalculateRiskMetricsCommandHandler commandHandler;
     private final IBatchSummaryRepository batchSummaryRepository;
     private final IEventProcessingFailureRepository failureRepository;
-    private final ILogger asyncLogger;
     private final ObjectMapper objectMapper;
     
     /**

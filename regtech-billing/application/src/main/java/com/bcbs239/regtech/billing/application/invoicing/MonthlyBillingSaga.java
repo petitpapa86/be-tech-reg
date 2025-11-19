@@ -13,7 +13,6 @@ import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.AbstractSaga;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.SagaStatus;
@@ -34,6 +33,8 @@ import java.util.Currency;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Monthly billing saga that orchestrates the billing process for active subscriptions.
@@ -43,7 +44,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
 
     @SuppressWarnings("unused")
     private final CrossModuleEventBus messagePublisher;
-    private final ILogger logger;
+    private static final Logger log = LoggerFactory.getLogger(MonthlyBillingSaga.class);
     private final Function<UsageQuery, Result<UsageMetrics>> usageMetricsQuery;
     private final Function<BillingAccountId, Maybe<BillingAccount>> billingAccountFinder;
     @SuppressWarnings("unused")
@@ -54,7 +55,6 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
 
     public MonthlyBillingSaga(
             CrossModuleEventBus messagePublisher,
-            ILogger logger,
             SagaId sagaId,
             MonthlyBillingSagaData data,
             TimeoutScheduler timeoutScheduler,
@@ -64,9 +64,8 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
             Function<PaymentService.InvoiceCreationRequest, Result<PaymentService.InvoiceCreationResult>> stripeInvoiceCreator,
             Function<Invoice, Result<InvoiceId>> invoiceSaver,
             Consumer<Object> eventPublisher) {
-        super(sagaId, "MonthlyBillingSaga", data, timeoutScheduler, logger);
+        super(sagaId, "MonthlyBillingSaga", data, timeoutScheduler);
         this.messagePublisher = messagePublisher;
-        this.logger = logger;
         this.usageMetricsQuery = usageMetricsQuery;
         this.billingAccountFinder = billingAccountFinder;
         this.activeSubscriptionFinder = activeSubscriptionFinder;
@@ -87,7 +86,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
     }
 
     private void gatherUsageMetrics() {
-        logger.asyncStructuredLog("Gathering usage metrics for user", Map.of("userId", data.getUserId(), "billingPeriodId", data.getBillingPeriodId()));
+        log.info("Gathering usage metrics for user; details={}", Map.of("userId", data.getUserId(), "billingPeriodId", data.getBillingPeriodId()));
 
         // Query ingestion context for usage metrics
         UsageQuery query = new UsageQuery(data.getUserId(), data.getBillingPeriod());
@@ -110,7 +109,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
     }
 
     private void calculateCharges() {
-        logger.asyncStructuredLog("Calculating charges for user", Map.of("userId", data.getUserId(), "exposures", data.getTotalExposures()));
+        log.info("Calculating charges for user; details={}", Map.of("userId", data.getUserId(), "exposures", data.getTotalExposures()));
 
         // Calculate subscription amount (always full monthly amount for existing subscriptions)
         Money subscriptionAmount = SubscriptionTier.STARTER.getMonthlyPrice();
@@ -125,7 +124,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
     }
 
     private void generateInvoice() {
-        logger.asyncStructuredLog("Generating invoice for user", Map.of("userId", data.getUserId(), "totalAmount", data.getTotalCharges()));
+        log.info("Generating invoice for user; details={}", Map.of("userId", data.getUserId(), "totalAmount", data.getTotalCharges()));
 
         // Find billing account to get Stripe customer ID
         Result<BillingAccount> billingAccountResult = findBillingAccount(data.getUserId());
@@ -196,7 +195,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
     }
 
     private void finalizeBilling() {
-        logger.asyncStructuredLog("Finalizing billing for user", Map.of("userId", data.getUserId(), "invoiceId", data.getGeneratedInvoiceId()));
+        log.info("Finalizing billing for user; details={}", Map.of("userId", data.getUserId(), "invoiceId", data.getGeneratedInvoiceId()));
 
         try {
             // Find billing account for event publishing
@@ -243,7 +242,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
 
     @Override
     protected void compensate() {
-        logger.asyncStructuredLog("Compensating monthly billing saga for user", Map.of("userId", data.getUserId()));
+        log.info("Compensating monthly billing saga for user; details={}", Map.of("userId", data.getUserId()));
 
         try {
             // Reverse any partial operations based on current step
@@ -251,7 +250,7 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
                 case FINALIZE_BILLING, GENERATE_INVOICE -> {
                     // If we generated an invoice, try to cancel/void it
                     if (data.getGeneratedInvoiceId() != null) {
-                        logger.asyncStructuredLog("Attempting to cancel invoice during compensation", Map.of("invoiceId", data.getGeneratedInvoiceId()));
+                        log.info("Attempting to cancel invoice during compensation; details={}", Map.of("invoiceId", data.getGeneratedInvoiceId()));
                         // In a real implementation, we would call Stripe to void the invoice
                         // For now, just log the compensation action
                     }
@@ -260,21 +259,21 @@ public class MonthlyBillingSaga extends AbstractSaga<MonthlyBillingSagaData> {
                     // Clear calculated charges
                     data.setSubscriptionCharges(Money.zero(Currency.getInstance("EUR")));
                     data.setOverageCharges(Money.zero(Currency.getInstance("EUR")));
-                    logger.asyncStructuredLog("Cleared calculated charges during compensation", Map.of());
+                    log.info("Cleared calculated charges during compensation; details={}", Map.of("userId", data.getUserId()));
                 }
                 case GATHER_METRICS -> {
                     // Clear gathered metrics
                     data.setTotalExposures(0);
                     data.setDocumentsProcessed(0);
                     data.setDataVolumeBytes(0L);
-                    logger.asyncStructuredLog("Cleared usage metrics during compensation", Map.of());
+                    log.info("Cleared usage metrics during compensation; details={}", Map.of("userId", data.getUserId()));
                 }
             }
 
-            logger.asyncStructuredLog("Successfully compensated monthly billing saga for user", Map.of("userId", data.getUserId()));
+            log.info("Successfully compensated monthly billing saga for user; details={}", Map.of("userId", data.getUserId()));
 
         } catch (Exception e) {
-            logger.asyncStructuredErrorLog("Failed to compensate monthly billing saga for user", e, Map.of("userId", data.getUserId()));
+            log.error("Failed to compensate monthly billing saga for user; details={}", Map.of("userId", data.getUserId()), e);
         }
     }
 

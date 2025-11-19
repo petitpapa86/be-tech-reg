@@ -21,7 +21,6 @@ import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptio
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.saga.SagaStatus;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
 import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
@@ -29,17 +28,19 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSagaData> {
     private final ApplicationEventPublisher eventPublisher;
+    private static final Logger log = LoggerFactory.getLogger(PaymentVerificationSaga.class);
 
     public PaymentVerificationSaga(
             SagaId id, 
             PaymentVerificationSagaData data, 
             TimeoutScheduler timeoutScheduler, 
-            ILogger logger, 
             ApplicationEventPublisher eventPublisher) {
-        super(id, "PaymentVerificationSaga", data, timeoutScheduler, logger);
+        super(id, "PaymentVerificationSaga", data, timeoutScheduler);
         this.eventPublisher = eventPublisher;
         registerHandlers();
     }
@@ -225,7 +226,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
         
         String failureReason = data.getFailureReason() != null ? data.getFailureReason() : "Unknown saga failure";
         
-        logger.asyncStructuredLog("SAGA_COMPENSATION_STARTED", java.util.Map.of(
+        log.info("SAGA_COMPENSATION_STARTED; details={}", java.util.Map.of(
             "sagaId", getId().id(),
             "failureReason", failureReason,
             "userId", String.valueOf(data.getUserId()),
@@ -246,7 +247,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             );
             eventPublisher.publishEvent(refundEvent);
             
-            logger.asyncStructuredLog("COMPENSATION_EVENT_PUBLISHED", java.util.Map.of(
+            log.info("COMPENSATION_EVENT_PUBLISHED; details={}", java.util.Map.of(
                 "sagaId", getId().id(),
                 "eventType", "RefundPaymentEvent",
                 "paymentIntentId", data.getStripePaymentIntentId()
@@ -262,7 +263,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             );
             eventPublisher.publishEvent(voidEvent);
             
-            logger.asyncStructuredLog("COMPENSATION_EVENT_PUBLISHED", java.util.Map.of(
+            log.info("COMPENSATION_EVENT_PUBLISHED; details={}", java.util.Map.of(
                 "sagaId", getId().id(),
                 "eventType", "VoidInvoiceEvent",
                 "invoiceId", data.getStripeInvoiceId()
@@ -279,7 +280,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             );
             eventPublisher.publishEvent(cancelEvent);
             
-            logger.asyncStructuredLog("COMPENSATION_EVENT_PUBLISHED", java.util.Map.of(
+            log.info("COMPENSATION_EVENT_PUBLISHED; details={}", java.util.Map.of(
                 "sagaId", getId().id(),
                 "eventType", "CancelSubscriptionEvent",
                 "subscriptionId", data.getStripeSubscriptionId()
@@ -296,7 +297,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             );
             eventPublisher.publishEvent(suspendEvent);
             
-            logger.asyncStructuredLog("COMPENSATION_EVENT_PUBLISHED", java.util.Map.of(
+            log.info("COMPENSATION_EVENT_PUBLISHED; details={}", java.util.Map.of(
                 "sagaId", getId().id(),
                 "eventType", "SuspendBillingAccountEvent",
                 "billingAccountId", data.getBillingAccountId()
@@ -325,7 +326,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             );
             eventPublisher.publishEvent(notifyEvent);
             
-            logger.asyncStructuredLog("COMPENSATION_EVENT_PUBLISHED", java.util.Map.of(
+            log.info("COMPENSATION_EVENT_PUBLISHED; details={}", java.util.Map.of(
                 "sagaId", getId().id(),
                 "eventType", "NotifyUserEvent",
                 "userId", data.getUserId(),
@@ -333,7 +334,7 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
             ));
         }
         
-        logger.asyncStructuredLog("SAGA_COMPENSATION_COMPLETED", java.util.Map.of(
+        log.info("SAGA_COMPENSATION_COMPLETED; details={}", java.util.Map.of(
             "sagaId", getId().id(),
             "failureReason", failureReason,
             "compensationStatus", "EVENTS_PUBLISHED",

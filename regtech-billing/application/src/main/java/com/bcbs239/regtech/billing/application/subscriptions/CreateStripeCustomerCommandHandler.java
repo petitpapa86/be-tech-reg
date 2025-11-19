@@ -12,7 +12,6 @@ import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreatedE
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreationFailedEvent;
 
 import com.bcbs239.regtech.core.application.saga.SagaManager;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.saga.ISagaRepository;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.SagaSnapshot;
@@ -20,6 +19,8 @@ import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -34,7 +35,7 @@ import java.util.Map;
 @SuppressWarnings("unused")
 public class CreateStripeCustomerCommandHandler {
 
-    private final ILogger asyncLogger;
+    private static final Logger log = LoggerFactory.getLogger(CreateStripeCustomerCommandHandler.class);
 
     private final PaymentService paymentService;
     private final SagaManager sagaManager;
@@ -44,11 +45,10 @@ public class CreateStripeCustomerCommandHandler {
 
     @SuppressWarnings("unused")
     public CreateStripeCustomerCommandHandler(
-            ILogger asyncLogger, PaymentService paymentService,
+            PaymentService paymentService,
             SagaManager sagaManager,
             ISagaRepository sagaRepository,
             BillingAccountRepository billingAccountRepository) {
-        this.asyncLogger = asyncLogger;
         this.paymentService = paymentService;
         this.sagaManager = sagaManager;
         this.sagaRepository = sagaRepository;
@@ -59,7 +59,7 @@ public class CreateStripeCustomerCommandHandler {
     @Async("sagaTaskExecutor")
     public void handle(CreateStripeCustomerCommand command) {
         SagaId sagaId = command.sagaId();
-        asyncLogger.asyncStructuredLog("CREATE_STRIPE_CUSTOMER_COMMAND_RECEIVED", Map.of(
+        log.info("CREATE_STRIPE_CUSTOMER_COMMAND_RECEIVED; details={}", Map.of(
                 "sagaId", sagaId,
                 "userEmail", command.getEmail(),
                 "userName", command.getName()
@@ -82,7 +82,7 @@ public class CreateStripeCustomerCommandHandler {
         
         if (result.isFailure()) {
             String errorMsg = result.getError().get().getMessage();
-            asyncLogger.asyncStructuredLog("STRIPE_CUSTOMER_CREATION_FAILED", Map.of(
+            log.info("STRIPE_CUSTOMER_CREATION_FAILED; details={}", Map.of(
                     "sagaId", sagaId,
                     "error", errorMsg
             ));
@@ -103,7 +103,7 @@ public class CreateStripeCustomerCommandHandler {
         );
         sagaManager.processEvent(event);
         
-        asyncLogger.asyncStructuredLog("STRIPE_CUSTOMER_CREATED_PUBLISHED", Map.of(
+        log.info("STRIPE_CUSTOMER_CREATED_PUBLISHED; details={}", Map.of(
                 "sagaId", sagaId,
                 "stripeCustomerId", customer.customerId().getValue(),
                 "billingAccountId", billingAccountId
@@ -114,7 +114,7 @@ public class CreateStripeCustomerCommandHandler {
         // Load saga to get user ID
         Maybe<SagaSnapshot> maybeSaga = sagaRepository.load(sagaId);
         if (maybeSaga.isEmpty()) {
-            asyncLogger.asyncStructuredLog("SAGA_NOT_FOUND", Map.of("sagaId", sagaId));
+            log.info("SAGA_NOT_FOUND; details={}", Map.of("sagaId", sagaId));
             throw new RuntimeException("Saga not found: " + sagaId);
         }
         
@@ -136,7 +136,7 @@ public class CreateStripeCustomerCommandHandler {
             );
             
             if (maybeAccount.isEmpty()) {
-                asyncLogger.asyncStructuredLog("BILLING_ACCOUNT_NOT_FOUND", Map.of(
+                log.info("BILLING_ACCOUNT_NOT_FOUND; details={}", Map.of(
                     "sagaId", sagaId,
                     "userId", userId
                 ));
@@ -149,7 +149,7 @@ public class CreateStripeCustomerCommandHandler {
             Result<BillingAccountId> updateResult = billingAccountRepository.update(account);
             
             if (updateResult.isFailure()) {
-                asyncLogger.asyncStructuredLog("BILLING_ACCOUNT_UPDATE_FAILED", Map.of(
+                log.info("BILLING_ACCOUNT_UPDATE_FAILED; details={}", Map.of(
                     "sagaId", sagaId,
                     "error", updateResult.getError().get().getMessage()
                 ));
@@ -157,7 +157,7 @@ public class CreateStripeCustomerCommandHandler {
             }
             
             String billingAccountId = account.getId().value();
-            asyncLogger.asyncStructuredLog("BILLING_ACCOUNT_UPDATED", Map.of(
+            log.info("BILLING_ACCOUNT_UPDATED; details={}", Map.of(
                 "sagaId", sagaId,
                 "billingAccountId", billingAccountId,
                 "stripeCustomerId", customerId.value()
@@ -166,7 +166,7 @@ public class CreateStripeCustomerCommandHandler {
             return billingAccountId;
             
         } catch (Exception e) {
-            asyncLogger.asyncStructuredLog("SAGA_DATA_PARSE_ERROR", Map.of(
+            log.info("SAGA_DATA_PARSE_ERROR; details={}", Map.of(
                 "sagaId", sagaId,
                 "error", e.getMessage()
             ));

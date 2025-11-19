@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.iam.infrastructure.database.repositories;
 
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
@@ -9,6 +8,8 @@ import com.bcbs239.regtech.iam.domain.users.*;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.RoleEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.UserRoleEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
@@ -22,15 +23,14 @@ import java.util.Map;
 @Repository
 public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.UserRepository {
 
-    private final ILogger asyncLogger;
+    private static final Logger log = LoggerFactory.getLogger(JpaUserRepository.class);
     private final SpringDataUserRepository userRepository;
     private final SpringDataUserRoleRepository userRoleRepository;
     private final SpringDataUserBankAssignmentRepository userBankAssignmentRepository;
     private final SpringDataRoleRepository roleRepository;
 
     @Autowired
-    public JpaUserRepository(ILogger asyncLogger, SpringDataUserRepository userRepository, SpringDataUserRoleRepository userRoleRepository, SpringDataUserBankAssignmentRepository userBankAssignmentRepository, SpringDataRoleRepository roleRepository) {
-        this.asyncLogger = asyncLogger;
+    public JpaUserRepository(SpringDataUserRepository userRepository, SpringDataUserRoleRepository userRoleRepository, SpringDataUserBankAssignmentRepository userBankAssignmentRepository, SpringDataRoleRepository roleRepository) {
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
         this.userBankAssignmentRepository = userBankAssignmentRepository;
@@ -50,11 +50,10 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                     .map(Maybe::some)
                     .orElse(Maybe.none());
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("Failed to lookup user by email", e,
-                    Map.of(
-                            "email", email.getValue(),
-                            "error", e.getMessage()
-                    ));
+            log.error("Failed to lookup user by email; details={}", Map.of(
+                    "email", email.getValue(),
+                    "error", e.getMessage()
+            ), e);
 
             return Maybe.none();
         }
@@ -72,7 +71,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                     .map(Maybe::some)
                     .orElse(Maybe.none());
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("Failed to load user by id", e, Map.of("userId", userId.getValue(), "error", e.getMessage()));
+            log.error("Failed to load user by id; details={}", Map.of("userId", userId.getValue(), "error", e.getMessage()), e);
             return Maybe.none();
         }
     }
@@ -116,7 +115,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
             
             return Result.success(UserId.fromString(savedEntity.getId()));
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("Failed to save user", e, Map.of("user", user.getId(), "error", e.getMessage()));
+            log.error("Failed to save user; details={}", Map.of("user", user.getId(), "error", e.getMessage()), e);
             return Result.failure(ErrorDetail.of("USER_SAVE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to save user: " + e.getMessage(), "user.save.failed"));
         }
     }
@@ -132,7 +131,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                     .map(entity -> convertToDomain(entity))
                     .toList();
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("Failed to find user roles", e, Map.of("userId", userId.getValue(), "error", e.getMessage()));
+            log.error("Failed to find user roles; details={}", Map.of("userId", userId.getValue(), "error", e.getMessage()), e);
             return List.of();
         }
     }
@@ -148,7 +147,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                     .map(entity -> convertToDomain(entity))
                     .toList();
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("Failed to find user org roles", e, Map.of("userId", query.userId().getValue(), "organizationId", query.organizationId(), "error", e.getMessage()));
+            log.error("Failed to find user org roles; details={}", Map.of("userId", query.userId().getValue(), "organizationId", query.organizationId(), "error", e.getMessage()), e);
             return List.of();
         }
     }
@@ -176,8 +175,8 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                 entity.getOrganizationId()
             );
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("Failed to convert UserRoleEntity to domain", e,
-                Map.of("entityId", entity.getId(), "roleId", entity.getRoleId(), "error", e.getMessage()));
+            log.error("Failed to convert UserRoleEntity to domain; details={}",
+                Map.of("entityId", entity.getId(), "roleId", entity.getRoleId(), "error", e.getMessage()), e);
             throw new RuntimeException("Failed to convert UserRoleEntity to domain: " + entity.getId(), e);
         }
     }
@@ -200,7 +199,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
             UserRoleEntity saved = userRoleRepository.save(entity);
             return Result.success(saved.getId());
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("Failed to save user role", e, Map.of("userRole", userRole, "error", e.getMessage()));
+            log.error("Failed to save user role; details={}", Map.of("userRole", userRole, "error", e.getMessage()), e);
             return Result.failure(ErrorDetail.of("USER_ROLE_SAVE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to save user role: " + e.getMessage(), "user.role.save.failed"));
         }
     }

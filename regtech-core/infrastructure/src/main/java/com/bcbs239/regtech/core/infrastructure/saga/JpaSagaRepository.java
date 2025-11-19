@@ -7,11 +7,12 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidDefinitionException;
 
 import jakarta.persistence.EntityManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.context.annotation.Primary;
 
@@ -21,12 +22,11 @@ public class JpaSagaRepository implements ISagaRepository {
 
     private final EntityManager entityManager;
     private final ObjectMapper objectMapper;
-    private final ILogger logger;
+    private static final Logger log = LoggerFactory.getLogger(JpaSagaRepository.class);
 
-    public JpaSagaRepository(EntityManager entityManager, ObjectMapper objectMapper, ILogger logger) {
+    public JpaSagaRepository(EntityManager entityManager, ObjectMapper objectMapper) {
         this.entityManager = entityManager;
         this.objectMapper = objectMapper;
-        this.logger = logger;
     }
 
     @Override
@@ -38,7 +38,7 @@ public class JpaSagaRepository implements ISagaRepository {
                 // Insert new saga
                 SagaEntity newEntity = toEntity(snapshot);
                 entityManager.persist(newEntity);
-                logger.asyncStructuredLog("SAGA_PERSISTED", Map.of(
+                log.info("SAGA_PERSISTED; details={}", Map.of(
                     "sagaId", snapshot.getSagaId(),
                     "sagaType", snapshot.getSagaType()
                 ));
@@ -46,7 +46,7 @@ public class JpaSagaRepository implements ISagaRepository {
                 // Update existing saga - update fields on the managed entity
                 existingEntity.updateFrom(snapshot);
                 // No need to call merge - entity is already managed
-                logger.asyncStructuredLog("SAGA_UPDATED", Map.of(
+                log.info("SAGA_UPDATED; details={}", Map.of(
                     "sagaId", snapshot.getSagaId(),
                     "sagaType", snapshot.getSagaType(),
                     "version", existingEntity.getVersion()
@@ -55,10 +55,11 @@ public class JpaSagaRepository implements ISagaRepository {
 
             return Result.success(snapshot.getSagaId());
         } catch (Exception e) {
-            logger.asyncStructuredErrorLog("SAGA_SAVE_FAILED", e, Map.of(
+            log.error("SAGA_SAVE_FAILED; details={}", Map.of(
                 "sagaId", snapshot.getSagaId(),
-                "sagaType", snapshot.getSagaType()
-            ));
+                "sagaType", snapshot.getSagaType(),
+                "error", e.getMessage()
+            ), e);
             return Result.failure(ErrorDetail.of("INTERNAL_ERROR", ErrorType.SYSTEM_ERROR,"Failed to save saga: " + e.getMessage(),
                     "internal.server.error"));
         }
@@ -72,7 +73,7 @@ public class JpaSagaRepository implements ISagaRepository {
                 // Insert new saga
                 SagaEntity newEntity = toEntity(saga, objectMapper);
                 entityManager.persist(newEntity);
-                logger.asyncStructuredLog("SAGA_PERSISTED", Map.of(
+                log.info("SAGA_PERSISTED; details={}", Map.of(
                     "sagaId", saga.getId(),
                     "sagaType", saga.getSagaType()
                 ));
@@ -80,7 +81,7 @@ public class JpaSagaRepository implements ISagaRepository {
                 // Update existing saga - update fields on the managed entity
                 existingEntity.updateFrom(saga, objectMapper);
                 // No need to call merge - entity is already managed
-                logger.asyncStructuredLog("SAGA_UPDATED", Map.of(
+                log.info("SAGA_UPDATED; details={}", Map.of(
                     "sagaId", saga.getId(),
                     "sagaType", saga.getSagaType(),
                     "version", existingEntity.getVersion()
@@ -91,11 +92,11 @@ public class JpaSagaRepository implements ISagaRepository {
             return Result.success(saga.getId());
 
         } catch (Exception e) {
-            logger.asyncStructuredLog("SAGA_SAVE_FAILED", Map.of(
+            log.error("SAGA_SAVE_FAILED; details={}", Map.of(
                 "sagaId", saga.getId(),
                 "sagaType", saga.getClass().getSimpleName(),
                 "error", e.getMessage()
-            ));
+            ), e);
             // Rethrow to surface the failure to transaction manager (avoid silent rollback-only state)
             throw new RuntimeException("Failed to save saga: " + e.getMessage(), e);
         }
@@ -105,7 +106,7 @@ public class JpaSagaRepository implements ISagaRepository {
         try {
             SagaEntity entity = entityManager.find(SagaEntity.class, sagaId.id());
             if (entity == null) {
-                logger.asyncStructuredLog("SAGA_NOT_FOUND_BY_ID", Map.of(
+                log.info("SAGA_NOT_FOUND_BY_ID; details={}", Map.of(
                     "sagaId", sagaId
                 ));
                 return Maybe.none();
@@ -125,10 +126,10 @@ public class JpaSagaRepository implements ISagaRepository {
             return Maybe.some(snapshot);
 
         } catch (Exception e) {
-            logger.asyncStructuredLog("SAGA_LOAD_FAILED", Map.of(
+            log.error("SAGA_LOAD_FAILED; details={}", Map.of(
                 "sagaId", sagaId,
                 "error", e.getMessage()
-            ));
+            ), e);
             return Maybe.none();
         }
     }

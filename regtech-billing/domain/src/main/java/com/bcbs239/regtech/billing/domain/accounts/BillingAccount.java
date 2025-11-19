@@ -346,6 +346,18 @@ public class BillingAccount {
             this.version++;
         }
     }
+
+    /**
+     * Convenience factory to create a BillingAccount for a new user.
+     * Sets creation timestamps and leaves defaults in place.
+     */
+    public static BillingAccount createForUser(UserId userId, String email) {
+        BillingAccount.Builder builder = new BillingAccount.Builder()
+            .userId(userId)
+            .createdAt(Instant.now())
+            .updatedAt(Instant.now());
+        BillingAccount account = builder.build();
+        // Optionally attach email in metadata if required; currently we don't store email on account
+        return account;
+    }
 }
-
-

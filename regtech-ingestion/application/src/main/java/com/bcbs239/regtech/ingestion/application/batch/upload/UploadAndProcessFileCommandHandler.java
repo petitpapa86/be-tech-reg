@@ -15,7 +15,6 @@ import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 import com.bcbs239.regtech.ingestion.domain.file.ContentType;
 import com.bcbs239.regtech.ingestion.domain.file.FileName;
 import com.bcbs239.regtech.ingestion.domain.file.FileSize;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Component;
@@ -26,6 +25,8 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Command handler for uploading and immediately processing a file.
@@ -39,19 +40,17 @@ public class UploadAndProcessFileCommandHandler {
     private final IBankInfoRepository bankInfoRepository;
     private final TemporaryFileStorageService temporaryFileStorage;
     private final ProcessBatchCommandHandler processBatchCommandHandler;
-    private final ILogger logger;
+    private static final Logger log = LoggerFactory.getLogger(UploadAndProcessFileCommandHandler.class);
 
     public UploadAndProcessFileCommandHandler(
             IIngestionBatchRepository ingestionBatchRepository,
             IBankInfoRepository bankInfoRepository,
             TemporaryFileStorageService temporaryFileStorage,
-            ProcessBatchCommandHandler processBatchCommandHandler,
-            ILogger logger) {
+            ProcessBatchCommandHandler processBatchCommandHandler) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.bankInfoRepository = bankInfoRepository;
         this.temporaryFileStorage = temporaryFileStorage;
         this.processBatchCommandHandler = processBatchCommandHandler;
-        this.logger = logger;
     }
 
     @Transactional
@@ -91,8 +90,7 @@ public class UploadAndProcessFileCommandHandler {
                 BatchId batchId = BatchId.generate();
                 IngestionBatch batch = new IngestionBatch(batchId, bankId, fileMetadata);
 
-                logger.asyncStructuredLog("Upload and process started",
-                    Map.of("batchId", batchId.value(), "bankId", bankId.value(),
+                log.info("Upload and process started; details={}", Map.of("batchId", batchId.value(), "bankId", bankId.value(),
                            "fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
 
                 Result<IngestionBatch> saveResult = ingestionBatchRepository.save(batch);
@@ -109,20 +107,16 @@ public class UploadAndProcessFileCommandHandler {
                 // Handle async processing completion (fire and forget)
                 processFuture.whenComplete((processResult, throwable) -> {
                     if (throwable != null) {
-                        logger.asyncStructuredErrorLog("Async batch processing failed with exception",
-                            throwable, Map.of("batchId", batchId.value()));
+                        log.error("Async batch processing failed with exception; details={}", Map.of("batchId", batchId.value()), throwable);
                     } else if (processResult != null && processResult.isFailure()) {
-                        logger.asyncStructuredLog("Async batch processing failed",
-                            Map.of("batchId", batchId.value(), "error", processResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error")));
+                        log.info("Async batch processing failed; details={}", Map.of("batchId", batchId.value(), "error", processResult.getError().map(e -> e.getMessage()).orElse("Unknown error")));
                     } else {
-                        logger.asyncStructuredLog("Async batch processing completed successfully",
-                            Map.of("batchId", batchId.value()));
+                        log.info("Async batch processing completed successfully; details={}", Map.of("batchId", batchId.value()));
                     }
                 });
 
                 long duration = System.currentTimeMillis() - startTime;
-                logger.asyncStructuredLog("Upload completed, batch processing started asynchronously",
-                    Map.of("batchId", batchId.value(), "bankId", bankId.value(), "duration", duration));
+                log.info("Upload completed, batch processing started asynchronously; details={}", Map.of("batchId", batchId.value(), "bankId", bankId.value(), "duration", duration));
 
                 return Result.success(batchId);
 
@@ -131,8 +125,7 @@ public class UploadAndProcessFileCommandHandler {
             }
 
         } catch (Exception e) {
-            logger.asyncStructuredErrorLog("Unexpected error during upload and process",
-                e, Map.of("errorMessage", e.getMessage()));
+            log.error("Unexpected error during upload and process; details={}", Map.of("errorMessage", e.getMessage()), e);
             return Result.failure(ErrorDetail.of("UPLOAD_PROCESS_ERROR", ErrorType.SYSTEM_ERROR,
                 "Unexpected error during file upload and processing: " + e.getMessage(),
                 "upload.process.error"));
@@ -186,11 +179,9 @@ public class UploadAndProcessFileCommandHandler {
 
         // Log warnings for large files
         if (validatedContentType.isJson() && validatedFileSize.shouldWarnForJson()) {
-            logger.asyncStructuredLog("Large JSON file detected",
-                Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
+            log.info("Large JSON file detected; details={}", Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
         } else if (validatedContentType.isExcel() && validatedFileSize.shouldWarnForExcel()) {
-            logger.asyncStructuredLog("Large Excel file detected",
-                Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
+            log.info("Large Excel file detected; details={}", Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
         }
 
         // Calculate MD5 checksum from stored file data (not from the already-consumed stream)
@@ -226,8 +217,7 @@ public class UploadAndProcessFileCommandHandler {
             return CompletableFuture.completedFuture(processResult);
 
         } catch (Exception e) {
-            logger.asyncStructuredErrorLog("Failed to process batch with temporary file",
-                e, Map.of("errorMessage", e.getMessage()));
+            log.error("Failed to process batch with temporary file; details={}", Map.of("errorMessage", e.getMessage()), e);
             return CompletableFuture.completedFuture(Result.failure(ErrorDetail.of("PROCESS_ERROR", ErrorType.SYSTEM_ERROR,
                 "Failed to process batch: " + e.getMessage(), "batch.process.error")));
         }

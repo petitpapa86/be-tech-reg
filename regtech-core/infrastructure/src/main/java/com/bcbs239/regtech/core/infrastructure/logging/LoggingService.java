@@ -1,27 +1,11 @@
 package com.bcbs239.regtech.core.infrastructure.logging;
 
-import com.bcbs239.regtech.core.domain.logging.ILogger;
-import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
-import org.springframework.stereotype.Service;
-
-import java.util.Map;
-
 /**
- * Infrastructure implementation of the ILogger domain interface.
- * Delegates to LoggingConfiguration for actual logging functionality.
+ * LoggingService removed as part of migration to SLF4J.
+ * Previously provided compatibility shims for a now-removed ILogger interface.
+ * Keep this file as a placeholder to document the removal. Remove the file
+ * entirely if your build/process requires it.
  */
-@Service
-public class LoggingService implements ILogger {
-
-    @Override
-    public void asyncStructuredLog(String message, Map<String, Object> details) {
-        LoggingConfiguration.logStructured(message, details);
-    }
-
-    @Override
-    public void asyncStructuredErrorLog(String message, Throwable throwable, Map<String, Object> details) {
-        LoggingConfiguration.logStructured(message, details, throwable);
-
-    }
+final class LoggingServiceRemovedPlaceholder {
+    // no-op
 }
-

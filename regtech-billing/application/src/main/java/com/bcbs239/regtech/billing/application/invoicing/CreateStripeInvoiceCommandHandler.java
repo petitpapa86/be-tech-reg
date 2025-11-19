@@ -14,9 +14,10 @@ import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.application.saga.SagaManager;
-import com.bcbs239.regtech.core.domain.logging.ILogger;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -41,19 +42,17 @@ public class CreateStripeInvoiceCommandHandler {
     private final InvoiceRepository invoiceRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final SagaManager sagaManager;
-    private final ILogger asyncLogger;
+    private static final Logger log = LoggerFactory.getLogger(CreateStripeInvoiceCommandHandler.class);
 
     public CreateStripeInvoiceCommandHandler(
             PaymentService paymentService,
             InvoiceRepository invoiceRepository,
             SubscriptionRepository subscriptionRepository,
-            SagaManager sagaManager,
-            ILogger asyncLogger) {
+            SagaManager sagaManager) {
         this.paymentService = paymentService;
         this.invoiceRepository = invoiceRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.sagaManager = sagaManager;
-        this.asyncLogger = asyncLogger;
     }
 
     /**
@@ -66,7 +65,7 @@ public class CreateStripeInvoiceCommandHandler {
     public void handle(CreateStripeInvoiceCommand command) {
         // Diagnostic log
         try {
-            asyncLogger.asyncStructuredLog("CREATE_STRIPE_INVOICE_COMMAND_RECEIVED", Map.of(
+            log.info("CREATE_STRIPE_INVOICE_COMMAND_RECEIVED; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "customerId", String.valueOf(command.getCustomerId()),
                 "subscriptionId", String.valueOf(command.getSubscriptionId()),
@@ -79,7 +78,7 @@ public class CreateStripeInvoiceCommandHandler {
         // Convert string to StripeCustomerId
         Result<StripeCustomerId> customerIdResult = StripeCustomerId.fromString(command.getCustomerId());
         if (customerIdResult.isFailure()) {
-            asyncLogger.asyncStructuredErrorLog("INVALID_CUSTOMER_ID", null, Map.of(
+            log.error("INVALID_CUSTOMER_ID; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "customerId", String.valueOf(command.getCustomerId()),
                 "error", String.valueOf(customerIdResult.getError())
@@ -99,7 +98,7 @@ public class CreateStripeInvoiceCommandHandler {
             String errorMsg = invoiceResult.getError()
                 .map(err -> err.getMessage())
                 .orElse("Unknown error");
-            asyncLogger.asyncStructuredErrorLog("CREATE_INVOICE_FAILED", null, Map.of(
+            log.error("CREATE_INVOICE_FAILED; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "customerId", String.valueOf(command.getCustomerId()),
                 "errorMessage", errorMsg
@@ -112,7 +111,7 @@ public class CreateStripeInvoiceCommandHandler {
         // Get subscription to retrieve billing account
         Result<SubscriptionId> subscriptionIdResult = SubscriptionId.fromString(command.getSubscriptionId());
         if (subscriptionIdResult.isFailure()) {
-            asyncLogger.asyncStructuredErrorLog("INVALID_SUBSCRIPTION_ID", null, Map.of(
+            log.error("INVALID_SUBSCRIPTION_ID; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "subscriptionId", String.valueOf(command.getSubscriptionId())
             ));
@@ -121,7 +120,7 @@ public class CreateStripeInvoiceCommandHandler {
 
         Maybe<Subscription> subscriptionMaybe = subscriptionRepository.findById(subscriptionIdResult.getValue().get());
         if (subscriptionMaybe.isEmpty()) {
-            asyncLogger.asyncStructuredErrorLog("SUBSCRIPTION_NOT_FOUND", null, Map.of(
+            log.error("SUBSCRIPTION_NOT_FOUND; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "subscriptionId", String.valueOf(command.getSubscriptionId())
             ));
@@ -134,7 +133,7 @@ public class CreateStripeInvoiceCommandHandler {
         // Create local Invoice aggregate
         Result<StripeInvoiceId> stripeInvoiceIdResult = StripeInvoiceId.fromString(stripeInvoice.invoiceId());
         if (stripeInvoiceIdResult.isFailure()) {
-            asyncLogger.asyncStructuredErrorLog("INVALID_STRIPE_INVOICE_ID", null, Map.of(
+            log.error("INVALID_STRIPE_INVOICE_ID; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "invoiceId", String.valueOf(stripeInvoice.invoiceId())
             ));
@@ -150,10 +149,10 @@ public class CreateStripeInvoiceCommandHandler {
             BigDecimal amountInDollars = amountInCents.divide(BigDecimal.valueOf(100));
             totalAmount = Money.of(amountInDollars, Currency.getInstance("USD"));
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("INVALID_AMOUNT", e, Map.of(
+            log.error("INVALID_AMOUNT; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "amount", String.valueOf(stripeInvoice.amount())
-            ));
+            ), e);
             return;
         }
 
@@ -174,7 +173,7 @@ public class CreateStripeInvoiceCommandHandler {
         );
 
         if (invoiceCreateResult.isFailure()) {
-            asyncLogger.asyncStructuredErrorLog("INVOICE_CREATION_FAILED", null, Map.of(
+            log.error("INVOICE_CREATION_FAILED; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "error", String.valueOf(invoiceCreateResult.getError())
             ));
@@ -189,7 +188,7 @@ public class CreateStripeInvoiceCommandHandler {
             String errorMsg = saveResult.getError()
                 .map(err -> err.getMessage())
                 .orElse("Unknown error");
-            asyncLogger.asyncStructuredErrorLog("SAVE_INVOICE_FAILED", null, Map.of(
+            log.error("SAVE_INVOICE_FAILED; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "errorMessage", errorMsg
             ));
@@ -198,7 +197,7 @@ public class CreateStripeInvoiceCommandHandler {
 
         InvoiceId invoiceId = saveResult.getValue().get();
 
-        asyncLogger.asyncStructuredLog("INVOICE_SAVED", Map.of(
+        log.info("INVOICE_SAVED; details={}", Map.of(
             "sagaId", String.valueOf(command.sagaId()),
             "invoiceId", String.valueOf(invoiceId.value()),
             "stripeInvoiceId", String.valueOf(stripeInvoice.invoiceId())
@@ -212,16 +211,15 @@ public class CreateStripeInvoiceCommandHandler {
 
         try {
             sagaManager.processEvent(event);
-            asyncLogger.asyncStructuredLog("STRIPE_INVOICE_CREATED_PROCESSED_BY_SAGAMANAGER", Map.of(
+            log.info("STRIPE_INVOICE_CREATED_PROCESSED_BY_SAGAMANAGER; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "invoiceId", String.valueOf(stripeInvoice.invoiceId())
             ));
         } catch (Exception e) {
-            asyncLogger.asyncStructuredErrorLog("SAGA_PROCESSING_FAILED", e, Map.of(
+            log.error("SAGA_PROCESSING_FAILED; details={}", Map.of(
                 "sagaId", String.valueOf(command.sagaId()),
                 "invoiceId", String.valueOf(stripeInvoice.invoiceId())
-            ));
+            ), e);
         }
     }
 }
-
