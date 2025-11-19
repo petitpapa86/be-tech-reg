@@ -212,15 +212,15 @@ The Report Generation Module generates HTML and XBRL-XML reports for Large Expos
 
 ### Requirement 16
 
-**User Story:** As a system operator, I want comprehensive monitoring and metrics, so that I can track system health and diagnose issues quickly.
+**User Story:** As a system operator, I want comprehensive monitoring, metrics, and alerting, so that I can track system health, diagnose issues quickly, and respond to incidents proactively.
 
 #### Acceptance Criteria
 
-1. WHEN report generation starts, THE Report Generation Module SHALL emit metric report.generation.started.total with batch_id and bank_id tags
-2. WHEN report generation succeeds, THE Report Generation Module SHALL emit counter report.generation.success.total and timer report.generation.duration.seconds
-3. WHEN report generation fails, THE Report Generation Module SHALL emit counter report.generation.failure.total with error_type tag (data_not_found, parse_error, validation_error, template_error, xbrl_error)
-4. WHEN S3 operations occur, THE Report Generation Module SHALL emit timers report.s3.upload.html.duration.seconds and report.s3.upload.xbrl.duration.seconds
-5. WHEN file sizes are recorded, THE Report Generation Module SHALL emit gauges report.file.size.bytes with file_type tag (html, xbrl)
+1. WHEN report generation executes, THE Report Generation Module SHALL emit performance timers for overall duration, data fetch, HTML generation, XBRL generation, S3 upload, and database save with percentiles (p50, p75, p90, p95, p99)
+2. WHEN operations complete, THE Report Generation Module SHALL emit counters for success, failure (with failure_reason tags), partial generation, retries, duplicates, and circuit breaker transitions
+3. WHEN system resources are monitored, THE Report Generation Module SHALL emit gauges for database connection pool (active/idle), async executor (queue size/active threads), deferred upload count, and circuit breaker state
+4. WHEN logging events, THE Report Generation Module SHALL use JSON structured logging with standard fields (timestamp, level, logger, thread, message, batch_id, report_id, bank_id, duration_ms, exception, trace_id)
+5. WHEN critical conditions occur, THE Report Generation Module SHALL trigger alerts: CRITICAL (failure rate >10%, S3 consecutive failures, DB pool exhausted, permission denied), HIGH (event timeout rate >20%, deferred uploads accumulating, XBRL validation spike), MEDIUM (P95 duration >10s, partial reports, outbox accumulating)
 
 
 ### Requirement 17
