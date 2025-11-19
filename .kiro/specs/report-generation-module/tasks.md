@@ -108,7 +108,11 @@ This implementation plan breaks down the Report Generation Module into discrete,
   - Create XbrlValidator interface with validate() method
   - _Requirements: 5.1, 7.1, 8.1_
 
-- [ ] 8. Implement infrastructure layer - database entities
+- [x] 8. Implement infrastructure layer - database entities
+
+
+
+
   - Create GeneratedReportEntity JPA entity with @Entity, @Table
   - Use @Data from Lombok for getters/setters
   - Use @NoArgsConstructor and @AllArgsConstructor from Lombok
@@ -117,7 +121,12 @@ This implementation plan breaks down the Report Generation Module into discrete,
   - Create ReportMetadataFailureEntity for fallback table with Lombok annotations
   - _Requirements: 10.4, 18.3_
 
-- [ ] 9. Implement infrastructure layer - JPA repositories
+- [x] 9. Implement infrastructure layer - JPA repositories
+
+
+
+
+
   - Create SpringDataGeneratedReportRepository interface extending JpaRepository
   - Add query methods: findByBatchId, existsByBatchId
   - Create JpaGeneratedReportRepository implementing IGeneratedReportRepository
