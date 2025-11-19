@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Scheduled coordinator for inbox message processing.
  * Delegates fetching and per-message processing to dedicated components.
  */
-@Component("capabilitiesProcessInboxJob")
 public class ProcessInboxJob {
 
     private static final Logger logger = LoggerFactory.getLogger(ProcessInboxJob.class);

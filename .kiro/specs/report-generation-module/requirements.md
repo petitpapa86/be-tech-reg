@@ -221,3 +221,28 @@ The Report Generation Module generates HTML and XBRL-XML reports for Large Expos
 3. WHEN report generation fails, THE Report Generation Module SHALL emit counter report.generation.failure.total with error_type tag (data_not_found, parse_error, validation_error, template_error, xbrl_error)
 4. WHEN S3 operations occur, THE Report Generation Module SHALL emit timers report.s3.upload.html.duration.seconds and report.s3.upload.xbrl.duration.seconds
 5. WHEN file sizes are recorded, THE Report Generation Module SHALL emit gauges report.file.size.bytes with file_type tag (html, xbrl)
+
+
+### Requirement 17
+
+**User Story:** As a system operator, I want S3 upload failures handled gracefully with automatic retry, so that temporary network issues don't result in lost reports.
+
+#### Acceptance Criteria
+
+1. WHEN S3 upload fails due to network timeout or service unavailability, THE Report Generation Module SHALL save EventProcessingFailure record with event payload for automatic retry by EventRetryProcessor
+2. WHEN S3 upload fails due to permission denied (403) or bucket not found (404), THE Report Generation Module SHALL log CRITICAL error, alert operations team, and mark status as FAILED without retry
+3. WHEN EventRetryProcessor retries failed upload events, THE Report Generation Module SHALL use configured retry options (maxRetries, backoffIntervalsSeconds) from EventRetryOptions
+4. WHEN retry count reaches maxRetries limit, THE Report Generation Module SHALL mark event as permanently failed and move to dead letter handling
+5. WHEN upload succeeds on retry, THE Report Generation Module SHALL update database status to COMPLETED, generate presigned URLs, and publish ReportGeneratedEvent
+
+### Requirement 18
+
+**User Story:** As a database administrator, I want database transaction failures handled with compensating actions, so that orphaned S3 files are cleaned up and data consistency is maintained.
+
+#### Acceptance Criteria
+
+1. WHEN database insert fails after report files are uploaded to S3, THE Report Generation Module SHALL leave files on S3 (not delete) for easier recovery
+2. WHEN database insert fails, THE Report Generation Module SHALL retry once after 2 seconds before marking as permanently failed
+3. WHEN database insert permanently fails, THE Report Generation Module SHALL create fallback record in report_metadata_failures table with S3 URIs for later reconciliation
+4. WHEN scheduled orphaned file cleanup job runs daily, THE Report Generation Module SHALL identify S3 files without corresponding database records and delete files older than 7 days
+5. WHEN reconciliation job runs, THE Report Generation Module SHALL attempt to insert records from report_metadata_failures table into report_generation_summaries table
