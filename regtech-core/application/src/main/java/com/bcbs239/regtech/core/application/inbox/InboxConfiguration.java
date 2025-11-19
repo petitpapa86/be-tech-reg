@@ -8,11 +8,6 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties(InboxOptions.class)
 public class InboxConfiguration {
 
-    @Bean
-    public InboxOptions inboxOptions() {
-        return new InboxOptions();
-    }
-
 }
 
 

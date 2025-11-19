@@ -7,14 +7,9 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Configuration for outbox processing beans.
  */
-@Configuration
+@Configuration("applicationOutboxProcessingConfiguration")
 @EnableConfigurationProperties({OutboxOptions.class})
 public class OutboxProcessingConfiguration {
-
-    @Bean
-    public OutboxOptions outboxOptions() {
-        return new OutboxOptions();
-    }
 
 }
 

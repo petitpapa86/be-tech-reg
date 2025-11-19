@@ -4,7 +4,7 @@ import com.bcbs239.regtech.core.domain.monitoring.ModuleHealthIndicator;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("coreApplicationModuleHealthIndicator")
 public class CoreModuleHealthIndicator implements ModuleHealthIndicator {
 
     @Override

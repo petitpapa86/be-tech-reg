@@ -271,3 +271,16 @@ The Report Generation Module generates HTML and XBRL-XML reports for Large Expos
 3. WHEN report generation is triggered for batch_id with FAILED or PARTIAL status, THE Report Generation Module SHALL allow regeneration and overwrite previous record
 4. WHEN S3 PutObject is called with same key and content, THE Report Generation Module SHALL rely on S3 natural idempotency with versioning enabled
 5. WHEN database insert encounters UNIQUE constraint violation on report_id, THE Report Generation Module SHALL catch exception, query existing record, and proceed without error
+
+
+### Requirement 21
+
+**User Story:** As a quality assurance engineer, I want comprehensive testing strategy with health checks, so that I can ensure system reliability and quickly identify issues.
+
+#### Acceptance Criteria
+
+1. WHEN implementing unit tests, THE Report Generation Module SHALL achieve ≥85% line coverage and ≥75% branch coverage using JUnit 5 and Mockito for all components (event listeners, generators, uploaders, trackers)
+2. WHEN implementing integration tests, THE Report Generation Module SHALL use Spring Boot Test with Testcontainers (PostgreSQL, LocalStack S3) to validate complete flows including happy path, reverse event order, duplicates, failures, and partial generation
+3. WHEN implementing health checks, THE Report Generation Module SHALL provide Spring Boot Actuator endpoints for liveness (/actuator/health/liveness) and readiness (/actuator/health/readiness) with custom indicators for database, S3, event tracker, and async executor
+4. WHEN health indicators execute, THE Report Generation Module SHALL return UP status when all components healthy, WARN status for degraded performance (queue 50-80, slow S3 response), and DOWN status for failures (DB timeout, S3 inaccessible, queue full, >50 pending events >5min old)
+5. WHEN end-to-end testing is performed, THE Report Generation Module SHALL validate complete pipeline from upstream event publication through report generation to file download with manual verification of HTML rendering and XBRL validation
