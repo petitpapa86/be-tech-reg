@@ -79,13 +79,19 @@ This implementation plan breaks down the Report Generation Module into discrete,
   - Use private helper methods to avoid exposing internal state
   - _Requirements: 10.1, 10.2, 10.3, 15.1_
 
-- [ ] 5. Implement domain events
+- [x] 5. Implement domain events
+
+
+
+
   - Create ReportGeneratedEvent record extending BaseDomainEvent (use Java record)
   - Create ReportGenerationFailedEvent record extending BaseDomainEvent (use Java record)
   - Ensure events are raised by GeneratedReport aggregate using raiseEvent() method
   - _Requirements: 11.1, 12.2_
 
-- [ ] 6. Implement domain repository interface
+- [-] 6. Implement domain repository interface
+
+
   - Create IGeneratedReportRepository interface
   - Define methods: findByBatchId, findByReportId, save, existsByBatchId
   - _Requirements: 10.1_

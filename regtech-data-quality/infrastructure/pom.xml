@@ -68,12 +68,6 @@
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		
-		<!-- Spring Retry for @Retryable annotations -->
-		<dependency>
-			<groupId>org.springframework.retry</groupId>
-			<artifactId>spring-retry</artifactId>
-		</dependency>
 
 		<!-- JUnit for testing -->
 		<dependency>

@@ -12,18 +12,6 @@
 	<description>Domain layer for IAM module</description>
 	
 	<dependencies>
-		<dependency>
-			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-core</artifactId>
-		</dependency>
-		
-		<dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-core-domain</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-		
 		<!-- Spring Boot Starter for basic annotations -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
