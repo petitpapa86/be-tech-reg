@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.core.capabilities.securityauthorization.authorization;
+package com.bcbs239.regtech.core.infrastructure.securityauthorization;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

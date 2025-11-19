@@ -22,7 +22,7 @@ import java.util.List;
  * Scheduled processor for outbox messages.
  * Deserializes and dispatches events to internal handlers.
  */
-@Component
+@Component("applicationOutboxProcessor")
 public class OutboxProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);

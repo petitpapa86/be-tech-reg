@@ -60,7 +60,12 @@ This implementation plan breaks down the Report Generation Module into discrete,
   - Create XbrlReportMetadata record (S3 URI, file size, presigned URL, validation status) - use Java record
   - _Requirements: 10.4_
 
-- [ ] 4. Implement GeneratedReport aggregate root
+- [x] 4. Implement GeneratedReport aggregate root
+
+
+
+
+
   - Create GeneratedReport class extending BaseEntity from regtech-core-domain
   - Use @Getter from Lombok for query methods (avoid @Data to maintain encapsulation)
   - Use @Builder(access = AccessLevel.PRIVATE) for internal construction

@@ -1,9 +1,9 @@
-package com.bcbs239.regtech.core.capabilities.securityauthorization.authorization;
+package com.bcbs239.regtech.core.infrastructure.authorization;
 
+import com.bcbs239.regtech.core.domain.security.AuthorizationService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 import java.util.Set;
