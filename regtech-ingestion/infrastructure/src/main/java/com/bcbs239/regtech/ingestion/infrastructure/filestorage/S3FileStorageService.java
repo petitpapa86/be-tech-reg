@@ -9,6 +9,7 @@ import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3FileStorageService;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Reference;
 import com.bcbs239.regtech.ingestion.infrastructure.fileparsing.FileToLoanExposureParser;
+import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,10 +36,12 @@ public class S3FileStorageService implements FileStorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(S3FileStorageService.class);
 
-    private final CoreS3FileStorageService coreS3Service;
+    private final CoreS3FileStorageService coreS3FileStorageService;
+    private final CoreS3Service coreS3Service;
     private final FileToLoanExposureParser fileParser;
 
-    public S3FileStorageService(CoreS3FileStorageService coreS3Service, FileToLoanExposureParser fileParser) {
+    public S3FileStorageService(CoreS3FileStorageService coreS3FileStorageService, CoreS3Service coreS3Service, FileToLoanExposureParser fileParser) {
+        this.coreS3FileStorageService = coreS3FileStorageService;
         this.coreS3Service = coreS3Service;
         this.fileParser = fileParser;
     }
@@ -47,7 +50,7 @@ public class S3FileStorageService implements FileStorageService {
     public Result<com.bcbs239.regtech.ingestion.domain.batch.S3Reference> storeFile(InputStream fileStream, FileMetadata fileMetadata,
                                                                                      String batchId, String bankId, int exposureCount) {
         // Delegate to core service
-        Result<CoreS3Reference> coreResult = coreS3Service.storeFile(fileStream, fileMetadata.fileName(), batchId, bankId, exposureCount);
+        Result<CoreS3Reference> coreResult = coreS3FileStorageService.storeFile(fileStream, fileMetadata.fileName(), batchId, bankId, exposureCount);
         if (coreResult.isFailure()) {
             // propagate failure (reuse the same ErrorDetail list)
             return Result.failure(coreResult.errors());
@@ -62,7 +65,7 @@ public class S3FileStorageService implements FileStorageService {
 
     @Override
     public Result<Boolean> checkServiceHealth() {
-        return coreS3Service.checkServiceHealth();
+        return coreS3FileStorageService.checkServiceHealth();
     }
 
     /**

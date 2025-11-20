@@ -12,20 +12,27 @@
 
 
 
-- [-] 2. Implement domain layer - value objects and enums
+- [x] 2. Implement domain layer - value objects and enums
 
 
-- [-] 2.1 Create shared value objects
+
+
+- [x] 2.1 Create shared value objects
+
 
   - Implement ReportId, BatchId, BankId, ReportingDate
   - Implement S3Uri, PresignedUrl, FileSize, FailureReason
   - Implement ProcessingTimestamps with builder methods
   - _Requirements: 13.4_
 
+
+
 - [ ] 2.2 Create report-specific value objects
   - Implement HtmlReportMetadata with S3 URI, file size, presigned URL
   - Implement XbrlReportMetadata with validation status
   - Implement AmountEur for monetary values
+
+
   - _Requirements: 13.4_
 
 - [ ] 2.3 Create enums and status types

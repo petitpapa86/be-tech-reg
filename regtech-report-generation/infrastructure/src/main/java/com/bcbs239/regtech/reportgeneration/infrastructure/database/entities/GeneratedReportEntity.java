@@ -168,7 +168,7 @@ public class GeneratedReportEntity {
             
             // Create timestamps
             ProcessingTimestamps timestamps = this.completedAt != null
-                    ? new ProcessingTimestamps(this.generatedAt, this.completedAt)
+                    ? new ProcessingTimestamps(this.generatedAt, null, null, this.completedAt, null)
                     : ProcessingTimestamps.startedAt(this.generatedAt);
             
             // Create failure reason if present
