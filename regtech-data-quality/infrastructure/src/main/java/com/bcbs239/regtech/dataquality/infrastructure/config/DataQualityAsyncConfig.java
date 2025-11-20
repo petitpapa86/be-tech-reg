@@ -12,7 +12,7 @@ import java.util.concurrent.Executor;
  * Configures thread pool executor for async event processing.
  */
 @Configuration
-@EnableAsync
+//@EnableAsync
 public class DataQualityAsyncConfig {
 
     /**

@@ -27,7 +27,8 @@ public class QualityReportRoutes {
      */
     public RouterFunction<ServerResponse> createRoutes() {
         return RouterAttributes.withAttributes(
-            route(GET("/api/v1/data-quality/reports/{batchId}"), controller::getQualityReport),
+            // Allow dots in the path variable (e.g. batch file names with extensions or trailing dots)
+            route(GET("/api/v1/data-quality/reports/{batchId:.+}"), controller::getQualityReport),
             new String[]{"data-quality:reports:view"},
             new String[]{Tags.DATA_QUALITY, Tags.REPORTS},
             "Get quality report for a specific batch"
@@ -39,4 +40,3 @@ public class QualityReportRoutes {
         ));
     }
 }
-

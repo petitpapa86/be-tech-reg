@@ -3,6 +3,7 @@ package com.bcbs239.regtech.core.application.inbox;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
@@ -13,6 +14,7 @@ import java.time.Duration;
 @Setter
 @Getter
 @ConfigurationProperties(prefix = "inbox")
+@Component
 public class InboxOptions {
     private int batchSize = 10;
     private Duration pollInterval = Duration.ofSeconds(5);

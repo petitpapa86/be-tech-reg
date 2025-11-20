@@ -116,21 +116,7 @@ public class BillingConfiguration {
         );
     }
 
-    /**
-     * Provides access to outbox configuration
-     */
-     @SuppressWarnings("unused")
-     @Bean
-     public OutboxConfiguration outboxConfiguration() {
-        return new OutboxConfiguration(
-            properties.outbox().enabled(),
-            properties.outbox().processingInterval(),
-            properties.outbox().retryInterval(),
-            properties.outbox().maxRetries(),
-            properties.outbox().cleanupInterval(),
-            properties.outbox().cleanupRetentionDays()
-        );
-    }
+
 
     /**
      * Provides access to scheduling configuration

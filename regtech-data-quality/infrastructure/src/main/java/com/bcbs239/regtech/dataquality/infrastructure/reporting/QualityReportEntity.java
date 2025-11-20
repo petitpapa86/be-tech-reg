@@ -3,6 +3,8 @@ package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
 import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -14,6 +16,8 @@ import java.util.Objects;
  * JPA entity for persisting QualityReport aggregate data.
  * Maps to the quality_reports table in the database.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "quality_reports", schema = "dataquality", indexes = {
     @Index(name = "idx_quality_reports_batch_id", columnList = "batch_id", unique = true),
@@ -25,7 +29,8 @@ import java.util.Objects;
     @Index(name = "idx_quality_reports_compliance_status", columnList = "compliance_status")
 })
 public class QualityReportEntity {
-    
+
+    // Getters and Setters
     @Id
     @Column(name = "report_id", nullable = false, length = 255)
     private String reportId;
@@ -144,264 +149,7 @@ public class QualityReportEntity {
         this.bankId = Objects.requireNonNull(bankId, "Bank ID cannot be null");
         this.status = Objects.requireNonNull(status, "Status cannot be null");
     }
-    
-    // Getters and Setters
-    public String getReportId() {
-        return reportId;
-    }
-    
-    public void setReportId(String reportId) {
-        this.reportId = reportId;
-    }
-    
-    public String getBatchId() {
-        return batchId;
-    }
-    
-    public void setBatchId(String batchId) {
-        this.batchId = batchId;
-    }
-    
-    public String getBankId() {
-        return bankId;
-    }
-    
-    public void setBankId(String bankId) {
-        this.bankId = bankId;
-    }
-    
-    public QualityStatus getStatus() {
-        return status;
-    }
-    
-    public void setStatus(QualityStatus status) {
-        this.status = status;
-    }
-    
-    public BigDecimal getCompletenessScore() {
-        return completenessScore;
-    }
-    
-    public void setCompletenessScore(BigDecimal completenessScore) {
-        this.completenessScore = completenessScore;
-    }
-    
-    public BigDecimal getAccuracyScore() {
-        return accuracyScore;
-    }
-    
-    public void setAccuracyScore(BigDecimal accuracyScore) {
-        this.accuracyScore = accuracyScore;
-    }
-    
-    public BigDecimal getConsistencyScore() {
-        return consistencyScore;
-    }
-    
-    public void setConsistencyScore(BigDecimal consistencyScore) {
-        this.consistencyScore = consistencyScore;
-    }
-    
-    public BigDecimal getTimelinessScore() {
-        return timelinessScore;
-    }
-    
-    public void setTimelinessScore(BigDecimal timelinessScore) {
-        this.timelinessScore = timelinessScore;
-    }
-    
-    public BigDecimal getUniquenessScore() {
-        return uniquenessScore;
-    }
-    
-    public void setUniquenessScore(BigDecimal uniquenessScore) {
-        this.uniquenessScore = uniquenessScore;
-    }
-    
-    public BigDecimal getValidityScore() {
-        return validityScore;
-    }
-    
-    public void setValidityScore(BigDecimal validityScore) {
-        this.validityScore = validityScore;
-    }
-    
-    public BigDecimal getOverallScore() {
-        return overallScore;
-    }
-    
-    public void setOverallScore(BigDecimal overallScore) {
-        this.overallScore = overallScore;
-    }
-    
-    public QualityGrade getQualityGrade() {
-        return qualityGrade;
-    }
-    
-    public void setQualityGrade(QualityGrade qualityGrade) {
-        this.qualityGrade = qualityGrade;
-    }
-    
-    public Integer getTotalExposures() {
-        return totalExposures;
-    }
-    
-    public void setTotalExposures(Integer totalExposures) {
-        this.totalExposures = totalExposures;
-    }
-    
-    public Integer getValidExposures() {
-        return validExposures;
-    }
-    
-    public void setValidExposures(Integer validExposures) {
-        this.validExposures = validExposures;
-    }
-    
-    public Integer getTotalErrors() {
-        return totalErrors;
-    }
-    
-    public void setTotalErrors(Integer totalErrors) {
-        this.totalErrors = totalErrors;
-    }
-    
-    public Integer getCompletenessErrors() {
-        return completenessErrors;
-    }
-    
-    public void setCompletenessErrors(Integer completenessErrors) {
-        this.completenessErrors = completenessErrors;
-    }
-    
-    public Integer getAccuracyErrors() {
-        return accuracyErrors;
-    }
-    
-    public void setAccuracyErrors(Integer accuracyErrors) {
-        this.accuracyErrors = accuracyErrors;
-    }
-    
-    public Integer getConsistencyErrors() {
-        return consistencyErrors;
-    }
-    
-    public void setConsistencyErrors(Integer consistencyErrors) {
-        this.consistencyErrors = consistencyErrors;
-    }
-    
-    public Integer getTimelinessErrors() {
-        return timelinessErrors;
-    }
-    
-    public void setTimelinessErrors(Integer timelinessErrors) {
-        this.timelinessErrors = timelinessErrors;
-    }
-    
-    public Integer getUniquenessErrors() {
-        return uniquenessErrors;
-    }
-    
-    public void setUniquenessErrors(Integer uniquenessErrors) {
-        this.uniquenessErrors = uniquenessErrors;
-    }
-    
-    public Integer getValidityErrors() {
-        return validityErrors;
-    }
-    
-    public void setValidityErrors(Integer validityErrors) {
-        this.validityErrors = validityErrors;
-    }
-    
-    public String getS3Bucket() {
-        return s3Bucket;
-    }
-    
-    public void setS3Bucket(String s3Bucket) {
-        this.s3Bucket = s3Bucket;
-    }
-    
-    public String getS3Key() {
-        return s3Key;
-    }
-    
-    public void setS3Key(String s3Key) {
-        this.s3Key = s3Key;
-    }
-    
-    public String getS3Uri() {
-        return s3Uri;
-    }
-    
-    public void setS3Uri(String s3Uri) {
-        this.s3Uri = s3Uri;
-    }
-    
-    public Boolean getComplianceStatus() {
-        return complianceStatus;
-    }
-    
-    public void setComplianceStatus(Boolean complianceStatus) {
-        this.complianceStatus = complianceStatus;
-    }
-    
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-    
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-    
-    public Instant getProcessingStartTime() {
-        return processingStartTime;
-    }
-    
-    public void setProcessingStartTime(Instant processingStartTime) {
-        this.processingStartTime = processingStartTime;
-    }
-    
-    public Instant getProcessingEndTime() {
-        return processingEndTime;
-    }
-    
-    public void setProcessingEndTime(Instant processingEndTime) {
-        this.processingEndTime = processingEndTime;
-    }
-    
-    public Long getProcessingDurationMs() {
-        return processingDurationMs;
-    }
-    
-    public void setProcessingDurationMs(Long processingDurationMs) {
-        this.processingDurationMs = processingDurationMs;
-    }
-    
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-    
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-    
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-    
-    public Long getVersion() {
-        return version;
-    }
-    
-    public void setVersion(Long version) {
-        this.version = version;
-    }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

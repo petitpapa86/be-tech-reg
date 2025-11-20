@@ -18,6 +18,12 @@
             <artifactId>regtech-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Include core domain classes (EventProcessingStatus, entities, etc.) -->
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-core-domain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-iam-presentation</artifactId>

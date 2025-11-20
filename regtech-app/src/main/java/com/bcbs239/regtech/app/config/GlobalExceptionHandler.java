@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +53,19 @@ public class GlobalExceptionHandler {
         LoggingConfiguration.logError(eventType, ex, context);
     }
 
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ApiResponse<?>> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
+        // Log as a not-found event rather than an internal server error
+        logError("RESOURCE_NOT_FOUND", ex, request, Map.of(
+                "reason", ex.getMessage()
+        ));
+
+        // Return a 404 with a structured API response
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                ResponseUtils.notFoundError(ex.getMessage())
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleException(Exception ex, HttpServletRequest request) {
         logError("UNHANDLED_EXCEPTION", ex, request, null);
@@ -79,4 +92,3 @@ public class GlobalExceptionHandler {
 
 
 }
-

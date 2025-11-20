@@ -1,4 +1,24 @@
 package com.bcbs239.regtech.dataquality.infrastructure.config;
 
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+
+@Configuration("dataQualityModuleConfiguration")
+@ComponentScan(basePackages = {
+        "com.bcbs239.regtech.dataquality.domain",
+        "com.bcbs239.regtech.dataquality.application",
+        "com.bcbs239.regtech.dataquality.infrastructure",
+        "com.bcbs239.regtech.dataquality.presentation",
+        "com.bcbs239.regtech.dataquality.rulesengine"
+})
+// Scan domain and infrastructure reporting entities so JPA sees QualityReportEntity and domain entities
+@EntityScan(basePackages = {
+        "com.bcbs239.regtech.dataquality.rulesengine.domain",
+        "com.bcbs239.regtech.dataquality.domain",
+        "com.bcbs239.regtech.dataquality.infrastructure.reporting"
+})
+@EnableJpaRepositories(basePackages = "com.bcbs239.regtech.dataquality.infrastructure")
 public class DataQualityModuleConfiguration {
 }

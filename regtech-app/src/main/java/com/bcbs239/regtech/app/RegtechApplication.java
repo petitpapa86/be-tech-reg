@@ -28,7 +28,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
         "com.bcbs239.regtech.core.infrastructure",
         "com.bcbs239.regtech.iam",
         "com.bcbs239.regtech.billing",
-        "com.bcbs239.regtech.ingestion.infrastructure.configuration"
+        "com.bcbs239.regtech.ingestion.infrastructure.configuration",
+        // Ensure module presentation packages are scanned so functional RouterFunction beans are registered
+        "com.bcbs239.regtech.dataquality.infrastructure.config"
 })
 @EntityScan(basePackages = {
         "com.bcbs239.regtech.core.infrastructure"

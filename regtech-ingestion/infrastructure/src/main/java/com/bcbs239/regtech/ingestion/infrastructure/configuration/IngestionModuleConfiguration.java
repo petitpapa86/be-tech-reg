@@ -16,9 +16,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * the necessary Spring features for the ingestion module.
  */
 @Configuration("ingestionInfrastructureConfiguration")
-@EnableAsync
-@EnableScheduling
-@EnableConfigurationProperties({IngestionProperties.class, S3Properties.class})
+//@EnableAsync
+//@EnableScheduling
+@EnableConfigurationProperties({IngestionProperties.class})
 @ComponentScan(basePackages = {
         "com.bcbs239.regtech.ingestion.domain",
         "com.bcbs239.regtech.ingestion.application",
@@ -32,6 +32,3 @@ public class IngestionModuleConfiguration {
 
     // Configuration beans will be added here as we migrate components
 }
-
-
-
