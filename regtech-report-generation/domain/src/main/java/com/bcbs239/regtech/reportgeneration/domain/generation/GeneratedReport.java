@@ -62,7 +62,7 @@ public class GeneratedReport extends Entity {
                 .bankId(bankId)
                 .reportingDate(reportingDate)
                 .status(ReportStatus.PENDING)
-                .timestamps(ProcessingTimestamps.start())
+                .timestamps(ProcessingTimestamps.started())
                 .failureReason(Optional.empty())
                 .build();
     }
@@ -115,7 +115,7 @@ public class GeneratedReport extends Entity {
         }
         
         this.status = ReportStatus.COMPLETED;
-        this.timestamps = this.timestamps.complete();
+        this.timestamps = this.timestamps.withCompleted();
         
         // Raise domain event
         addDomainEvent(new ReportGeneratedEvent(
@@ -138,8 +138,8 @@ public class GeneratedReport extends Entity {
      */
     public void markAsPartial(String reason) {
         this.status = ReportStatus.PARTIAL;
-        this.failureReason = Optional.of(FailureReason.of(FailureReason.FailureCategory.UNKNOWN, reason));
-        this.timestamps = this.timestamps.complete();
+        this.failureReason = Optional.of(FailureReason.of(reason));
+        this.timestamps = this.timestamps.withCompleted();
     }
     
     /**
@@ -151,7 +151,7 @@ public class GeneratedReport extends Entity {
     public void markAsFailed(FailureReason reason) {
         this.status = ReportStatus.FAILED;
         this.failureReason = Optional.of(reason);
-        this.timestamps = this.timestamps.complete();
+        this.timestamps = this.timestamps.withFailed();
         
         // Raise domain event
         addDomainEvent(new ReportGenerationFailedEvent(

@@ -24,7 +24,14 @@ public record FailureReason(
     }
     
     /**
-     * Create a failure reason with current timestamp
+     * Create a failure reason with current timestamp and unknown category
+     */
+    public static FailureReason of(String message) {
+        return new FailureReason(FailureCategory.UNKNOWN, message, Instant.now());
+    }
+    
+    /**
+     * Create a failure reason with current timestamp and specific category
      */
     public static FailureReason of(FailureCategory category, String message) {
         return new FailureReason(category, message, Instant.now());

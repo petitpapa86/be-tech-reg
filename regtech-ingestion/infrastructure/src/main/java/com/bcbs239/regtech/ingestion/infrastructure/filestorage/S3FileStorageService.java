@@ -1,18 +1,29 @@
 package com.bcbs239.regtech.ingestion.infrastructure.filestorage;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
 import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3FileStorageService;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Reference;
+import com.bcbs239.regtech.ingestion.infrastructure.fileparsing.FileToLoanExposureParser;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import java.io.InputStream;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Adapter implementation of the FileStorageService that delegates to the
@@ -25,9 +36,11 @@ public class S3FileStorageService implements FileStorageService {
     private static final Logger logger = LoggerFactory.getLogger(S3FileStorageService.class);
 
     private final CoreS3FileStorageService coreS3Service;
+    private final FileToLoanExposureParser fileParser;
 
-    public S3FileStorageService(CoreS3FileStorageService coreS3Service) {
+    public S3FileStorageService(CoreS3FileStorageService coreS3Service, FileToLoanExposureParser fileParser) {
         this.coreS3Service = coreS3Service;
+        this.fileParser = fileParser;
     }
 
     @Override
@@ -50,5 +63,39 @@ public class S3FileStorageService implements FileStorageService {
     @Override
     public Result<Boolean> checkServiceHealth() {
         return coreS3Service.checkServiceHealth();
+    }
+
+    /**
+     * Download exposures from either a local file URI (file://) or S3 URI (s3://bucket/key)
+     * Uses FileToLoanExposureParser for JSON parsing and CoreS3Service for S3 streaming.
+     */
+    public Result<List<com.bcbs239.regtech.ingestion.domain.model.LoanExposure>> downloadExposures(String s3Uri) {
+        try {
+            List<com.bcbs239.regtech.ingestion.domain.model.LoanExposure> exposures = new ArrayList<>();
+
+            if (s3Uri != null && s3Uri.startsWith("file://")) {
+                String filePath = s3Uri.replace("file:///", "").replace("file://", "");
+                filePath = URLDecoder.decode(filePath, StandardCharsets.UTF_8.name());
+
+                try (InputStream is = Files.newInputStream(Paths.get(filePath))) {
+                    exposures = fileParser.parseJsonToLoanExposures(is, Integer.MAX_VALUE);
+                }
+
+            } else {
+                var parsed = com.bcbs239.regtech.core.infrastructure.filestorage.S3Utils.parseS3Uri(s3Uri);
+                if (parsed.isEmpty()) {
+                    return Result.failure(ErrorDetail.of("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI format: " + s3Uri, "s3_uri"));
+                }
+
+                try (ResponseInputStream<GetObjectResponse> s3Object = coreS3Service.getObjectStream(parsed.get().bucket(), parsed.get().key())) {
+                    exposures = fileParser.parseJsonToLoanExposures(s3Object, Integer.MAX_VALUE);
+                }
+            }
+
+            return Result.success(exposures);
+        } catch (Exception e) {
+            logger.error("Error downloading exposures from {}: {}", s3Uri, e.getMessage(), e);
+            return Result.failure(ErrorDetail.of("S3_DOWNLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to download or parse exposures: " + e.getMessage(), "s3_download"));
+        }
     }
 }

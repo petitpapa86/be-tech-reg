@@ -9,8 +9,14 @@
   - Set up shared dependencies (Spring Boot, Lombok, validation)
   - _Requirements: 18.5_
 
-- [ ] 2. Implement domain layer - value objects and enums
-- [ ] 2.1 Create shared value objects
+
+
+
+- [-] 2. Implement domain layer - value objects and enums
+
+
+- [-] 2.1 Create shared value objects
+
   - Implement ReportId, BatchId, BankId, ReportingDate
   - Implement S3Uri, PresignedUrl, FileSize, FailureReason
   - Implement ProcessingTimestamps with builder methods
