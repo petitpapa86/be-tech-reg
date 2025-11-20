@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.Map;
 
@@ -27,7 +28,7 @@ public class IngestionHealthController extends BaseController implements IEndpoi
 
     private final ModuleHealthIndicator healthIndicator;
 
-    public IngestionHealthController(ModuleHealthIndicator healthIndicator) {
+    public IngestionHealthController(@Qualifier("ingestionModuleHealthIndicator") ModuleHealthIndicator healthIndicator) {
         this.healthIndicator = healthIndicator;
     }
 
@@ -79,4 +80,3 @@ public class IngestionHealthController extends BaseController implements IEndpoi
         }
     }
 }
-

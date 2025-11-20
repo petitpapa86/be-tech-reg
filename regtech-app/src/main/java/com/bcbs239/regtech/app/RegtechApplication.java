@@ -22,6 +22,10 @@ import org.springframework.scheduling.annotation.EnableAsync;
         "com.bcbs239.regtech.core.application",
         // include specific infrastructure packages needed at runtime (logger implementation)
         "com.bcbs239.regtech.core.infrastructure.logging",
+        // ensure core.infrastructure package is scanned so ModularJpaConfiguration (and other @Configuration classes)
+        // are picked up. This allows module-level @EnableJpaRepositories declared in core.infrastructure to register
+        // repositories located in other modules (e.g., iam, billing).
+        "com.bcbs239.regtech.core.infrastructure",
         "com.bcbs239.regtech.iam",
         "com.bcbs239.regtech.billing",
         "com.bcbs239.regtech.ingestion.infrastructure.configuration"
