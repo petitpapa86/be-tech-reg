@@ -8,12 +8,13 @@ import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.net.URI;
 
 /**
  * Central S3 configuration exposed from core infrastructure.
- * Creates an S3Client only when another S3Client is not already defined.
+ * Creates an S3Client and S3Presigner only when another bean is not already defined.
  */
 @Configuration
 @ConditionalOnProperty(name = "ingestion.s3.enabled", havingValue = "true", matchIfMissing = true)
@@ -43,5 +44,19 @@ public class S3Config {
 
         return builder.build();
     }
-}
 
+    @Bean
+    @ConditionalOnMissingBean(S3Presigner.class)
+    public S3Presigner s3Presigner() {
+        var builder = S3Presigner.builder().region(Region.of(properties.getRegion()));
+        if (properties.getAccessKey() != null && !properties.getAccessKey().trim().isEmpty()
+                && properties.getSecretKey() != null && !properties.getSecretKey().trim().isEmpty()) {
+            AwsBasicCredentials credentials = AwsBasicCredentials.create(properties.getAccessKey(), properties.getSecretKey());
+            builder.credentialsProvider(StaticCredentialsProvider.create(credentials));
+        }
+        if (properties.getEndpoint() != null && !properties.getEndpoint().trim().isEmpty()) {
+            builder.endpointOverride(URI.create(properties.getEndpoint()));
+        }
+        return builder.build();
+    }
+}

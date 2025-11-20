@@ -14,6 +14,7 @@ public class S3Properties {
     private String accessKey = "";
     private String secretKey = "";
     private String endpoint = "";
+    private String kmsKeyId = "";
 
     public String getBucket() {
         return bucket;
@@ -61,6 +62,14 @@ public class S3Properties {
 
     public void setEndpoint(String endpoint) {
         this.endpoint = endpoint;
+    }
+
+    public String getKmsKeyId() {
+        return kmsKeyId;
+    }
+
+    public void setKmsKeyId(String kmsKeyId) {
+        this.kmsKeyId = kmsKeyId;
     }
 }
 

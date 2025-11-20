@@ -93,7 +93,13 @@
             <artifactId>spring-retry</artifactId>
             <version>2.0.12</version>
         </dependency>
-	</dependencies>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-core-infrastructure</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
 
 	<build>
 		<plugins>

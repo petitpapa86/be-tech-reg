@@ -3,6 +3,7 @@ package com.bcbs239.regtech.dataquality.infrastructure.integration;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
@@ -23,12 +24,10 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -48,7 +47,7 @@ public class S3StorageServiceImpl implements S3StorageService {
     
     private static final Logger logger = LoggerFactory.getLogger(S3StorageServiceImpl.class);
     
-    private final S3Client s3Client;
+    private final CoreS3Service coreS3Service;
     private final ObjectMapper objectMapper;
     private final JsonFactory jsonFactory;
     private ExecutorService executorService;
@@ -72,8 +71,8 @@ public class S3StorageServiceImpl implements S3StorageService {
     @Value("${storage.local.base-path:${user.dir}/data}")
     private String localBasePath;
     
-    public S3StorageServiceImpl(S3Client s3Client) {
-        this.s3Client = s3Client;
+    public S3StorageServiceImpl(CoreS3Service coreS3Service) {
+        this.coreS3Service = coreS3Service;
         this.objectMapper = new ObjectMapper();
         this.jsonFactory = new JsonFactory();
     }
@@ -84,7 +83,7 @@ public class S3StorageServiceImpl implements S3StorageService {
     }
     
     @Override
-    @Retryable(value = {S3Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
+    @Retryable(value = {software.amazon.awssdk.services.s3.model.S3Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public Result<List<ExposureRecord>> downloadExposures(String s3Uri) {
         logger.info("Starting download of exposures from URI: {}", s3Uri);
         long startTime = System.currentTimeMillis();
@@ -97,13 +96,14 @@ public class S3StorageServiceImpl implements S3StorageService {
                 exposures = downloadFromLocalFile(s3Uri);
             } else {
                 // Parse S3 URI
-                S3Reference s3Reference = parseS3Uri(s3Uri);
+                var parsed = com.bcbs239.regtech.core.infrastructure.filestorage.S3Utils.parseS3Uri(s3Uri);
+                S3Reference s3Reference = parsed.map(p -> S3Reference.of(p.bucket(), p.key(), "0")).orElse(null);
                 if (s3Reference == null) {
                     return Result.failure("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI format: " + s3Uri, "s3_uri");
                 }
-                
-                // Download and parse with streaming from S3
-                exposures = downloadAndParseStreaming(s3Reference);
+                try (ResponseInputStream<GetObjectResponse> s3Object = coreS3Service.getObjectStream(s3Reference.bucket(), s3Reference.key())) {
+                    exposures = downloadAndParseStreaming(s3Object);
+                }
             }
             
             long duration = System.currentTimeMillis() - startTime;
@@ -111,7 +111,7 @@ public class S3StorageServiceImpl implements S3StorageService {
             
             return Result.success(exposures);
             
-        } catch (S3Exception e) {
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
             logger.error("S3 error downloading exposures from: {}", s3Uri, e);
             return Result.failure("S3_DOWNLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to download from S3: " + e.getMessage(), "s3_download");
         } catch (IOException e) {
@@ -130,8 +130,8 @@ public class S3StorageServiceImpl implements S3StorageService {
         // Convert file:// URI to file path
         String filePath = fileUri.replace("file:///", "").replace("file://", "");
         // Handle URL encoding (e.g., %20 -> space)
-        filePath = java.net.URLDecoder.decode(filePath, "UTF-8");
-        
+        filePath = java.net.URLDecoder.decode(filePath, StandardCharsets.UTF_8.name());
+
         logger.info("Reading exposures from local file: {}", filePath);
         
         java.nio.file.Path path = java.nio.file.Paths.get(filePath);
@@ -193,7 +193,7 @@ public class S3StorageServiceImpl implements S3StorageService {
     }
     
     @Override
-    @Retryable(value = {S3Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
+    @Retryable(value = {software.amazon.awssdk.services.s3.model.S3Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public Result<S3Reference> storeDetailedResults(BatchId batchId, ValidationResult validationResult) {
         logger.info("Starting storage of detailed validation results for batch: {}", batchId.value());
         long startTime = System.currentTimeMillis();
@@ -213,8 +213,7 @@ public class S3StorageServiceImpl implements S3StorageService {
             if ("local".equalsIgnoreCase(storageType)) {
                 reference = storeToLocalFile(key, jsonContent, metadata);
             } else {
-                // Upload to S3 with encryption
-                uploadWithEncryption(resultsBucket, key, jsonContent, metadata);
+                coreS3Service.putString(resultsBucket, key, jsonContent, "application/json", metadata, encryptionKeyId);
                 reference = S3Reference.of(resultsBucket, key, "0");
             }
 
@@ -223,7 +222,7 @@ public class S3StorageServiceImpl implements S3StorageService {
 
             return Result.success(reference);
             
-        } catch (S3Exception e) {
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
             logger.error("S3 error storing detailed results for batch: {}", batchId.value(), e);
             return Result.failure("S3_UPLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to upload to S3: " + e.getMessage(), "s3_upload");
         } catch (IOException e) {
@@ -256,8 +255,7 @@ public class S3StorageServiceImpl implements S3StorageService {
             if ("local".equalsIgnoreCase(storageType)) {
                 reference = storeToLocalFile(key, jsonContent, merged);
             } else {
-                // Upload to S3 with encryption
-                uploadWithEncryption(resultsBucket, key, jsonContent, merged);
+                coreS3Service.putString(resultsBucket, key, jsonContent, "application/json", merged, encryptionKeyId);
                 reference = S3Reference.of(resultsBucket, key, "0");
             }
 
@@ -266,7 +264,7 @@ public class S3StorageServiceImpl implements S3StorageService {
 
             return Result.success(reference);
 
-        } catch (S3Exception e) {
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
             logger.error("S3 error storing detailed results for batch: {}", batchId.value(), e);
             return Result.failure("S3_UPLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to upload to S3: " + e.getMessage(), "s3_upload");
         } catch (IOException e) {
@@ -279,45 +277,11 @@ public class S3StorageServiceImpl implements S3StorageService {
     }
 
     /**
-     * Parse S3 URI to extract bucket and key information.
-     */
-    private S3Reference parseS3Uri(String s3Uri) {
-        try {
-            if (!s3Uri.startsWith("s3://")) {
-                return null;
-            }
-            
-            URI uri = URI.create(s3Uri);
-            String bucket = uri.getHost();
-            String key = uri.getPath().substring(1); // Remove leading slash
-            
-            if (bucket == null || bucket.isEmpty() || key.isEmpty()) {
-                return null;
-            }
-            
-            // Use placeholder version id "0" when parsing external URIs
-            return S3Reference.of(bucket, key, "0");
-
-        } catch (Exception e) {
-            logger.error("Error parsing S3 URI: {}", s3Uri, e);
-            return null;
-        }
-    }
-    
-    /**
      * Download and parse JSON using streaming to handle large files efficiently.
      */
-    private List<ExposureRecord> downloadAndParseStreaming(S3Reference s3Reference) throws IOException {
-        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-            .bucket(s3Reference.bucket())
-            .key(s3Reference.key())
-            .build();
-        
+    private List<ExposureRecord> downloadAndParseStreaming(ResponseInputStream<GetObjectResponse> inputStream) throws IOException {
         List<ExposureRecord> exposures = new ArrayList<>();
-        
-        try (ResponseInputStream<GetObjectResponse> s3Object = s3Client.getObject(getObjectRequest);
-             JsonParser parser = jsonFactory.createParser(s3Object)) {
-            
+        try (JsonParser parser = jsonFactory.createParser(inputStream)) {
             // Expect JSON array of exposure objects
             if (parser.nextToken() != JsonToken.START_ARRAY) {
                 throw new IOException("Expected JSON array of exposures");
@@ -335,7 +299,6 @@ public class S3StorageServiceImpl implements S3StorageService {
                 }
             }
         }
-        
         return exposures;
     }
     
@@ -518,27 +481,6 @@ public class S3StorageServiceImpl implements S3StorageService {
     }
     
     /**
-     * Upload content to S3 with AES-256 encryption.
-     */
-    private void uploadWithEncryption(String bucket, String key, String content, Map<String, String> metadata) {
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-            .bucket(bucket)
-            .key(key)
-            .contentType("application/json")
-            .contentEncoding("utf-8")
-            .serverSideEncryption(ServerSideEncryption.AWS_KMS)
-            .ssekmsKeyId(encryptionKeyId)
-            .metadata(metadata)
-            .build();
-        
-        RequestBody requestBody = RequestBody.fromString(content, StandardCharsets.UTF_8);
-        
-        s3Client.putObject(putObjectRequest, requestBody);
-        
-        logger.debug("Successfully uploaded encrypted object to s3://{}/{}", bucket, key);
-    }
-    
-    /**
      * Asynchronously upload multiple files (for future use with batch processing).
      */
     public CompletableFuture<Result<List<S3Reference>>> storeDetailedResultsAsync(
@@ -567,17 +509,11 @@ public class S3StorageServiceImpl implements S3StorageService {
      */
     public boolean objectExists(String bucket, String key) {
         try {
-            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .build();
-            
-            s3Client.headObject(headObjectRequest);
+            coreS3Service.headObject(bucket, key);
             return true;
-            
-        } catch (NoSuchKeyException e) {
+        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
             return false;
-        } catch (S3Exception e) {
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
             logger.error("Error checking if S3 object exists: s3://{}/{}", bucket, key, e);
             return false;
         }
@@ -588,15 +524,9 @@ public class S3StorageServiceImpl implements S3StorageService {
      */
     public Map<String, String> getObjectMetadata(String bucket, String key) {
         try {
-            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .build();
-            
-            HeadObjectResponse response = s3Client.headObject(headObjectRequest);
-            return response.metadata();
-            
-        } catch (S3Exception e) {
+            var resp = coreS3Service.headObject(bucket, key);
+            return resp.metadata();
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
             logger.error("Error getting S3 object metadata: s3://{}/{}", bucket, key, e);
             return Map.of();
         }
@@ -611,53 +541,36 @@ public class S3StorageServiceImpl implements S3StorageService {
 
     @Override
     public Result<Boolean> objectExists(String s3Uri) {
-        S3Reference ref = parseS3Uri(s3Uri);
-        if (ref == null) {
-            return Result.failure(ErrorDetail.of("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI: " + s3Uri, "s3.uri.invalid"));
-        }
-
+        var parsed = com.bcbs239.regtech.core.infrastructure.filestorage.S3Utils.parseS3Uri(s3Uri);
+        if (parsed.isEmpty()) return Result.failure(ErrorDetail.of("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI: " + s3Uri, "s3.uri.invalid"));
         try {
-            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
-                .bucket(ref.bucket())
-                .key(ref.key())
-                .build();
-
-            s3Client.headObject(headObjectRequest);
+            coreS3Service.headObject(parsed.get().bucket(), parsed.get().key());
             return Result.success(true);
-        } catch (NoSuchKeyException e) {
-            logger.debug("S3 object not found: s3://{}/{} - {}", ref.bucket(), ref.key(), e.getMessage());
+        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
             return Result.success(false);
-        } catch (S3Exception e) {
-            logger.error("S3 error checking object existence: s3://{}/{}", ref.bucket(), ref.key(), e);
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            logger.error("S3 error checking object existence: s3://{}/{}", parsed.get().bucket(), parsed.get().key(), e);
             return Result.failure("S3_HEAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to check object: " + e.getMessage(), "s3_head");
         } catch (Exception e) {
-            logger.error("Error checking S3 object existence: s3://{}/{}", ref.bucket(), ref.key(), e);
+            logger.error("Error checking S3 object existence: s3://{}/{}", parsed.get().bucket(), parsed.get().key(), e);
             return Result.failure("S3_HEAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to check object: " + e.getMessage(), "s3_head");
         }
     }
 
     @Override
     public Result<Long> getObjectSize(String s3Uri) {
-        S3Reference ref = parseS3Uri(s3Uri);
-        if (ref == null) {
-            return Result.failure("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI: " + s3Uri, "s3_uri");
-        }
-
+        var parsed = com.bcbs239.regtech.core.infrastructure.filestorage.S3Utils.parseS3Uri(s3Uri);
+        if (parsed.isEmpty()) return Result.failure("S3_URI_INVALID", ErrorType.VALIDATION_ERROR, "Invalid S3 URI: " + s3Uri, "s3_uri");
         try {
-            HeadObjectRequest headObjectRequest = HeadObjectRequest.builder()
-                .bucket(ref.bucket())
-                .key(ref.key())
-                .build();
-
-            HeadObjectResponse response = s3Client.headObject(headObjectRequest);
+            var response = coreS3Service.headObject(parsed.get().bucket(), parsed.get().key());
             return Result.success(response.contentLength());
-        } catch (NoSuchKeyException e) {
+        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
             return Result.failure("S3_OBJECT_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, "Object not found: " + s3Uri, "s3_object");
-        } catch (S3Exception e) {
-            logger.error("S3 error getting object size for s3://{}/{}", ref.bucket(), ref.key(), e);
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            logger.error("S3 error getting object size for s3://{}/{}", parsed.get().bucket(), parsed.get().key(), e);
             return Result.failure("S3_HEAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to get object size: " + e.getMessage(), "s3_head");
         } catch (Exception e) {
-            logger.error("Unexpected error getting object size for s3://{}/{}", ref.bucket(), ref.key(), e);
+            logger.error("Unexpected error getting object size for s3://{}/{}", parsed.get().bucket(), parsed.get().key(), e);
             return Result.failure("S3_HEAD_UNEXPECTED", ErrorType.SYSTEM_ERROR, "Unexpected error: " + e.getMessage(), "system");
         }
     }

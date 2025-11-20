@@ -1,471 +1,463 @@
 # Implementation Plan
 
-## Overview
-
-This implementation plan breaks down the Report Generation Module into discrete, manageable coding tasks. Each task builds incrementally on previous tasks. All tests are placed at the end to allow for manual testing first. The plan follows the 4-layer architecture (Domain → Application → Infrastructure → Presentation) and emphasizes the "tell, don't ask" principle.
-
-## Important Notes
-
-- **No Compilation Errors**: Ensure code compiles without errors or warnings at each step
-- **Use Lombok and Records**: Use Lombok annotations (@Data, @Getter, @Slf4j, @RequiredArgsConstructor, etc.) and Java records for cleaner code
-- **Independent Compilation**: The module must compile independently without requiring other modules built by other agents
-- **Java 25 with Preview Features**: Use Java 25 with preview features enabled for records and pattern matching
-
-## Task List
-
-- [x] 1. Set up project structure and Maven modules
+- [x] 1. Set up project structure and core interfaces
 
 
 
+  - Create Maven multi-module structure (domain, application, infrastructure, presentation)
+  - Define module dependencies in parent POM
+  - Set up shared dependencies (Spring Boot, Lombok, validation)
+  - _Requirements: 18.5_
 
-  - Create parent POM for regtech-report-generation with packaging=pom
-  - Configure Java 25 with preview features enabled
-  - Add Lombok dependency in parent dependencyManagement
-  - Add jqwik for property-based testing in parent dependencyManagement
-  - Create domain submodule with dependencies: regtech-core-domain, Lombok, Jackson
-  - Create application submodule with dependencies: domain, regtech-core-application, Spring Boot
-  - Create infrastructure submodule with dependencies: application, regtech-core-infrastructure, Thymeleaf, Resilience4j, JPA, AWS SDK S3
-  - Create presentation submodule with dependencies: application, Spring Boot Actuator, Micrometer
-  - Configure maven-compiler-plugin with Java 25 and preview features
-  - Configure maven-surefire-plugin for unit tests
-  - Configure maven-failsafe-plugin for integration tests
-  - Set up package structure: com.bcbs239.regtech.reportgeneration.{domain|application|infrastructure|presentation}
-  - Ensure module compiles independently without requiring other modules
-  - _Requirements: 15.5_
+- [ ] 2. Implement domain layer - value objects and enums
+- [ ] 2.1 Create shared value objects
+  - Implement ReportId, BatchId, BankId, ReportingDate
+  - Implement S3Uri, PresignedUrl, FileSize, FailureReason
+  - Implement ProcessingTimestamps with builder methods
+  - _Requirements: 13.4_
 
-- [x] 2. Implement domain layer - shared value objects
+- [ ] 2.2 Create report-specific value objects
+  - Implement HtmlReportMetadata with S3 URI, file size, presigned URL
+  - Implement XbrlReportMetadata with validation status
+  - Implement AmountEur for monetary values
+  - _Requirements: 13.4_
 
+- [ ] 2.3 Create enums and status types
+  - Implement ReportType enum (COMPREHENSIVE, LARGE_EXPOSURES, DATA_QUALITY)
+  - Implement ReportStatus enum (PENDING, IN_PROGRESS, COMPLETED, PARTIAL, FAILED)
+  - Implement ComplianceStatus enum with fromScore() method
+  - Implement QualityDimension enum with thresholds
+  - Implement QualityGrade enum (A-F)
+  - _Requirements: 8.1, 8.2, 13.1_
 
+- [ ] 3. Implement domain layer - calculation and quality results
+- [ ] 3.1 Create CalculationResults domain object
+  - Implement CalculationResults with all risk metrics
+  - Implement CalculatedExposure value object
+  - Implement GeographicBreakdown and SectorBreakdown
+  - Implement ConcentrationIndices
+  - Add getLargeExposures() and getNonCompliantExposures() methods
+  - _Requirements: 6.1, 6.5, 7.1_
 
+- [ ] 3.2 Create QualityResults domain object
+  - Implement QualityResults with dimension scores
+  - Implement ExposureResult and ValidationError inner classes
+  - Implement calculateOverallScore() method
+  - Implement getErrorDistributionByDimension() method
+  - Implement getTopErrorTypes() method
+  - _Requirements: 8.1, 8.2, 8.3, 9.3_
 
+- [ ] 4. Implement domain layer - GeneratedReport aggregate
+- [ ] 4.1 Create GeneratedReport aggregate root
+  - Implement GeneratedReport entity with JPA annotations
+  - Implement createComprehensiveReport() factory method
+  - Implement markHtmlGenerated() and markXbrlGenerated() methods
+  - Implement markCompleted(), markFailed(), markPartial() methods
+  - Register domain events (ReportGenerationStartedEvent, ReportGeneratedEvent, ReportGenerationFailedEvent)
+  - _Requirements: 13.1, 13.2, 13.3, 14.1_
 
-  - Create ReportId record with UUID generation (use Java record)
-  - Create ReportStatus enum (PENDING, IN_PROGRESS, COMPLETED, PARTIAL, FAILED)
-  - Create S3Uri record with validation (use Java record with compact constructor)
-  - Create FileSize record with human-readable formatting method (use Java record)
-  - Create PresignedUrl record with expiration tracking (use Java record)
-  - Create FailureReason record with categorization (use Java record)
-  - Create ReportingDate record wrapping LocalDate (use Java record)
-  - Create ProcessingTimestamps record with start/complete times (use Java record)
-  - Use @NonNull from Lombok where appropriate for null safety
-  - Ensure all value objects are immutable
-  - _Requirements: 10.4_
+- [ ] 5. Implement domain layer - event coordination
+- [ ] 5.1 Create BatchEventTracker component
+  - Implement ConcurrentHashMap-based event tracking
+  - Implement markRiskComplete() and markQualityComplete() methods
+  - Implement areBothComplete() and getBothEvents() methods
+  - Implement cleanup() and cleanupExpiredEvents() methods
+  - Create BatchEvents inner class
+  - _Requirements: 1.4, 1.5, 2.1_
 
-- [x] 3. Implement domain layer - report metadata value objects
+- [ ] 5.2 Create ReportCoordinator domain service
+  - Implement handleCalculationCompleted() method
+  - Implement handleQualityCompleted() method
+  - Integrate with BatchEventTracker
+  - Trigger ComprehensiveReportOrchestrator when both events present
+  - _Requirements: 1.4, 1.5, 5.1_
 
+- [ ] 6. Implement domain layer - repository interfaces
+- [ ] 6.1 Create IGeneratedReportRepository interface
+  - Define findByBatchId() method
+  - Define findByReportId() method
+  - Define save() method
+  - Define existsByBatchId() and existsByBatchIdAndStatus() methods
+  - _Requirements: 13.1, 23.2_
 
+- [ ] 6.2 Create domain events
+  - Implement ReportGenerationStartedEvent
+  - Implement ReportGeneratedEvent with all metadata fields
+  - Implement ReportGenerationFailedEvent
+  - _Requirements: 14.1, 15.1, 15.2_
 
+- [ ] 7. Implement application layer - event listeners
+- [ ] 7.1 Create ReportEventListener
+  - Implement @EventListener for BatchCalculationCompletedEvent
+  - Implement @EventListener for BatchQualityCompletedEvent
+  - Add @Async annotation with named executor
+  - Implement event validation logic
+  - Implement idempotency check using repository
+  - Implement stale event detection (>24 hours)
+  - Delegate to ReportCoordinator
+  - Handle errors with EventProcessingFailure
+  - _Requirements: 1.1, 1.2, 1.3, 1.6, 1.7, 2.2, 2.3, 2.4_
 
-  - Create HtmlReportMetadata record (S3 URI, file size, presigned URL, timestamp) - use Java record
-  - Create XbrlReportMetadata record (S3 URI, file size, presigned URL, validation status) - use Java record
-  - _Requirements: 10.4_
+- [ ] 8. Implement application layer - data aggregation
+- [ ] 8.1 Create ComprehensiveReportDataAggregator service
+  - Implement fetchAllData() method
+  - Implement fetchCalculationData() method using FilePathResolver
+  - Implement fetchQualityData() method using FilePathResolver
+  - Implement fetchFileContent() with S3/filesystem logic
+  - Implement validateDataConsistency() method
+  - Implement DTO mapping methods
+  - Add performance metrics
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 5.2_
 
-- [x] 4. Implement GeneratedReport aggregate root
+- [ ] 9. Implement application layer - quality recommendations
+- [ ] 9.1 Create QualityRecommendationsGenerator service
+  - Implement generateRecommendations() main method
+  - Implement generateCriticalSituationSection() for score <60%
+  - Implement generateDimensionSpecificSections() for threshold violations
+  - Implement generateErrorPatternSections() for top error types
+  - Implement generatePositiveAspectsSection() for excellent dimensions
+  - Implement generateActionPlanSection() with short/medium/long-term actions
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
+- [ ] 10. Implement application layer - comprehensive report orchestrator
+- [ ] 10.1 Create ComprehensiveReportOrchestrator service
+  - Implement generateComprehensiveReport() main method with @Async
+  - Implement idempotency check for existing COMPLETED reports
+  - Integrate with ComprehensiveReportDataAggregator
+  - Create GeneratedReport aggregate
+  - Integrate with QualityRecommendationsGenerator
+  - Implement parallel HTML and XBRL generation with CompletableFuture
+  - Implement handleGenerationFailure() method
+  - Add performance metrics and timers
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 16.1, 16.2, 23.2_
 
+- [ ] 11. Implement infrastructure layer - database
+- [ ] 11.1 Create database schema migration
+  - Create V1__Create_generated_reports_table.sql
+  - Add report_id, batch_id, bank_id, reporting_date columns
+  - Add report_type, status columns
+  - Add html_s3_uri, html_file_size, html_presigned_url columns
+  - Add xbrl_s3_uri, xbrl_file_size, xbrl_presigned_url columns
+  - Add overall_quality_score, compliance_status columns
+  - Add generated_at, completed_at, failure_reason columns
+  - Add version column for optimistic locking
+  - Add indexes on batch_id, bank_id, status
+  - Add UNIQUE constraint on batch_id
+  - _Requirements: 13.1, 13.2, 13.3, 13.4_
 
+- [ ] 11.2 Create GeneratedReportEntity JPA entity
+  - Implement entity with @Entity and @Table annotations
+  - Map all columns with appropriate types
+  - Add @Version for optimistic locking
+  - _Requirements: 13.4_
 
+- [ ] 11.3 Create JpaGeneratedReportRepository implementation
+  - Implement IGeneratedReportRepository interface
+  - Create SpringDataGeneratedReportRepository interface
+  - Implement mapping between domain and entity
+  - Implement all query methods
+  - _Requirements: 13.1, 13.4_
 
-  - Create GeneratedReport class extending BaseEntity from regtech-core-domain
-  - Use @Getter from Lombok for query methods (avoid @Data to maintain encapsulation)
-  - Use @Builder(access = AccessLevel.PRIVATE) for internal construction
-  - Implement static factory method `create()` following "tell, don't ask"
-  - Implement `recordHtmlGeneration()` behavior method
-  - Implement `recordXbrlGeneration()` behavior method
-  - Implement `markAsCompleted()` with business rule validation
-  - Implement `markAsPartial()` and `markAsFailed()` methods
-  - Implement query methods `isCompleted()` and `canRegenerate()`
-  - Encapsulate completion check logic within aggregate
-  - Use private helper methods to avoid exposing internal state
-  - _Requirements: 10.1, 10.2, 10.3, 15.1_
+- [ ] 12. Implement infrastructure layer - file storage
+- [ ] 12.1 Create FilePathResolver utility
+  - Implement resolveCalculationPath() for S3 and local paths
+  - Implement resolveQualityPath() for S3 and local paths
+  - Implement isProd() environment detection
+  - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [x] 5. Implement domain events
-
-
-
-
-  - Create ReportGeneratedEvent record extending BaseDomainEvent (use Java record)
-  - Create ReportGenerationFailedEvent record extending BaseDomainEvent (use Java record)
-  - Ensure events are raised by GeneratedReport aggregate using raiseEvent() method
-  - _Requirements: 11.1, 12.2_
-
-- [x] 6. Implement domain repository interface
-
-
-
-
-  - Create IGeneratedReportRepository interface
-  - Define methods: findByBatchId, findByReportId, save, existsByBatchId
-  - _Requirements: 10.1_
-
-- [x] 7. Implement domain services interfaces
-
-
-
-
-  - Create HtmlReportGenerator interface with generate() method
-  - Create XbrlReportGenerator interface with generate() method
-  - Create XbrlValidator interface with validate() method
-  - _Requirements: 5.1, 7.1, 8.1_
-
-- [x] 8. Implement infrastructure layer - database entities
-
-
-
-
-  - Create GeneratedReportEntity JPA entity with @Entity, @Table
-  - Use @Data from Lombok for getters/setters
-  - Use @NoArgsConstructor and @AllArgsConstructor from Lombok
-  - Map all fields to report_generation_summaries table
-  - Add optimistic locking with @Version
-  - Create ReportMetadataFailureEntity for fallback table with Lombok annotations
-  - _Requirements: 10.4, 18.3_
-
-- [x] 9. Implement infrastructure layer - JPA repositories
-
-
-
-
-
-  - Create SpringDataGeneratedReportRepository interface extending JpaRepository
-  - Add query methods: findByBatchId, existsByBatchId
-  - Create JpaGeneratedReportRepository implementing IGeneratedReportRepository
-  - Implement mapping between GeneratedReport aggregate and GeneratedReportEntity
-  - _Requirements: 10.1_
-
-- [x] 10. Implement infrastructure layer - S3 file storage
-
-
-
-
-
-
-
-
-  - Create S3ReportStorageService with @Service and @Slf4j from Lombok
-  - Use @CircuitBreaker annotation from Resilience4j
-  - Use @RequiredArgsConstructor from Lombok for dependency injection
+- [ ] 12.2 Create S3ReportStorageService
   - Implement uploadHtmlReport() with encryption and metadata
   - Implement uploadXbrlReport() with encryption and metadata
   - Implement generatePresignedUrl() with 1-hour expiration
-  - Implement fallback method uploadToLocalFallback()
-  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
+  - Add @CircuitBreaker annotation with fallback
+  - Implement uploadToLocalFallback() method
+  - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 22.1, 22.2_
 
-- [ ] 11. Implement infrastructure layer - local file storage fallback
-  - Create LocalFileStorageService for deferred uploads
-  - Implement saveToLocal() method writing to /tmp/deferred-reports/
-  - Create scheduled job for retrying deferred uploads
-  - _Requirements: 9.5, 17.1_
+- [ ] 12.3 Create LocalFileStorageService for fallback
+  - Implement saveToLocal() for deferred uploads
+  - Implement scheduled retry job for deferred uploads
+  - _Requirements: 12.5, 20.1_
 
-- [ ] 12. Implement infrastructure layer - circuit breaker configuration
-  - Create Resilience4jConfiguration for S3 operations
-  - Configure failure threshold: 10 consecutive failures OR 50% over 5 minutes
-  - Configure wait duration: 5 minutes in OPEN state
-  - Configure permitted calls in HALF_OPEN: 1
-  - Add metrics emission for circuit breaker state transitions
-  - _Requirements: 19.1, 19.2, 19.3, 19.4, 19.5_
-
-- [ ] 13. Implement infrastructure layer - Thymeleaf configuration
-  - Create ThymeleafConfiguration with template resolver
-  - Configure template location: classpath:/templates/reports/
+- [ ] 13. Implement infrastructure layer - HTML generation
+- [ ] 13.1 Create Thymeleaf configuration
+  - Configure ThymeleafConfiguration bean
+  - Set template resolver for classpath:/templates/reports/
   - Enable caching in production, disable in development
-  - Create large-exposures-report.html template with Tailwind CSS
-  - Add Chart.js integration for donut and bar charts
-  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
+  - _Requirements: 6.1_
 
-- [ ] 14. Implement infrastructure layer - HTML report generator
-  - Create HtmlReportGeneratorImpl implementing HtmlReportGenerator
-  - Implement generate() method using Thymeleaf Context
-  - Add header section with bank info, reporting date, regulatory references
-  - Add five executive summary cards (Tier 1 Capital, Large Exposures Count, Total Amount, Limit Breaches, Sector Concentration)
-  - Add Chart.js data for donut chart (sector distribution) and bar chart (top exposures)
-  - Add sortable table with all exposure details
-  - Add compliance status with counts and warning badges for >25% exposures
-  - Add risk analysis section with concentration risk identification
-  - Add footer with generation timestamp and confidentiality notice
-  - _Requirements: 5.2, 5.3, 5.4, 5.5, 6.1, 6.2, 6.3, 6.4, 6.5_
+- [ ] 13.2 Create comprehensive HTML template
+  - Create comprehensive-report.html template
+  - Implement header section with bank info and quality badge
+  - Implement Large Exposures section with summary cards
+  - Implement Chart.js donut chart for sector distribution
+  - Implement Chart.js bar chart for top exposures
+  - Implement exposure table with all columns
+  - Implement Data Quality section with dimension scores
+  - Implement error distribution visualization
+  - Implement recommendations sections (dynamic)
+  - Implement BCBS 239 compliance section
+  - Implement footer with timestamp and notice
+  - Apply Tailwind CSS styling
+  - _Requirements: 5.3, 5.4, 6.1, 6.2, 6.3, 6.4, 6.5, 7.1, 7.2, 7.3, 7.4, 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 15. Implement infrastructure layer - XBRL report generator
-  - Create XbrlReportGeneratorImpl implementing XbrlReportGenerator
-  - Implement generate() method using Java DOM API
-  - Add all required EBA COREP namespaces and schema reference
-  - Create contexts for each exposure with dimensions (CP, CT, SC)
-  - Populate LE1 facts (counterparty name, LEI, identifier type, country, sector)
-  - Populate LE2 facts (original amount, amount after CRM, trading/non-trading portions, percentage of capital)
-  - Handle missing LEI with CONCAT identifier type
-  - Format XML with pretty-print indentation and UTF-8 encoding
-  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 8.4, 8.5_
+- [ ] 13.3 Create HtmlReportGeneratorImpl
+  - Implement HtmlReportGenerator interface
+  - Create ComprehensiveReportContext with all data
+  - Process template with Thymeleaf
+  - Return generated HTML string
+  - _Requirements: 5.3, 6.1_
 
-- [ ] 16. Implement infrastructure layer - XBRL validator
-  - Create XbrlSchemaValidator implementing XbrlValidator
-  - Load EBA XSD schema from classpath:/schemas/eba-corep.xsd
-  - Implement validate() method returning ValidationResult
-  - Return detailed validation errors with line numbers
-  - Implement automatic corrections (trim whitespace, round decimals)
-  - _Requirements: 8.1, 8.2, 8.5, 14.5_
+- [ ] 14. Implement infrastructure layer - XBRL generation
+- [ ] 14.1 Create XbrlReportGeneratorImpl
+  - Implement XbrlReportGenerator interface
+  - Create XML document with EBA COREP namespaces
+  - Add schema reference to EBA taxonomy
+  - Create contexts with dimensions (CP, CT, SC)
+  - Populate LE1 facts (counterparty details)
+  - Populate LE2 facts (exposure amounts)
+  - Format XML with pretty-print
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [ ] 17. Implement application layer - DTOs and integration events
-  - Create CalculationResults record for S3 data (use Java record)
-  - Create CalculatedExposure record (use Java record)
-  - Create BatchCalculationCompletedEvent record extending BaseIntegrationEvent (use Java record)
-  - Create BatchQualityCompletedEvent record extending BaseIntegrationEvent (use Java record)
-  - Create ReportGeneratedEvent record extending BaseIntegrationEvent (use Java record)
-  - _Requirements: 1.1, 11.1, 12.2_
+- [ ] 14.2 Create XbrlSchemaValidator
+  - Implement XbrlValidator interface
+  - Load EBA XSD schema from classpath
+  - Validate XML document against schema
+  - Return ValidationResult with errors
+  - Implement automatic corrections (trim, round)
+  - _Requirements: 11.1, 11.2, 11.3, 11.5_
 
-- [ ] 18. Implement application layer - event coordinator service
-  - Create ReportCoordinatorService with @Service and @Slf4j from Lombok
-  - Use @RequiredArgsConstructor from Lombok for dependency injection
-  - Use ConcurrentHashMap for thread-safe event tracking
-  - Implement registerCalculationEvent() method
-  - Implement registerQualityEvent() method
-  - Implement triggerReportGeneration() when both events received
-  - Ensure thread-safety for concurrent event arrival
-  - _Requirements: 2.1_
+- [ ] 15. Implement infrastructure layer - circuit breaker
+- [ ] 15.1 Create Resilience4jConfiguration
+  - Configure circuit breaker for S3 operations
+  - Set failure threshold: 10 consecutive OR 50% over 5 minutes
+  - Set wait duration: 5 minutes
+  - Set permitted calls in half-open: 1
+  - Emit metrics for state transitions
+  - _Requirements: 22.1, 22.2, 22.3, 22.4, 22.5_
 
-- [ ] 19. Implement application layer - report generation service
-  - Create ReportGenerationService with @Service and @Slf4j from Lombok
-  - Use @RequiredArgsConstructor from Lombok for dependency injection
-  - Implement downloadCalculationResults() using IFileStorageService
-  - Implement validateData() with JSON parsing and checksum validation
-  - Implement generateHtmlReport() calling HtmlReportGenerator
-  - Implement generateXbrlReport() calling XbrlReportGenerator
-  - Implement uploadReports() calling S3ReportStorageService
-  - Implement saveMetadata() using IGeneratedReportRepository
-  - Handle errors with appropriate recovery strategies
-  - Use try-catch blocks with proper logging
-  - _Requirements: 3.1, 3.2, 4.1, 4.2, 4.3, 4.4, 5.1, 7.1, 9.1, 10.1_
+- [ ] 16. Implement infrastructure layer - event publishing
+- [ ] 16.1 Create ReportGenerationEventPublisher
+  - Implement publishReportGenerated() method
+  - Integrate with IIntegrationEventBus
+  - Rely on OutboxProcessor for retry
+  - _Requirements: 14.4, 14.5, 15.5_
 
-- [ ] 20. Implement application layer - event listeners
-  - Create BatchCalculationCompletedEventListener with @Component, @Slf4j from Lombok
-  - Use @RequiredArgsConstructor from Lombok for dependency injection
-  - Use @Async("reportGenerationExecutor") for async processing
-  - Use @EventListener annotation for event handling
-  - Implement event validation (not null, not stale >24 hours)
-  - Implement idempotency check using repository
-  - Delegate to ReportCoordinatorService
-  - Save EventProcessingFailure on errors
-  - Create BatchQualityCompletedEventListener with similar logic
-  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
-
-- [ ] 21. Implement application layer - event publisher
-  - Create ReportGenerationEventPublisher
-  - Implement publishReportGenerated() using IIntegrationEventBus
-  - Rely on OutboxProcessor for retry and eventual delivery
-  - _Requirements: 11.4, 11.5_
-
-- [ ] 22. Implement error handling and recovery
-  - Implement retry logic with exponential backoff for transient errors
-  - Implement permanent error handling (no retry for 403, 404)
-  - Implement fallback template for Thymeleaf rendering failures
-  - Implement compensating transaction for database failures
-  - Create scheduled job for orphaned file cleanup (delete files >7 days old)
-  - Create scheduled job for reconciliation (process report_metadata_failures)
-  - _Requirements: 3.4, 14.1, 14.4, 17.2, 18.1, 18.2, 18.3, 18.4, 18.5_
-
-- [ ] 23. Implement presentation layer - health checks
-  - Create ReportGenerationHealthIndicator with @Component and @Slf4j from Lombok
-  - Use @RequiredArgsConstructor from Lombok for dependency injection
+- [ ] 17. Implement presentation layer - health checks
+- [ ] 17.1 Create ReportGenerationHealthIndicator
   - Implement HealthIndicator interface
   - Check database connectivity
-  - Check S3 accessibility (HEAD request)
-  - Check event tracker state (pending events count)
+  - Check S3 accessibility
+  - Check event tracker state
   - Check async executor queue size
-  - Return UP, WARN, or DOWN status based on component health
-  - _Requirements: 21.3, 21.4_
+  - Return UP, WARN, or DOWN status
+  - _Requirements: 24.3, 24.4_
 
-- [ ] 24. Implement presentation layer - metrics collection
-  - Create ReportGenerationMetricsCollector with @Component and @Slf4j from Lombok
-  - Use @RequiredArgsConstructor from Lombok for dependency injection
-  - Inject MeterRegistry from Micrometer
-  - Emit performance timers (overall duration, data fetch, HTML generation, XBRL generation, S3 upload, DB save)
-  - Emit counters (success, failure with tags, partial, retries, duplicates, circuit breaker transitions)
-  - Emit gauges (DB connection pool, async executor queue/threads, deferred uploads, circuit breaker state)
-  - Configure structured JSON logging with standard fields using Logback
-  - _Requirements: 16.1, 16.2, 16.3, 16.4_
+- [ ] 18. Implement presentation layer - metrics
+- [ ] 18.1 Create ReportGenerationMetricsCollector
+  - Emit timers for all operations
+  - Emit counters for success/failure/partial
+  - Emit gauges for resource usage
+  - _Requirements: 16.1, 16.2, 16.3, 19.1, 19.2, 19.3_
 
-- [ ] 25. Implement alerting logic
-  - Configure alerts for CRITICAL conditions (failure rate >10%, S3 consecutive failures, DB pool exhausted, permission denied)
-  - Configure alerts for HIGH conditions (event timeout rate >20%, deferred uploads accumulating, XBRL validation spike)
-  - Configure alerts for MEDIUM conditions (P95 duration >10s, partial reports, outbox accumulating)
-  - _Requirements: 16.5_
+- [ ] 19. Implement configuration and async executor
+- [ ] 19.1 Create ReportGenerationConfiguration
+  - Configure @Async executor bean "reportGenerationExecutor"
+  - Set core pool size, max pool size, queue capacity
+  - Configure thread name prefix
+  - _Requirements: 1.3, 2.1, 2.2_
 
-- [ ] 26. Implement performance optimizations
-  - Configure async executor thread pool with appropriate size
-  - Implement timeout for file downloads (30 seconds)
-  - Optimize HTML template rendering
-  - Optimize XBRL generation
-  - _Requirements: 4.5, 13.1, 13.2, 13.3, 13.4_
+- [ ] 19.2 Create application-report-generation.yml
+  - Configure S3 bucket names and paths
+  - Configure file path patterns
+  - Configure retry options
+  - Configure circuit breaker settings
+  - Configure async executor settings
+  - _Requirements: 3.1, 3.2, 12.1, 20.3, 22.1_
 
-- [ ] 27. Create database migration scripts
-  - Create V1__Create_report_generation_summaries_table.sql
-  - Create V2__Create_report_metadata_failures_table.sql
-  - Add indexes on batch_id, bank_id, status
-  - _Requirements: 10.1, 18.3_
-
-- [ ] 28. Configure Spring Boot application properties
-  - Configure async executor thread pool
-  - Configure S3 bucket names and regions
-  - Configure circuit breaker thresholds
-  - Configure retry policy (maxRetries, backoff intervals)
-  - Configure health check thresholds
-  - Configure metrics export
-  - _Requirements: 17.3_
-
-- [ ] 29. Create README documentation
-  - Document module purpose and responsibilities
-  - Document architecture and design decisions
-  - Document configuration properties
+- [ ] 20. Documentation and deployment preparation
+- [ ] 20.1 Create module README
+  - Document module purpose and architecture
+  - Document event flow and coordination
+  - Document configuration options
   - Document monitoring and alerting
-  - Document troubleshooting guide
-  - _Requirements: All_
+  - _Requirements: 18.5_
 
-- [ ] 30. Checkpoint - Manual testing
-  - Manually test the complete workflow
-  - Verify HTML report renders correctly
-  - Verify XBRL validates against schema
-  - Test error scenarios
-  - Ask the user if questions arise
+- [ ] 20.2 Create deployment guide
+  - Document S3 bucket setup
+  - Document database migration steps
+  - Document environment variables
+  - Document health check endpoints
+  - _Requirements: 24.3_
 
-- [ ] 31. Write unit tests for domain layer
-  - Test GeneratedReport aggregate state transitions
-  - Test value object validation
-  - Test domain event creation
-  - Target: ≥85% line coverage, ≥75% branch coverage
-  - _Requirements: 21.1_
+- [ ] 20.3 Create operational runbook
+  - Document common failure scenarios
+  - Document recovery procedures
+  - Document circuit breaker management
+  - Document orphaned file cleanup
+  - _Requirements: 17.1, 17.2, 21.4, 22.1, 22.2_
 
-- [ ] 32. Write property-based tests for core properties
-- [ ] 32.1 Write property test for value object validation
-  - **Property 34: File name pattern validation**
-  - **Validates: Requirements 9.2**
+- [ ] 21. Testing - Property-based tests
+- [ ] 21.1 Write property test for GeneratedReport aggregate
+  - **Property 9: Report type is COMPREHENSIVE**
+  - **Validates: Requirements 5.1, 13.1**
 
-- [ ] 32.2 Write property test for aggregate state transitions
-  - **Property 38: Successful generation creates COMPLETED database record**
-  - **Property 39: Partial generation creates PARTIAL database record**
-  - **Property 40: Failed generation creates FAILED database record**
-  - **Validates: Requirements 10.1, 10.2, 10.3**
+- [ ] 21.2 Write property test for BatchEventTracker
+  - **Property 1: Dual event coordination waits for both events**
+  - **Validates: Requirements 1.4, 1.5, 5.1**
 
-- [ ] 32.3 Write property test for domain event creation
-  - **Property 42: Domain events are raised on completion**
-  - **Validates: Requirements 11.1**
+- [ ] 21.3 Write property test for event tracker cleanup
+  - **Property 5: Event tracker cleanup removes expired events**
+  - **Validates: Requirements 1.6**
 
-- [ ] 32.4 Write property test for repository idempotency
-  - **Property 76: Completed batches skip regeneration**
-  - **Property 77: Failed batches allow regeneration**
-  - **Validates: Requirements 20.2, 20.3**
+- [ ] 21.4 Write property test for data aggregator
+  - **Property 7: Data aggregator fetches both JSON files**
+  - **Validates: Requirements 3.1, 3.2, 5.2**
 
-- [ ] 32.5 Write property test for S3 upload metadata
-  - **Property 33: S3 uploads use correct bucket paths**
-  - **Property 35: S3 uploads have correct metadata**
-  - **Property 36: Presigned URLs have 1-hour expiration**
-  - **Validates: Requirements 9.1, 9.3, 9.4**
+- [ ] 21.5 Write property test for quality recommendations
+  - **Property 3: Quality recommendations are contextual**
+  - **Validates: Requirements 9.1, 9.2, 9.3**
 
-- [ ] 32.6 Write property test for circuit breaker behavior
-  - **Property 71: Circuit breaker opens on failure threshold**
-  - **Property 72: Open circuit blocks operations and uses fallback**
-  - **Property 73: Circuit transitions to half-open after wait duration**
-  - **Property 74: Successful test operation closes circuit**
-  - **Validates: Requirements 19.1, 19.2, 19.3, 19.4**
+- [ ] 21.6 Write property test for recommendation severity
+  - **Property 8: Quality score determines recommendation severity**
+  - **Validates: Requirements 9.1, 9.2**
 
-- [ ] 32.7 Write property test for HTML report content
-  - **Property 15: HTML report contains required header elements**
-  - **Property 16: HTML report contains all five summary cards**
-  - **Property 17: HTML report contains required chart configurations**
-  - **Property 18: HTML report table contains all required columns**
-  - **Property 19: Compliance counts are calculated correctly**
-  - **Property 20: Non-compliant exposures have warning badges**
-  - **Property 22: HTML report contains footer with timestamp and notice**
-  - **Validates: Requirements 5.2, 5.3, 5.4, 5.5, 6.1, 6.2, 6.5**
+- [ ] 21.7 Write property test for parallel generation
+  - **Property 6: Parallel generation completes both formats**
+  - **Validates: Requirements 5.5, 16.2, 16.3**
 
-- [ ] 32.8 Write property test for XBRL structure
-  - **Property 23: XBRL contains LE1 and LE2 templates**
-  - **Property 24: XBRL contains all required namespaces**
-  - **Property 25: XBRL contexts match exposures with all dimensions**
-  - **Property 26: XBRL LE1 facts are complete**
-  - **Property 27: XBRL LE2 facts are complete**
-  - **Property 31: Missing LEI uses CONCAT identifier**
-  - **Property 32: Valid XBRL is formatted with UTF-8 encoding**
-  - **Validates: Requirements 7.1, 7.2, 7.3, 7.4, 7.5, 8.4, 8.5**
+- [ ] 21.8 Write property test for idempotency
+  - **Property 10: Idempotency prevents duplicate generation**
+  - **Validates: Requirements 23.2**
 
-- [ ] 32.9 Write property test for XBRL validation
-  - **Property 28: XBRL validation is performed**
-  - **Property 29: XBRL validation errors are logged with details**
-  - **Property 30: Invalid XBRL is saved and status marked PARTIAL**
-  - **Property 55: XBRL validation failures trigger automatic corrections**
-  - **Validates: Requirements 8.1, 8.2, 8.3, 14.5**
+- [ ] 21.9 Write property test for comprehensive report content
+  - **Property 2: Comprehensive report includes both sections**
+  - **Validates: Requirements 5.3, 6.1, 8.1**
 
-- [ ] 32.10 Write property test for event coordination
-  - **Property 6: Concurrent events for different batches process independently**
-  - **Validates: Requirements 2.1**
+- [ ] 22. Testing - Unit tests
+- [ ] 22.1 Write unit tests for event listeners
+  - Test valid event processing
+  - Test duplicate event detection
+  - Test stale event rejection
+  - Test error handling with EventProcessingFailure
+  - _Requirements: 1.1, 1.2, 1.6, 1.7, 24.1_
 
-- [ ] 32.11 Write property test for data validation
-  - **Property 10: Malformed JSON is saved and prevents report generation**
-  - **Property 11: Missing required fields prevent report generation**
-  - **Property 12: Checksum validation failures prevent report generation**
-  - **Property 13: Valid data is mapped to DTOs and processed**
-  - **Validates: Requirements 4.1, 4.2, 4.3, 4.4**
+- [ ] 22.2 Write unit tests for data aggregation
+  - Test S3 file fetching in production mode
+  - Test local filesystem fetching in development mode
+  - Test JSON parsing and DTO mapping
+  - Test data consistency validation
+  - Test error handling for malformed JSON
+  - Test error handling for missing fields
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 4.1, 4.2, 24.1_
 
-- [ ] 32.12 Write property test for event listener behavior
-  - **Property 1: Event validation accepts valid events and rejects invalid ones**
-  - **Property 2: Duplicate events are detected and skipped**
-  - **Property 3: Async processing executes on different thread**
-  - **Property 4: Stale events are rejected**
-  - **Property 5: Failed event processing creates retry records**
-  - **Validates: Requirements 1.1, 1.2, 1.3, 1.4, 1.5**
+- [ ] 22.3 Write unit tests for recommendations generator
+  - Test critical situation generation for score <60%
+  - Test dimension-specific recommendations for each dimension
+  - Test error pattern analysis with top 3 errors
+  - Test positive aspects generation
+  - Test action plan generation
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 24.1_
 
-- [ ] 32.13 Write property test for event publication
-  - **Property 43: Aggregate and events persist atomically**
-  - **Property 44: Outbox events are published**
-  - **Property 45: Failed event publication triggers retry**
-  - **Property 46: Published events contain all required fields**
-  - **Validates: Requirements 11.3, 11.4, 11.5, 12.2**
+- [ ] 22.4 Write unit tests for orchestrator
+  - Test happy path with both events
+  - Test idempotency for existing reports
+  - Test parallel generation completion
+  - Test partial failure handling
+  - Test complete failure handling
+  - _Requirements: 5.1, 5.5, 17.4, 17.5, 23.2, 24.1_
 
-- [ ] 32.14 Write property test for error handling
-  - **Property 9: File download failures trigger retry with exponential backoff**
-  - **Property 53: Missing files after retries create FAILED record**
-  - **Property 54: Template rendering failures trigger fallback**
-  - **Property 61: Transient S3 failures create retry records**
-  - **Property 62: Permanent S3 failures skip retry**
-  - **Property 66: Database failures leave S3 files intact**
-  - **Property 67: Database failures trigger single retry**
-  - **Property 68: Permanent database failures create fallback records**
-  - **Validates: Requirements 3.4, 14.1, 14.4, 17.1, 17.2, 18.1, 18.2, 18.3**
+- [ ] 22.5 Write unit tests for repository
+  - Test save and findByBatchId
+  - Test existsByBatchIdAndStatus
+  - Test optimistic locking
+  - _Requirements: 13.1, 24.1_
 
-- [ ] 32.15 Write property test for health check logic
-  - **Property 79: Health indicators return correct status**
-  - **Validates: Requirements 21.4**
+- [ ] 22.6 Write unit tests for file storage
+  - Test S3 upload with correct metadata
+  - Test presigned URL generation
+  - Test circuit breaker fallback
+  - Test local storage fallback
+  - _Requirements: 12.1, 12.3, 12.5, 24.1_
 
-- [ ] 32.16 Write property test for metrics emission
-  - **Property 56: Performance timers are emitted**
-  - **Property 57: Operation counters are emitted**
-  - **Property 58: Resource gauges are emitted**
-  - **Property 59: Structured logs contain required fields**
-  - **Validates: Requirements 16.1, 16.2, 16.3, 16.4**
+- [ ] 22.7 Write unit tests for HTML generation
+  - Test template rendering with sample data
+  - Test Chart.js data generation
+  - Test compliance badge rendering
+  - Test recommendations rendering
+  - _Requirements: 6.1, 6.2, 6.3, 6.4, 8.1, 24.1_
 
-- [ ] 32.17 Write property test for alerting
-  - **Property 60: Critical conditions trigger appropriate alerts**
-  - **Validates: Requirements 16.5**
+- [ ] 22.8 Write unit tests for XBRL generation
+  - Test namespace and schema reference
+  - Test context creation with dimensions
+  - Test LE1 fact population
+  - Test LE2 fact population
+  - Test validation against schema
+  - Test automatic corrections
+  - Test handling of missing LEI
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 11.1, 11.4, 11.5, 24.1_
 
-- [ ] 32.18 Write property test for performance targets
-  - **Property 14: File download timeout is enforced**
-  - **Property 48: Data fetching completes within performance target**
-  - **Property 49: HTML generation completes within performance target**
-  - **Property 50: XBRL generation completes within performance target**
-  - **Property 51: S3 uploads complete within performance target**
-  - **Property 52: End-to-end duration metric is emitted**
-  - **Validates: Requirements 4.5, 13.1, 13.2, 13.3, 13.4, 13.5**
+- [ ] 22.9 Write unit tests for event publisher
+  - Test event publication to outbox
+  - Test integration with OutboxProcessor
+  - _Requirements: 14.4, 15.5, 24.1_
 
-- [ ] 33. Write integration tests
-  - Set up Testcontainers (PostgreSQL, LocalStack S3)
-  - Test happy path: both events arrive, report generates, files uploaded, metadata saved
-  - Test reverse event order: quality event before calculation event
-  - Test duplicate events: same event arrives multiple times
-  - Test S3 failure: S3 unavailable, fallback to local filesystem
-  - Test database failure: DB insert fails, compensating transaction
-  - Test partial generation: HTML succeeds but XBRL validation fails
-  - Test circuit breaker: multiple S3 failures trigger circuit open
-  - Test retry success: failed event retries and succeeds
-  - Test stale event: event older than 24 hours is rejected
-  - _Requirements: 21.2_
+- [ ] 22.10 Write unit tests for health indicators
+  - Test UP status when all healthy
+  - Test WARN status for degraded performance
+  - Test DOWN status for failures
+  - _Requirements: 24.3, 24.4_
 
-- [ ] 34. Final Checkpoint - Ensure all tests pass
+- [ ] 22.11 Write unit tests for metrics collector
+  - Test timer emission
+  - Test counter emission with tags
+  - Test gauge emission
+  - _Requirements: 19.1, 19.2, 19.3, 24.1_
+
+- [ ] 23. Testing - Integration tests
+- [ ] 23.1 Write integration test for happy path
+  - Publish both events
+  - Verify comprehensive report generated
+  - Verify both files uploaded to S3
+  - Verify database record created
+  - Verify ReportGeneratedEvent published
+  - _Requirements: 5.1, 5.5, 13.1, 14.1, 24.2, 24.5_
+
+- [ ] 23.2 Write integration test for reverse event order
+  - Publish quality event first
+  - Publish calculation event second
+  - Verify report still generates correctly
+  - _Requirements: 1.4, 1.5, 24.2_
+
+- [ ] 23.3 Write integration test for duplicate events
+  - Publish same event multiple times
+  - Verify only one report generated
+  - _Requirements: 1.2, 23.1, 24.2_
+
+- [ ] 23.4 Write integration test for S3 failure
+  - Simulate S3 unavailability
+  - Verify fallback to local filesystem
+  - Verify retry on recovery
+  - _Requirements: 12.5, 20.1, 20.5, 22.2, 24.2_
+
+- [ ] 23.5 Write integration test for partial generation
+  - Simulate XBRL validation failure
+  - Verify HTML generated successfully
+  - Verify status marked as PARTIAL
+  - _Requirements: 11.3, 13.2, 17.5, 24.2_
+
+- [ ] 23.6 Write integration test for quality recommendations
+  - Generate report with various quality scores
+  - Verify appropriate recommendations generated
+  - Verify contextual error-specific guidance
+  - _Requirements: 9.1, 9.2, 9.3, 24.2_
+
+- [ ] 23.7 Write integration tests for circuit breaker
+  - Test circuit opens on failure threshold
+  - Test fallback to local storage when open
+  - Test transition to half-open after wait
+  - Test circuit closes on successful test
+  - _Requirements: 22.1, 22.2, 22.3, 22.4, 24.2_
+
+- [ ] 24. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
+

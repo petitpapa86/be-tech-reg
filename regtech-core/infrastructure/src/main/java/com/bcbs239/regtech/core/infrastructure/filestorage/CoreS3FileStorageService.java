@@ -8,17 +8,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
-import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.S3ClientBuilder;
 import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -28,54 +21,31 @@ public class CoreS3FileStorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(CoreS3FileStorageService.class);
 
-    private final S3Client s3Client;
+    private final CoreS3Service coreS3Service;
     private final S3Properties s3Properties;
 
-    public CoreS3FileStorageService(S3Properties s3Properties) {
+    public CoreS3FileStorageService(CoreS3Service coreS3Service, S3Properties s3Properties) {
+        this.coreS3Service = coreS3Service;
         this.s3Properties = s3Properties;
-
-        S3ClientBuilder s3ClientBuilder = S3Client.builder()
-                .region(Region.of(s3Properties.getRegion()));
-
-        if (s3Properties.getAccessKey() != null && !s3Properties.getAccessKey().trim().isEmpty()
-                && s3Properties.getSecretKey() != null && !s3Properties.getSecretKey().trim().isEmpty()) {
-            AwsBasicCredentials credentials = AwsBasicCredentials.create(s3Properties.getAccessKey(), s3Properties.getSecretKey());
-            s3ClientBuilder.credentialsProvider(StaticCredentialsProvider.create(credentials));
-        }
-
-        if (s3Properties.getEndpoint() != null && !s3Properties.getEndpoint().trim().isEmpty()) {
-            s3ClientBuilder.endpointOverride(URI.create(s3Properties.getEndpoint()));
-        }
-
-        this.s3Client = s3ClientBuilder.build();
     }
 
     public Result<CoreS3Reference> storeFile(InputStream fileStream, String fileName, String batchId, String bankId, int exposureCount) {
         try {
             String key = generateFileKey(batchId, bankId, fileName);
 
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(s3Properties.getBucket())
-                    .key(key)
-                    .contentType("application/octet-stream")
-                    .metadata(java.util.Map.of(
-                            "batch-id", batchId,
-                            "bank-id", bankId,
-                            "exposure-count", String.valueOf(exposureCount),
-                            "original-filename", fileName,
-                            "upload-timestamp", Instant.now().toString()
-                    ))
-                    .build();
+            java.util.Map<String, String> metadata = java.util.Map.of(
+                    "batch-id", batchId,
+                    "bank-id", bankId,
+                    "exposure-count", String.valueOf(exposureCount),
+                    "original-filename", fileName,
+                    "upload-timestamp", Instant.now().toString()
+            );
 
-            long contentLength = fileStream.available();
-            s3Client.putObject(putRequest, RequestBody.fromInputStream(fileStream, contentLength));
+            byte[] bytes = fileStream.readAllBytes();
 
-            HeadObjectRequest headRequest = HeadObjectRequest.builder()
-                    .bucket(s3Properties.getBucket())
-                    .key(key)
-                    .build();
+            coreS3Service.putBytes(s3Properties.getBucket(), key, bytes, "application/octet-stream", metadata, s3Properties.getKmsKeyId());
 
-            HeadObjectResponse headResponse = s3Client.headObject(headRequest);
+            HeadObjectResponse headResponse = coreS3Service.headObject(s3Properties.getBucket(), key);
             String versionId = headResponse.versionId();
 
             CoreS3Reference ref = new CoreS3Reference("s3://" + s3Properties.getBucket() + "/" + key, s3Properties.getBucket(), key, versionId);
@@ -95,12 +65,7 @@ public class CoreS3FileStorageService {
 
     public Result<Boolean> checkServiceHealth() {
         try {
-            ListObjectsV2Request request = ListObjectsV2Request.builder()
-                    .bucket(s3Properties.getBucket())
-                    .maxKeys(1)
-                    .build();
-
-            s3Client.listObjectsV2(request);
+            coreS3Service.headObject(s3Properties.getBucket(), "");
             return Result.success(true);
         } catch (S3Exception e) {
             logger.warn("S3 service health check failed: {}", e.getMessage());
@@ -121,4 +86,3 @@ public class CoreS3FileStorageService {
                 fileName);
     }
 }
-

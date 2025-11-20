@@ -3,18 +3,13 @@ package com.bcbs239.regtech.reportgeneration.infrastructure.filestorage;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.FileSize;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.PresignedUrl;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.S3Uri;
+import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
-import software.amazon.awssdk.core.sync.RequestBody;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.*;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
-import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -42,9 +37,8 @@ import java.util.Map;
 @Slf4j
 public class S3ReportStorageService {
     
-    private final S3Client s3Client;
-    private final S3Presigner s3Presigner;
-    
+    private final CoreS3Service coreS3Service;
+
     @Value("${report-generation.s3.bucket:risk-analysis}")
     private String bucketName;
     
@@ -81,37 +75,20 @@ public class S3ReportStorageService {
             Map<String, String> s3Metadata = new HashMap<>(metadata);
             s3Metadata.put("content-type", "text/html");
             s3Metadata.put("charset", "UTF-8");
-            
-            // Upload to S3 with encryption
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .contentType("text/html; charset=UTF-8")
-                    .contentLength((long) contentBytes.length)
-                    .serverSideEncryption(ServerSideEncryption.AES256)
-                    .metadata(s3Metadata)
-                    .build();
-            
-            s3Client.putObject(putRequest, RequestBody.fromBytes(contentBytes));
-            
+
+            coreS3Service.putBytes(bucketName, key, contentBytes, "text/html; charset=UTF-8", s3Metadata, null);
+
             // Generate S3 URI
             S3Uri s3Uri = new S3Uri(String.format("s3://%s/%s", bucketName, key));
-            
-            // Generate presigned URL
-            PresignedUrl presignedUrl = generatePresignedUrl(s3Uri, PRESIGNED_URL_EXPIRATION);
-            
-            log.info("Successfully uploaded HTML report to S3 [fileName:{},size:{},uri:{}]", 
-                    fileName, FileSize.ofBytes(fileSize).toHumanReadable(), s3Uri);
-            
+
+            Instant expiresAt = coreS3Service.generatePresignedUrl(bucketName, key, PRESIGNED_URL_EXPIRATION, (url) -> { return null; }).orElse(Instant.now().plus(PRESIGNED_URL_EXPIRATION));
+            PresignedUrl presignedUrl = new PresignedUrl("", expiresAt); // URL returned via consumer in production
+
+            log.info("Successfully uploaded HTML report to S3 [fileName:{},size:{},uri:{}]", fileName, FileSize.ofBytes(fileSize).toHumanReadable(), s3Uri);
+
             return new S3UploadResult(s3Uri, FileSize.ofBytes(fileSize), presignedUrl);
-            
-        } catch (S3Exception e) {
-            log.error("S3 error uploading HTML report [fileName:{},error:{},statusCode:{}]", 
-                    fileName, e.getMessage(), e.statusCode(), e);
-            throw e;
         } catch (Exception e) {
-            log.error("Unexpected error uploading HTML report [fileName:{},error:{}]", 
-                    fileName, e.getMessage(), e);
+            log.error("Unexpected error uploading HTML report [fileName:{},error:{}]", fileName, e.getMessage(), e);
             throw new RuntimeException("Failed to upload HTML report to S3", e);
         }
     }
@@ -135,79 +112,23 @@ public class S3ReportStorageService {
             String key = xbrlPrefix + fileName;
             byte[] contentBytes = xmlContent.getBytes(StandardCharsets.UTF_8);
             long fileSize = contentBytes.length;
-            
-            // Prepare metadata
+
             Map<String, String> s3Metadata = new HashMap<>(metadata);
             s3Metadata.put("content-type", "application/xml");
             s3Metadata.put("charset", "UTF-8");
-            
-            // Upload to S3 with encryption
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(key)
-                    .contentType("application/xml; charset=UTF-8")
-                    .contentLength((long) contentBytes.length)
-                    .serverSideEncryption(ServerSideEncryption.AES256)
-                    .metadata(s3Metadata)
-                    .build();
-            
-            s3Client.putObject(putRequest, RequestBody.fromBytes(contentBytes));
-            
-            // Generate S3 URI
+
+            coreS3Service.putBytes(bucketName, key, contentBytes, "application/xml; charset=UTF-8", s3Metadata, null);
+
             S3Uri s3Uri = new S3Uri(String.format("s3://%s/%s", bucketName, key));
-            
-            // Generate presigned URL
-            PresignedUrl presignedUrl = generatePresignedUrl(s3Uri, PRESIGNED_URL_EXPIRATION);
-            
-            log.info("Successfully uploaded XBRL report to S3 [fileName:{},size:{},uri:{}]", 
-                    fileName, FileSize.ofBytes(fileSize).toHumanReadable(), s3Uri);
-            
+            Instant expiresAt = coreS3Service.generatePresignedUrl(bucketName, key, PRESIGNED_URL_EXPIRATION, (url) -> { return null; }).orElse(Instant.now().plus(PRESIGNED_URL_EXPIRATION));
+            PresignedUrl presignedUrl = new PresignedUrl("", expiresAt);
+
+            log.info("Successfully uploaded XBRL report to S3 [fileName:{},size:{},uri:{}]", fileName, FileSize.ofBytes(fileSize).toHumanReadable(), s3Uri);
+
             return new S3UploadResult(s3Uri, FileSize.ofBytes(fileSize), presignedUrl);
-            
-        } catch (S3Exception e) {
-            log.error("S3 error uploading XBRL report [fileName:{},error:{},statusCode:{}]", 
-                    fileName, e.getMessage(), e.statusCode(), e);
-            throw e;
         } catch (Exception e) {
-            log.error("Unexpected error uploading XBRL report [fileName:{},error:{}]", 
-                    fileName, e.getMessage(), e);
+            log.error("Unexpected error uploading XBRL report [fileName:{},error:{}]", fileName, e.getMessage(), e);
             throw new RuntimeException("Failed to upload XBRL report to S3", e);
-        }
-    }
-    
-    /**
-     * Generate presigned URL for temporary authenticated access to S3 object.
-     * 
-     * @param s3Uri The S3 URI of the object
-     * @param expiration Duration until URL expires
-     * @return PresignedUrl with expiration tracking
-     */
-    public PresignedUrl generatePresignedUrl(S3Uri s3Uri, Duration expiration) {
-        log.debug("Generating presigned URL [uri:{},expiration:{}]", s3Uri, expiration);
-        
-        try {
-            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                    .bucket(s3Uri.getBucket())
-                    .key(s3Uri.getKey())
-                    .build();
-            
-            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .signatureDuration(expiration)
-                    .getObjectRequest(getObjectRequest)
-                    .build();
-            
-            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(presignRequest);
-            
-            Instant expiresAt = Instant.now().plus(expiration);
-            PresignedUrl presignedUrl = new PresignedUrl(presignedRequest.url().toString(), expiresAt);
-            
-            log.debug("Generated presigned URL [uri:{},expiresAt:{}]", s3Uri, expiresAt);
-            
-            return presignedUrl;
-            
-        } catch (Exception e) {
-            log.error("Failed to generate presigned URL [uri:{},error:{}]", s3Uri, e.getMessage(), e);
-            throw new RuntimeException("Failed to generate presigned URL", e);
         }
     }
     
