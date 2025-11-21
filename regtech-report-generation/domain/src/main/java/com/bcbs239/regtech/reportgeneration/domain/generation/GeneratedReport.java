@@ -278,4 +278,58 @@ public class GeneratedReport extends Entity {
     public boolean hasXbrlReport() {
         return xbrlMetadata != null;
     }
+    
+    /**
+     * Reconstruction method for infrastructure layer persistence
+     * 
+     * WARNING: This method is ONLY for use by the infrastructure layer (GeneratedReportEntity.toDomain())
+     * to reconstruct aggregates from the database. It bypasses business rules and should NEVER be used
+     * for creating new reports - use createComprehensiveReport() factory method instead.
+     * 
+     * This method is public to avoid reflection, but its use is restricted by convention.
+     * The aggregate is reconstructed in its persisted state without triggering domain events.
+     * 
+     * @param reportId The report identifier
+     * @param batchId The batch identifier
+     * @param bankId The bank identifier
+     * @param reportingDate The reporting date
+     * @param reportType The report type
+     * @param status The report status
+     * @param htmlMetadata HTML report metadata (nullable)
+     * @param xbrlMetadata XBRL report metadata (nullable)
+     * @param overallQualityScore Overall quality score
+     * @param complianceStatus BCBS 239 compliance status (nullable)
+     * @param timestamps Processing timestamps
+     * @param failureReason Failure reason (nullable)
+     * @return Reconstructed GeneratedReport aggregate
+     */
+    public static GeneratedReport reconstituteFromPersistence(
+            ReportId reportId,
+            BatchId batchId,
+            BankId bankId,
+            ReportingDate reportingDate,
+            ReportType reportType,
+            ReportStatus status,
+            HtmlReportMetadata htmlMetadata,
+            XbrlReportMetadata xbrlMetadata,
+            BigDecimal overallQualityScore,
+            ComplianceStatus complianceStatus,
+            ProcessingTimestamps timestamps,
+            FailureReason failureReason) {
+        
+        return new GeneratedReport(
+                reportId,
+                batchId,
+                bankId,
+                reportingDate,
+                reportType,
+                status,
+                htmlMetadata,
+                xbrlMetadata,
+                overallQualityScore,
+                complianceStatus,
+                timestamps,
+                failureReason
+        );
+    }
 }

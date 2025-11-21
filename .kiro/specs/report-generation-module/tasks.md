@@ -199,7 +199,13 @@
   - Add performance metrics and timers
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 16.1, 16.2, 23.2_
 
-- [ ] 11. Implement infrastructure layer - database
+- [x] 11. Implement infrastructure layer - database
+
+
+
+
+
+
 - [ ] 11.1 Create database schema migration
   - Create V1__Create_generated_reports_table.sql
   - Add report_id, batch_id, bank_id, reporting_date columns
@@ -211,15 +217,24 @@
   - Add version column for optimistic locking
   - Add indexes on batch_id, bank_id, status
   - Add UNIQUE constraint on batch_id
+
+
   - _Requirements: 13.1, 13.2, 13.3, 13.4_
 
 - [ ] 11.2 Create GeneratedReportEntity JPA entity
   - Implement entity with @Entity and @Table annotations
+
+
   - Map all columns with appropriate types
   - Add @Version for optimistic locking
   - _Requirements: 13.4_
 
-- [ ] 11.3 Create JpaGeneratedReportRepository implementation
+- [x] 11.3 Create JpaGeneratedReportRepository implementation
+
+
+
+
+
   - Implement IGeneratedReportRepository interface
   - Create SpringDataGeneratedReportRepository interface
   - Implement mapping between domain and entity
@@ -227,6 +242,7 @@
   - _Requirements: 13.1, 13.4_
 
 - [ ] 12. Implement infrastructure layer - file storage
+
 - [ ] 12.1 Create FilePathResolver utility
   - Implement resolveCalculationPath() for S3 and local paths
   - Implement resolveQualityPath() for S3 and local paths
