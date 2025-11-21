@@ -7,6 +7,15 @@ import java.math.BigDecimal;
 /**
  * Concentration indices for risk assessment
  * Immutable value object containing Herfindahl-Hirschman indices for different dimensions
+ * 
+ * <p><strong>Aggregate-Specific Value Object:</strong> This value object is exclusively used by the
+ * {@link GeneratedReport} aggregate to represent concentration risk metrics specific to report
+ * generation. It encapsulates the Herfindahl-Hirschman Index (HHI) calculations for geographic
+ * and sector dimensions. Following DDD principles, it is co-located with its aggregate in the
+ * generation package to maintain high cohesion.</p>
+ * 
+ * @see GeneratedReport
+ * @see com.bcbs239.regtech.reportgeneration.domain.generation
  */
 public record ConcentrationIndices(
     @NonNull BigDecimal geographicHerfindahl,

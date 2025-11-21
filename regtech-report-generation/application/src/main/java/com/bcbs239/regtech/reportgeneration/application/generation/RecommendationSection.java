@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.reportgeneration.application.recommendations;
+package com.bcbs239.regtech.reportgeneration.application.generation;
 
 import lombok.Builder;
 import lombok.Getter;

@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.reportgeneration.application.recommendations;
+package com.bcbs239.regtech.reportgeneration.application.generation;
 
 import com.bcbs239.regtech.reportgeneration.domain.generation.QualityResults;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension;

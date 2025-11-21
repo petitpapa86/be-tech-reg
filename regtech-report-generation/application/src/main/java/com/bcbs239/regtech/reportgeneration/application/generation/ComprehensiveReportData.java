@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.reportgeneration.application.aggregation;
+package com.bcbs239.regtech.reportgeneration.application.generation;
 
 import com.bcbs239.regtech.reportgeneration.domain.generation.CalculationResults;
 import com.bcbs239.regtech.reportgeneration.domain.generation.QualityResults;

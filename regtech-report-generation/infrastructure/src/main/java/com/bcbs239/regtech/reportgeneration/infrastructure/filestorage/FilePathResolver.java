@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.reportgeneration.application.aggregation;
+package com.bcbs239.regtech.reportgeneration.infrastructure.filestorage;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

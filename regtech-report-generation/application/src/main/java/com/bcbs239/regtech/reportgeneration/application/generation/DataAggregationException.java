@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.reportgeneration.application.aggregation;
+package com.bcbs239.regtech.reportgeneration.application.generation;
 
 /**
  * Exception thrown when data aggregation fails

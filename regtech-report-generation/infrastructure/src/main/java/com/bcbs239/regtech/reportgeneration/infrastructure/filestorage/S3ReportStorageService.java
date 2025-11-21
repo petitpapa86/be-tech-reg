@@ -3,6 +3,7 @@ package com.bcbs239.regtech.reportgeneration.infrastructure.filestorage;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.FileSize;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.PresignedUrl;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.S3Uri;
+import com.bcbs239.regtech.reportgeneration.domain.storage.IReportStorageService;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,7 @@ import java.util.Map;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class S3ReportStorageService {
+public class S3ReportStorageService implements IReportStorageService {
     
     private final CoreS3Service coreS3Service;
 
@@ -60,10 +61,11 @@ public class S3ReportStorageService {
      * @param htmlContent The HTML content to upload
      * @param fileName The file name (e.g., Large_Exposures_12345_2024-11-19.html)
      * @param metadata Additional metadata tags
-     * @return S3UploadResult containing S3 URI, file size, and presigned URL
+     * @return UploadResult containing S3 URI, file size, and presigned URL
      */
     @CircuitBreaker(name = "s3-upload", fallbackMethod = "uploadHtmlToLocalFallback")
-    public S3UploadResult uploadHtmlReport(String htmlContent, String fileName, Map<String, String> metadata) {
+    @Override
+    public UploadResult uploadHtmlReport(String htmlContent, String fileName, Map<String, String> metadata) {
         log.info("Uploading HTML report to S3 [fileName:{},bucket:{}]", fileName, bucketName);
         
         try {
@@ -86,7 +88,7 @@ public class S3ReportStorageService {
 
             log.info("Successfully uploaded HTML report to S3 [fileName:{},size:{},uri:{}]", fileName, FileSize.ofBytes(fileSize).toHumanReadable(), s3Uri);
 
-            return new S3UploadResult(s3Uri, FileSize.ofBytes(fileSize), presignedUrl);
+            return new UploadResult(s3Uri, FileSize.ofBytes(fileSize), presignedUrl);
         } catch (Exception e) {
             log.error("Unexpected error uploading HTML report [fileName:{},error:{}]", fileName, e.getMessage(), e);
             throw new RuntimeException("Failed to upload HTML report to S3", e);
@@ -100,10 +102,11 @@ public class S3ReportStorageService {
      * @param xbrlDocument The XBRL XML document to upload
      * @param fileName The file name (e.g., Large_Exposures_12345_2024-11-19.xbrl)
      * @param metadata Additional metadata tags
-     * @return S3UploadResult containing S3 URI, file size, and presigned URL
+     * @return UploadResult containing S3 URI, file size, and presigned URL
      */
     @CircuitBreaker(name = "s3-upload", fallbackMethod = "uploadXbrlToLocalFallback")
-    public S3UploadResult uploadXbrlReport(Document xbrlDocument, String fileName, Map<String, String> metadata) {
+    @Override
+    public UploadResult uploadXbrlReport(Document xbrlDocument, String fileName, Map<String, String> metadata) {
         log.info("Uploading XBRL report to S3 [fileName:{},bucket:{}]", fileName, bucketName);
         
         try {
@@ -125,7 +128,7 @@ public class S3ReportStorageService {
 
             log.info("Successfully uploaded XBRL report to S3 [fileName:{},size:{},uri:{}]", fileName, FileSize.ofBytes(fileSize).toHumanReadable(), s3Uri);
 
-            return new S3UploadResult(s3Uri, FileSize.ofBytes(fileSize), presignedUrl);
+            return new UploadResult(s3Uri, FileSize.ofBytes(fileSize), presignedUrl);
         } catch (Exception e) {
             log.error("Unexpected error uploading XBRL report [fileName:{},error:{}]", fileName, e.getMessage(), e);
             throw new RuntimeException("Failed to upload XBRL report to S3", e);
@@ -136,7 +139,7 @@ public class S3ReportStorageService {
      * Fallback method for HTML upload when circuit breaker is open.
      * Saves file to local filesystem for deferred upload.
      */
-    private S3UploadResult uploadHtmlToLocalFallback(String htmlContent, String fileName, 
+    private UploadResult uploadHtmlToLocalFallback(String htmlContent, String fileName, 
                                                      Map<String, String> metadata, Exception ex) {
         log.warn("Circuit breaker OPEN - falling back to local storage for HTML [fileName:{},error:{}]", 
                 fileName, ex.getMessage());
@@ -148,7 +151,7 @@ public class S3ReportStorageService {
      * Fallback method for XBRL upload when circuit breaker is open.
      * Saves file to local filesystem for deferred upload.
      */
-    private S3UploadResult uploadXbrlToLocalFallback(Document xbrlDocument, String fileName, 
+    private UploadResult uploadXbrlToLocalFallback(Document xbrlDocument, String fileName, 
                                                      Map<String, String> metadata, Exception ex) {
         log.warn("Circuit breaker OPEN - falling back to local storage for XBRL [fileName:{},error:{}]", 
                 fileName, ex.getMessage());
@@ -167,7 +170,7 @@ public class S3ReportStorageService {
      * Common fallback logic to save content to local filesystem.
      * Creates deferred upload directory and saves file for later retry.
      */
-    private S3UploadResult uploadToLocalFallback(String content, String fileName, String type, Exception originalException) {
+    private UploadResult uploadToLocalFallback(String content, String fileName, String type, Exception originalException) {
         try {
             // Create fallback directory if it doesn't exist
             Path fallbackDir = Paths.get(localFallbackPath);
@@ -198,7 +201,7 @@ public class S3ReportStorageService {
                     type.toUpperCase(), fileName, filePath.toAbsolutePath(), 
                     FileSize.ofBytes(fileSize).toHumanReadable());
             
-            return new S3UploadResult(localUri, FileSize.ofBytes(fileSize), presignedUrl);
+            return new UploadResult(localUri, FileSize.ofBytes(fileSize), presignedUrl);
             
         } catch (IOException e) {
             log.error("Failed to save {} report to local fallback [fileName:{},error:{}]", 
@@ -223,8 +226,17 @@ public class S3ReportStorageService {
         return writer.toString();
     }
     
-    /**
-     * Result object containing S3 upload information.
-     */
-    public record S3UploadResult(S3Uri s3Uri, FileSize fileSize, PresignedUrl presignedUrl) {}
+    @Override
+    public String fetchCalculationData(String batchId) {
+        // TODO: Implement fetching calculation data from S3
+        log.warn("fetchCalculationData not yet implemented for batchId: {}", batchId);
+        throw new UnsupportedOperationException("fetchCalculationData not yet implemented");
+    }
+    
+    @Override
+    public String fetchQualityData(String batchId) {
+        // TODO: Implement fetching quality data from S3
+        log.warn("fetchQualityData not yet implemented for batchId: {}", batchId);
+        throw new UnsupportedOperationException("fetchQualityData not yet implemented");
+    }
 }

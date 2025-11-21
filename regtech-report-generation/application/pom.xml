@@ -24,24 +24,6 @@
 			<artifactId>regtech-core-application</artifactId>
 		</dependency>
 		
-		<!-- Core infrastructure dependency for S3 service -->
-		<dependency>
-			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-core-infrastructure</artifactId>
-		</dependency>
-		
-		<!-- Risk Calculation domain for events -->
-		<dependency>
-			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-risk-calculation-domain</artifactId>
-		</dependency>
-		
-		<!-- Data Quality application for events -->
-		<dependency>
-			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-data-quality-application</artifactId>
-		</dependency>
-		
 		<!-- Spring Boot Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

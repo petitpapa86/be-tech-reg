@@ -11,6 +11,15 @@ import java.util.Optional;
  * Represents a single calculated large exposure with all required data
  * for regulatory reporting including counterparty information, amounts,
  * and compliance status.
+ * 
+ * <p><strong>Aggregate-Specific Value Object:</strong> This value object is tightly coupled to the
+ * {@link GeneratedReport} aggregate and represents concepts specific to report generation behavior.
+ * It is co-located with its aggregate following DDD principles of high cohesion within aggregates.
+ * This value object should remain in the generation package as it is only used within the report
+ * generation context.</p>
+ * 
+ * @see GeneratedReport
+ * @see com.bcbs239.regtech.reportgeneration.domain.generation
  */
 public record CalculatedExposure(
     @NonNull String counterpartyName,

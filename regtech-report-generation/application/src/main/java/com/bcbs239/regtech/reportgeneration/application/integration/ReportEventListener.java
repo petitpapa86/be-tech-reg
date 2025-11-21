@@ -1,15 +1,15 @@
-package com.bcbs239.regtech.reportgeneration.application.events;
+package com.bcbs239.regtech.reportgeneration.application.integration;
 
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
-import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityCompletedEvent;
 import com.bcbs239.regtech.reportgeneration.application.coordination.CalculationEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.QualityEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.ReportCoordinator;
+import com.bcbs239.regtech.reportgeneration.application.integration.events.BatchCalculationCompletedIntegrationEvent;
+import com.bcbs239.regtech.reportgeneration.application.integration.events.BatchQualityCompletedIntegrationEvent;
 import com.bcbs239.regtech.reportgeneration.domain.generation.IGeneratedReportRepository;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportStatus;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationCompletedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -114,16 +114,16 @@ public class ReportEventListener {
     @EventListener
     @Async("reportGenerationExecutor")
     @Transactional
-    public void handleBatchCalculationCompleted(BatchCalculationCompletedEvent event) {
+    public void handleBatchCalculationCompleted(BatchCalculationCompletedIntegrationEvent event) {
         totalCalculationEventsReceived.incrementAndGet();
         
-        String batchId = event.getBatchId().value();
+        String batchId = event.getBatchId();
         
         log.info("batch_calculation_completed_event_received; details={}", Map.of(
                 "batchId", batchId,
-                "bankId", event.getBankId().value(),
-                "resultFileUri", event.getResultFileUri().uri(),
-                "totalExposures", String.valueOf(event.getTotalExposures().count())
+                "bankId", event.getBankId(),
+                "resultFileUri", event.getResultFileUri(),
+                "totalExposures", String.valueOf(event.getTotalExposures())
         ));
         
         try {
@@ -176,16 +176,16 @@ public class ReportEventListener {
     @EventListener
     @Async("reportGenerationExecutor")
     @Transactional
-    public void handleBatchQualityCompleted(BatchQualityCompletedEvent event) {
+    public void handleBatchQualityCompleted(BatchQualityCompletedIntegrationEvent event) {
         totalQualityEventsReceived.incrementAndGet();
         
-        String batchId = event.getBatchId().value();
+        String batchId = event.getBatchId();
         
         log.info("batch_quality_completed_event_received; details={}", Map.of(
                 "batchId", batchId,
-                "bankId", event.getBankId().value(),
-                "resultFileUri", event.getS3Reference().uri(),
-                "overallScore", String.valueOf(event.getQualityScores().overallScore())
+                "bankId", event.getBankId(),
+                "resultFileUri", event.getS3ReferenceUri(),
+                "overallScore", String.valueOf(event.getOverallScore())
         ));
         
         try {
@@ -230,7 +230,7 @@ public class ReportEventListener {
      * @param event the event to validate
      * @return true if should process, false otherwise
      */
-    private boolean shouldProcessCalculationEvent(BatchCalculationCompletedEvent event) {
+    private boolean shouldProcessCalculationEvent(BatchCalculationCompletedIntegrationEvent event) {
         if (event == null) {
             log.info("batch_calculation_event_invalid; details={}", Map.of(
                     "reason", "null_event"
@@ -238,16 +238,16 @@ public class ReportEventListener {
             return false;
         }
         
-        if (event.getBatchId() == null || event.getBatchId().value() == null || event.getBatchId().value().trim().isEmpty()) {
+        if (event.getBatchId() == null || event.getBatchId().trim().isEmpty()) {
             log.info("batch_calculation_event_invalid; details={}", Map.of(
                     "reason", "null_or_empty_batch_id"
             ));
             return false;
         }
         
-        String batchId = event.getBatchId().value();
+        String batchId = event.getBatchId();
         
-        if (event.getBankId() == null || event.getBankId().value() == null || event.getBankId().value().trim().isEmpty()) {
+        if (event.getBankId() == null || event.getBankId().trim().isEmpty()) {
             log.info("batch_calculation_event_invalid; details={}", Map.of(
                     "batchId", batchId,
                     "reason", "null_or_empty_bank_id"
@@ -255,7 +255,7 @@ public class ReportEventListener {
             return false;
         }
         
-        if (event.getResultFileUri() == null || event.getResultFileUri().uri() == null || event.getResultFileUri().uri().trim().isEmpty()) {
+        if (event.getResultFileUri() == null || event.getResultFileUri().trim().isEmpty()) {
             log.info("batch_calculation_event_invalid; details={}", Map.of(
                     "batchId", batchId,
                     "reason", "null_or_empty_result_file_uri"
@@ -291,7 +291,7 @@ public class ReportEventListener {
      * @param event the event to validate
      * @return true if should process, false otherwise
      */
-    private boolean shouldProcessQualityEvent(BatchQualityCompletedEvent event) {
+    private boolean shouldProcessQualityEvent(BatchQualityCompletedIntegrationEvent event) {
         if (event == null) {
             log.info("batch_quality_event_invalid; details={}", Map.of(
                     "reason", "null_event"
@@ -299,16 +299,16 @@ public class ReportEventListener {
             return false;
         }
         
-        if (event.getBatchId() == null || event.getBatchId().value() == null || event.getBatchId().value().trim().isEmpty()) {
+        if (event.getBatchId() == null || event.getBatchId().trim().isEmpty()) {
             log.info("batch_quality_event_invalid; details={}", Map.of(
                     "reason", "null_or_empty_batch_id"
             ));
             return false;
         }
         
-        String batchId = event.getBatchId().value();
+        String batchId = event.getBatchId();
         
-        if (event.getBankId() == null || event.getBankId().value() == null || event.getBankId().value().trim().isEmpty()) {
+        if (event.getBankId() == null || event.getBankId().trim().isEmpty()) {
             log.info("batch_quality_event_invalid; details={}", Map.of(
                     "batchId", batchId,
                     "reason", "null_or_empty_bank_id"
@@ -316,7 +316,7 @@ public class ReportEventListener {
             return false;
         }
         
-        if (event.getS3Reference() == null || event.getS3Reference().uri() == null || event.getS3Reference().uri().trim().isEmpty()) {
+        if (event.getS3ReferenceUri() == null || event.getS3ReferenceUri().trim().isEmpty()) {
             log.info("batch_quality_event_invalid; details={}", Map.of(
                     "batchId", batchId,
                     "reason", "null_or_empty_s3_reference"
@@ -324,10 +324,10 @@ public class ReportEventListener {
             return false;
         }
         
-        if (event.getQualityScores() == null) {
+        if (event.getOverallScore() == null) {
             log.info("batch_quality_event_invalid; details={}", Map.of(
                     "batchId", batchId,
-                    "reason", "null_quality_scores"
+                    "reason", "null_overall_score"
             ));
             return false;
         }
@@ -414,13 +414,13 @@ public class ReportEventListener {
      * @param event the external event
      * @return the internal DTO
      */
-    private CalculationEventData mapToCalculationEventData(BatchCalculationCompletedEvent event) {
+    private CalculationEventData mapToCalculationEventData(BatchCalculationCompletedIntegrationEvent event) {
         return new CalculationEventData(
-            event.getBatchId().value(),
-            event.getBankId().value(),
-            event.getResultFileUri().uri(),
-            event.getTotalExposures().count(),
-            event.getTotalAmountEur().value(),
+            event.getBatchId(),
+            event.getBankId(),
+            event.getResultFileUri(),
+            event.getTotalExposures(),
+            event.getTotalAmountEur(),
             event.getCompletedAt()
         );
     }
@@ -432,13 +432,13 @@ public class ReportEventListener {
      * @param event the external event
      * @return the internal DTO
      */
-    private QualityEventData mapToQualityEventData(BatchQualityCompletedEvent event) {
+    private QualityEventData mapToQualityEventData(BatchQualityCompletedIntegrationEvent event) {
         return new QualityEventData(
-            event.getBatchId().value(),
-            event.getBankId().value(),
-            event.getS3Reference().uri(),
-            BigDecimal.valueOf(event.getQualityScores().overallScore()),
-            event.getQualityScores().grade().name(),
+            event.getBatchId(),
+            event.getBankId(),
+            event.getS3ReferenceUri(),
+            event.getOverallScore(),
+            event.getQualityGrade(),
             event.getTimestamp()
         );
     }
@@ -513,10 +513,10 @@ public class ReportEventListener {
      */
     private String extractBatchId(Object event) {
         try {
-            if (event instanceof BatchCalculationCompletedEvent) {
-                return ((BatchCalculationCompletedEvent) event).getBatchId().value();
-            } else if (event instanceof BatchQualityCompletedEvent) {
-                return ((BatchQualityCompletedEvent) event).getBatchId().value();
+            if (event instanceof BatchCalculationCompletedIntegrationEvent) {
+                return ((BatchCalculationCompletedIntegrationEvent) event).getBatchId();
+            } else if (event instanceof BatchQualityCompletedIntegrationEvent) {
+                return ((BatchQualityCompletedIntegrationEvent) event).getBatchId();
             }
         } catch (Exception e) {
             log.warn("Failed to extract batchId from event", e);

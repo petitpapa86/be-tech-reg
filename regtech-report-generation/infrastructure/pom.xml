@@ -12,10 +12,10 @@
 	<description>Infrastructure layer for Report Generation module</description>
 	
 	<dependencies>
-		<!-- Application layer dependency -->
+		<!-- Domain layer dependency -->
 		<dependency>
 			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-report-generation-application</artifactId>
+			<artifactId>regtech-report-generation-domain</artifactId>
 		</dependency>
 		
 		<!-- Core infrastructure dependency -->

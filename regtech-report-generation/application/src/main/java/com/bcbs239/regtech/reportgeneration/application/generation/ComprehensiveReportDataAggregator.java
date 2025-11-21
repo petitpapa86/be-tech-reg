@@ -1,8 +1,8 @@
-package com.bcbs239.regtech.reportgeneration.application.aggregation;
+package com.bcbs239.regtech.reportgeneration.application.generation;
 
-import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 import com.bcbs239.regtech.reportgeneration.application.coordination.CalculationEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.QualityEventData;
+import com.bcbs239.regtech.reportgeneration.domain.storage.IReportStorageService;
 import com.bcbs239.regtech.reportgeneration.domain.generation.CalculatedExposure;
 import com.bcbs239.regtech.reportgeneration.domain.generation.CalculationResults;
 import com.bcbs239.regtech.reportgeneration.domain.generation.ConcentrationIndices;
@@ -22,17 +22,8 @@ import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
-import software.amazon.awssdk.services.s3.model.S3Exception;
 
-import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -55,8 +46,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ComprehensiveReportDataAggregator {
     
-    private final CoreS3Service coreS3Service;
-    private final FilePathResolver filePathResolver;
+    private final IReportStorageService reportStorageService;
     private final ObjectMapper objectMapper;
     private final MeterRegistry meterRegistry;
     
@@ -131,8 +121,7 @@ public class ComprehensiveReportDataAggregator {
         try {
             log.debug("Fetching calculation data for batch: {}", event.getBatchId());
             
-            String filePath = filePathResolver.resolveCalculationPath(event.getBatchId());
-            String jsonContent = fetchFileContent(filePath);
+            String jsonContent = reportStorageService.fetchCalculationData(event.getBatchId());
             
             // Parse JSON and map to domain object
             CalculationResults results = mapCalculationJson(jsonContent, event);
@@ -171,8 +160,7 @@ public class ComprehensiveReportDataAggregator {
         try {
             log.debug("Fetching quality data for batch: {}", event.getBatchId());
             
-            String filePath = filePathResolver.resolveQualityPath(event.getBatchId());
-            String jsonContent = fetchFileContent(filePath);
+            String jsonContent = reportStorageService.fetchQualityData(event.getBatchId());
             
             // Parse JSON and map to domain object
             QualityResults results = mapQualityJson(jsonContent, event);
@@ -197,102 +185,6 @@ public class ComprehensiveReportDataAggregator {
         } finally {
             sample.stop(Timer.builder("report.data.quality.fetch.duration")
                 .register(meterRegistry));
-        }
-    }
-    
-    /**
-     * Fetch file content from S3 or local filesystem
-     * 
-     * Requirements: 3.5, 3.6, 3.7
-     */
-    public String fetchFileContent(String filePath) throws IOException {
-        Timer.Sample sample = Timer.start(meterRegistry);
-        
-        try {
-            if (filePath.startsWith("s3://")) {
-                return fetchFromS3(filePath);
-            } else {
-                return fetchFromLocalFilesystem(filePath);
-            }
-        } finally {
-            sample.stop(Timer.builder("report.data.file.fetch.duration")
-                .tag("storage_type", filePath.startsWith("s3://") ? "s3" : "local")
-                .register(meterRegistry));
-        }
-    }
-    
-    /**
-     * Fetch file content from S3
-     */
-    private String fetchFromS3(String s3Uri) throws IOException {
-        log.debug("Fetching file from S3: {}", s3Uri);
-        
-        try {
-            FilePathResolver.S3Location location = FilePathResolver.parseS3Uri(s3Uri);
-            
-            // Set timeout for S3 operation
-            long startTime = System.currentTimeMillis();
-            
-            ResponseInputStream<GetObjectResponse> response = 
-                coreS3Service.getObjectStream(location.bucket(), location.key());
-            
-            // Check timeout
-            long elapsed = System.currentTimeMillis() - startTime;
-            if (elapsed > FILE_DOWNLOAD_TIMEOUT_MS) {
-                throw new IOException("S3 download timeout exceeded: " + elapsed + "ms");
-            }
-            
-            String content = new String(response.readAllBytes(), StandardCharsets.UTF_8);
-            
-            log.debug("Successfully fetched {} bytes from S3: {}", content.length(), s3Uri);
-            
-            meterRegistry.counter("report.data.s3.fetch.success").increment();
-            meterRegistry.summary("report.data.s3.fetch.bytes").record(content.length());
-            
-            return content;
-            
-        } catch (NoSuchKeyException e) {
-            log.error("File not found in S3: {}", s3Uri);
-            meterRegistry.counter("report.data.s3.fetch.not_found").increment();
-            throw new IOException("File not found in S3: " + s3Uri, e);
-            
-        } catch (S3Exception e) {
-            log.error("S3 error fetching file: {}", s3Uri, e);
-            meterRegistry.counter("report.data.s3.fetch.error",
-                "error_code", String.valueOf(e.statusCode())).increment();
-            throw new IOException("S3 error fetching file: " + s3Uri, e);
-        }
-    }
-    
-    /**
-     * Fetch file content from local filesystem
-     */
-    private String fetchFromLocalFilesystem(String filePath) throws IOException {
-        log.debug("Fetching file from local filesystem: {}", filePath);
-        
-        try {
-            Path path = Paths.get(filePath);
-            
-            if (!Files.exists(path)) {
-                log.error("File not found on local filesystem: {}", filePath);
-                meterRegistry.counter("report.data.local.fetch.not_found").increment();
-                throw new IOException("File not found: " + filePath);
-            }
-            
-            String content = Files.readString(path, StandardCharsets.UTF_8);
-            
-            log.debug("Successfully fetched {} bytes from local filesystem: {}", 
-                content.length(), filePath);
-            
-            meterRegistry.counter("report.data.local.fetch.success").increment();
-            meterRegistry.summary("report.data.local.fetch.bytes").record(content.length());
-            
-            return content;
-            
-        } catch (IOException e) {
-            log.error("Error reading file from local filesystem: {}", filePath, e);
-            meterRegistry.counter("report.data.local.fetch.error").increment();
-            throw e;
         }
     }
     
