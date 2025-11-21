@@ -203,11 +203,18 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             ReportMetadata metadata = new ReportMetadata(
                 BatchId.of(reportData.getBatchId()),
                 BankId.of(reportData.getBankId()),
-                ReportingDate.of(reportData.getReportingDate())
+                reportData.getBankName(),
+                ReportingDate.of(reportData.getReportingDate()),
+                Instant.now()
             );
             
-            // Generate HTML using domain service
-            String htmlContent = htmlGenerator.generate(reportData.getCalculationResults(), metadata);
+            // Generate comprehensive HTML with both calculation and quality data
+            String htmlContent = htmlGenerator.generateComprehensive(
+                reportData.getCalculationResults(),
+                reportData.getQualityResults(),
+                recommendations,
+                metadata
+            );
             
             // Prepare file name
             String fileName = String.format("Comprehensive_Risk_Analysis_%s_%s.html",
@@ -257,7 +264,9 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             ReportMetadata metadata = new ReportMetadata(
                 calculationResults.batchId(),
                 calculationResults.bankId(),
-                calculationResults.reportingDate()
+                calculationResults.bankName(),
+                calculationResults.reportingDate(),
+                Instant.now()
             );
             
             // Generate XBRL using domain service

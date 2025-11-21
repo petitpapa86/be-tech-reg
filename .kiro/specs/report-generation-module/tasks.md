@@ -241,15 +241,17 @@
   - Implement all query methods
   - _Requirements: 13.1, 13.4_
 
-- [ ] 12. Implement infrastructure layer - file storage
+- [x] 12. Implement infrastructure layer - file storage
 
-- [ ] 12.1 Create FilePathResolver utility
+- [x] 12.1 Create FilePathResolver utility
+
   - Implement resolveCalculationPath() for S3 and local paths
   - Implement resolveQualityPath() for S3 and local paths
   - Implement isProd() environment detection
   - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 12.2 Create S3ReportStorageService
+
+- [x] 12.2 Create S3ReportStorageService
   - Implement uploadHtmlReport() with encryption and metadata
   - Implement uploadXbrlReport() with encryption and metadata
   - Implement generatePresignedUrl() with 1-hour expiration
@@ -257,19 +259,30 @@
   - Implement uploadToLocalFallback() method
   - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 22.1, 22.2_
 
-- [ ] 12.3 Create LocalFileStorageService for fallback
+
+- [x] 12.3 Create LocalFileStorageService for fallback
+
+
   - Implement saveToLocal() for deferred uploads
   - Implement scheduled retry job for deferred uploads
   - _Requirements: 12.5, 20.1_
 
-- [ ] 13. Implement infrastructure layer - HTML generation
-- [ ] 13.1 Create Thymeleaf configuration
+- [x] 13. Implement infrastructure layer - HTML generation
+
+
+
+
+- [x] 13.1 Create Thymeleaf configuration
+
+
   - Configure ThymeleafConfiguration bean
   - Set template resolver for classpath:/templates/reports/
   - Enable caching in production, disable in development
   - _Requirements: 6.1_
 
-- [ ] 13.2 Create comprehensive HTML template
+- [x] 13.2 Create comprehensive HTML template
+
+
   - Create comprehensive-report.html template
   - Implement header section with bank info and quality badge
   - Implement Large Exposures section with summary cards
@@ -284,7 +297,9 @@
   - Apply Tailwind CSS styling
   - _Requirements: 5.3, 5.4, 6.1, 6.2, 6.3, 6.4, 6.5, 7.1, 7.2, 7.3, 7.4, 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 13.3 Create HtmlReportGeneratorImpl
+- [x] 13.3 Create HtmlReportGeneratorImpl
+
+
   - Implement HtmlReportGenerator interface
   - Create ComprehensiveReportContext with all data
   - Process template with Thymeleaf
@@ -292,6 +307,7 @@
   - _Requirements: 5.3, 6.1_
 
 - [ ] 14. Implement infrastructure layer - XBRL generation
+
 - [ ] 14.1 Create XbrlReportGeneratorImpl
   - Implement XbrlReportGenerator interface
   - Create XML document with EBA COREP namespaces

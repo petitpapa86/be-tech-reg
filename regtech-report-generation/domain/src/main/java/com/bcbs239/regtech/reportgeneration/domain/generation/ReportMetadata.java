@@ -5,6 +5,8 @@ import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportingDate;
 import lombok.NonNull;
 
+import java.time.Instant;
+
 /**
  * Report Metadata value object
  * 
@@ -14,7 +16,9 @@ import lombok.NonNull;
 public record ReportMetadata(
     @NonNull BatchId batchId,
     @NonNull BankId bankId,
-    @NonNull ReportingDate reportingDate
+    @NonNull String bankName,
+    @NonNull ReportingDate reportingDate,
+    @NonNull Instant generatedAt
 ) {
     
     /**
@@ -27,19 +31,41 @@ public record ReportMetadata(
         if (bankId == null) {
             throw new IllegalArgumentException("Bank ID cannot be null");
         }
+        if (bankName == null || bankName.isBlank()) {
+            throw new IllegalArgumentException("Bank name cannot be null or blank");
+        }
         if (reportingDate == null) {
             throw new IllegalArgumentException("Reporting date cannot be null");
+        }
+        if (generatedAt == null) {
+            throw new IllegalArgumentException("Generated at timestamp cannot be null");
         }
     }
     
     /**
-     * Create report metadata from raw values
+     * Create report metadata from raw values with current timestamp
      */
-    public static ReportMetadata create(String batchId, String bankId, String reportingDate) {
+    public static ReportMetadata create(String batchId, String bankId, String bankName, String reportingDate) {
         return new ReportMetadata(
             new BatchId(batchId),
             new BankId(bankId),
-            ReportingDate.fromString(reportingDate)
+            bankName,
+            ReportingDate.fromString(reportingDate),
+            Instant.now()
+        );
+    }
+    
+    /**
+     * Create report metadata with explicit timestamp
+     */
+    public static ReportMetadata create(String batchId, String bankId, String bankName, 
+                                       String reportingDate, Instant generatedAt) {
+        return new ReportMetadata(
+            new BatchId(batchId),
+            new BankId(bankId),
+            bankName,
+            ReportingDate.fromString(reportingDate),
+            generatedAt
         );
     }
 }

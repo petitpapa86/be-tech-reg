@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.reportgeneration.domain.generation;
 
+import java.util.List;
+
 /**
  * Domain service interface for generating HTML reports
  * 
@@ -9,7 +11,7 @@ package com.bcbs239.regtech.reportgeneration.domain.generation;
  * This is a domain service interface that will be implemented in the
  * infrastructure layer using Thymeleaf template engine.
  * 
- * Requirements: 5.1
+ * Requirements: 5.1, 5.3, 6.1
  */
 public interface HtmlReportGenerator {
     
@@ -33,4 +35,27 @@ public interface HtmlReportGenerator {
      * @throws HtmlGenerationException if HTML generation fails
      */
     String generate(CalculationResults results, ReportMetadata metadata);
+    
+    /**
+     * Generate a comprehensive HTML report with both calculation and quality data
+     * 
+     * The generated HTML includes all sections from generate() plus:
+     * - Data Quality Assessment section with dimension scores
+     * - Error distribution visualization
+     * - BCBS 239 compliance indicators
+     * - Quality recommendations (contextual guidance)
+     * 
+     * @param calculationResults the calculation results containing exposure data
+     * @param qualityResults the quality validation results
+     * @param recommendations the quality recommendations
+     * @param metadata the report metadata (bank ID, reporting date, etc.)
+     * @return the generated HTML content as a string
+     * @throws HtmlGenerationException if HTML generation fails
+     */
+    String generateComprehensive(
+        CalculationResults calculationResults,
+        QualityResults qualityResults,
+        List<RecommendationSection> recommendations,
+        ReportMetadata metadata
+    );
 }

@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.reportgeneration.application.generation;
 
 import com.bcbs239.regtech.reportgeneration.domain.generation.QualityResults;
+import com.bcbs239.regtech.reportgeneration.domain.generation.RecommendationSection;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
