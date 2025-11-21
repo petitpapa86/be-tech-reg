@@ -117,9 +117,9 @@ public class GeneratedReportEntity {
         }
         
         // Map failure reason if present
-        report.getFailureReason().ifPresent(reason -> 
-            entity.setFailureReason(reason.message())
-        );
+        if (report.getFailureReason() != null) {
+            entity.setFailureReason(report.getFailureReason().message());
+        }
         
         return entity;
     }

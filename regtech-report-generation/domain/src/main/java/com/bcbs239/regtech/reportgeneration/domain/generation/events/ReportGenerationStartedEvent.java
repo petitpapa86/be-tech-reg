@@ -11,6 +11,8 @@ import java.time.Instant;
 /**
  * Domain event raised when report generation starts
  * Signals the beginning of the report generation process
+ * 
+ * Requirements: 14.1
  */
 @Getter
 public class ReportGenerationStartedEvent extends DomainEvent {

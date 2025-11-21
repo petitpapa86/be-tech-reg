@@ -172,9 +172,17 @@ public class GeneratedReport extends Entity {
                 this.reportId,
                 this.batchId,
                 this.bankId,
+                this.reportType,
                 this.reportingDate,
+                this.htmlMetadata.s3Uri(),
+                this.xbrlMetadata.s3Uri(),
                 this.htmlMetadata.presignedUrl(),
                 this.xbrlMetadata.presignedUrl(),
+                this.htmlMetadata.fileSize(),
+                this.xbrlMetadata.fileSize(),
+                this.overallQualityScore,
+                this.complianceStatus,
+                this.timestamps.getGenerationDuration(),
                 Instant.now()
         ));
     }
@@ -197,9 +205,17 @@ public class GeneratedReport extends Entity {
                 this.reportId,
                 this.batchId,
                 this.bankId,
+                this.reportType,
                 this.reportingDate,
+                this.htmlMetadata != null ? this.htmlMetadata.s3Uri() : null,
+                this.xbrlMetadata != null ? this.xbrlMetadata.s3Uri() : null,
                 this.htmlMetadata != null ? this.htmlMetadata.presignedUrl() : null,
                 this.xbrlMetadata != null ? this.xbrlMetadata.presignedUrl() : null,
+                this.htmlMetadata != null ? this.htmlMetadata.fileSize() : null,
+                this.xbrlMetadata != null ? this.xbrlMetadata.fileSize() : null,
+                this.overallQualityScore,
+                this.complianceStatus,
+                this.timestamps.getGenerationDuration(),
                 Instant.now()
         ));
     }
@@ -218,7 +234,9 @@ public class GeneratedReport extends Entity {
         // Raise domain event
         addDomainEvent(new ReportGenerationFailedEvent(
                 this.batchId.value(), // Use batchId as correlation ID
+                this.reportId,
                 this.batchId,
+                this.bankId,
                 reason,
                 Instant.now()
         ));

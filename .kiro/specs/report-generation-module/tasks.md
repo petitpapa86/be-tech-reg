@@ -111,21 +111,32 @@
   - Trigger ComprehensiveReportOrchestrator when both events present
   - _Requirements: 1.4, 1.5, 5.1_
 
-- [ ] 6. Implement domain layer - repository interfaces
-- [ ] 6.1 Create IGeneratedReportRepository interface
+- [x] 6. Implement domain layer - repository interfaces
+
+
+
+
+
+- [x] 6.1 Create IGeneratedReportRepository interface
+
+
   - Define findByBatchId() method
   - Define findByReportId() method
   - Define save() method
   - Define existsByBatchId() and existsByBatchIdAndStatus() methods
   - _Requirements: 13.1, 23.2_
 
-- [ ] 6.2 Create domain events
+
+- [x] 6.2 Create domain events
+
   - Implement ReportGenerationStartedEvent
   - Implement ReportGeneratedEvent with all metadata fields
   - Implement ReportGenerationFailedEvent
   - _Requirements: 14.1, 15.1, 15.2_
 
-- [ ] 7. Implement application layer - event listeners
+- [-] 7. Implement application layer - event listeners
+
+
 - [ ] 7.1 Create ReportEventListener
   - Implement @EventListener for BatchCalculationCompletedEvent
   - Implement @EventListener for BatchQualityCompletedEvent

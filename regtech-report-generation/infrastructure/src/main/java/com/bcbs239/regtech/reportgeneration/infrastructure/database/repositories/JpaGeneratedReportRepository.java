@@ -4,6 +4,7 @@ import com.bcbs239.regtech.reportgeneration.domain.generation.GeneratedReport;
 import com.bcbs239.regtech.reportgeneration.domain.generation.IGeneratedReportRepository;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportId;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportStatus;
 import com.bcbs239.regtech.reportgeneration.infrastructure.database.entities.GeneratedReportEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -80,6 +81,18 @@ public class JpaGeneratedReportRepository implements IGeneratedReportRepository 
             
         } catch (Exception e) {
             log.error("Error checking if generated report exists: batchId={}", batchId.value(), e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean existsByBatchIdAndStatus(BatchId batchId, ReportStatus status) {
+        try {
+            return springDataRepository.existsByBatchIdAndStatus(batchId.value(), status);
+            
+        } catch (Exception e) {
+            log.error("Error checking if generated report exists with status: batchId={}, status={}", 
+                    batchId.value(), status, e);
             return false;
         }
     }

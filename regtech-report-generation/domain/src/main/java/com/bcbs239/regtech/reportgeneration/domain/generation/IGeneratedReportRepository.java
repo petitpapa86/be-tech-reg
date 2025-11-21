@@ -2,6 +2,7 @@ package com.bcbs239.regtech.reportgeneration.domain.generation;
 
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportId;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportStatus;
 
 import java.util.Optional;
 
@@ -41,4 +42,14 @@ public interface IGeneratedReportRepository {
      * @return true if a report exists, false otherwise
      */
     boolean existsByBatchId(BatchId batchId);
+    
+    /**
+     * Check if a report exists for the given batch ID with a specific status
+     * Used for idempotency checks to prevent duplicate report generation
+     * 
+     * @param batchId the batch identifier
+     * @param status the report status to check
+     * @return true if a report exists with the given status, false otherwise
+     */
+    boolean existsByBatchIdAndStatus(BatchId batchId, ReportStatus status);
 }

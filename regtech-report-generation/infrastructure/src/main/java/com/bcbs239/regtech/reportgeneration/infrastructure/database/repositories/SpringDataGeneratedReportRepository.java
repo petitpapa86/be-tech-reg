@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.infrastructure.database.repositories;
 
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportStatus;
 import com.bcbs239.regtech.reportgeneration.infrastructure.database.entities.GeneratedReportEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -29,4 +30,14 @@ public interface SpringDataGeneratedReportRepository extends JpaRepository<Gener
      * @return true if a report exists, false otherwise
      */
     boolean existsByBatchId(String batchId);
+    
+    /**
+     * Check if a report exists for the given batch ID with a specific status
+     * Used for idempotency checks to prevent duplicate report generation
+     * 
+     * @param batchId the batch identifier
+     * @param status the report status to check
+     * @return true if a report exists with the given status, false otherwise
+     */
+    boolean existsByBatchIdAndStatus(String batchId, ReportStatus status);
 }
