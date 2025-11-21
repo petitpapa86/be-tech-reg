@@ -192,9 +192,8 @@ public class GeneratedReportEntity {
             builderClass.getMethod("failureReason", Optional.class).invoke(builder, failureReason);
             
             // Build the aggregate
-            GeneratedReport report = (GeneratedReport) builderClass.getMethod("build").invoke(builder);
-            
-            return report;
+
+            return (GeneratedReport) builderClass.getMethod("build").invoke(builder);
             
         } catch (Exception e) {
             throw new RuntimeException("Failed to convert entity to domain aggregate", e);

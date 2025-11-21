@@ -1,14 +1,18 @@
 package com.bcbs239.regtech.reportgeneration.domain.generation;
 
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.AmountEur;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BankId;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportingDate;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ProcessingTimestamps;
 import lombok.NonNull;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * Calculation Results value object
+ * Calculation Results domain object
  * 
  * Contains the calculation results retrieved from S3 storage, including
  * all large exposures data, capital information, and aggregated metrics.
@@ -16,73 +20,105 @@ import java.util.Map;
  * This data is used as input for both HTML and XBRL report generation.
  */
 public record CalculationResults(
-    @NonNull String batchId,
-    @NonNull String bankId,
-    @NonNull LocalDate reportingDate,
-    @NonNull BigDecimal tier1Capital,
-    @NonNull List<CalculatedExposure> largeExposures,
-    int totalExposuresCount,
-    @NonNull BigDecimal totalExposureAmount,
-    int limitBreachesCount,
-    @NonNull Map<String, BigDecimal> sectorBreakdown,
-    @NonNull Map<String, BigDecimal> geographicBreakdown
+    @NonNull BatchId batchId,
+    @NonNull BankId bankId,
+    @NonNull String bankName,
+    @NonNull ReportingDate reportingDate,
+    @NonNull AmountEur tierOneCapital,
+    int totalExposures,
+    @NonNull AmountEur totalAmount,
+    int limitBreaches,
+    @NonNull List<CalculatedExposure> exposures,
+    @NonNull GeographicBreakdown geographicBreakdown,
+    @NonNull SectorBreakdown sectorBreakdown,
+    @NonNull ConcentrationIndices concentrationIndices,
+    @NonNull ProcessingTimestamps processingTimestamps
 ) {
     
     /**
      * Compact constructor with validation
      */
     public CalculationResults {
-        if (batchId == null || batchId.isBlank()) {
-            throw new IllegalArgumentException("Batch ID cannot be null or blank");
+        if (batchId == null) {
+            throw new IllegalArgumentException("Batch ID cannot be null");
         }
-        if (bankId == null || bankId.isBlank()) {
-            throw new IllegalArgumentException("Bank ID cannot be null or blank");
+        if (bankId == null) {
+            throw new IllegalArgumentException("Bank ID cannot be null");
+        }
+        if (bankName == null || bankName.isBlank()) {
+            throw new IllegalArgumentException("Bank name cannot be null or blank");
         }
         if (reportingDate == null) {
             throw new IllegalArgumentException("Reporting date cannot be null");
         }
-        if (tier1Capital == null || tier1Capital.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Tier 1 capital must be positive");
+        if (tierOneCapital == null) {
+            throw new IllegalArgumentException("Tier 1 capital cannot be null");
         }
-        if (largeExposures == null) {
-            throw new IllegalArgumentException("Large exposures list cannot be null");
+        if (exposures == null) {
+            throw new IllegalArgumentException("Exposures list cannot be null");
         }
-        if (totalExposuresCount < 0) {
+        if (totalExposures < 0) {
             throw new IllegalArgumentException("Total exposures count cannot be negative");
         }
-        if (totalExposureAmount == null || totalExposureAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Total exposure amount cannot be negative");
+        if (totalAmount == null) {
+            throw new IllegalArgumentException("Total amount cannot be null");
         }
-        if (limitBreachesCount < 0) {
+        if (limitBreaches < 0) {
             throw new IllegalArgumentException("Limit breaches count cannot be negative");
-        }
-        if (sectorBreakdown == null) {
-            throw new IllegalArgumentException("Sector breakdown cannot be null");
         }
         if (geographicBreakdown == null) {
             throw new IllegalArgumentException("Geographic breakdown cannot be null");
         }
+        if (sectorBreakdown == null) {
+            throw new IllegalArgumentException("Sector breakdown cannot be null");
+        }
+        if (concentrationIndices == null) {
+            throw new IllegalArgumentException("Concentration indices cannot be null");
+        }
+        if (processingTimestamps == null) {
+            throw new IllegalArgumentException("Processing timestamps cannot be null");
+        }
+    }
+    
+    /**
+     * Get large exposures (≥10% of capital)
+     * As per CRR Article 392, large exposures are those equal to or exceeding 10% of eligible capital
+     */
+    public List<CalculatedExposure> getLargeExposures() {
+        return exposures.stream()
+            .filter(exposure -> exposure.percentageOfCapital().compareTo(new BigDecimal("10")) >= 0)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Get non-compliant exposures (>25% of capital)
+     * As per CRR Article 395, exposures exceeding 25% of eligible capital are non-compliant
+     */
+    public List<CalculatedExposure> getNonCompliantExposures() {
+        return exposures.stream()
+            .filter(exposure -> exposure.percentageOfCapital().compareTo(new BigDecimal("25")) > 0)
+            .collect(Collectors.toList());
     }
     
     /**
      * Check if there are any large exposures
      */
     public boolean hasLargeExposures() {
-        return !largeExposures.isEmpty();
+        return !getLargeExposures().isEmpty();
     }
     
     /**
      * Check if there are any limit breaches
      */
     public boolean hasLimitBreaches() {
-        return limitBreachesCount > 0;
+        return limitBreaches > 0;
     }
     
     /**
      * Get the number of compliant exposures (≤25% of capital)
      */
     public long getCompliantExposuresCount() {
-        return largeExposures.stream()
+        return exposures.stream()
             .filter(CalculatedExposure::compliant)
             .count();
     }
@@ -91,7 +127,7 @@ public record CalculationResults(
      * Get the number of non-compliant exposures (>25% of capital)
      */
     public long getNonCompliantExposuresCount() {
-        return largeExposures.stream()
+        return exposures.stream()
             .filter(exposure -> !exposure.compliant())
             .count();
     }

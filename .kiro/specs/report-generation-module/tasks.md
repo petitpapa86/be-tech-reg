@@ -35,7 +35,12 @@
 
   - _Requirements: 13.4_
 
-- [ ] 2.3 Create enums and status types
+- [x] 2.3 Create enums and status types
+
+
+
+
+
   - Implement ReportType enum (COMPREHENSIVE, LARGE_EXPOSURES, DATA_QUALITY)
   - Implement ReportStatus enum (PENDING, IN_PROGRESS, COMPLETED, PARTIAL, FAILED)
   - Implement ComplianceStatus enum with fromScore() method
@@ -43,8 +48,15 @@
   - Implement QualityGrade enum (A-F)
   - _Requirements: 8.1, 8.2, 13.1_
 
-- [ ] 3. Implement domain layer - calculation and quality results
-- [ ] 3.1 Create CalculationResults domain object
+- [x] 3. Implement domain layer - calculation and quality results
+
+
+
+
+
+
+- [x] 3.1 Create CalculationResults domain object
+
   - Implement CalculationResults with all risk metrics
   - Implement CalculatedExposure value object
   - Implement GeographicBreakdown and SectorBreakdown
@@ -52,7 +64,9 @@
   - Add getLargeExposures() and getNonCompliantExposures() methods
   - _Requirements: 6.1, 6.5, 7.1_
 
-- [ ] 3.2 Create QualityResults domain object
+
+- [x] 3.2 Create QualityResults domain object
+
   - Implement QualityResults with dimension scores
   - Implement ExposureResult and ValidationError inner classes
   - Implement calculateOverallScore() method
@@ -60,8 +74,13 @@
   - Implement getTopErrorTypes() method
   - _Requirements: 8.1, 8.2, 8.3, 9.3_
 
-- [ ] 4. Implement domain layer - GeneratedReport aggregate
-- [ ] 4.1 Create GeneratedReport aggregate root
+- [x] 4. Implement domain layer - GeneratedReport aggregate
+
+
+
+- [x] 4.1 Create GeneratedReport aggregate root
+
+
   - Implement GeneratedReport entity with JPA annotations
   - Implement createComprehensiveReport() factory method
   - Implement markHtmlGenerated() and markXbrlGenerated() methods
