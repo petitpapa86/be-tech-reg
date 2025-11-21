@@ -5,7 +5,9 @@ import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BankId;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ComplianceStatus;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityGrade;
+import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -24,7 +26,9 @@ import java.util.stream.Collectors;
  * This data is used for generating the Data Quality section of comprehensive reports
  * and for generating contextual quality recommendations.
  */
+@Getter
 public class QualityResults {
+    // Getters
     private final BatchId batchId;
     private final BankId bankId;
     private final Instant timestamp;
@@ -91,7 +95,7 @@ public class QualityResults {
         
         for (ExposureResult result : exposureResults) {
             for (ValidationError error : result.getErrors()) {
-                QualityDimension dimension = QualityDimension.valueOf(error.getDimension());
+                QualityDimension dimension = QualityDimension.valueOf(error.dimension());
                 ErrorDimensionSummary summary = distribution.computeIfAbsent(
                     dimension, k -> new ErrorDimensionSummary()
                 );
@@ -121,7 +125,7 @@ public class QualityResults {
         return exposureResults.stream()
             .flatMap(result -> result.getErrors().stream())
             .collect(Collectors.groupingBy(
-                ValidationError::getRuleCode,
+                ValidationError::ruleCode,
                 Collectors.counting()
             ))
             .entrySet().stream()
@@ -129,63 +133,11 @@ public class QualityResults {
             .limit(limit)
             .collect(Collectors.toList());
     }
-    
-    // Getters
-    public BatchId getBatchId() {
-        return batchId;
-    }
-    
-    public BankId getBankId() {
-        return bankId;
-    }
-    
-    public Instant getTimestamp() {
-        return timestamp;
-    }
-    
-    public Integer getTotalExposures() {
-        return totalExposures;
-    }
-    
-    public Integer getValidExposures() {
-        return validExposures;
-    }
-    
-    public Integer getTotalErrors() {
-        return totalErrors;
-    }
-    
-    public Map<QualityDimension, BigDecimal> getDimensionScores() {
-        return dimensionScores;
-    }
-    
-    public List<Object> getBatchErrors() {
-        return batchErrors;
-    }
-    
-    public List<ExposureResult> getExposureResults() {
-        return exposureResults;
-    }
-    
-    public BigDecimal getOverallScore() {
-        return overallScore;
-    }
-    
-    public QualityGrade getOverallGrade() {
-        return overallGrade;
-    }
-    
-    public ComplianceStatus getComplianceStatus() {
-        return complianceStatus;
-    }
-    
-    public AttentionLevel getAttentionLevel() {
-        return attentionLevel;
-    }
-    
+
     /**
      * Inner class representing validation results for a single exposure
      */
+    @Getter
     public static class ExposureResult {
         private final String exposureId;
         private final boolean valid;
@@ -196,62 +148,22 @@ public class QualityResults {
             this.valid = valid;
             this.errors = errors != null ? errors : List.of();
         }
-        
-        public String getExposureId() {
-            return exposureId;
-        }
-        
-        public boolean isValid() {
-            return valid;
-        }
-        
-        public List<ValidationError> getErrors() {
-            return errors;
-        }
+
     }
-    
+
     /**
-     * Inner class representing a validation error
-     */
-    public static class ValidationError {
-        private final String dimension;
-        private final String ruleCode;
-        private final String message;
-        private final String fieldName;
-        private final String severity;
-        
-        public ValidationError(String dimension, String ruleCode, String message, String fieldName, String severity) {
-            this.dimension = dimension;
-            this.ruleCode = ruleCode;
-            this.message = message;
-            this.fieldName = fieldName;
-            this.severity = severity;
-        }
-        
-        public String getDimension() {
-            return dimension;
-        }
-        
-        public String getRuleCode() {
-            return ruleCode;
-        }
-        
-        public String getMessage() {
-            return message;
-        }
-        
-        public String getFieldName() {
-            return fieldName;
-        }
-        
-        public String getSeverity() {
-            return severity;
-        }
+         * Inner class representing a validation error
+         */
+        public record ValidationError(String dimension, String ruleCode, String message, String fieldName,
+                                      String severity) {
+
     }
     
     /**
      * Inner class for error dimension summary
      */
+    @Getter
+    @Setter
     public static class ErrorDimensionSummary {
         private int count;
         private BigDecimal percentage;
@@ -264,18 +176,7 @@ public class QualityResults {
         public void incrementCount() {
             this.count++;
         }
-        
-        public int getCount() {
-            return count;
-        }
-        
-        public BigDecimal getPercentage() {
-            return percentage;
-        }
-        
-        public void setPercentage(BigDecimal percentage) {
-            this.percentage = percentage;
-        }
+
     }
     
     /**

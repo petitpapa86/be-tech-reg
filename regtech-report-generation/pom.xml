@@ -77,6 +77,20 @@
 				<version>${project.version}</version>
 			</dependency>
 			
+			<!-- Risk Calculation module dependencies -->
+			<dependency>
+				<groupId>com.bcbs239</groupId>
+				<artifactId>regtech-risk-calculation-domain</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
+			<!-- Data Quality module dependencies -->
+			<dependency>
+				<groupId>com.bcbs239</groupId>
+				<artifactId>regtech-data-quality-application</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
 			<!-- Jackson for JSON processing -->
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
