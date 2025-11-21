@@ -30,6 +30,12 @@
 			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
 		
+		<!-- Jakarta Annotation API for @PreDestroy -->
+		<dependency>
+			<groupId>jakarta.annotation</groupId>
+			<artifactId>jakarta.annotation-api</artifactId>
+		</dependency>
+		
 		<!-- Spring Boot Validation for command validation -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
