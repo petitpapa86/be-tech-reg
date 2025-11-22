@@ -75,38 +75,54 @@
   - Keep security configuration in root application.yml (shared concern)
   - _Requirements: 1.2, 1.3_
 
-- [ ] 3. Reorganize root application.yml
-- [ ] 3.1 Consolidate shared infrastructure configuration
+- [x] 3. Reorganize root application.yml
+
+
+
+
+
+- [x] 3.1 Consolidate shared infrastructure configuration
+
+
   - Keep only shared configuration in root application.yml
   - Organize into clear sections: Spring, Database, Logging, Metrics, Security, Events
   - Add section comments explaining what belongs in root vs modules
   - _Requirements: 1.1, 1.4, 8.1_
 
-- [ ] 3.2 Consolidate security configuration
+- [x] 3.2 Consolidate security configuration
+
   - Move all security configuration under iam.security section
   - Create centralized public-paths list
   - Add comments documenting why each path is public
   - Include health endpoints from all modules
   - _Requirements: 11.1, 11.2, 11.5_
 
-- [ ] 3.3 Organize Flyway migration locations
+- [x] 3.3 Organize Flyway migration locations
+
   - Configure Flyway to load migrations from all module directories
   - Document migration location pattern
   - _Requirements: 3.2_
 
-- [ ] 3.4 Add profile-specific overrides
+- [x] 3.4 Add profile-specific overrides
+
   - Create development profile section with local storage and reduced thread pools
   - Create production profile section with S3 storage and optimized settings
   - _Requirements: 7.1, 7.2, 7.3_
 
-- [ ] 4. Update configuration properties classes
-- [ ] 4.1 Update IngestionProperties class
+- [-] 4. Update configuration properties classes
+
+
+
+- [x] 4.1 Update IngestionProperties class
+
+
   - Update @ConfigurationProperties prefix to "ingestion"
   - Add nested classes for file, storage, async, performance
   - Add validation annotations (@NotNull, @Min, @Max)
   - _Requirements: 6.2, 6.5, 10.3_
 
-- [ ] 4.2 Update DataQualityProperties class
+- [-] 4.2 Update DataQualityProperties class
+
   - Create or update @ConfigurationProperties class for data-quality module
   - Add nested classes for storage, async, rules-engine
   - Add validation annotations

@@ -1,18 +1,57 @@
+# ============================================================================
+# RegTech Application - Root Configuration
+# ============================================================================
+# This file contains SHARED infrastructure configuration that applies across
+# all modules. Module-specific configuration should be placed in:
+#   - regtech-{module}/infrastructure/src/main/resources/application-{module}.yml
+#
+# Shared Configuration Includes:
+#   - Spring application settings
+#   - Database configuration (datasource, JPA, Flyway)
+#   - Logging configuration
+#   - Metrics and monitoring (Spring Actuator)
+#   - Security configuration (JWT, OAuth2, public paths)
+#   - Event processing (inbox/outbox)
+#
+# Module-Specific Configuration (in separate files):
+#   - Module business logic settings
+#   - Module-specific storage configuration
+#   - Module-specific processing parameters
+#   - Module-specific integrations
+#   - Module-specific performance tuning
+#
+# Requirements: 1.1, 1.4, 8.1
+# ============================================================================
+
+# ============================================================================
+# SPRING APPLICATION SETTINGS
+# ============================================================================
 spring:
   application:
     name: regtech
+  
   main:
     allow-bean-definition-overriding: true
+  
   profiles:
     active: development
+  
   mvc:
     favicon:
       enabled: false
+
+# ============================================================================
+# DATABASE CONFIGURATION
+# ============================================================================
+# Shared database configuration for all modules
+# Requirements: 3.1, 3.4, 3.5
+spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/regtech
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: dracons86
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:dracons86}
+  
   jpa:
     hibernate:
       ddl-auto: update
@@ -27,28 +66,109 @@ spring:
     show-sql: false
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+  
   sql:
     init:
       mode: always
       schema-locations: classpath:schema.sql
+  
+  # Flyway migration configuration (Requirement 3.2)
+  # Loads migrations from all module directories
   flyway:
     enabled: false
+    locations:
+      - classpath:db/migration/common
+      - classpath:db/migration/ingestion
+      - classpath:db/migration/data-quality
+      - classpath:db/migration/risk-calculation
+      - classpath:db/migration/report-generation
+      - classpath:db/migration/billing
+      - classpath:db/migration/iam
+  
   docker:
     compose:
       enabled: false
 
-# IAM Module Configuration
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
+# Shared logging configuration for all modules
+# Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
+logging:
+  # Logback configuration file for structured logging
+  config: classpath:logback-spring.xml
+  
+  # Log levels per module
+  level:
+    # Core framework
+    com.bcbs239.regtech: INFO
+    
+    # Event processing components
+    com.bcbs239.regtech.core.events: INFO
+    com.bcbs239.regtech.core.inbox: INFO
+    com.bcbs239.regtech.core.outbox: INFO
+    
+    # Bounded contexts (modules)
+    com.bcbs239.regtech.iam: INFO
+    com.bcbs239.regtech.billing: INFO
+    com.bcbs239.regtech.modules.ingestion: INFO
+    com.bcbs239.regtech.dataquality: INFO
+    com.bcbs239.regtech.riskcalculation: INFO
+    com.bcbs239.regtech.reportgeneration: INFO
+    
+    # Spring framework
+    org.springframework.security: WARN
+    org.springframework: WARN
+    org.springframework.scheduling: INFO
+    
+    # Database
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  
+  # Console logging pattern
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# ============================================================================
+# METRICS AND MONITORING CONFIGURATION
+# ============================================================================
+# Spring Actuator configuration for health checks and metrics
+# Requirements: 5.1, 5.2, 5.3
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  
+  endpoint:
+    health:
+      show-details: when-authorized
+  
+  health:
+    diskspace:
+      enabled: true
+
+# ============================================================================
+# SECURITY CONFIGURATION
+# ============================================================================
+# Centralized security configuration for all modules
+# Requirements: 11.1, 11.2, 11.5
 iam:
   security:
+    # JWT configuration
     jwt:
-      secret: mySecretKey123456789012345678901234567890123456789012345678901234567890
-      expiration: 86400 # 24 hours in seconds
+      secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890123456789012345678901234567890}
+      expiration: 86400  # 24 hours in seconds
+    
+    # Password policy
     password:
       min-length: 12
       require-uppercase: true
       require-lowercase: true
       require-digits: true
       require-special-chars: true
+    
+    # OAuth2 providers
     oauth2:
       google:
         client-id: ${GOOGLE_CLIENT_ID:}
@@ -56,11 +176,40 @@ iam:
       facebook:
         client-id: ${FACEBOOK_CLIENT_ID:}
         client-secret: ${FACEBOOK_CLIENT_SECRET:}
-
+    
+    # Public paths (no authentication required)
+    # Requirements: 11.2, 11.5
+    # These paths are accessible without a JWT token
+    public-paths:
+      # Public API endpoints
+      - /api/public/**
+      
+      # Authentication endpoints (must be public for login/registration)
+      - /api/auth/login
+      - /api/auth/register
+      - /api/auth/forgot-password
+      - /api/v1/users/register
+      
+      # Health check endpoints (public for monitoring)
+      - /api/health
+      - /actuator/health
+      - /api/v1/ingestion/health
+      - /api/v1/data-quality/health
+      - /api/v1/data-quality/health/**
+      - /api/v1/risk-calculation/health
+      - /api/v1/risk-calculation/health/**
+      - /api/v1/report-generation/health
+      - /api/v1/report-generation/health/**
+      
+      # API documentation endpoints (public for developers)
+      - /swagger-ui/**
+      - /v3/api-docs/**
+  
+  # Authorization settings
   authorization:
     cache:
       enabled: true
-      ttl: 300 # 5 minutes
+      ttl: 300  # 5 minutes
     multi-tenant:
       enabled: true
       default-organization: "default-org"
@@ -68,349 +217,132 @@ iam:
       strict-mode: true
       audit-enabled: true
 
-# Storage configuration (must be at root level for @ConditionalOnProperty)
-storage:
-  type: local # Options: 'local' for filesystem, 's3' for AWS S3 (default: s3)
-
-# Ingestion Module Configuration
-ingestion:
-  enabled: true
-  
-  s3:
-    bucket: regtech-data-storage
-    region: us-east-1
-    prefix: raw/
-    access-key: ${AWS_ACCESS_KEY_ID:}
-    secret-key: ${AWS_SECRET_ACCESS_KEY:}
-    endpoint: ${AWS_S3_ENDPOINT:} # For localstack testing
-  
-  file:
-    max-size: 524288000 # 500MB in bytes
-    supported-types:
-      - application/json
-      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
-  
-  processing:
-    async-enabled: true
-    thread-pool-size: 10
-    queue-capacity: 100
-  
-  performance:
-    max-concurrent-files: 4
-    chunk-size: 10000
-  
-  parser:
-    default-max-records: 10000
-
+# ============================================================================
+# EVENT PROCESSING CONFIGURATION
+# ============================================================================
+# Shared event processing configuration (inbox/outbox pattern)
 regtech:
-  ingestion:
-    compliance:
-      enabled: true
-  
-  bank-registry:
-    base-url: ${BANK_REGISTRY_URL:http://localhost:8081}
-    timeout: 30000 # 30 seconds
-    retry-attempts: 3
-  
+  # Outbox pattern configuration
   outbox:
     enabled: true
-    processing-interval: 30000 # 30 seconds
-    retry-interval: 60000 # 1 minute
+    processing-interval: 30000  # 30 seconds
+    retry-interval: 60000  # 1 minute
     max-retries: 3
-    cleanup-interval: 86400000 # 24 hours
+    cleanup-interval: 86400000  # 24 hours
     cleanup-retention-days: 30
+  
+  # Inbox pattern configuration
   inbox:
-    parallel-processing-enabled: false
-    processing-interval: 10000 # 10 seconds
+    enabled: true
+    processing-interval: 10000  # 10 seconds
     batch-size: 20
-
+    parallel-processing-enabled: false
+  
+  # Event retry configuration
   event:
     retry:
       interval: 60000  # Check every 60 seconds
       batch-size: 10   # Process 10 events per batch
       max-retries: 5   # Maximum retry attempts
       enabled: true    # Enable/disable retry processing
+  
+  # Bank registry service configuration
+  bank-registry:
+    base-url: ${BANK_REGISTRY_URL:http://localhost:8081}
+    timeout: 30000  # 30 seconds
+    retry-attempts: 3
 
-# Billing Module Configuration
-billing:
-  stripe:
-    # Read Stripe credentials from environment in development. Do NOT commit secret keys to source control.
-    apiKey: ${STRIPE_API_KEY:}
-    webhookSecret: ${STRIPE_WEBHOOK_SECRET:}
+# Inbox processing configuration (bound to InboxOptions)
+inbox:
+  poll-interval: 5s  # Poll interval as a Spring Duration
+  batch-size: 10
+  parallel-processing-enabled: false
 
-  tiers:
-    starter:
-      monthlyPrice: 299.99
-      currency: USD
-      exposureLimit: 10000
+# Outbox processing configuration (bound to OutboxOptions)
+outbox:
+  poll-interval: 30s  # Poll interval as a Spring Duration
+  batch-size: 10
+  parallel-processing-enabled: false
 
-  dunning:
-    reminderIntervals:
-      step1: 7
-      step2: 14
-      step3: 21
-    finalActionDelay: 30
+# ============================================================================
+# PROFILE-SPECIFIC OVERRIDES
+# ============================================================================
 
-  invoices:
-    dueDays: 30
-    currency: USD
+---
+# ============================================================================
+# DEVELOPMENT PROFILE
+# ============================================================================
+# Requirements: 7.1, 7.2
+spring:
+  config:
+    activate:
+      on-profile: development
 
-  billingCycle:
-    timezone: America/New_York
-    billingDay: 1
+# Development database settings
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/regtech
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:dracons86}
 
-  outbox:
-    enabled: true
-    processingInterval: 30000
-    retryInterval: 60000
-    maxRetries: 3
-    cleanupInterval: 86400000
-    cleanupRetentionDays: 30
-
-  scheduling:
-    monthlyBilling:
-      enabled: true
-      cron: "0 0 1 * *"
-      timezone: America/New_York
-    dunningProcess:
-      enabled: true
-      cron: "0 0 2 * *"
-      timezone: America/New_York
-      threadPoolSize: 5
-
-  notifications:
-    email:
-      enabled: true
-      templates:
-        payment_reminder: "payment-reminder.html"
-        payment_failed: "payment-failed.html"
-        subscription_cancelled: "subscription-cancelled.html"
-    sms:
-      enabled: false
-    push:
-      enabled: false
-
-# Stripe Configuration (used by StripeService)
-stripe:
-  api:
-    key: ${STRIPE_API_KEY}
-  webhook:
-    secret: ${STRIPE_WEBHOOK_SECRET}
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: when-authorized
-  health:
-    diskspace:
-      enabled: true
-
+# Development logging settings
 logging:
-  # Logback configuration file for structured logging
-  config: classpath:logback-spring.xml
-  # Toggle structured (JSON) logging used by LoggingConfiguration
-  #structured:
-  #  enabled: false
+  level:
+    com.bcbs239.regtech: DEBUG
+    com.bcbs239.regtech.core.events: DEBUG
+    com.bcbs239.regtech.core.inbox: DEBUG
+    com.bcbs239.regtech.core.outbox: DEBUG
+    com.bcbs239.regtech.modules.ingestion: DEBUG
+    com.bcbs239.regtech.dataquality: DEBUG
+    com.bcbs239.regtech.riskcalculation: DEBUG
+    com.bcbs239.regtech.reportgeneration: DEBUG
 
+---
+# ============================================================================
+# PRODUCTION PROFILE
+# ============================================================================
+# Requirements: 7.1, 7.3
+spring:
+  config:
+    activate:
+      on-profile: production
+
+# Production database settings (use environment variables)
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/regtech}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+# Production logging settings
+logging:
   level:
     com.bcbs239.regtech: INFO
-    # Event processing components
     com.bcbs239.regtech.core.events: INFO
     com.bcbs239.regtech.core.inbox: INFO
     com.bcbs239.regtech.core.outbox: INFO
-    # Bounded contexts
-    com.bcbs239.regtech.iam: INFO
-    com.bcbs239.regtech.billing: INFO
-    com.bcbs239.regtech.modules.ingestion: INFO
-    # Spring framework
-    org.springframework.security: WARN
-    org.springframework: WARN
-    org.springframework.scheduling: INFO
-    # Database
-    org.hibernate.SQL: WARN
-    org.hibernate.type.descriptor.sql.BasicBinder: WARN
-
-  # For GCP deployment, set SPRING_PROFILES_ACTIVE=gcp to enable JSON structured logging
-  # This will automatically use the GCP_JSON appender in logback-spring.xml
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
 ---
+# ============================================================================
+# GCP PROFILE (Google Cloud Platform)
+# ============================================================================
+# Enable JSON structured logging for Google Cloud Logging
 spring:
   config:
     activate:
       on-profile: gcp
 
 logging:
-  # GCP profile enables JSON structured logging for Google Cloud Logging
+  # GCP profile enables JSON structured logging
   level:
     com.bcbs239.regtech: INFO
     # Increase verbosity for event processing in GCP
     com.bcbs239.regtech.core.events: DEBUG
     com.bcbs239.regtech.core.inbox: DEBUG
     com.bcbs239.regtech.core.outbox: DEBUG
-    # Ingestion module debugging in GCP
+    # Module debugging in GCP
     com.bcbs239.regtech.modules.ingestion: DEBUG
-
+  
   # Enable structured logging when running in the gcp profile
   structured:
     enabled: true
-
-# Inbox processing configuration (bound to com.bcbs239.regtech.core.application.inbox.InboxOptions)
-inbox:
-  # Poll interval as a Spring Duration. Example: 5s, PT5S
-  poll-interval: 5s
-  # Number of messages processed per run
-  batch-size: 10
-  # Whether to enable parallel processing of messages (not yet implemented in ProcessInboxJob)
-  parallel-processing-enabled: false
-
-# Outbox processing configuration (bound to com.bcbs239.regtech.core.application.eventprocessing.OutboxOptions)
-outbox:
-  # Poll interval as a Spring Duration. Example: 30s
-  poll-interval: 30s
-  # Number of messages processed per run
-  batch-size: 10
-  # Toggle parallel processing (not yet implemented)
-  parallel-processing-enabled: false
-
-# Data Quality Rules Engine Configuration
-regtech:
-  dataquality:
-    rules-engine:
-      enabled: true  # Enable database-driven rules engine
-      cache-enabled: true
-      cache-ttl: 300  # 5 minutes
-      parallel-execution: false  # Execute rules sequentially for now
-    rules-migration:
-      enabled: true  # Run once to populate initial rules, then disable
-
-# Risk Calculation Module Configuration
-risk-calculation:
-  enabled: true
-  
-  # File storage configuration
-  storage:
-    # Use profile-based storage selection (s3 for production, local for development)
-    s3:
-      bucket: regtech-risk-calculations
-      region: us-east-1
-      prefix: calculations/
-      access-key: ${AWS_ACCESS_KEY_ID:}
-      secret-key: ${AWS_SECRET_ACCESS_KEY:}
-      endpoint: ${AWS_S3_ENDPOINT:} # For localstack testing
-      encryption: AES256
-    
-    local:
-      base-path: ./data/risk-calculations
-      create-directories: true
-  
-  # Processing configuration
-  processing:
-    async-enabled: true
-    thread-pool-size: 5
-    queue-capacity: 50
-    timeout-seconds: 300 # 5 minutes
-  
-  # Currency conversion configuration
-  currency:
-    base-currency: EUR
-    cache-enabled: true
-    cache-ttl: 3600 # 1 hour in seconds
-    provider:
-      timeout: 30000 # 30 seconds
-      retry-attempts: 3
-  
-  # Performance settings
-  performance:
-    max-concurrent-calculations: 3
-    streaming-parser-enabled: true
-    memory-threshold-mb: 512
-  
-  # Geographic classification
-  geographic:
-    home-country: IT
-    eu-countries:
-      - AT # Austria
-      - BE # Belgium
-      - BG # Bulgaria
-      - HR # Croatia
-      - CY # Cyprus
-      - CZ # Czech Republic
-      - DK # Denmark
-      - EE # Estonia
-      - FI # Finland
-      - FR # France
-      - DE # Germany
-      - GR # Greece
-      - HU # Hungary
-      - IE # Ireland
-      - IT # Italy
-      - LV # Latvia
-      - LT # Lithuania
-      - LU # Luxembourg
-      - MT # Malta
-      - NL # Netherlands
-      - PL # Poland
-      - PT # Portugal
-      - RO # Romania
-      - SK # Slovakia
-      - SI # Slovenia
-      - ES # Spain
-      - SE # Sweden
-  
-  # Concentration thresholds
-  concentration:
-    high-threshold: 0.25 # HHI > 0.25 is considered high concentration
-    moderate-threshold: 0.15 # HHI between 0.15-0.25 is moderate
-    precision: 4 # Decimal places for HHI calculation
-
----
-# Development profile overrides
-spring:
-  config:
-    activate:
-      on-profile: development
-
-risk-calculation:
-  storage:
-    type: local # Use local filesystem in development
-  
-  processing:
-    thread-pool-size: 2 # Reduced for development
-  
-  currency:
-    provider:
-      # Mock provider for development
-      mock-enabled: true
-
-logging:
-  level:
-    com.bcbs239.regtech.riskcalculation: DEBUG
-
----
-# Production profile overrides
-spring:
-  config:
-    activate:
-      on-profile: production
-
-risk-calculation:
-  storage:
-    type: s3 # Use S3 in production
-  
-  processing:
-    thread-pool-size: 10 # Increased for production
-  
-  currency:
-    provider:
-      # Real exchange rate provider for production
-      mock-enabled: false
-
-logging:
-  level:
-    com.bcbs239.regtech.riskcalculation: INFO
