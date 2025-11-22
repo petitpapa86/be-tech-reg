@@ -8,7 +8,7 @@ The RegTech application consists of multiple bounded contexts (modules) with con
 
 - **RegTech Application**: The main Spring Boot application that orchestrates all modules
 - **Bounded Context**: A DDD concept representing a module with clear boundaries (e.g., ingestion, risk-calculation, report-generation)
-- **Configuration Profile**: Spring Boot profiles (development, production, gcp) that allow environment-specific configuration
+- **Configuration Profile**: Spring Boot profiles (development, production) that allow environment-specific configuration
 - **S3 Storage**: Amazon S3 cloud storage service used by multiple modules for file storage
 - **Module Configuration**: YAML configuration specific to a bounded context/module
 - **Shared Configuration**: Configuration that applies across multiple modules (database, logging, metrics)
@@ -58,7 +58,7 @@ The RegTech application consists of multiple bounded contexts (modules) with con
 #### Acceptance Criteria
 
 1. THE RegTech Application SHALL maintain logging configuration in the root application.yml file
-2. WHEN running in GCP environment THEN the RegTech Application SHALL enable structured JSON logging
+2. WHEN running in production environment THEN the RegTech Application SHALL support structured JSON logging as an option
 3. THE RegTech Application SHALL define log levels per module (ingestion, data-quality, risk-calculation, report-generation, billing, iam)
 4. THE RegTech Application SHALL support different logging patterns for console and file output
 5. THE RegTech Application SHALL reference logback-spring.xml for advanced logging configuration
@@ -93,10 +93,10 @@ The RegTech application consists of multiple bounded contexts (modules) with con
 
 #### Acceptance Criteria
 
-1. THE RegTech Application SHALL support development, production, and gcp profiles
+1. THE RegTech Application SHALL support development and production profiles
 2. WHEN running in development profile THEN the RegTech Application SHALL use local filesystem storage and reduced thread pools
 3. WHEN running in production profile THEN the RegTech Application SHALL use S3 storage and optimized performance settings
-4. WHEN running in gcp profile THEN the RegTech Application SHALL enable JSON structured logging and GCP-specific integrations
+4. THE RegTech Application SHALL support optional structured JSON logging for production deployments
 5. THE RegTech Application SHALL use environment variables for all environment-specific secrets and endpoints
 
 ### Requirement 8: Configuration Documentation
@@ -134,3 +134,39 @@ The RegTech application consists of multiple bounded contexts (modules) with con
 3. THE RegTech Application SHALL validate numeric ranges for properties like thread-pool-size and timeout values
 4. THE RegTech Application SHALL validate file paths and S3 bucket names follow naming conventions
 5. THE RegTech Application SHALL provide configuration validation tests that run in CI/CD pipeline
+
+### Requirement 11: Security Configuration Consolidation
+
+**User Story:** As a security engineer, I want security configuration consolidated and consistently applied, so that authentication and authorization work uniformly across all modules.
+
+#### Acceptance Criteria
+
+1. THE RegTech Application SHALL maintain security configuration in the root application.yml file under an iam.security section
+2. THE RegTech Application SHALL define public paths (paths that do not require authentication) in a centralized configuration list
+3. WHEN a module endpoint requires authentication THEN the RegTech Application SHALL use the SecurityFilter from regtech-iam infrastructure
+4. WHEN a module endpoint requires specific permissions THEN the RegTech Application SHALL declare permissions using RouterAttributes in the route definition
+5. THE RegTech Application SHALL document all public paths with comments explaining why they are public
+
+### Requirement 12: Endpoint Security Consistency
+
+**User Story:** As an API developer, I want a consistent pattern for securing endpoints, so that I can easily understand and apply security to new endpoints.
+
+#### Acceptance Criteria
+
+1. THE RegTech Application SHALL use functional routing (RouterFunction) for all module endpoints
+2. WHEN defining a route THEN the RegTech Application SHALL use RouterAttributes.withAttributes to declare required permissions
+3. WHEN an endpoint requires no authentication THEN the RegTech Application SHALL add its path to the public paths configuration
+4. WHEN an endpoint requires authentication but no specific permissions THEN the RegTech Application SHALL pass null for permissions in RouterAttributes
+5. THE RegTech Application SHALL register all module RouterFunction beans through the RouterConfig in regtech-app
+
+### Requirement 13: Thread Pool and Async Configuration
+
+**User Story:** As a performance engineer, I want thread pool configuration organized per module, so that I can tune async processing independently for each bounded context.
+
+#### Acceptance Criteria
+
+1. WHEN a module uses async processing THEN the RegTech Application SHALL define thread pool configuration in that module's application-{module}.yml file
+2. THE RegTech Application SHALL use consistent property names for thread pool configuration (core-pool-size, max-pool-size, queue-capacity, thread-name-prefix)
+3. THE RegTech Application SHALL configure profile-specific thread pool sizes (smaller for development, larger for production)
+4. THE RegTech Application SHALL document the purpose of each thread pool and what operations it handles
+5. THE RegTech Application SHALL validate thread pool sizes are positive integers at startup
