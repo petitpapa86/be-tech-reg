@@ -211,7 +211,12 @@
 
 
 
-- [ ] 6.3 Create RiskCalculationAsyncConfiguration
+- [x] 6.3 Create RiskCalculationAsyncConfiguration
+
+
+
+
+
   - Create @Configuration class with @EnableAsync
   - Bind to risk-calculation.async properties
   - Create riskCalculationTaskExecutor bean
@@ -220,7 +225,11 @@
 
   - _Requirements: 13.1, 13.2, 13.5_
 
-- [ ] 6.4 Create ReportGenerationAsyncConfiguration
+- [x] 6.4 Create ReportGenerationAsyncConfiguration
+
+
+
+
   - Create @Configuration class with @EnableAsync
   - Bind to report-generation.async properties
   - Create reportGenerationTaskExecutor bean
