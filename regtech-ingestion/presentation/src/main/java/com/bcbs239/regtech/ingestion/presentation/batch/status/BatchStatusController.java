@@ -5,12 +5,14 @@ import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.controllers.BaseController;
+import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusDto;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQuery;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQueryHandler;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
+import com.bcbs239.regtech.ingestion.presentation.constants.Tags;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
@@ -36,12 +38,25 @@ public class BatchStatusController extends BaseController implements IEndpoint {
         this.batchStatusQueryHandler = batchStatusQueryHandler;
     }
     
+    /**
+     * Maps the batch status query endpoints.
+     * Requires authentication and specific permission to view batch status.
+     * 
+     * Requirements: 12.2, 12.3, 12.4
+     */
     @Override
     public RouterFunction<ServerResponse> mapEndpoint() {
-        return route(GET("/api/v1/ingestion/batch/{batchId}/status"), this::handle)
-            .andRoute(POST("/api/v1/ingestion/batch/{batchId}/status"), this::handle)
-            .withAttribute("tags", new String[]{"Status Queries", "Ingestion"})
-            .withAttribute("permissions", new String[]{"ingestion:status:view"});
+        return RouterAttributes.withAttributes(
+            route(GET("/api/v1/ingestion/batch/{batchId}/status"), this::handle),
+            new String[]{"ingestion:status:view"},
+            new String[]{Tags.INGESTION, Tags.STATUS},
+            "Get batch processing status by batch ID"
+        ).and(RouterAttributes.withAttributes(
+            route(POST("/api/v1/ingestion/batch/{batchId}/status"), this::handle),
+            new String[]{"ingestion:status:view"},
+            new String[]{Tags.INGESTION, Tags.STATUS},
+            "Get batch processing status by batch ID (POST method for compatibility)"
+        ));
     }
     
     private ServerResponse handle(ServerRequest request) {

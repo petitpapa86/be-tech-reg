@@ -3,7 +3,9 @@ package com.bcbs239.regtech.ingestion.presentation.compliance.policies;
 
 import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import com.bcbs239.regtech.core.presentation.controllers.BaseController;
+import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
+import com.bcbs239.regtech.ingestion.presentation.constants.Tags;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -33,12 +35,25 @@ public class RetentionPoliciesController extends BaseController implements IEndp
         // Empty constructor for now
     }
     
+    /**
+     * Maps the retention policy management endpoints.
+     * Requires authentication and specific permission to manage compliance policies.
+     * 
+     * Requirements: 12.2, 12.3, 12.4
+     */
     @Override
     public RouterFunction<ServerResponse> mapEndpoint() {
-        return route(GET("/api/v1/ingestion/compliance/retention-policies"), this::getRetentionPolicies)
-            .and(route(PUT("/api/v1/ingestion/compliance/retention-policies/{policyId}"), this::updateRetentionPolicy))
-            .withAttribute("tags", new String[]{"Retention Policies", "Ingestion"})
-            .withAttribute("permissions", new String[]{"ingestion:compliance:manage"});
+        return RouterAttributes.withAttributes(
+            route(GET("/api/v1/ingestion/compliance/retention-policies"), this::getRetentionPolicies),
+            new String[]{"ingestion:compliance:manage"},
+            new String[]{Tags.INGESTION, Tags.COMPLIANCE},
+            "Get all data retention policies"
+        ).and(RouterAttributes.withAttributes(
+            route(PUT("/api/v1/ingestion/compliance/retention-policies/{policyId}"), this::updateRetentionPolicy),
+            new String[]{"ingestion:compliance:manage"},
+            new String[]{Tags.INGESTION, Tags.COMPLIANCE},
+            "Update a specific retention policy"
+        ));
     }
     
     private ServerResponse getRetentionPolicies(ServerRequest request) {

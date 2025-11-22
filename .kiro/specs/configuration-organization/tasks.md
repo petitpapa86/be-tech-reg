@@ -236,33 +236,48 @@
   - Add validation for pool sizes
   - _Requirements: 13.1, 13.2, 13.5_
 
-- [ ] 7. Update module routes to use consistent security pattern
-- [ ] 7.1 Audit all module route definitions
+- [x] 7. Update module routes to use consistent security pattern
+
+
+
+
+
+- [x] 7.1 Audit all module route definitions
+
+
   - Review all RouterFunction definitions across modules
   - Identify routes that should be public
   - Identify routes that require authentication
   - Identify routes that require specific permissions
   - _Requirements: 12.1, 12.2_
 
-- [ ] 7.2 Update ingestion routes
+- [x] 7.2 Update ingestion routes
+
+
   - Ensure all routes use RouterAttributes.withAttributes
   - Add health endpoints to public paths configuration
   - Document permission requirements
   - _Requirements: 12.2, 12.3, 12.4_
 
-- [ ] 7.3 Update data-quality routes
+
+- [x] 7.3 Update data-quality routes
+
   - Ensure all routes use RouterAttributes.withAttributes
   - Add health endpoints to public paths configuration
   - Document permission requirements
   - _Requirements: 12.2, 12.3, 12.4_
 
-- [ ] 7.4 Update risk-calculation routes
+- [x] 7.4 Update risk-calculation routes
+
+
   - Ensure all routes use RouterAttributes.withAttributes
   - Add health endpoints to public paths configuration
   - Document permission requirements
   - _Requirements: 12.2, 12.3, 12.4_
 
-- [ ] 7.5 Update report-generation routes
+- [x] 7.5 Update report-generation routes
+
+
   - Ensure all routes use RouterAttributes.withAttributes
   - Add health endpoints to public paths configuration
   - Document permission requirements
@@ -321,7 +336,10 @@
   - Test async operations use correct executor
   - _Requirements: 13.1, 13.2, 13.3_
 
-- [ ] 10. Checkpoint - Ensure all tests pass
+- [-] 10. Checkpoint - Ensure all tests pass
+
+
+
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 11. Remove duplicate configuration
