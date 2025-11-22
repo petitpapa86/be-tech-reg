@@ -306,9 +306,13 @@
   - Return generated HTML string
   - _Requirements: 5.3, 6.1_
 
-- [ ] 14. Implement infrastructure layer - XBRL generation
+- [x] 14. Implement infrastructure layer - XBRL generation
 
-- [ ] 14.1 Create XbrlReportGeneratorImpl
+
+
+- [x] 14.1 Create XbrlReportGeneratorImpl
+
+
   - Implement XbrlReportGenerator interface
   - Create XML document with EBA COREP namespaces
   - Add schema reference to EBA taxonomy
@@ -318,7 +322,10 @@
   - Format XML with pretty-print
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [ ] 14.2 Create XbrlSchemaValidator
+
+- [-] 14.2 Create XbrlSchemaValidator
+
+
   - Implement XbrlValidator interface
   - Load EBA XSD schema from classpath
   - Validate XML document against schema

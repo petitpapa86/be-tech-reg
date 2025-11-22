@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  EBA COREP Schema Placeholder
+  
+  This is a simplified placeholder schema for development and testing.
+  In production, this should be replaced with the actual EBA COREP taxonomy schema
+  from: http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/its-2023-12/2023-12-31/mod/corep.xsd
+  
+  The actual schema includes:
+  - Complete EBA COREP taxonomy definitions
+  - LE1 and LE2 template structures
+  - All required dimensions and members
+  - Validation rules for regulatory reporting
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:xbrli="http://www.xbrl.org/2003/instance"
+           xmlns:eba="http://www.eba.europa.eu/xbrl/crr"
+           xmlns:iso4217="http://www.xbrl.org/2003/iso4217"
+           targetNamespace="http://www.eba.europa.eu/xbrl/crr"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+  
+  <!-- Import XBRL instance schema -->
+  <xs:import namespace="http://www.xbrl.org/2003/instance" 
+             schemaLocation="http://www.xbrl.org/2003/xbrl-instance-2003-12-31.xsd"/>
+  
+  <!-- Import ISO 4217 currency codes -->
+  <xs:import namespace="http://www.xbrl.org/2003/iso4217"
+             schemaLocation="http://www.xbrl.org/2003/iso4217-2003-12-31.xsd"/>
+  
+  <!-- LE1 Template Elements (Counterparty Details) -->
+  <xs:element name="LE1_CounterpartyName" type="xs:string" substitutionGroup="xbrli:item"/>
+  <xs:element name="LE1_LEICode" type="xs:string" substitutionGroup="xbrli:item"/>
+  <xs:element name="LE1_IdentifierType" type="xs:string" substitutionGroup="xbrli:item"/>
+  <xs:element name="LE1_AlternateIdentifier" type="xs:string" substitutionGroup="xbrli:item"/>
+  <xs:element name="LE1_CountryCode" type="xs:string" substitutionGroup="xbrli:item"/>
+  <xs:element name="LE1_SectorCode" type="xs:string" substitutionGroup="xbrli:item"/>
+  
+  <!-- LE2 Template Elements (Exposure Amounts) -->
+  <xs:element name="LE2_OriginalExposure" type="xbrli:monetaryItemType" substitutionGroup="xbrli:item"/>
+  <xs:element name="LE2_ExposureAfterCRM" type="xbrli:monetaryItemType" substitutionGroup="xbrli:item"/>
+  <xs:element name="LE2_TradingBookPortion" type="xbrli:monetaryItemType" substitutionGroup="xbrli:item"/>
+  <xs:element name="LE2_NonTradingBookPortion" type="xbrli:monetaryItemType" substitutionGroup="xbrli:item"/>
+  <xs:element name="LE2_PercentageOfCapital" type="xbrli:pureItemType" substitutionGroup="xbrli:item"/>
+  
+  <!-- Dimension Elements -->
+  <xs:element name="CP" type="xs:string" substitutionGroup="xbrli:item"/>
+  <xs:element name="CT" type="xs:string" substitutionGroup="xbrli:item"/>
+  <xs:element name="SC" type="xs:string" substitutionGroup="xbrli:item"/>
+  
+</xs:schema>
