@@ -59,6 +59,16 @@
 			<groupId>io.github.resilience4j</groupId>
 			<artifactId>resilience4j-circuitbreaker</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-micrometer</artifactId>
+		</dependency>
+		
+		<!-- Micrometer for metrics -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-core</artifactId>
+		</dependency>
 		
 		<!-- AWS SDK for S3 operations -->
 		<dependency>

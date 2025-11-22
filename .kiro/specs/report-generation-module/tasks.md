@@ -323,7 +323,10 @@
   - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
 
-- [-] 14.2 Create XbrlSchemaValidator
+- [x] 14.2 Create XbrlSchemaValidator
+
+
+
 
 
   - Implement XbrlValidator interface
@@ -333,8 +336,13 @@
   - Implement automatic corrections (trim, round)
   - _Requirements: 11.1, 11.2, 11.3, 11.5_
 
-- [ ] 15. Implement infrastructure layer - circuit breaker
-- [ ] 15.1 Create Resilience4jConfiguration
+- [x] 15. Implement infrastructure layer - circuit breaker
+
+
+
+- [x] 15.1 Create Resilience4jConfiguration
+
+
   - Configure circuit breaker for S3 operations
   - Set failure threshold: 10 consecutive OR 50% over 5 minutes
   - Set wait duration: 5 minutes
@@ -342,15 +350,23 @@
   - Emit metrics for state transitions
   - _Requirements: 22.1, 22.2, 22.3, 22.4, 22.5_
 
-- [ ] 16. Implement infrastructure layer - event publishing
-- [ ] 16.1 Create ReportGenerationEventPublisher
+- [x] 16. Implement infrastructure layer - event publishing
+
+
+
+- [x] 16.1 Create ReportGenerationEventPublisher
+
   - Implement publishReportGenerated() method
   - Integrate with IIntegrationEventBus
   - Rely on OutboxProcessor for retry
   - _Requirements: 14.4, 14.5, 15.5_
 
-- [ ] 17. Implement presentation layer - health checks
-- [ ] 17.1 Create ReportGenerationHealthIndicator
+- [x] 17. Implement presentation layer - health checks
+
+
+
+- [x] 17.1 Create ReportGenerationHealthIndicator
+
   - Implement HealthIndicator interface
   - Check database connectivity
   - Check S3 accessibility

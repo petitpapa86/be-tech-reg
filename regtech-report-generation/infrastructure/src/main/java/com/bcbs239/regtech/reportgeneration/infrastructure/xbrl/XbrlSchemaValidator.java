@@ -3,6 +3,7 @@ package com.bcbs239.regtech.reportgeneration.infrastructure.xbrl;
 import com.bcbs239.regtech.reportgeneration.domain.generation.ValidationError;
 import com.bcbs239.regtech.reportgeneration.domain.generation.ValidationResult;
 import com.bcbs239.regtech.reportgeneration.domain.generation.XbrlValidationException;
+import com.bcbs239.regtech.reportgeneration.domain.generation.XbrlValidator;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
@@ -33,7 +34,7 @@ import java.util.List;
  */
 @Component
 @Slf4j
-public class XbrlSchemaValidator {
+public class XbrlSchemaValidator implements XbrlValidator {
     
     private static final String EBA_SCHEMA_PATH = "xbrl/eba-corep-schema.xsd";
     

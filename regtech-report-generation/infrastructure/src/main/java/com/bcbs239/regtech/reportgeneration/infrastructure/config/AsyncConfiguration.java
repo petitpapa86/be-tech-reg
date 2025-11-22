@@ -34,7 +34,7 @@ public class AsyncConfiguration {
      * @return the configured executor
      */
     @Bean(name = "reportGenerationExecutor")
-    public Executor reportGenerationExecutor() {
+    public ThreadPoolTaskExecutor reportGenerationExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(5);
