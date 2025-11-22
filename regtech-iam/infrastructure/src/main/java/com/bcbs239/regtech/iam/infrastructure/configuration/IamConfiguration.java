@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.iam.infrastructure.configuration;
 
+import com.bcbs239.regtech.iam.infrastructure.config.IAMProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -14,7 +15,7 @@ import org.springframework.core.env.Environment;
  * Enables configuration properties and provides configuration beans.
  */
 @Configuration
-@EnableConfigurationProperties(IamConfigurationProperties.class)
+@EnableConfigurationProperties({IamConfigurationProperties.class, IAMProperties.class})
 public class IamConfiguration {
 
     private static final Logger logger = LoggerFactory.getLogger(IamConfiguration.class);

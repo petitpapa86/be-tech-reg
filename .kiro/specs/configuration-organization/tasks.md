@@ -109,7 +109,9 @@
   - Create production profile section with S3 storage and optimized settings
   - _Requirements: 7.1, 7.2, 7.3_
 
-- [-] 4. Update configuration properties classes
+- [x] 4. Update configuration properties classes
+
+
 
 
 
@@ -121,70 +123,101 @@
   - Add validation annotations (@NotNull, @Min, @Max)
   - _Requirements: 6.2, 6.5, 10.3_
 
-- [-] 4.2 Update DataQualityProperties class
+- [x] 4.2 Update DataQualityProperties class
+
 
   - Create or update @ConfigurationProperties class for data-quality module
   - Add nested classes for storage, async, rules-engine
   - Add validation annotations
   - _Requirements: 6.2, 6.5, 10.3_
 
-- [ ] 4.3 Update RiskCalculationProperties class
+
+- [x] 4.3 Update RiskCalculationProperties class
+
   - Update @ConfigurationProperties prefix to "risk-calculation"
   - Add nested classes for storage, async, currency, geographic, concentration
   - Add validation annotations
   - _Requirements: 6.2, 6.5, 10.3_
 
-- [ ] 4.4 Update ReportGenerationProperties class
+
+- [x] 4.4 Update ReportGenerationProperties class
+
   - Create or update @ConfigurationProperties class for report-generation module
   - Add nested classes for s3, async, coordination, performance, retry
   - Add validation annotations
   - _Requirements: 6.2, 6.5, 10.3_
 
-- [ ] 4.5 Update BillingProperties class
+- [x] 4.5 Update BillingProperties class
+
+
   - Update @ConfigurationProperties prefix to "billing"
   - Add nested classes for stripe, tiers, dunning, invoices, scheduling
   - Add validation annotations
   - _Requirements: 6.2, 6.5, 10.3_
 
-- [ ] 4.6 Update IAMProperties class
+- [x] 4.6 Update IAMProperties class
+
+
   - Update @ConfigurationProperties prefix to "iam"
   - Add nested classes for security (jwt, password, oauth2, public-paths, authorization)
   - Add validation annotations
   - _Requirements: 6.2, 6.5, 10.3, 11.1_
 
-- [ ] 5. Update SecurityFilter to use configuration
-- [ ] 5.1 Inject public paths from configuration
+- [x] 5. Update SecurityFilter to use configuration
+
+
+
+
+
+- [x] 5.1 Inject public paths from configuration
+
+
   - Modify SecurityFilter constructor to accept IAMProperties
   - Replace hardcoded publicPaths Set with configuration-driven list
   - Add logging for loaded public paths
   - _Requirements: 11.2, 11.3_
 
-- [ ] 5.2 Add configuration validation
+- [x] 5.2 Add configuration validation
+
+
   - Validate public paths are not empty
   - Validate path patterns are valid
   - Log warning if deprecated paths are used
   - _Requirements: 10.1, 10.2_
 
-- [ ] 6. Create async configuration classes for modules
-- [ ] 6.1 Create IngestionAsyncConfiguration
+- [x] 6. Create async configuration classes for modules
+
+
+
+
+
+- [x] 6.1 Create IngestionAsyncConfiguration
+
+
   - Create @Configuration class with @EnableAsync
   - Bind to ingestion.async properties
   - Create ingestionTaskExecutor bean
   - Add validation for pool sizes
   - _Requirements: 13.1, 13.2, 13.5_
 
-- [ ] 6.2 Create DataQualityAsyncConfiguration
+- [x] 6.2 Create DataQualityAsyncConfiguration
+
+
   - Create @Configuration class with @EnableAsync
   - Bind to data-quality.async properties
   - Create dataQualityTaskExecutor bean
   - Add validation for pool sizes
   - _Requirements: 13.1, 13.2, 13.5_
 
+
+
 - [ ] 6.3 Create RiskCalculationAsyncConfiguration
   - Create @Configuration class with @EnableAsync
   - Bind to risk-calculation.async properties
   - Create riskCalculationTaskExecutor bean
   - Add validation for pool sizes
+
+
   - _Requirements: 13.1, 13.2, 13.5_
 
 - [ ] 6.4 Create ReportGenerationAsyncConfiguration
