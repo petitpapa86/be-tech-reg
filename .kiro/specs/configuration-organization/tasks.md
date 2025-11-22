@@ -12,8 +12,15 @@
   - Create configuration inventory document
   - _Requirements: 1.1, 1.2, 8.5_
 
-- [ ] 2. Create module-specific configuration files
-- [ ] 2.1 Create application-ingestion.yml
+- [x] 2. Create module-specific configuration files
+
+
+
+
+
+- [x] 2.1 Create application-ingestion.yml
+
+
   - Create regtech-ingestion/infrastructure/src/main/resources/application-ingestion.yml
   - Move ingestion-specific configuration from root application.yml
   - Add S3 storage configuration with profile overrides
@@ -21,7 +28,9 @@
   - Add inline documentation comments
   - _Requirements: 1.2, 1.3, 2.2, 13.1_
 
-- [ ] 2.2 Create application-data-quality.yml
+- [x] 2.2 Create application-data-quality.yml
+
+
   - Create regtech-data-quality/infrastructure/src/main/resources/application-data-quality.yml
   - Move data-quality-specific configuration from root application.yml
   - Add S3 storage configuration with profile overrides
@@ -29,7 +38,9 @@
   - Add rules engine configuration
   - _Requirements: 1.2, 1.3, 2.2, 13.1_
 
-- [ ] 2.3 Create application-risk-calculation.yml
+- [x] 2.3 Create application-risk-calculation.yml
+
+
   - Create regtech-risk-calculation/infrastructure/src/main/resources/application-risk-calculation.yml
   - Move risk-calculation-specific configuration from root application.yml
   - Add S3 storage configuration with profile overrides
@@ -37,7 +48,8 @@
   - Add currency conversion and geographic classification config
   - _Requirements: 1.2, 1.3, 2.2, 13.1_
 
-- [ ] 2.4 Create application-report-generation.yml
+- [x] 2.4 Create application-report-generation.yml
+
   - Create regtech-report-generation/infrastructure/src/main/resources/application-report-generation.yml
   - Move report-generation-specific configuration from root application.yml
   - Add S3 storage configuration with profile overrides
@@ -45,7 +57,9 @@
   - Add Resilience4j circuit breaker configuration
   - _Requirements: 1.2, 1.3, 2.2, 13.1_
 
-- [ ] 2.5 Create application-billing.yml
+- [x] 2.5 Create application-billing.yml
+
+
   - Create regtech-billing/infrastructure/src/main/resources/application-billing.yml
   - Move billing-specific configuration from root application.yml
   - Add Stripe configuration
@@ -53,7 +67,9 @@
   - Add scheduling configuration
   - _Requirements: 1.2, 1.3_
 
-- [ ] 2.6 Create application-iam.yml
+- [x] 2.6 Create application-iam.yml
+
+
   - Create regtech-iam/infrastructure/src/main/resources/application-iam.yml
   - Move IAM-specific configuration from root application.yml (if any module-specific settings exist)
   - Keep security configuration in root application.yml (shared concern)

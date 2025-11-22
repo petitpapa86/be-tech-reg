@@ -1,14 +1,7 @@
-# Ingestion Module Configuration
+# Data Quality Module Configuration
 # Requirements: 1.2, 1.3, 2.2, 13.1
-ingestion:
+data-quality:
   enabled: true
-  
-  # File upload settings
-  file:
-    max-size: 524288000  # 500MB in bytes
-    supported-types:
-      - application/json
-      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
   
   # Storage configuration (Requirement 2.2)
   # Supports both S3 and local filesystem storage
@@ -17,9 +10,9 @@ ingestion:
     
     # S3 storage configuration
     s3:
-      bucket: regtech-ingestion
+      bucket: regtech-data-quality
       region: us-east-1
-      prefix: raw/
+      prefix: quality/
       access-key: ${AWS_ACCESS_KEY_ID:}
       secret-key: ${AWS_SECRET_ACCESS_KEY:}
       endpoint: ${AWS_S3_ENDPOINT:}  # For LocalStack testing
@@ -27,33 +20,29 @@ ingestion:
     
     # Local filesystem storage configuration
     local:
-      base-path: ./data/ingestion
+      base-path: ./data/quality
       create-directories: true
   
   # Async thread pool configuration (Requirement 13.1)
-  # Purpose: Handles async file upload and processing operations
+  # Purpose: Handles async quality validation operations
   async:
     enabled: true
     core-pool-size: 5
     max-pool-size: 10
     queue-capacity: 100
-    thread-name-prefix: ingestion-async-
+    thread-name-prefix: data-quality-async-
     await-termination-seconds: 60
   
-  # Processing configuration
-  processing:
-    async-enabled: true
-    thread-pool-size: 10
-    queue-capacity: 100
+  # Rules engine configuration
+  rules-engine:
+    enabled: true  # Enable database-driven rules engine
+    cache-enabled: true
+    cache-ttl: 300  # 5 minutes in seconds
+    parallel-execution: false  # Execute rules sequentially for now
   
-  # Performance optimization settings
-  performance:
-    max-concurrent-files: 4      # Maximum number of files to process concurrently
-    chunk-size: 10000           # Default chunk size for processing large files
-  
-  # Parser settings
-  parser:
-    default-max-records: 10000  # Maximum records to parse per file by default
+  # Rules migration configuration
+  rules-migration:
+    enabled: true  # Run once to populate initial rules, then disable
 
 ---
 # Development profile overrides
@@ -62,7 +51,7 @@ spring:
     activate:
       on-profile: development
 
-ingestion:
+data-quality:
   # Use local filesystem storage in development
   storage:
     type: local
@@ -79,7 +68,7 @@ spring:
     activate:
       on-profile: production
 
-ingestion:
+data-quality:
   # Use S3 storage in production
   storage:
     type: s3
