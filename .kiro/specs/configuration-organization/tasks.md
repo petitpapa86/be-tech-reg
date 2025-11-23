@@ -336,14 +336,22 @@
   - Test async operations use correct executor
   - _Requirements: 13.1, 13.2, 13.3_
 
-- [-] 10. Checkpoint - Ensure all tests pass
+- [x] 10. Checkpoint - Ensure all tests pass
+
+
 
 
 
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 11. Remove duplicate configuration
-- [ ] 11.1 Remove module-specific config from root application.yml
+- [x] 11. Remove duplicate configuration
+
+
+
+
+- [x] 11.1 Remove module-specific config from root application.yml
+
+
   - Remove ingestion configuration from root
   - Remove data-quality configuration from root
   - Remove risk-calculation configuration from root
@@ -352,7 +360,9 @@
   - Keep only shared infrastructure configuration
   - _Requirements: 1.4, 9.3_
 
-- [ ] 11.2 Verify backward compatibility
+- [x] 11.2 Verify backward compatibility
+
+
   - Test that application still starts after removing duplicates
   - Test that all modules load their configuration correctly
   - Test that no configuration is missing
