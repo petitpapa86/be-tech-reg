@@ -53,6 +53,40 @@ public record JwtToken(String value, Instant expiresAt) {
             return Result.failure(ErrorDetail.of("JWT_GENERATION_FAILED", ErrorType.SYSTEM_ERROR, "Failed to generate JWT token: " + e.getMessage(), "jwt.generation.failed"));
         }
     }
+    
+    /**
+     * Generates a JWT token for a user with specific tenant context
+     * Used for bank selection flow
+     */
+    public static Result<JwtToken> generateWithTenantContext(
+            User user,
+            TenantContext tenantContext,
+            String secretKey,
+            Duration expiration
+    ) {
+        try {
+            // Build claims map with user information and selected tenant context
+            Map<String, Object> claims = Map.of(
+                "userId", user.getId().getValue().toString(),
+                "email", user.getEmail().getValue(),
+                "bankId", tenantContext.bankId().getValue(),
+                "bankName", tenantContext.bankName(),
+                "role", tenantContext.roleName()
+            );
+
+            Instant expiresAt = Instant.now().plus(expiration);
+            String token = Jwts.builder()
+                .setClaims(claims)
+                .setIssuedAt(Date.from(Instant.now()))
+                .setExpiration(Date.from(expiresAt))
+                .signWith(SignatureAlgorithm.HS512, secretKey)
+                .compact();
+
+            return Result.success(new JwtToken(token, expiresAt));
+        } catch (Exception e) {
+            return Result.failure(ErrorDetail.of("JWT_GENERATION_FAILED", ErrorType.SYSTEM_ERROR, "Failed to generate JWT token: " + e.getMessage(), "jwt.generation.failed"));
+        }
+    }
 
     /**
      * Validates a JWT token and extracts claims

@@ -86,7 +86,12 @@ This implementation plan covers the development of comprehensive authentication 
   - Add structured async logging for token refresh events
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 5.1, 5.2, 9.3_
 
-- [ ] 7. Implement bank selection command and handler
+- [x] 7. Implement bank selection command and handler
+
+
+
+
+
   - Create SelectBankCommand with validation for userId, bankId, and refreshToken
   - Create SelectBankCommandHandler in application layer
   - Validate user has access to selected bank
