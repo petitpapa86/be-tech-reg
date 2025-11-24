@@ -6,8 +6,8 @@ billing:
   # Stripe configuration
   # Read Stripe credentials from environment. Do NOT commit secret keys to source control.
   stripe:
-    api-key: ${STRIPE_API_KEY:}
-    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+    api-key: ${STRIPE_API_KEY:sk_test_default}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_default}
   
   # Subscription tier configuration
   tiers:

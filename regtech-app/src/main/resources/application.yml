@@ -37,6 +37,13 @@ spring:
   
   profiles:
     active: development
+    include:
+      - iam
+      - billing
+      - ingestion
+      - data-quality
+      - risk-calculation
+      - report-generation
   
   mvc:
     favicon:

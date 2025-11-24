@@ -152,6 +152,10 @@ spring:
   config:
     activate:
       on-profile: development
+  
+  # Disable Thymeleaf caching in development for faster iteration
+  thymeleaf:
+    cache: false
 
 report-generation:
   # Use development S3 bucket (Requirement 3.3, 3.4)
@@ -167,11 +171,6 @@ report-generation:
     core-pool-size: 2
     max-pool-size: 3
     queue-capacity: 50
-
-# Disable Thymeleaf caching in development for faster iteration
-spring:
-  thymeleaf:
-    cache: false
 
 # Use LocalStack for S3 in development (Requirement 3.3, 3.4)
 aws:
@@ -193,6 +192,10 @@ spring:
   config:
     activate:
       on-profile: production
+  
+  # Enable Thymeleaf caching in production for performance
+  thymeleaf:
+    cache: true
 
 report-generation:
   # Use production S3 bucket (Requirement 3.1, 3.2, 12.1)
@@ -212,11 +215,6 @@ report-generation:
     xbrl-generation-target: 800
     s3-upload-target: 800
     total-generation-target: 7000
-
-# Enable Thymeleaf caching in production for performance
-spring:
-  thymeleaf:
-    cache: true
 
 # Stricter circuit breaker in production (Requirement 22.1)
 resilience4j:
