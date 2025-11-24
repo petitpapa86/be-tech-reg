@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.iam.domain.authentication.PasswordHasher;
 import com.bcbs239.regtech.iam.domain.users.*;
 import org.springframework.stereotype.Component;
 
@@ -16,10 +17,14 @@ import java.util.List;
 public class AuthenticateUserCommandHandler {
 
     private final UserRepository userRepository;
+    private final PasswordHasher passwordHasher;
     private final String jwtSecretKey;
 
-    public AuthenticateUserCommandHandler(UserRepository userRepository) {
+    public AuthenticateUserCommandHandler(
+            UserRepository userRepository,
+            PasswordHasher passwordHasher) {
         this.userRepository = userRepository;
+        this.passwordHasher = passwordHasher;
         // TODO: Move to configuration
         this.jwtSecretKey = "mySecretKey123456789012345678901234567890123456789012345678901234567890";
     }
@@ -29,20 +34,22 @@ public class AuthenticateUserCommandHandler {
      */
     public Result<AuthenticationResult> handle(AuthenticationCommand command) {
         // Call the refactored authenticateUser which uses repository methods directly
-        return authenticateUser(command, userRepository, jwtSecretKey);
+        return authenticateUser(command, userRepository, passwordHasher, jwtSecretKey);
     }
 
     /**
      * Pure function for user authentication
      *
      * @param command The authentication command
-     * @param userLookup Function to find user by email
-     * @param tokenGenerator Function to generate JWT token
+     * @param userRepository Repository for user operations
+     * @param passwordHasher Service for password verification
+     * @param jwtSecretKey Secret key for JWT token generation
      * @return Result of authentication attempt
      */
     static Result<AuthenticationResult> authenticateUser(
             AuthenticationCommand command,
             UserRepository userRepository,
+            PasswordHasher passwordHasher,
             String jwtSecretKey
     ) {
         // Validate command
@@ -70,8 +77,8 @@ public class AuthenticateUserCommandHandler {
             return Result.failure(ErrorDetail.of("USER_NOT_ACTIVE", ErrorType.AUTHENTICATION_ERROR, "User account is not active", "authentication.user.not.active"));
         }
 
-        // Verify password
-        if (!user.getPassword().matches(command.password())) {
+        // Verify password using BCrypt
+        if (!passwordHasher.verify(command.password(), user.getPassword().getHashedValue())) {
             return Result.failure(ErrorDetail.of("INVALID_CREDENTIALS", ErrorType.AUTHENTICATION_ERROR, "Invalid email or password", "authentication.invalid.credentials"));
         }
 

@@ -9,6 +9,9 @@ import java.util.regex.Pattern;
 
 /**
  * Password Value Object with strong validation requirements
+ * 
+ * Note: This value object stores the hashed password. Password hashing should be done
+ * in the application layer using the PasswordHasher service before creating this value object.
  */
 public record Password(String hash) {
 
@@ -19,43 +22,71 @@ public record Password(String hash) {
     private static final Pattern DIGIT = Pattern.compile(".*[0-9].*");
     private static final Pattern SPECIAL_CHAR = Pattern.compile(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*");
 
-    public static Result<Password> create(String plainPassword) {
+    /**
+     * Validates password strength requirements without hashing
+     * Use this method in the application layer before hashing the password
+     */
+    public static Result<Void> validateStrength(String plainPassword) {
         if (plainPassword == null || plainPassword.length() < MIN_LENGTH) {
-            return Result.failure(ErrorDetail.of("PASSWORD_TOO_SHORT", ErrorType.VALIDATION_ERROR, "Password must be at least " + MIN_LENGTH + " characters long", "validation.password_too_short"));
+            return Result.failure(ErrorDetail.of(
+                "PASSWORD_TOO_SHORT", 
+                ErrorType.VALIDATION_ERROR, 
+                "Password must be at least " + MIN_LENGTH + " characters long", 
+                "validation.password_too_short"
+            ));
         }
 
         if (!UPPERCASE.matcher(plainPassword).matches()) {
-            return Result.failure(ErrorDetail.of("PASSWORD_MISSING_UPPERCASE", ErrorType.VALIDATION_ERROR, "Password must contain at least one uppercase letter", "validation.password_missing_uppercase"));
+            return Result.failure(ErrorDetail.of(
+                "PASSWORD_MISSING_UPPERCASE", 
+                ErrorType.VALIDATION_ERROR, 
+                "Password must contain at least one uppercase letter", 
+                "validation.password_missing_uppercase"
+            ));
         }
 
         if (!LOWERCASE.matcher(plainPassword).matches()) {
-            return Result.failure(ErrorDetail.of("PASSWORD_MISSING_LOWERCASE", ErrorType.VALIDATION_ERROR, "Password must contain at least one lowercase letter", "validation.password_missing_lowercase"));
+            return Result.failure(ErrorDetail.of(
+                "PASSWORD_MISSING_LOWERCASE", 
+                ErrorType.VALIDATION_ERROR, 
+                "Password must contain at least one lowercase letter", 
+                "validation.password_missing_lowercase"
+            ));
         }
 
         if (!DIGIT.matcher(plainPassword).matches()) {
-            return Result.failure(ErrorDetail.of("PASSWORD_MISSING_DIGIT", ErrorType.VALIDATION_ERROR, "Password must contain at least one digit", "validation.password_missing_digit"));
+            return Result.failure(ErrorDetail.of(
+                "PASSWORD_MISSING_DIGIT", 
+                ErrorType.VALIDATION_ERROR, 
+                "Password must contain at least one digit", 
+                "validation.password_missing_digit"
+            ));
         }
 
         if (!SPECIAL_CHAR.matcher(plainPassword).matches()) {
-            return Result.failure(ErrorDetail.of("PASSWORD_MISSING_SPECIAL", ErrorType.VALIDATION_ERROR, "Password must contain at least one special character", "validation.password_missing_special"));
+            return Result.failure(ErrorDetail.of(
+                "PASSWORD_MISSING_SPECIAL", 
+                ErrorType.VALIDATION_ERROR, 
+                "Password must contain at least one special character", 
+                "validation.password_missing_special"
+            ));
         }
 
-        // In real implementation, hash the password here with BCrypt
-        // For now, we'll just store it (this should be changed in production)
-        String hashedPassword = hashPassword(plainPassword);
-
-        return Result.success(new Password(hashedPassword));
+        return Result.success(null);
     }
 
-    private static String hashPassword(String plainPassword) {
-        // TODO: Implement BCrypt hashing with strength 12
-        // For now, return a placeholder
-        return "HASHED:" + plainPassword;
-    }
-
-    public boolean matches(String plainPassword) {
-        // TODO: Implement proper password verification
-        return ("HASHED:" + plainPassword).equals(hash);
+    /**
+     * @deprecated Use validateStrength() and hash the password in the application layer instead
+     */
+    @Deprecated
+    public static Result<Password> create(String plainPassword) {
+        Result<Void> validation = validateStrength(plainPassword);
+        if (validation.isFailure()) {
+            return Result.failure(validation.getError().get());
+        }
+        
+        // This is a placeholder - password should be hashed in application layer
+        return Result.success(new Password("PLACEHOLDER:" + plainPassword));
     }
 
     /**

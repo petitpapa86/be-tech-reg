@@ -4,6 +4,7 @@ package com.bcbs239.regtech.iam.application.users;
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.shared.*;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
+import com.bcbs239.regtech.iam.domain.authentication.PasswordHasher;
 import com.bcbs239.regtech.iam.domain.users.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,12 +18,15 @@ public class RegisterUserCommandHandler {
 
     private final UserRepository userRepository;
     private final BaseUnitOfWork unitOfWork;
+    private final PasswordHasher passwordHasher;
 
     public RegisterUserCommandHandler(
             UserRepository userRepository,
-            BaseUnitOfWork unitOfWork) {
+            BaseUnitOfWork unitOfWork,
+            PasswordHasher passwordHasher) {
         this.userRepository = userRepository;
         this.unitOfWork = unitOfWork;
+        this.passwordHasher = passwordHasher;
     }
 
     /**
@@ -42,11 +46,15 @@ public class RegisterUserCommandHandler {
             return Result.failure(ErrorDetail.of("EMAIL_ALREADY_EXISTS", ErrorType.VALIDATION_ERROR, "Email already exists", "user.email.already.exists"));
         }
 
-        Result<Password> passwordResult = Password.create(command.getPassword());
-        if (passwordResult.isFailure()) {
-            return Result.failure(passwordResult.getError().get());
+        // Validate password strength
+        Result<Void> passwordValidation = Password.validateStrength(command.getPassword());
+        if (passwordValidation.isFailure()) {
+            return Result.failure(passwordValidation.getError().get());
         }
-        Password password = passwordResult.getValue().get();
+        
+        // Hash the password using BCrypt
+        String hashedPassword = passwordHasher.hash(command.getPassword());
+        Password password = Password.fromHash(hashedPassword);
 
         Maybe<String> maybeFirst = ValidationUtils.validateName(command.getFirstName());
         if (maybeFirst.isEmpty()) {
