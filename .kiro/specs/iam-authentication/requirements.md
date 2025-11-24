@@ -159,3 +159,15 @@ The RegTech IAM module currently has basic authentication capabilities but lacks
 3. WHEN comparing passwords THEN the system SHALL use BCrypt's built-in comparison to prevent timing attacks
 4. THE system SHALL validate password strength requirements (minimum 8 characters, at least one uppercase, one lowercase, one number)
 5. THE system SHALL store only password hashes, never plaintext passwords
+
+### Requirement 13: Bank Entity Management
+
+**User Story:** As a system administrator, I want banks to be properly modeled as domain entities, so that bank information is consistently managed across the platform.
+
+#### Acceptance Criteria
+
+1. THE system SHALL model Bank as a domain aggregate with identity, name, and status
+2. WHEN retrieving bank information THEN the system SHALL load Bank entities from the repository
+3. WHEN a user has bank assignments THEN the system SHALL include full Bank entity information in responses
+4. WHEN a bank is deactivated THEN the system SHALL prevent users from selecting that bank context
+5. THE system SHALL provide a BankRepository for bank persistence and retrieval operations

@@ -5,11 +5,16 @@ This implementation plan covers the development of comprehensive authentication 
 
 ## Tasks
 
-- [x] 1. Set up domain layer for refresh tokens
+- [x] 1. Set up domain layer for Bank entity
+  - Create Bank aggregate with identity, name, and status management
+  - Create BankId value object with UUID generation and validation
+  - Create BankName value object with validation (2-200 characters)
+  - Create BankStatus enum (ACTIVE, INACTIVE)
+  - Create IBankRepository interface for bank persistence
+  - Add business methods: activate(), deactivate(), updateName(), isActive()
+  - _Requirements: 13.1, 13.2, 13.5_
 
-
-
-
+- [x] 2. Set up domain layer for refresh tokens
   - Create RefreshToken aggregate with lifecycle management (creation, validation, revocation)
   - Create RefreshTokenId value object with UUID generation and validation
   - Create TokenPair value object to represent access token and refresh token pairs

@@ -33,6 +33,12 @@ regtech-iam/
 │   │   ├── RefreshTokenId.java
 │   │   ├── TokenPair.java
 │   │   └── IRefreshTokenRepository.java
+│   ├── banks/                 # Bank domain
+│   │   ├── Bank.java
+│   │   ├── BankId.java
+│   │   ├── BankName.java
+│   │   ├── BankStatus.java
+│   │   └── IBankRepository.java
 │   └── users/                 # Existing user domain
 │       ├── User.java
 │       ├── JwtToken.java (existing)
@@ -52,9 +58,11 @@ regtech-iam/
 ├── infrastructure/            # Technical implementations
 │   ├── database/
 │   │   ├── entities/
-│   │   │   └── RefreshTokenEntity.java
+│   │   │   ├── RefreshTokenEntity.java
+│   │   │   └── BankEntity.java
 │   │   └── repositories/
-│   │       └── JpaRefreshTokenRepository.java
+│   │       ├── JpaRefreshTokenRepository.java
+│   │       └── JpaBankRepository.java
 │   └── security/
 │       └── PasswordHasher.java
 │
@@ -72,7 +80,180 @@ regtech-iam/
 
 ## Domain Layer Design
 
-### 1. RefreshToken Aggregate
+### 1. Bank Aggregate
+
+**Purpose**: Represents a financial institution in the system with identity and status management
+
+```java
+public class Bank extends Entity {
+    private final BankId id;
+    private BankName name;
+    private BankStatus status;
+    private final Instant createdAt;
+    private Instant updatedAt;
+    
+    // Factory method
+    public static Result<Bank> create(
+        BankId id,
+        String name
+    ) {
+        // Validate name
+        Result<BankName> nameResult = BankName.create(name);
+        if (nameResult.isFailure()) {
+            return Result.failure(nameResult.getError().get());
+        }
+        
+        return Result.success(new Bank(
+            id,
+            nameResult.getValue().get(),
+            BankStatus.ACTIVE,
+            Instant.now(),
+            Instant.now()
+        ));
+    }
+    
+    // Business methods
+    public Result<Void> activate() {
+        if (this.status == BankStatus.ACTIVE) {
+            return Result.failure(ErrorDetail.of(
+                "BANK_ALREADY_ACTIVE",
+                ErrorType.BUSINESS,
+                "Bank is already active",
+                "bank.already_active"
+            ));
+        }
+        
+        this.status = BankStatus.ACTIVE;
+        this.updatedAt = Instant.now();
+        return Result.success(null);
+    }
+    
+    public Result<Void> deactivate() {
+        if (this.status == BankStatus.INACTIVE) {
+            return Result.failure(ErrorDetail.of(
+                "BANK_ALREADY_INACTIVE",
+                ErrorType.BUSINESS,
+                "Bank is already inactive",
+                "bank.already_inactive"
+            ));
+        }
+        
+        this.status = BankStatus.INACTIVE;
+        this.updatedAt = Instant.now();
+        return Result.success(null);
+    }
+    
+    public boolean isActive() {
+        return this.status == BankStatus.ACTIVE;
+    }
+    
+    public Result<Void> updateName(String newName) {
+        Result<BankName> nameResult = BankName.create(newName);
+        if (nameResult.isFailure()) {
+            return Result.failure(nameResult.getError().get());
+        }
+        
+        this.name = nameResult.getValue().get();
+        this.updatedAt = Instant.now();
+        return Result.success(null);
+    }
+    
+    // Getters
+    public BankId getId() { return id; }
+    public BankName getName() { return name; }
+    public BankStatus getStatus() { return status; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
+}
+```
+
+### 2. Bank Value Objects
+
+**BankId**:
+```java
+public record BankId(UUID value) {
+    public static BankId generate() {
+        return new BankId(UUID.randomUUID());
+    }
+    
+    public static Result<BankId> from(String value) {
+        try {
+            return Result.success(new BankId(UUID.fromString(value)));
+        } catch (IllegalArgumentException e) {
+            return Result.failure(ErrorDetail.of(
+                "INVALID_BANK_ID",
+                ErrorType.VALIDATION,
+                "Invalid bank ID format",
+                "bank.id.invalid"
+            ));
+        }
+    }
+    
+    @Override
+    public String toString() {
+        return value.toString();
+    }
+}
+```
+
+**BankName**:
+```java
+public record BankName(String value) {
+    public static Result<BankName> create(String value) {
+        if (value == null || value.isBlank()) {
+            return Result.failure(ErrorDetail.fieldError(
+                "name",
+                "REQUIRED",
+                "Bank name is required",
+                "bank.name.required"
+            ));
+        }
+        
+        String trimmed = value.trim();
+        if (trimmed.length() < 2) {
+            return Result.failure(ErrorDetail.fieldError(
+                "name",
+                "TOO_SHORT",
+                "Bank name must be at least 2 characters",
+                "bank.name.too_short"
+            ));
+        }
+        
+        if (trimmed.length() > 200) {
+            return Result.failure(ErrorDetail.fieldError(
+                "name",
+                "TOO_LONG",
+                "Bank name must not exceed 200 characters",
+                "bank.name.too_long"
+            ));
+        }
+        
+        return Result.success(new BankName(trimmed));
+    }
+}
+```
+
+**BankStatus**:
+```java
+public enum BankStatus {
+    ACTIVE,
+    INACTIVE
+}
+```
+
+### 3. IBankRepository Interface
+
+```java
+public interface IBankRepository {
+    Result<BankId> save(Bank bank);
+    Maybe<Bank> findById(BankId id);
+    List<Bank> findAll();
+    List<Bank> findByStatus(BankStatus status);
+    boolean existsById(BankId id);
+}
+```
+
+### 4. RefreshToken Aggregate
 
 **Purpose**: Represents a refresh token with lifecycle management
 
@@ -399,8 +580,25 @@ public class LoginCommandHandler {
             );
         } else if (bankAssignments.size() == 1) {
             UserRole assignment = bankAssignments.get(0);
+            
+            // Load bank entity
+            Maybe<Bank> bankMaybe = bankRepository.findById(
+                BankId.from(assignment.getBankId()).getValue().get()
+            );
+            
+            if (bankMaybe.isEmpty() || !bankMaybe.getValue().isActive()) {
+                return Result.failure(ErrorDetail.of(
+                    "BANK_NOT_AVAILABLE",
+                    ErrorType.BUSINESS,
+                    "Bank is not available",
+                    "login.bank_not_available"
+                ));
+            }
+            
+            Bank bank = bankMaybe.getValue();
             TenantContext tenantContext = TenantContext.create(
-                assignment.getBankId(),
+                bank.getId().toString(),
+                bank.getName().value(),
                 assignment.getRole()
             );
             response = LoginResponse.withSingleBank(
@@ -410,12 +608,33 @@ public class LoginCommandHandler {
                 tenantContext
             );
         } else {
-            List<BankAssignmentDto> availableBanks = bankAssignments.stream()
-                .map(assignment -> new BankAssignmentDto(
-                    assignment.getBankId(),
-                    assignment.getRole()
-                ))
-                .toList();
+            // Load all banks for user assignments
+            List<BankAssignmentDto> availableBanks = new ArrayList<>();
+            for (UserRole assignment : bankAssignments) {
+                Maybe<Bank> bankMaybe = bankRepository.findById(
+                    BankId.from(assignment.getBankId()).getValue().get()
+                );
+                
+                // Only include active banks
+                if (bankMaybe.isPresent() && bankMaybe.getValue().isActive()) {
+                    Bank bank = bankMaybe.getValue();
+                    availableBanks.add(new BankAssignmentDto(
+                        bank.getId().toString(),
+                        bank.getName().value(),
+                        assignment.getRole()
+                    ));
+                }
+            }
+            
+            if (availableBanks.isEmpty()) {
+                return Result.failure(ErrorDetail.of(
+                    "NO_ACTIVE_BANKS",
+                    ErrorType.BUSINESS,
+                    "No active banks available for user",
+                    "login.no_active_banks"
+                ));
+            }
+            
             response = LoginResponse.withMultipleBanks(
                 user,
                 tokenPair.accessToken(),
@@ -670,9 +889,40 @@ public class SelectBankCommandHandler {
             ));
         }
         
-        UserRole selectedBank = selectedBankMaybe.getValue();
+        UserRole selectedBankAssignment = selectedBankMaybe.getValue();
         
-        // 2. Load user
+        // 2. Load bank entity
+        Result<BankId> bankIdResult = BankId.from(command.bankId());
+        if (bankIdResult.isFailure()) {
+            return Result.failure(bankIdResult.getError().get());
+        }
+        
+        Maybe<Bank> bankMaybe = bankRepository.findById(bankIdResult.getValue().get());
+        if (bankMaybe.isEmpty()) {
+            return Result.failure(ErrorDetail.of(
+                "BANK_NOT_FOUND",
+                ErrorType.NOT_FOUND,
+                "Bank not found",
+                "bank.not_found"
+            ));
+        }
+        
+        Bank bank = bankMaybe.getValue();
+        
+        // 3. Verify bank is active
+        if (!bank.isActive()) {
+            log.warn("BANK_SELECTION_INACTIVE - userId: {}, bankId: {}", 
+                command.userId().getValue().toString(),
+                command.bankId());
+            return Result.failure(ErrorDetail.of(
+                "BANK_INACTIVE",
+                ErrorType.BUSINESS,
+                "Selected bank is not active",
+                "select_bank.bank_inactive"
+            ));
+        }
+        
+        // 4. Load user
         Maybe<User> userMaybe = userRepository.userLoader(command.userId());
         if (userMaybe.isEmpty()) {
             return Result.failure(ErrorDetail.of(
@@ -685,10 +935,11 @@ public class SelectBankCommandHandler {
         
         User user = userMaybe.getValue();
         
-        // 3. Create tenant context with selected bank
+        // 5. Create tenant context with selected bank
         TenantContext tenantContext = TenantContext.create(
-            selectedBank.getBankId(),
-            selectedBank.getRole()
+            bank.getId().toString(),
+            bank.getName().value(),
+            selectedBankAssignment.getRole()
         );
         
         // 4. Generate new token pair with tenant context
@@ -810,7 +1061,97 @@ public class LogoutCommandHandler {
 
 ## Infrastructure Layer Design
 
-### 1. RefreshTokenEntity (JPA Entity)
+### 1. BankEntity (JPA Entity)
+
+```java
+@Entity
+@Table(name = "banks", schema = "iam")
+public class BankEntity {
+    @Id
+    @Column(name = "id")
+    private UUID id;
+    
+    @Column(name = "name", nullable = false, length = 200)
+    private String name;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private BankStatus status;
+    
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+    
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+    
+    // Getters and setters
+}
+```
+
+### 2. JpaBankRepository
+
+```java
+@Repository
+@Slf4j
+public class JpaBankRepository implements IBankRepository {
+    private final SpringDataBankRepository jpaRepository;
+    private final BankMapper mapper;
+    
+    @Override
+    public Result<BankId> save(Bank bank) {
+        try {
+            BankEntity entity = mapper.toEntity(bank);
+            BankEntity saved = jpaRepository.save(entity);
+            
+            return Result.success(BankId.from(
+                saved.getId().toString()
+            ).getValue().get());
+        } catch (Exception e) {
+            log.error("BANK_SAVE_FAILED - bankId: {}", 
+                bank.getId().value().toString(), e);
+            return Result.failure(ErrorDetail.of(
+                "SAVE_FAILED",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to save bank",
+                "bank.save.failed"
+            ));
+        }
+    }
+    
+    @Override
+    public Maybe<Bank> findById(BankId id) {
+        return jpaRepository.findById(id.value())
+            .map(mapper::toDomain)
+            .map(Maybe::some)
+            .orElse(Maybe.none());
+    }
+    
+    @Override
+    public List<Bank> findAll() {
+        return jpaRepository.findAll().stream()
+            .map(mapper::toDomain)
+            .toList();
+    }
+    
+    @Override
+    public List<Bank> findByStatus(BankStatus status) {
+        return jpaRepository.findByStatus(status).stream()
+            .map(mapper::toDomain)
+            .toList();
+    }
+    
+    @Override
+    public boolean existsById(BankId id) {
+        return jpaRepository.existsById(id.value());
+    }
+}
+
+interface SpringDataBankRepository extends JpaRepository<BankEntity, UUID> {
+    List<BankEntity> findByStatus(BankStatus status);
+}
+```
+
+### 3. RefreshTokenEntity (JPA Entity)
 
 ```java
 @Entity
@@ -968,7 +1309,28 @@ public class PasswordHasher {
 }
 ```
 
-### 4. Database Migration
+### 4. Database Migrations
+
+**V{timestamp}__Create_banks_table.sql**:
+```sql
+-- Create banks table
+CREATE TABLE IF NOT EXISTS iam.banks (
+    id UUID PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT chk_bank_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
+);
+
+-- Create indexes
+CREATE INDEX idx_banks_status ON iam.banks(status);
+CREATE INDEX idx_banks_name ON iam.banks(name);
+
+-- Add comment
+COMMENT ON TABLE iam.banks IS 'Stores bank entities for multi-tenant operations';
+```
 
 **V{timestamp}__Create_refresh_tokens_table.sql**:
 ```sql
