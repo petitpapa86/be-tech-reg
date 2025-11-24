@@ -99,7 +99,11 @@ This implementation plan covers the development of comprehensive authentication 
   - Add structured async logging for bank selection events
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 5.4, 10.1, 10.2, 10.3, 10.4, 10.5_
 
-- [ ] 8. Implement logout command and handler
+- [x] 8. Implement logout command and handler
+
+
+
+
   - Create LogoutCommand with validation
   - Create LogoutCommandHandler in application layer
   - Implement refresh token revocation for user
