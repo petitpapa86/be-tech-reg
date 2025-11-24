@@ -28,7 +28,12 @@ This implementation plan covers the development of comprehensive authentication 
   - Ensure constant-time comparison for password verification to prevent timing attacks
   - _Requirements: 5.3, 8.5, 12.1, 12.2, 12.3_
 
-- [ ] 3. Create database schema for refresh tokens
+- [x] 3. Create database schema for refresh tokens
+
+
+
+
+
   - Create Flyway migration V{timestamp}__Create_refresh_tokens_table.sql
   - Add refresh_tokens table with columns: id, user_id, token_hash, expires_at, created_at, revoked, revoked_at
   - Add foreign key constraint to users table with CASCADE delete
