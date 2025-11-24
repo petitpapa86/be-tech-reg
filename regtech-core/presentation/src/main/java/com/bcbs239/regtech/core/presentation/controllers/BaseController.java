@@ -73,7 +73,7 @@ public abstract class BaseController {
      */
     protected ResponseEntity<? extends ApiResponse<?>> handleError(ErrorDetail error) {
         // Determine error type based on error code and content
-        if (error.hasFieldErrors() || isValidationError(error.getCode())) {
+        if (error.hasFieldErrors()) {
             List<FieldError> presentationErrors =
                 error.getFieldErrors().stream()
                     .map(fe -> new FieldError(
@@ -81,6 +81,11 @@ public abstract class BaseController {
                     .toList();
             return ResponseEntity.badRequest().body(
                 ResponseUtils.validationError(presentationErrors, error.getMessage())
+            );
+        } else if (isValidationError(error.getCode())) {
+            // Validation error without field errors - treat as business rule error
+            return ResponseEntity.badRequest().body(
+                ResponseUtils.businessRuleError(error.getMessage(), error.getMessageKey())
             );
         } else if (isAuthenticationError(error.getCode())) {
             return ResponseEntity.status(401).body(
