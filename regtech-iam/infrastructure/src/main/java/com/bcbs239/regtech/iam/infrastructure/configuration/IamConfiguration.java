@@ -9,12 +9,15 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Main configuration class for the IAM module.
  * Enables configuration properties and provides configuration beans.
+ * Enables scheduling for background tasks like token cleanup.
  */
 @Configuration
+@EnableScheduling
 @EnableConfigurationProperties({IamConfigurationProperties.class, IAMProperties.class})
 public class IamConfiguration {
 

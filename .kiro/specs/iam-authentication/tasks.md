@@ -150,7 +150,12 @@ This implementation plan covers the development of comprehensive authentication 
   - Update application-iam.yml with new configuration values
   - _Requirements: 5.1, 5.2, 6.5_
 
-- [ ] 12. Implement token cleanup scheduler
+- [x] 12. Implement token cleanup scheduler
+
+
+
+
+
   - Create RefreshTokenCleanupScheduler component in infrastructure layer
   - Implement scheduled job to delete expired tokens older than 30 days
   - Run cleanup daily at 2 AM using cron expression
