@@ -96,7 +96,8 @@ public class PerformanceMetrics {
         long totalTime = totalProcessingTimeMillis.get();
         
         double averageProcessingTime = totalBatches > 0 ? (double) totalTime / totalBatches : 0.0;
-        double errorRate = totalBatches > 0 ? (double) totalFailed / (totalBatches + totalFailed) * 100.0 : 0.0;
+        long totalAttempts = totalBatches + totalFailed;
+        double errorRate = totalAttempts > 0 ? (double) totalFailed / totalAttempts * 100.0 : 0.0;
         double averageExposuresPerBatch = totalBatches > 0 ? (double) totalExposures / totalBatches : 0.0;
         
         // Calculate throughput per hour
