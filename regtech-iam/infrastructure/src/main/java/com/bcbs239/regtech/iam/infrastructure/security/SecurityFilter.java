@@ -282,17 +282,19 @@ public class SecurityFilter implements Filter {
     
     /**
      * Sends a 401 Unauthorized response with JSON error details.
-     * Requirements: 11.2, 11.3
+     * Uses consistent ApiResponse format for all authentication errors.
+     * Requirements: 8.3, 11.2, 11.3
      */
     private void sendUnauthorizedResponse(HttpServletResponse response, String errorCode, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         
+        // Use consistent ApiResponse format (Requirement 8.3)
         String jsonResponse = String.format(
-            "{\"error\":\"%s\",\"message\":\"%s\"}",
-            errorCode,
-            message.replace("\"", "\\\"")
+            "{\"success\":false,\"message\":\"%s\",\"type\":\"AUTHENTICATION_ERROR\",\"meta\":{\"errorCode\":\"%s\"}}",
+            message.replace("\"", "\\\""),
+            errorCode
         );
         
         response.getWriter().write(jsonResponse);

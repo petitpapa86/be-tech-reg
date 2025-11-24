@@ -147,14 +147,21 @@ public abstract class BaseController {
     private boolean isAuthenticationError(String errorCode) {
         return errorCode != null && (
             errorCode.startsWith("AUTH_") ||
+            errorCode.startsWith("JWT_") ||
             errorCode.equals("UNAUTHORIZED") ||
-            errorCode.equals("INVALID_CREDENTIALS")
+            errorCode.equals("INVALID_CREDENTIALS") ||
+            errorCode.equals("ACCOUNT_DISABLED") ||
+            errorCode.equals("INVALID_REFRESH_TOKEN") ||
+            errorCode.equals("BANK_ACCESS_DENIED") ||
+            errorCode.equals("MISSING_TOKEN") ||
+            errorCode.equals("AUTHENTICATION_ERROR")
         );
     }
 
     private boolean isNotFoundError(String errorCode) {
         return errorCode != null && (
             errorCode.equals("USER_NOT_FOUND") ||
+            errorCode.equals("BANK_NOT_FOUND") ||
             errorCode.equals("RESOURCE_NOT_FOUND")
         );
     }
