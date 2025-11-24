@@ -34,6 +34,9 @@ public class IAMProperties {
     @NotNull(message = "Session configuration must be specified")
     private SessionProperties session = new SessionProperties();
 
+    @NotNull(message = "Token cleanup configuration must be specified")
+    private TokenCleanupProperties tokenCleanup = new TokenCleanupProperties();
+
     /**
      * Security configuration (JWT, OAuth2, public paths)
      * This is shared configuration from root application.yml
@@ -182,5 +185,20 @@ public class IAMProperties {
 
         @Min(value = 1, message = "Remember-me validity must be at least 1 second")
         private int rememberMeValidity = 2592000; // 30 days
+    }
+
+    /**
+     * Token cleanup configuration
+     * Requirements: 6.5
+     */
+    @Data
+    public static class TokenCleanupProperties {
+        private boolean enabled = true;
+
+        @NotBlank(message = "Cleanup cron schedule must be specified")
+        private String cron = "0 0 2 * * ?"; // Daily at 2 AM
+
+        @Min(value = 1, message = "Retention days must be at least 1")
+        private int retentionDays = 30; // Keep expired tokens for 30 days before deletion
     }
 }

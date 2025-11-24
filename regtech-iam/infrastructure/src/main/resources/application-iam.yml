@@ -33,6 +33,19 @@ iam:
     
     # Remember-me token validity
     remember-me-validity: 2592000  # 30 days in seconds
+  
+  # Token cleanup configuration
+  # Requirements: 6.5
+  token-cleanup:
+    # Enable/disable automatic cleanup of expired tokens
+    enabled: true
+    
+    # Cron schedule for cleanup job (daily at 2 AM)
+    cron: "0 0 2 * * ?"
+    
+    # Retention period for expired tokens (in days)
+    # Expired tokens older than this will be deleted
+    retention-days: 30
 
 ---
 # Development profile overrides
@@ -51,6 +64,11 @@ iam:
   session:
     max-concurrent-sessions: 10  # Allow more sessions for testing
     timeout: 7200  # 2 hours
+  
+  token-cleanup:
+    enabled: true
+    cron: "0 0 3 * * ?"  # Run at 3 AM in development
+    retention-days: 7  # Shorter retention in development
 
 ---
 # Production profile overrides
@@ -71,3 +89,8 @@ iam:
   session:
     max-concurrent-sessions: 2  # Limit concurrent sessions
     timeout: 1800  # 30 minutes
+  
+  token-cleanup:
+    enabled: true
+    cron: "0 0 2 * * ?"  # Run at 2 AM in production
+    retention-days: 30  # Keep expired tokens for 30 days

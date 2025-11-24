@@ -139,7 +139,11 @@ This implementation plan covers the development of comprehensive authentication 
   - Ensure public authentication endpoints bypass token validation
   - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5_
 
-- [ ] 11. Update IAMProperties configuration
+- [x] 11. Update IAMProperties configuration
+
+
+
+
   - Add JWT configuration properties: access-token-expiration-minutes, refresh-token-expiration-days
   - Add token cleanup configuration: enabled, cron schedule, retention-days
   - Update public-paths to include /api/v1/auth/login, /api/v1/auth/refresh, /api/v1/auth/select-bank
