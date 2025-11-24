@@ -61,7 +61,13 @@ public class IAMProperties {
             private String secret;
 
             @Min(value = 1, message = "JWT expiration must be at least 1 second")
-            private int expiration = 86400; // 24 hours
+            private int expiration = 86400; // 24 hours (deprecated, use access-token-expiration-minutes)
+            
+            @Min(value = 1, message = "Access token expiration must be at least 1 minute")
+            private int accessTokenExpirationMinutes = 15; // 15 minutes
+            
+            @Min(value = 1, message = "Refresh token expiration must be at least 1 day")
+            private int refreshTokenExpirationDays = 7; // 7 days
         }
 
         /**
