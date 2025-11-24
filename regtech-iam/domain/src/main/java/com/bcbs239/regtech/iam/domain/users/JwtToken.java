@@ -140,6 +140,14 @@ public record JwtToken(String value, Instant expiresAt) {
         public Date getExpiration() {
             return claims.getExpiration();
         }
+        
+        /**
+         * Get the underlying Claims object for accessing additional claims.
+         * Used by SecurityFilter to extract bankId and role.
+         */
+        public Claims getClaims() {
+            return claims;
+        }
     }
 }
 
