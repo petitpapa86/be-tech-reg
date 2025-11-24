@@ -26,7 +26,7 @@ public class AuthenticationRoutes {
     }
 
     @Bean
-    public RouterFunction<ServerResponse> authenticationRoutes() {
+    public RouterFunction<ServerResponse> authenticationRoutesConfig() {
         // Public routes (no authentication required)
         // Requirements: 7.5 - login, refresh, and select-bank are public endpoints
         RouterFunction<ServerResponse> publicRoutes = RouterFunctions
