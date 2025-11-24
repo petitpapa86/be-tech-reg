@@ -72,14 +72,6 @@ billing:
     push:
       enabled: false
 
-# Stripe SDK Configuration
-# Used by StripeService for API calls
-stripe:
-  api:
-    key: ${STRIPE_API_KEY:}
-  webhook:
-    secret: ${STRIPE_WEBHOOK_SECRET:}
-
 ---
 # Development profile overrides
 spring:
