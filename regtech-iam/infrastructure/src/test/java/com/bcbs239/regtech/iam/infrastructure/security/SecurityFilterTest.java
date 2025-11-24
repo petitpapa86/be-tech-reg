@@ -42,8 +42,8 @@ class SecurityFilterTest {
 
     private SecurityFilter securityFilter;
     private IAMProperties iamProperties;
-    // HS512 requires at least 512 bits (64 bytes) - this string is exactly 64 characters
-    private String jwtSecret = "testsecretkeyforjwtsigningmustbelongenoughforhs512algorithm!!";
+    // HS512 requires at least 512 bits (64 bytes) - using a 100+ character string to ensure we have enough bytes
+    private String jwtSecret = "testsecretkeyforjwtsigningmustbelongenoughforhs512algorithmwithextracharacters1234567890abcdefghijklmnopqrstuvwxyz!!";
 
     @BeforeEach
     void setUp() {
