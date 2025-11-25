@@ -8,6 +8,7 @@ import com.bcbs239.regtech.billing.domain.payments.PaymentVerificationSagaData;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
+import com.bcbs239.regtech.core.application.saga.SagaManager;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
@@ -34,6 +35,7 @@ public class UserRegisteredEventHandler {
     private final BillingAccountRepository billingAccountRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository invoiceRepository;
+    private final SagaManager sagaManager;
 
     @EventListener
     public void handle(BillingUserRegisteredEvent event) {
@@ -129,10 +131,7 @@ public class UserRegisteredEventHandler {
 
             try {
 
-                Object sagaManagerBean = applicationContext.getBean("sagaManager");
-                Method startSaga = sagaManagerBean.getClass().getMethod("startSaga", Class.class, Object.class);
-                Object sagaIdObj = startSaga.invoke(sagaManagerBean, PaymentVerificationSaga.class, sagaData);
-                SagaId sagaId = (SagaId) sagaIdObj;
+                SagaId sagaId = sagaManager.startSaga(PaymentVerificationSaga.class, sagaData);
 
                 log.info("PaymentVerificationSaga started successfully {}", Map.of(
                         "eventType", "SAGA_START_SUCCESS",
@@ -141,7 +140,7 @@ public class UserRegisteredEventHandler {
                 ));
 
             } catch (Exception ex) {
-                log.error("SAGA_START_FAILED {}", ex, Map.of(
+                log.error("SAGA_START_FAILED {} {}", ex, Map.of(
                         "userId", event.getUserId(),
                         "error", ex.getMessage()
                 ));

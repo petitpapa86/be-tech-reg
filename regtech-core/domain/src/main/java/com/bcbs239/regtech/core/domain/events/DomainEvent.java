@@ -3,6 +3,7 @@ package com.bcbs239.regtech.core.domain.events;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -12,13 +13,14 @@ import java.util.UUID;
  * Domain events represent significant business events within a bounded context.
  */
 @Getter
+@Setter
 public abstract class DomainEvent {
 
     private final String eventId = UUID.randomUUID().toString();
     private final String correlationId;
     private final Maybe<String> causationId;
     private final Instant timestamp = Instant.now();
-    private final String eventType;
+    protected String eventType;
 
     protected DomainEvent(String correlationId, Maybe<String> causationId, String eventType) {
         this.correlationId = correlationId;
