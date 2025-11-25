@@ -23,7 +23,10 @@ import com.bcbs239.regtech.core.domain.saga.SagaStatus;
 import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
-import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
+import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
@@ -57,13 +60,32 @@ public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSag
     }
 
     private void handleSagaStarted(SagaStartedEvent event) {
+        // Validate and convert to value objects
+        UserId userId = UserId.fromString(data.getUserId());
+        
+        Result<Email> emailResult = Email.create(data.getUserEmail());
+        if (emailResult.isFailure()) {
+            data.setFailureReason("Invalid email: " + emailResult.getError().get().getMessage());
+            updateStatus();
+            compensate();
+            return;
+        }
+        
+        Result<PaymentMethodId> paymentMethodResult = PaymentMethodId.fromString(data.getPaymentMethodId());
+        if (paymentMethodResult.isFailure()) {
+            data.setFailureReason("Invalid payment method: " + paymentMethodResult.getError().get().getMessage());
+            updateStatus();
+            compensate();
+            return;
+        }
+        
         // Dispatch CreateStripeCustomerCommand to start the process
         CreateStripeCustomerCommand createCommand = new CreateStripeCustomerCommand(
                 event.sagaId(),
-                data.getUserId(),
-                data.getUserEmail(),
+                userId,
+                emailResult.getValue().get(),
                 data.getUserName(),
-                data.getPaymentMethodId()
+                paymentMethodResult.getValue().get()
         );
         dispatchCommand(createCommand);
 

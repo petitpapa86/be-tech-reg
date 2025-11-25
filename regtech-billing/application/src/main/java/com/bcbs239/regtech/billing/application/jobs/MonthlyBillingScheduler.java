@@ -12,7 +12,7 @@ import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionStatus;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.application.saga.SagaManager;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;

@@ -1,22 +1,30 @@
-package com.bcbs239.regtech.billing.domain.valueobjects;
+package com.bcbs239.regtech.core.domain.shared.valueobjects;
 
 import java.util.Optional;
 import java.util.UUID;
 
 /**
- * UserId Value Object - represents a unique user identifier in the Billing bounded context.
+ * UserId Value Object - represents a unique user identifier across all bounded contexts.
  * 
- * This is a copy of the UserId from the IAM module to maintain bounded context independence.
- * Each module should have its own domain model and not share domain objects across modules.
- * Cross-module references should only use IDs, not full domain objects.
+ * This is a shared value object that can be used by any module in the system.
+ * It ensures type safety and provides utility methods for working with user identifiers.
  */
 public record UserId(UUID value) {
+
+    public UserId {
+        if (value == null) {
+            throw new IllegalArgumentException("UserId value cannot be null");
+        }
+    }
 
     public static UserId generate() {
         return new UserId(UUID.randomUUID());
     }
 
     public static UserId fromString(String uuidString) {
+        if (uuidString == null || uuidString.trim().isEmpty()) {
+            throw new IllegalArgumentException("UserId string cannot be null or empty");
+        }
         return new UserId(UUID.fromString(uuidString));
     }
     

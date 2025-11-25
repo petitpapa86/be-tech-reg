@@ -2,7 +2,7 @@ package com.bcbs239.regtech.billing.domain.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
-import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 
 import java.time.LocalDate;
 

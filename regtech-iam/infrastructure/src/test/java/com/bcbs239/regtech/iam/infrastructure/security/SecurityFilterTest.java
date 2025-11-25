@@ -5,7 +5,7 @@ import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityCon
 import com.bcbs239.regtech.iam.domain.users.JwtToken;
 import com.bcbs239.regtech.iam.domain.users.User;
 import com.bcbs239.regtech.iam.domain.users.UserId;
-import com.bcbs239.regtech.iam.domain.users.Email;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
 import com.bcbs239.regtech.iam.domain.users.Password;
 import com.bcbs239.regtech.iam.domain.users.UserStatus;
 import com.bcbs239.regtech.iam.infrastructure.config.IAMProperties;

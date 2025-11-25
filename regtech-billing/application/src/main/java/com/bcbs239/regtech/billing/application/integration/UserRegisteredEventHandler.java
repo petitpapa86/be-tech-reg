@@ -1,12 +1,14 @@
 package com.bcbs239.regtech.billing.application.integration;
 
+import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
 import com.bcbs239.regtech.core.domain.events.integration.UserRegisteredIntegrationEvent;
 import com.bcbs239.regtech.billing.application.subscriptions.CreateStripeCustomerCommandHandler;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
-import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -28,7 +30,7 @@ public class UserRegisteredEventHandler {
     }
 
     @EventListener
-    public void handle(UserRegisteredIntegrationEvent event) {
+    public void handle(BillingUserRegisteredEvent event) {
         log.info("USER_REGISTERED_EVENT_RECEIVED; details={}", Map.of(
             "userId", event.getUserId(),
             "email", event.getEmail()
@@ -51,10 +53,10 @@ public class UserRegisteredEventHandler {
         // Trigger stripe customer creation via command handler
         createStripeCustomerCommandHandler.handle(new com.bcbs239.regtech.billing.application.policies.createstripecustomer.CreateStripeCustomerCommand(
             com.bcbs239.regtech.core.domain.saga.SagaId.generate(),
-            event.getUserId(),
-            event.getEmail(),
+                UserId.fromString(event.getUserId()),
+                Email.create(event.getEmail()).value(),
             "", // name unknown at registration
-            null // payment method id unknown at registration
+                PaymentMethodId.fromString(event.getPaymentMethodId()).value()
         ));
     }
 }

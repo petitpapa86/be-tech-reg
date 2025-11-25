@@ -3,7 +3,7 @@ package com.bcbs239.regtech.iam.domain.authentication.events;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.iam.domain.users.Email;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;

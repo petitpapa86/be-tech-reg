@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.application.shared;
 
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
-import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 
 /**
  * Data transfer object for usage metrics from the ingestion context.

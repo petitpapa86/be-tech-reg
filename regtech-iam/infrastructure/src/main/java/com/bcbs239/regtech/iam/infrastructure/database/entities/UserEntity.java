@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
 import com.bcbs239.regtech.iam.domain.users.*;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -106,7 +107,8 @@ public class UserEntity {
         
         // Use reflection or package-private constructor to create domain object
         // This is a simplified approach - in practice you might need a more sophisticated builder
-        User user = User.createFromPersistence(
+
+        return User.createFromPersistence(
             UserId.fromString(id),
             emailVO,
             passwordVO,
@@ -122,8 +124,6 @@ public class UserEntity {
                 .map(UserBankAssignmentEntity::toDomain)
                 .toList()
         );
-        
-        return user;
     }
 
 }

@@ -17,7 +17,7 @@ import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.SagaSnapshot;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,19 +61,19 @@ public class CreateStripeCustomerCommandHandler {
         SagaId sagaId = command.sagaId();
         log.info("CREATE_STRIPE_CUSTOMER_COMMAND_RECEIVED; details={}", Map.of(
                 "sagaId", sagaId,
-                "userEmail", command.getEmail(),
+                "userEmail", command.getEmail().getValue(),
                 "userName", command.getName()
         ));
 
-        // Create customer using PaymentService
-        PaymentMethodId paymentMethodId = PaymentMethodId.fromString(command.getPaymentMethodId()).getValue().orElse(null);
+        // Validate payment method ID
+        PaymentMethodId paymentMethodId = command.getPaymentMethodId();
         if (paymentMethodId == null) {
-            publishFailureEvent(sagaId, "Invalid payment method ID");
+            publishFailureEvent(sagaId, "Payment method ID cannot be null");
             return;
         }
 
         PaymentService.CustomerCreationRequest request = new PaymentService.CustomerCreationRequest(
-            command.getEmail(),
+            command.getEmail().getValue(),
             command.getName(),
             paymentMethodId
         );

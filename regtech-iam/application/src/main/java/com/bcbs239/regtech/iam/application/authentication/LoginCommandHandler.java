@@ -11,7 +11,7 @@ import com.bcbs239.regtech.iam.domain.authentication.RefreshTokenId;
 import com.bcbs239.regtech.iam.domain.authentication.TokenPair;
 import com.bcbs239.regtech.iam.domain.authentication.events.UserLoggedInEvent;
 import com.bcbs239.regtech.iam.domain.users.BankId;
-import com.bcbs239.regtech.iam.domain.users.Email;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
 import com.bcbs239.regtech.iam.domain.users.JwtToken;
 import com.bcbs239.regtech.iam.domain.users.TenantContext;
 import com.bcbs239.regtech.iam.domain.users.User;

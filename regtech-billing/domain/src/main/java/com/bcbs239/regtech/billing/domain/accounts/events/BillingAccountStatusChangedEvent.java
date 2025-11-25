@@ -2,7 +2,7 @@ package com.bcbs239.regtech.billing.domain.accounts.events;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountStatus;
-import com.bcbs239.regtech.billing.domain.valueobjects.UserId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import lombok.Getter;
 

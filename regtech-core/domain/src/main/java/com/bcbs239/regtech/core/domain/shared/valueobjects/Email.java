@@ -1,5 +1,4 @@
-package com.bcbs239.regtech.iam.domain.users;
-
+package com.bcbs239.regtech.core.domain.shared.valueobjects;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
@@ -8,12 +7,21 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import java.util.regex.Pattern;
 
 /**
- * Email Value Object with validation
+ * Email Value Object - represents an email address across all bounded contexts.
+ * 
+ * This is a shared value object that can be used by any module in the system.
+ * It provides validation and ensures email addresses are properly formatted.
  */
 public record Email(String value) {
 
     private static final Pattern EMAIL_PATTERN =
         Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+
+    public Email {
+        if (value == null) {
+            throw new IllegalArgumentException("Email value cannot be null");
+        }
+    }
 
     public static Result<Email> create(String email) {
         if (email == null || email.trim().isEmpty()) {
@@ -33,6 +41,3 @@ public record Email(String value) {
         return value;
     }
 }
-
-
-

@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.iam.application.authentication;
 
 import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
 import com.bcbs239.regtech.iam.domain.users.*;
 
 import java.util.List;
