@@ -31,7 +31,7 @@ import java.util.Map;
  * Command handler for creating Stripe customers.
  * Simplified version using PaymentService domain interface.
  */
-@Component("railwayCreateStripeCustomerCommandHandler")
+@Component()
 @SuppressWarnings("unused")
 public class CreateStripeCustomerCommandHandler {
 

@@ -13,6 +13,8 @@ import jakarta.persistence.LockModeType;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.OptimisticLockException;
 import jakarta.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,8 @@ import java.util.stream.Collectors;
 @Repository
 public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository {
 
+    private static final Logger log = LoggerFactory.getLogger(JpaSubscriptionRepository.class);
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -42,9 +46,8 @@ public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.do
                 .setParameter("subscriptionId", subscriptionId.value())
                 .getSingleResult();
             return Maybe.some(entity.toDomain());
-        } catch (NoResultException e) {
-            return Maybe.none();
         } catch (Exception e) {
+            log.error("Failed to find subscription by id: {}", subscriptionId.value(), e);
             return Maybe.none();
         }
     }
@@ -61,9 +64,8 @@ public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.do
                 .setMaxResults(1)
                 .getSingleResult();
             return Maybe.some(entity.toDomain());
-        } catch (NoResultException e) {
-            return Maybe.none();
         } catch (Exception e) {
+            log.error("Failed to find active subscription by billing account id: {}", billingAccountId.value(), e);
             return Maybe.none();
         }
     }
@@ -77,9 +79,8 @@ public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.do
                 .setParameter("stripeSubscriptionId", stripeSubscriptionId.value())
                 .getSingleResult();
             return Maybe.some(entity.toDomain());
-        } catch (NoResultException e) {
-            return Maybe.none();
         } catch (Exception e) {
+            log.error("Failed to find subscription by stripe subscription id: {}", stripeSubscriptionId.value(), e);
             return Maybe.none();
         }
     }
@@ -98,6 +99,7 @@ public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.do
             entityManager.flush();
             return Result.success(SubscriptionId.fromString(entity.getId()).getValue().orElseThrow());
         } catch (Exception e) {
+            log.error("Failed to save subscription", e);
             return Result.failure(ErrorDetail.of("SUBSCRIPTION_SAVE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to save subscription: " + e.getMessage(), "subscription.save.failed"));
         }
@@ -113,9 +115,8 @@ public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.do
                 .setParameter("tier", tier)
                 .getSingleResult();
             return Maybe.some(entity.toDomain());
-        } catch (NoResultException e) {
-            return Maybe.none();
         } catch (Exception e) {
+            log.error("Failed to find subscription by billing account id: {} and tier: {}", billingAccountId.value(), tier, e);
             return Maybe.none();
         }
     }
@@ -154,16 +155,15 @@ public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.do
                 
                 return Result.success(SubscriptionId.fromString(managed.getId()).getValue().orElseThrow());
             } catch (OptimisticLockException ole) {
-                LoggingConfiguration.logStructured("Optimistic lock on subscription update",
-                    Map.of("subscriptionId", subscription.getId().value(), 
-                           "eventType", "SUBSCRIPTION_UPDATE_CONFLICT", "attempt", currentAttempt), ole);
-                
                 // Retry on optimistic lock conflicts
                 if (attempt < maxAttempts) {
+                    log.warn("Optimistic lock exception on subscription update, attempt {}/{} for subscription id: {}", 
+                        currentAttempt, maxAttempts, subscription.getId().value(), ole);
                     try {
                         Thread.sleep(50L * attempt);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
+                        log.error("Update interrupted during retry for subscription id: {}", subscription.getId().value(), ie);
                         return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_INTERRUPTED", ErrorType.BUSINESS_RULE_ERROR,
                             "Update interrupted during retry", "subscription.update.interrupted"));
                     }
@@ -171,11 +171,12 @@ public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.do
                     entityManager.clear();
                     continue;
                 }
+                log.error("Failed to update subscription after {} attempts due to optimistic lock conflict for subscription id: {}", 
+                    maxAttempts, subscription.getId().value(), ole);
                 return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_CONFLICT", ErrorType.BUSINESS_RULE_ERROR,
                     ole.getMessage(), "subscription.update.conflict"));
             } catch (Exception e) {
-                LoggingConfiguration.logStructured("Error updating subscription",
-                    Map.of("subscriptionId", subscription.getId().value(), "eventType", "SUBSCRIPTION_UPDATE_ERROR"), e);
+                log.error("Failed to update subscription id: {}", subscription.getId().value(), e);
                 return Result.failure(ErrorDetail.of("SUBSCRIPTION_UPDATE_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                     "Failed to update subscription: " + e.getMessage(), "subscription.update.failed"));
             }
@@ -197,6 +198,7 @@ public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.do
                 .map(SubscriptionEntity::toDomain)
                 .collect(Collectors.toList());
         } catch (Exception e) {
+            log.error("Failed to find subscriptions by status: {}", status, e);
             return List.of();
         }
     }
@@ -213,39 +215,10 @@ public class JpaSubscriptionRepository implements com.bcbs239.regtech.billing.do
                 .map(SubscriptionEntity::toDomain)
                 .collect(Collectors.toList());
         } catch (Exception e) {
+            log.error("Failed to find subscriptions by statuses: {}", statuses, e);
             return List.of();
         }
     }
 
-    // Backward compatibility methods for existing functional patterns
-    @Deprecated
-    public Function<SubscriptionId, Maybe<Subscription>> subscriptionFinder() {
-        return this::findById;
-    }
-
-    @Deprecated
-    public Function<BillingAccountId, Maybe<Subscription>> activeSubscriptionFinder() {
-        return this::findActiveByBillingAccountId;
-    }
-
-    @Deprecated
-    public Function<BillingAccountId, Function<SubscriptionTier, Maybe<Subscription>>> subscriptionByBillingAccountAndTierFinder() {
-        return billingAccountId -> tier -> findByBillingAccountAndTier(billingAccountId, tier);
-    }
-
-    @Deprecated
-    public Function<Subscription, Result<SubscriptionId>> subscriptionSaver() {
-        return this::save;
-    }
-
-    @Deprecated
-    public Function<Subscription, Result<SubscriptionId>> subscriptionUpdater() {
-        return this::update;
-    }
-
-    @Deprecated
-    public Function<SubscriptionStatus, List<Subscription>> subscriptionsByStatusFinder() {
-        return this::findByStatus;
-    }
 }
 

@@ -26,17 +26,14 @@ public class ProcessPaymentCommandHandler {
 
     private final BillingAccountRepository billingAccountRepository;
     private final SubscriptionRepository subscriptionRepository;
-    private final InvoiceRepository invoiceRepository;
     private final PaymentService paymentService;
 
     public ProcessPaymentCommandHandler(
             BillingAccountRepository billingAccountRepository,
             SubscriptionRepository subscriptionRepository,
-            InvoiceRepository invoiceRepository,
             PaymentService paymentService) {
         this.billingAccountRepository = billingAccountRepository;
         this.subscriptionRepository = subscriptionRepository;
-        this.invoiceRepository = invoiceRepository;
         this.paymentService = paymentService;
     }
 
