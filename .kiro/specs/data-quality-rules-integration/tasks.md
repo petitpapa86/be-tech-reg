@@ -253,7 +253,9 @@
   - Add configuration examples in application.yml
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 10. Run all existing tests with Rules Engine
+- [-] 10. Run all existing tests with Rules Engine
+
+
   - Enable Rules Engine in test configuration
   - Run all 309 existing tests
   - Fix any failing tests
@@ -279,7 +281,12 @@
   - Test parallel execution (if enabled)
   - _Requirements: 2.5_
 
-- [ ] 14. Deprecate Specification classes
+- [x] 14. Deprecate Specification classes
+
+
+
+
+
   - Add @Deprecated annotation to all Specification classes
   - Add deprecation warnings in JavaDoc
   - Update documentation to reference Rules Engine

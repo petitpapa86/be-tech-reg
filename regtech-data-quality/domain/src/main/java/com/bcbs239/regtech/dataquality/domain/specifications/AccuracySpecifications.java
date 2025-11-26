@@ -15,7 +15,14 @@ import java.util.regex.Pattern;
  * 
  * Accuracy ensures that data formats, ranges, and business logic correctness
  * are validated according to BCBS 239 regulatory requirements.
+ * 
+ * @deprecated This class is deprecated and will be removed in a future release.
+ *             All validation logic has been migrated to the database-driven Rules Engine.
+ *             Use {@link com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService}
+ *             for configurable, database-driven validation instead.
+ *             See the Rules Engine Configuration Guide for migration details.
  */
+@Deprecated(since = "2.0", forRemoval = true)
 public class AccuracySpecifications {
 
     // Maximum reasonable amount: 10 billion EUR

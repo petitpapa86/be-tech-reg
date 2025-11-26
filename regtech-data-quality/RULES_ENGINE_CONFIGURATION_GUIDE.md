@@ -9,11 +9,12 @@ This guide provides comprehensive documentation for configuring the Rules Engine
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
-2. [Configuration Properties](#configuration-properties)
-3. [Configuration Examples](#configuration-examples)
-4. [Validation on Startup](#validation-on-startup)
-5. [Performance Tuning](#performance-tuning)
-6. [Troubleshooting](#troubleshooting)
+2. [Migration from Specifications](#migration-from-specifications)
+3. [Configuration Properties](#configuration-properties)
+4. [Configuration Examples](#configuration-examples)
+5. [Validation on Startup](#validation-on-startup)
+6. [Performance Tuning](#performance-tuning)
+7. [Troubleshooting](#troubleshooting)
 
 ## Quick Start
 
@@ -45,6 +46,74 @@ data-quality:
       warn-threshold-ms: 100
       max-execution-time-ms: 5000
 ```
+
+## Migration from Specifications
+
+### Deprecated Specification Classes
+
+As of version 2.0, all Specification-based validation classes have been **deprecated** and will be removed in a future release. The following classes are now deprecated:
+
+- `CompletenessSpecifications` - Replaced by database rules with `COMPLETENESS` rule type
+- `AccuracySpecifications` - Replaced by database rules with `ACCURACY` rule type
+- `ConsistencySpecifications` - Replaced by database rules with `CONSISTENCY` rule type
+- `TimelinessSpecifications` - Replaced by database rules with `TIMELINESS` rule type
+- `UniquenessSpecifications` - Replaced by database rules with `UNIQUENESS` rule type
+
+### Why Migrate?
+
+The Rules Engine provides several advantages over hardcoded Specifications:
+
+1. **Configurable:** Rules can be modified through database updates without code deployment
+2. **Dynamic:** Enable/disable rules at runtime based on business needs
+3. **Auditable:** All rule executions and violations are persisted to the database
+4. **Flexible:** Rule parameters can be adjusted without code changes
+5. **Maintainable:** Business users can manage rules without developer involvement
+
+### Migration Path
+
+All validation logic from Specifications has been migrated to database rules. The Rules Engine provides identical validation results while offering greater flexibility.
+
+**Before (Deprecated):**
+```java
+// Using hardcoded Specifications
+ValidationResult result = ValidationResult.validate(
+    exposure,
+    CompletenessSpecifications.hasRequiredFields(),
+    AccuracySpecifications.hasPositiveAmount()
+);
+```
+
+**After (Recommended):**
+```java
+// Using Rules Engine
+ValidationResult result = ValidationResult.validate(
+    exposure,
+    dataQualityRulesService
+);
+```
+
+### Equivalent Rules
+
+Each Specification method has been migrated to one or more database rules:
+
+| Specification Method | Database Rule Code | Rule Type |
+|---------------------|-------------------|-----------|
+| `hasRequiredFields()` | `COMPLETENESS_EXPOSURE_ID_REQUIRED`, `COMPLETENESS_AMOUNT_REQUIRED`, etc. | COMPLETENESS |
+| `hasPositiveAmount()` | `ACCURACY_POSITIVE_AMOUNT` | ACCURACY |
+| `hasValidCurrency()` | `ACCURACY_VALID_CURRENCY` | ACCURACY |
+| `currencyMatchesCountry()` | `CONSISTENCY_CURRENCY_COUNTRY` | CONSISTENCY |
+| `isWithinReportingPeriod()` | `TIMELINESS_REPORTING_PERIOD` | TIMELINESS |
+| `hasUniqueExposureIds()` | `UNIQUENESS_EXPOSURE_IDS` | UNIQUENESS |
+
+See the [Design Document](../../.kiro/specs/data-quality-rules-integration/design.md) for a complete mapping of all rules.
+
+### Timeline
+
+- **Version 2.0:** Specifications marked as deprecated
+- **Version 2.1:** Deprecation warnings in logs
+- **Version 3.0:** Specifications will be removed
+
+---
 
 ## Configuration Properties
 

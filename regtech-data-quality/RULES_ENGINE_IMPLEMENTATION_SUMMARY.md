@@ -4,6 +4,9 @@
 
 Successfully implemented a **database-driven Rules Engine** that integrates seamlessly with the existing Data Quality system. The implementation follows a **hybrid model** maintaining backward compatibility with existing Specifications while introducing configurable business rules stored in the database.
 
+> **⚠️ DEPRECATION NOTICE (Version 2.0):**  
+> All Specification classes (`CompletenessSpecifications`, `AccuracySpecifications`, `ConsistencySpecifications`, `TimelinessSpecifications`, `UniquenessSpecifications`) have been deprecated and will be removed in version 3.0. All validation logic has been migrated to the database-driven Rules Engine. See the [Rules Engine Configuration Guide](RULES_ENGINE_CONFIGURATION_GUIDE.md) for migration details.
+
 ### Key Achievements
 - ✅ **Zero Breaking Changes**: All 309 existing tests pass without modification
 - ✅ **Clean Architecture**: Proper DDD layering with infrastructure separation

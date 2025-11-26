@@ -18,7 +18,14 @@ import java.util.stream.Collectors;
  * Uniqueness ensures that no duplicate records or identifiers exist
  * within a batch of exposure data, maintaining data integrity and
  * preventing double-counting in regulatory reporting.
+ * 
+ * @deprecated This class is deprecated and will be removed in a future release.
+ *             All validation logic has been migrated to the database-driven Rules Engine.
+ *             Use {@link com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService}
+ *             for configurable, database-driven validation instead.
+ *             See the Rules Engine Configuration Guide for migration details.
  */
+@Deprecated(since = "2.0", forRemoval = true)
 public class UniquenessSpecifications {
 
     /**
