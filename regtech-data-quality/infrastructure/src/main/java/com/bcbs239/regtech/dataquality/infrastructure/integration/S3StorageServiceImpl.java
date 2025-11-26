@@ -53,10 +53,10 @@ public class S3StorageServiceImpl implements S3StorageService {
     private ExecutorService executorService;
     
     // Configuration properties
-    @Value("${storage.type:s3}")
+    @Value("${data-quality.storage.type:s3}")
     private String storageType;
     
-    @Value("${data-quality.s3.results-bucket:regtech-quality-results}")
+    @Value("${data-quality.storage.s3.bucket:regtech-data-quality}")
     private String resultsBucket;
     
     @Value("${data-quality.s3.encryption-key-id:alias/regtech-quality-key}")
@@ -68,7 +68,7 @@ public class S3StorageServiceImpl implements S3StorageService {
     @Value("${data-quality.s3.max-concurrent-uploads:3}")
     private int maxConcurrentUploads;
     
-    @Value("${storage.local.base-path:${user.dir}/data}")
+    @Value("${data-quality.storage.local.base-path:${user.dir}/data/quality}")
     private String localBasePath;
     
     public S3StorageServiceImpl(CoreS3Service coreS3Service) {
