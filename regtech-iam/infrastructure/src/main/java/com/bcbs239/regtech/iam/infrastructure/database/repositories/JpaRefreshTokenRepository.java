@@ -45,9 +45,11 @@ public class JpaRefreshTokenRepository implements IRefreshTokenRepository {
             RefreshTokenEntity entity = mapper.toEntity(refreshToken);
             RefreshTokenEntity saved = jpaRepository.save(entity);
             
-            log.debug("REFRESH_TOKEN_SAVED - tokenId: {}, userId: {}", 
+            log.info("REFRESH_TOKEN_SAVED - tokenId: {}, userId: {}, hashPreview: {}..., hashLength: {}", 
                 saved.getId(),
-                saved.getUserId());
+                saved.getUserId(),
+                saved.getTokenHash().substring(0, Math.min(10, saved.getTokenHash().length())),
+                saved.getTokenHash().length());
             
             return Result.success(new RefreshTokenId(saved.getId()));
         } catch (Exception e) {
@@ -93,6 +95,27 @@ public class JpaRefreshTokenRepository implements IRefreshTokenRepository {
                 e.getMessage(),
                 e);
             return Maybe.none();
+        }
+    }
+    
+    @Override
+    public List<RefreshToken> findValidTokensByUserId(UserId userId) {
+        try {
+            UUID userUuid = UUID.fromString(userId.getValue());
+            Instant now = Instant.now();
+            
+            List<RefreshTokenEntity> entities = jpaRepository.findByUserId(userUuid);
+            
+            return entities.stream()
+                .filter(entity -> !entity.isRevoked() && entity.getExpiresAt().isAfter(now))
+                .map(mapper::toDomain)
+                .toList();
+        } catch (Exception e) {
+            log.error("REFRESH_TOKEN_FIND_VALID_BY_USER_FAILED - userId: {}, error: {}", 
+                userId.getValue(),
+                e.getMessage(),
+                e);
+            return List.of();
         }
     }
     

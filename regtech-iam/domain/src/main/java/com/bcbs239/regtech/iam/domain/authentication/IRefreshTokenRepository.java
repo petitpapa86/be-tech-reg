@@ -5,6 +5,7 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Repository interface for RefreshToken aggregate
@@ -32,6 +33,13 @@ public interface IRefreshTokenRepository {
      * @return Maybe containing the refresh token if found, or empty
      */
     Maybe<RefreshToken> findByTokenHash(String tokenHash);
+    
+    /**
+     * Finds all valid (non-revoked, non-expired) refresh tokens for a user
+     * @param userId the user ID
+     * @return List of valid refresh tokens
+     */
+    List<RefreshToken> findValidTokensByUserId(UserId userId);
     
     /**
      * Revokes all refresh tokens for a specific user

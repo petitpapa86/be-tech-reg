@@ -37,7 +37,8 @@ public record TokenPair(
 
         // Generate refresh token value
         String tokenValue = RefreshToken.generateSecureToken();
-        String tokenHash = passwordHasher.hash(tokenValue);
+        // Use SHA-256 for deterministic hashing (allows lookup)
+        String tokenHash = createDeterministicHash(tokenValue);
 
         // Generate refresh token
         Result<RefreshToken> refreshTokenResult = RefreshToken.create(
@@ -83,7 +84,8 @@ public record TokenPair(
 
         // Generate refresh token value
         String tokenValue = RefreshToken.generateSecureToken();
-        String tokenHash = passwordHasher.hash(tokenValue);
+        // Use SHA-256 for deterministic hashing (allows lookup)
+        String tokenHash = createDeterministicHash(tokenValue);
 
         // Generate refresh token
         Result<RefreshToken> refreshTokenResult = RefreshToken.create(
@@ -101,5 +103,20 @@ public record TokenPair(
             accessTokenResult.getValue().get(),
             refreshTokenResult.getValue().get()
         ));
+    }
+    
+    /**
+     * Creates a deterministic hash for token lookup
+     * Uses SHA-256 instead of BCrypt because BCrypt is salted and produces
+     * different hashes for the same input, making lookups impossible
+     */
+    private static String createDeterministicHash(String token) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.Base64.getEncoder().encodeToString(hash);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
     }
 }

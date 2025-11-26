@@ -61,15 +61,17 @@ public class RefreshTokenCommandHandler {
      */
     @Transactional
     public Result<RefreshTokenResponse> handle(RefreshTokenCommand command) {
-        // 1. Hash the provided token to look it up (Requirement 2.1)
-        String tokenHash = passwordHasher.hash(command.refreshToken());
+        // 1. Create a deterministic hash of the provided token for lookup
+        // We use SHA-256 instead of BCrypt because BCrypt is salted and produces
+        // different hashes for the same input, making lookups impossible
+        String tokenHash = createDeterministicHash(command.refreshToken());
         
+    
         // 2. Find refresh token in database (Requirement 2.1, 6.3)
         Maybe<RefreshToken> tokenMaybe = refreshTokenRepository.findByTokenHash(tokenHash);
         
         if (tokenMaybe.isEmpty()) {
-            log.warn("REFRESH_TOKEN_NOT_FOUND - tokenHash: {}...", 
-                tokenHash.substring(0, Math.min(10, tokenHash.length())));
+           
             // Return generic error (Requirement 2.3, 8.1)
             return Result.failure(ErrorDetail.of(
                 "INVALID_REFRESH_TOKEN",
@@ -169,6 +171,20 @@ public class RefreshTokenCommandHandler {
             tokenPair.refreshToken(),
             tenantContext
         ));
+    }
+    
+    /**
+     * Creates a deterministic hash for token lookup
+     * Uses SHA-256 instead of BCrypt because BCrypt is salted
+     */
+    private String createDeterministicHash(String token) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(token.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.Base64.getEncoder().encodeToString(hash);
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 algorithm not available", e);
+        }
     }
     
     /**
