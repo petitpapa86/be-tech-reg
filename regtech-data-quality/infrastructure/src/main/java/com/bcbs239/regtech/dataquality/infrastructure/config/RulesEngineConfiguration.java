@@ -5,9 +5,6 @@ import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
 import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluator;
 import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository;
 import com.bcbs239.regtech.modules.dataquality.infrastructure.config.DataQualityProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -60,9 +57,9 @@ public class RulesEngineConfiguration {
      */
     @Bean
     public RulesEngine rulesEngine(
-            BusinessRuleRepository ruleRepository,
-            RuleExecutionLogRepository executionLogRepository,
-            RuleViolationRepository violationRepository,
+            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository ruleRepository,
+            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository executionLogRepository,
+            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository violationRepository,
             ExpressionEvaluator expressionEvaluator,
             DataQualityProperties properties) {
         
@@ -106,9 +103,9 @@ public class RulesEngineConfiguration {
     @Bean
     public DataQualityRulesService dataQualityRulesService(
             RulesEngine rulesEngine,
-            BusinessRuleRepository ruleRepository,
-            RuleViolationRepository violationRepository,
-            RuleExecutionLogRepository executionLogRepository,
+            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository ruleRepository,
+            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository violationRepository,
+            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository executionLogRepository,
             RuleExemptionRepository exemptionRepository,
             DataQualityProperties properties) {
         

@@ -253,7 +253,10 @@
   - Add configuration examples in application.yml
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [-] 10. Run all existing tests with Rules Engine
+- [x] 10. Run all existing tests with Rules Engine
+
+
+
 
 
   - Enable Rules Engine in test configuration
