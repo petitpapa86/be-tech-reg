@@ -3,6 +3,7 @@ package com.bcbs239.regtech.dataquality.application.rulesengine;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
@@ -21,18 +22,18 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Bridge service that connects the existing Specifications-based validation
- * with the new Rules Engine for configurable business rules.
+ * Bridge service that connects the validation pipeline with the Rules Engine
+ * for configurable business rules.
  * 
- * <p>This service allows gradual migration from hardcoded specifications
- * to database-driven business rules. It provides:</p>
+ * <p>This service provides:</p>
  * <ul>
  *   <li>Validation of configurable rules for exposures</li>
  *   <li>Access to configurable parameters (thresholds, lists)</li>
  *   <li>Conversion between rule violations and validation errors</li>
+ *   <li>Persistence of violations and execution logs</li>
  * </ul>
  * 
- * <p><strong>Design Pattern:</strong> Bridge Pattern - decouples abstraction (Specifications)
+ * <p><strong>Design Pattern:</strong> Bridge Pattern - decouples abstraction (ValidationResult)
  * from implementation (Rules Engine) allowing both to vary independently.</p>
  */
 @Slf4j

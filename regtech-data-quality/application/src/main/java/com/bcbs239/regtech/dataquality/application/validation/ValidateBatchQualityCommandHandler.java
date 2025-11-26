@@ -6,13 +6,18 @@ import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityCompletedEvent;
 import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityFailedEvent;
+import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.ArrayList;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
+import com.bcbs239.regtech.dataquality.domain.validation.ExposureValidationResult;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,15 +57,18 @@ public class ValidateBatchQualityCommandHandler {
     private final IQualityReportRepository qualityReportRepository;
     private final S3StorageService s3StorageService;
     private final IIntegrationEventBus eventBus;
+    private final DataQualityRulesService rulesService;
     
     public ValidateBatchQualityCommandHandler(
         IQualityReportRepository qualityReportRepository,
         S3StorageService s3StorageService,
-        IIntegrationEventBus eventBus
+        IIntegrationEventBus eventBus,
+        DataQualityRulesService rulesService
     ) {
         this.qualityReportRepository = qualityReportRepository;
         this.s3StorageService = s3StorageService;
         this.eventBus = eventBus;
+        this.rulesService = rulesService;
     }
     
     /**
@@ -118,19 +126,50 @@ public class ValidateBatchQualityCommandHandler {
         }
         List<ExposureRecord> exposures = exposuresResult.getValueOrThrow();
         
-        // Execute quality validation using aggregate business logic
-        logger.debug("Executing quality validation for {} exposures", exposures.size());
+        // Execute quality validation using Rules Engine (application layer responsibility)
+        logger.debug("Executing quality validation for {} exposures using Rules Engine", exposures.size());
         
-        Result<ValidationResult> validationResult = report.executeQualityValidation(exposures);
+        // Application layer orchestrates infrastructure (Rules Engine)
+        // Validate each exposure using the Rules Engine
+        Map<String, ExposureValidationResult> exposureResults = new HashMap<>();
+        for (ExposureRecord exposure : exposures) {
+            List<ValidationError> errors = rulesService.validateConfigurableRules(exposure);
+            
+            // Group errors by dimension
+            Map<QualityDimension, List<ValidationError>> dimensionErrors = new HashMap<>();
+            for (QualityDimension dimension : QualityDimension.values()) {
+                dimensionErrors.put(dimension, new ArrayList<>());
+            }
+            for (ValidationError error : errors) {
+                dimensionErrors.get(error.dimension()).add(error);
+            }
+            
+            ExposureValidationResult result = ExposureValidationResult.builder()
+                .exposureId(exposure.exposureId())
+                .errors(errors)
+                .dimensionErrors(dimensionErrors)
+                .isValid(errors.isEmpty())
+                .build();
+            
+            exposureResults.put(exposure.exposureId(), result);
+        }
+        
+        // Batch-level validation (if needed in the future)
+        List<ValidationError> batchErrors = new ArrayList<>();
+        
+        // Create ValidationResult from the validated exposures
+        ValidationResult validation = ValidationResult.fromValidatedExposures(exposureResults, batchErrors);
+        
+        // Tell the aggregate to record the results (domain logic)
+        Result<ValidationResult> validationResult = report.recordValidationAndCalculateScores(validation);
         
         if (validationResult.isFailure()) {
-            logger.error("Failed to execute quality validation: {}", 
+            logger.error("Failed to record quality validation: {}", 
                 validationResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
-            markReportAsFailed(report, "Failed to execute quality validation");
+            markReportAsFailed(report, "Failed to record quality validation");
             return Result.failure(validationResult.errors());
         }
         
-        ValidationResult validation = validationResult.getValueOrThrow();
         QualityScores scores = report.getScores(); // Scores calculated by aggregate
         
         logger.info("Quality validation completed: {}/{} exposures valid, {} total errors, Overall score: {}", 

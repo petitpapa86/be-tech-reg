@@ -1,10 +1,7 @@
 package com.bcbs239.regtech.dataquality.domain.validation;
 
-import com.bcbs239.regtech.core.domain.specifications.Specification;
-import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
-import com.bcbs239.regtech.dataquality.domain.specifications.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -13,9 +10,12 @@ import java.util.stream.Collectors;
  * Value object representing the complete validation results for a batch of exposures.
  * Contains both individual exposure results and batch-level validation information.
  * 
- * <p>This is a value object with a static factory method that knows how to create itself
- * by applying domain specifications. This is proper DDD - the value object encapsulates
- * the logic for its own creation.</p>
+ * <p>This value object now uses the Rules Engine exclusively for validation,
+ * replacing the previous Specification-based approach. The Rules Engine provides
+ * database-driven, configurable validation rules that can be modified without code deployment.</p>
+ * 
+ * <p>This is proper DDD - the value object encapsulates the logic for its own creation
+ * by delegating to the Rules Engine through the DataQualityRulesService.</p>
  */
 public record ValidationResult(
     Map<String, ExposureValidationResult> exposureResults,
@@ -62,212 +62,52 @@ public record ValidationResult(
     }
     
     /**
-     * Factory method to validate exposures and create a ValidationResult.
+     * Factory method to create a ValidationResult from pre-validated exposure results.
      * 
-     * <p>This is the proper DDD approach - the value object knows how to create itself
-     * by applying domain specifications. This method orchestrates:</p>
-     * <ol>
-     *   <li>Validating each exposure individually using dimension specifications</li>
-     *   <li>Performing batch-level validation (uniqueness)</li>
-     *   <li>Calculating dimension scores</li>
-     *   <li>Building the complete ValidationResult</li>
-     * </ol>
+     * <p>This follows proper DDD - the value object is created from data, not by orchestrating
+     * infrastructure services. The application layer is responsible for calling the Rules Engine
+     * and passing the results here.</p>
      * 
-     * @param exposures List of exposure records to validate
+     * @param exposureResults Map of exposure IDs to their validation results
+     * @param batchErrors List of batch-level validation errors
      * @return ValidationResult containing all validation errors and dimension scores
      */
-    public static ValidationResult validate(List<ExposureRecord> exposures) {
-        Objects.requireNonNull(exposures, "Exposures list cannot be null");
+    public static ValidationResult fromValidatedExposures(
+            Map<String, ExposureValidationResult> exposureResults,
+            List<ValidationError> batchErrors) {
         
-        if (exposures.isEmpty()) {
+        Objects.requireNonNull(exposureResults, "Exposure results cannot be null");
+        Objects.requireNonNull(batchErrors, "Batch errors cannot be null");
+        
+        if (exposureResults.isEmpty()) {
             return empty();
         }
         
-        Map<String, ExposureValidationResult> exposureResults = new HashMap<>();
+        // Collect all errors
         List<ValidationError> allErrors = new ArrayList<>();
-        
-        // Validate each exposure individually
-        for (ExposureRecord exposure : exposures) {
-            ExposureValidationResult result = validateSingleExposure(exposure);
-            exposureResults.put(exposure.exposureId(), result);
+        for (ExposureValidationResult result : exposureResults.values()) {
             allErrors.addAll(result.errors());
         }
-        
-        // Batch-level validation (uniqueness)
-        List<ValidationError> batchErrors = validateBatchLevel(exposures);
         allErrors.addAll(batchErrors);
         
         // Calculate dimension scores
-        DimensionScores dimensionScores = calculateDimensionScores(exposureResults, batchErrors, exposures.size());
+        DimensionScores dimensionScores = calculateDimensionScores(
+            exposureResults, 
+            batchErrors, 
+            exposureResults.size()
+        );
         
         return builder()
             .exposureResults(exposureResults)
             .batchErrors(batchErrors)
             .allErrors(allErrors)
             .dimensionScores(dimensionScores)
-            .totalExposures(exposures.size())
+            .totalExposures(exposureResults.size())
             .validExposures(countValidExposures(exposureResults))
             .build();
     }
     
-    /**
-     * Validates a single exposure across all quality dimensions using specifications.
-     */
-    private static ExposureValidationResult validateSingleExposure(ExposureRecord exposure) {
-        List<ValidationError> errors = new ArrayList<>();
-        Map<QualityDimension, List<ValidationError>> dimensionErrors = new HashMap<>();
-        
-        // Completeness validation
-        List<ValidationError> completenessErrors = validateCompleteness(exposure);
-        errors.addAll(completenessErrors);
-        dimensionErrors.put(QualityDimension.COMPLETENESS, completenessErrors);
-        
-        // Accuracy validation
-        List<ValidationError> accuracyErrors = validateAccuracy(exposure);
-        errors.addAll(accuracyErrors);
-        dimensionErrors.put(QualityDimension.ACCURACY, accuracyErrors);
-        
-        // Consistency validation
-        List<ValidationError> consistencyErrors = validateConsistency(exposure);
-        errors.addAll(consistencyErrors);
-        dimensionErrors.put(QualityDimension.CONSISTENCY, consistencyErrors);
-        
-        // Timeliness validation
-        List<ValidationError> timelinessErrors = validateTimeliness(exposure);
-        errors.addAll(timelinessErrors);
-        dimensionErrors.put(QualityDimension.TIMELINESS, timelinessErrors);
-        
-        // Validity validation
-        List<ValidationError> validityErrors = validateValidity(exposure);
-        errors.addAll(validityErrors);
-        dimensionErrors.put(QualityDimension.VALIDITY, validityErrors);
-        
-        return ExposureValidationResult.builder()
-            .exposureId(exposure.exposureId())
-            .errors(errors)
-            .dimensionErrors(dimensionErrors)
-            .isValid(errors.isEmpty())
-            .build();
-    }
-    
-    /**
-     * Validates batch-level constraints using specifications.
-     */
-    private static List<ValidationError> validateBatchLevel(List<ExposureRecord> exposures) {
-        List<ValidationError> batchErrors = new ArrayList<>();
-        
-        // Uniqueness validation (batch-level)
-        Specification<List<ExposureRecord>> uniquenessSpec = 
-            UniquenessSpecifications.hasUniqueExposureIds()
-                .and(UniquenessSpecifications.hasUniqueCounterpartyExposurePairs())
-                .and(UniquenessSpecifications.hasUniqueReferenceNumbers());
-        
-        Result<Void> result = uniquenessSpec.isSatisfiedBy(exposures);
-        if (!result.isSuccess()) {
-            batchErrors.addAll(result.errors().stream()
-                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.UNIQUENESS, null))
-                .collect(Collectors.toList()));
-        }
-        
-        return batchErrors;
-    }
-    
-    /**
-     * Validates completeness dimension using specifications.
-     */
-    private static List<ValidationError> validateCompleteness(ExposureRecord exposure) {
-        List<ValidationError> errors = new ArrayList<>();
-        
-        Specification<ExposureRecord> completenessSpec = 
-            CompletenessSpecifications.hasRequiredFields()
-                .and(CompletenessSpecifications.hasLeiForCorporates())
-                .and(CompletenessSpecifications.hasMaturityForTermExposures())
-                .and(CompletenessSpecifications.hasInternalRating());
-        
-        Result<Void> result = completenessSpec.isSatisfiedBy(exposure);
-        if (!result.isSuccess()) {
-            errors.addAll(result.errors().stream()
-                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.COMPLETENESS, exposure.exposureId()))
-                .collect(Collectors.toList()));
-        }
-        
-        return errors;
-    }
-    
-    /**
-     * Validates accuracy dimension using specifications.
-     */
-    private static List<ValidationError> validateAccuracy(ExposureRecord exposure) {
-        List<ValidationError> errors = new ArrayList<>();
-        
-        Specification<ExposureRecord> accuracySpec = 
-            AccuracySpecifications.hasPositiveAmount()
-                .and(AccuracySpecifications.hasValidCurrency())
-                .and(AccuracySpecifications.hasValidCountry())
-                .and(AccuracySpecifications.hasValidLeiFormat())
-                .and(AccuracySpecifications.hasReasonableAmount());
-        
-        Result<Void> result = accuracySpec.isSatisfiedBy(exposure);
-        if (!result.isSuccess()) {
-            errors.addAll(result.errors().stream()
-                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.ACCURACY, exposure.exposureId()))
-                .collect(Collectors.toList()));
-        }
-        
-        return errors;
-    }
-    
-    /**
-     * Validates consistency dimension using specifications.
-     */
-    private static List<ValidationError> validateConsistency(ExposureRecord exposure) {
-        List<ValidationError> errors = new ArrayList<>();
-        
-        Specification<ExposureRecord> consistencySpec = 
-            ConsistencySpecifications.currencyMatchesCountry()
-                .and(ConsistencySpecifications.sectorMatchesCounterpartyType())
-                .and(ConsistencySpecifications.ratingMatchesRiskCategory())
-                .and(ConsistencySpecifications.productTypeMatchesMaturity());
-        
-        Result<Void> result = consistencySpec.isSatisfiedBy(exposure);
-        if (!result.isSuccess()) {
-            errors.addAll(result.errors().stream()
-                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.CONSISTENCY, exposure.exposureId()))
-                .collect(Collectors.toList()));
-        }
-        
-        return errors;
-    }
-    
-    /**
-     * Validates timeliness dimension using specifications.
-     */
-    private static List<ValidationError> validateTimeliness(ExposureRecord exposure) {
-        List<ValidationError> errors = new ArrayList<>();
-        
-        Specification<ExposureRecord> timelinessSpec = 
-            TimelinessSpecifications.isWithinReportingPeriod()
-                .and(TimelinessSpecifications.hasRecentValuation())
-                .and(TimelinessSpecifications.isNotFutureDate())
-                .and(TimelinessSpecifications.isWithinProcessingWindow());
-        
-        Result<Void> result = timelinessSpec.isSatisfiedBy(exposure);
-        if (!result.isSuccess()) {
-            errors.addAll(result.errors().stream()
-                .map(error -> ValidationError.fromErrorDetail(error, QualityDimension.TIMELINESS, exposure.exposureId()))
-                .collect(Collectors.toList()));
-        }
-        
-        return errors;
-    }
-    
-    /**
-     * Validates validity dimension using specifications.
-     */
-    private static List<ValidationError> validateValidity(ExposureRecord exposure) {
-        // ValiditySpecifications not yet implemented
-        return new ArrayList<>();
-    }
+
     
     /**
      * Calculates dimension scores based on validation results.

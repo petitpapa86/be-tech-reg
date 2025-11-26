@@ -98,43 +98,35 @@ public class QualityReport extends Entity {
     }
     
     /**
-     * Executes the complete quality validation workflow on exposure data.
-     * This is the primary business logic method that orchestrates:
-     * 1. Validation of exposures using value object factory method
-     * 2. Recording validation results
-     * 3. Calculation of quality scores using value object factory method
-     * 4. Publishing domain events
+     * Records validation results and calculates quality scores.
+     * This method accepts pre-validated results from the application layer.
      * 
-     * <p>This method encapsulates the core business process of quality validation,
-     * ensuring that the aggregate maintains its invariants and consistency.</p>
+     * <p>This follows proper DDD - the aggregate doesn't orchestrate infrastructure concerns,
+     * it just records the results and maintains its invariants.</p>
      * 
-     * @param exposures The exposure records to validate
+     * @param validation The validation results from the Rules Engine
      * @return Result containing ValidationResult for further processing (e.g., S3 storage)
      */
-    public Result<ValidationResult> executeQualityValidation(List<ExposureRecord> exposures) {
+    public Result<ValidationResult> recordValidationAndCalculateScores(ValidationResult validation) {
         // Guard: Ensure we're in the correct state
         if (!isInProgress()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
                 ErrorType.VALIDATION_ERROR,
-                "Cannot execute validation from status: " + status + ". Must be IN_PROGRESS.",
+                "Cannot record validation from status: " + status + ". Must be IN_PROGRESS.",
                 "quality.report.invalid.state.transition"
             ));
         }
         
         // Guard: Validate inputs
-        if (exposures == null || exposures.isEmpty()) {
+        if (validation == null) {
             return Result.failure(ErrorDetail.of(
-                "INVALID_INPUT",
+                "VALIDATION_RESULT_NULL",
                 ErrorType.VALIDATION_ERROR,
-                "Exposure list cannot be null or empty",
-                "quality.report.exposures.invalid"
+                "Validation result cannot be null",
+                "quality.report.validation.result.null"
             ));
         }
-        
-        // Business Logic: Execute validation using value object factory method
-        // ValidationResult knows how to create itself by applying specifications
-        ValidationResult validation = ValidationResult.validate(exposures);
         
         // Business Logic: Store validation summary
         this.validationSummary = validation.summary();
