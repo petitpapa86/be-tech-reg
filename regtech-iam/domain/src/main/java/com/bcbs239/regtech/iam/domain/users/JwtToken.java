@@ -50,7 +50,10 @@ public record JwtToken(String value, Instant expiresAt) {
 
             return Result.success(new JwtToken(token, expiresAt));
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("JWT_GENERATION_FAILED", ErrorType.SYSTEM_ERROR, "Failed to generate JWT token: " + e.getMessage(), "jwt.generation.failed"));
+            // Log the actual error for debugging (security issue details)
+            org.slf4j.LoggerFactory.getLogger(JwtToken.class).error("JWT generation failed: {}", e.getMessage(), e);
+            // Return generic error message to client (don't expose security details)
+            return Result.failure(ErrorDetail.of("JWT_GENERATION_FAILED", ErrorType.AUTHENTICATION_ERROR, "Failed to generate authentication token", "jwt.generation.failed"));
         }
     }
     
@@ -84,7 +87,10 @@ public record JwtToken(String value, Instant expiresAt) {
 
             return Result.success(new JwtToken(token, expiresAt));
         } catch (Exception e) {
-            return Result.failure(ErrorDetail.of("JWT_GENERATION_FAILED", ErrorType.SYSTEM_ERROR, "Failed to generate JWT token: " + e.getMessage(), "jwt.generation.failed"));
+            // Log the actual error for debugging (security issue details)
+            org.slf4j.LoggerFactory.getLogger(JwtToken.class).error("JWT generation failed: {}", e.getMessage(), e);
+            // Return generic error message to client (don't expose security details)
+            return Result.failure(ErrorDetail.of("JWT_GENERATION_FAILED", ErrorType.AUTHENTICATION_ERROR, "Failed to generate authentication token", "jwt.generation.failed"));
         }
     }
 

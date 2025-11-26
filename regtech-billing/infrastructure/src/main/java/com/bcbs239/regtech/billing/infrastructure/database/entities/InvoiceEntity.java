@@ -101,7 +101,7 @@ public class InvoiceEntity {
     @Column(name = "version")
     private Long version;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JoinColumn(name = "invoice_id", referencedColumnName = "id")
     private List<InvoiceLineItemEntity> lineItems = new ArrayList<>();
 
