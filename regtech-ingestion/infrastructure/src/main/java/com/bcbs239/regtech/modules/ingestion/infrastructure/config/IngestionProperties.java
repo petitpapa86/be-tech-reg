@@ -39,6 +39,9 @@ public class IngestionProperties {
 
     private ParserProperties parser = new ParserProperties();
 
+    @NotNull(message = "Retry configuration must be specified")
+    private RetryProperties retry = new RetryProperties();
+
     /**
      * File upload settings
      */
@@ -153,5 +156,14 @@ public class IngestionProperties {
     public static class ParserProperties {
         @Min(value = 1, message = "Default max records must be at least 1")
         private int defaultMaxRecords = 10000;
+    }
+
+    /**
+     * Retry settings for failed batch processing
+     */
+    @Data
+    public static class RetryProperties {
+        @Min(value = 1, message = "Max retries must be at least 1")
+        private int maxRetries = 5;
     }
 }

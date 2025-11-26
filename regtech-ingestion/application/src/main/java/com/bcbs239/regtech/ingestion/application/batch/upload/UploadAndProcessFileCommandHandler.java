@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.ingestion.application.batch.upload;
 
+import org.springframework.context.ApplicationEventPublisher;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -12,6 +13,7 @@ import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
+import com.bcbs239.regtech.ingestion.domain.batch.events.BatchProcessingFailedEvent;
 import com.bcbs239.regtech.ingestion.domain.file.ContentType;
 import com.bcbs239.regtech.ingestion.domain.file.FileName;
 import com.bcbs239.regtech.ingestion.domain.file.FileSize;
@@ -40,17 +42,20 @@ public class UploadAndProcessFileCommandHandler {
     private final IBankInfoRepository bankInfoRepository;
     private final TemporaryFileStorageService temporaryFileStorage;
     private final ProcessBatchCommandHandler processBatchCommandHandler;
+    private final ApplicationEventPublisher eventPublisher;
     private static final Logger log = LoggerFactory.getLogger(UploadAndProcessFileCommandHandler.class);
 
     public UploadAndProcessFileCommandHandler(
             IIngestionBatchRepository ingestionBatchRepository,
             IBankInfoRepository bankInfoRepository,
             TemporaryFileStorageService temporaryFileStorage,
-            ProcessBatchCommandHandler processBatchCommandHandler) {
+            ProcessBatchCommandHandler processBatchCommandHandler,
+            ApplicationEventPublisher eventPublisher) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.bankInfoRepository = bankInfoRepository;
         this.temporaryFileStorage = temporaryFileStorage;
         this.processBatchCommandHandler = processBatchCommandHandler;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -108,8 +113,13 @@ public class UploadAndProcessFileCommandHandler {
                 processFuture.whenComplete((processResult, throwable) -> {
                     if (throwable != null) {
                         log.error("Async batch processing failed with exception; details={}", Map.of("batchId", batchId.value()), throwable);
+                        publishProcessingFailureEvent(batchId, bankId, command.fileName(), throwable.getMessage(), "EXCEPTION", tempFileKey);
                     } else if (processResult != null && processResult.isFailure()) {
-                        log.info("Async batch processing failed; details={}", Map.of("batchId", batchId.value(), "error", processResult.getError().map(e -> e.getMessage()).orElse("Unknown error")));
+                        ErrorDetail error = processResult.getError().orElse(null);
+                        String errorMessage = error != null ? error.getMessage() : "Unknown error";
+                        String errorType = error != null ? error.getErrorType().name() : "UNKNOWN";
+                        log.info("Async batch processing failed; details={}", Map.of("batchId", batchId.value(), "error", errorMessage));
+                        publishProcessingFailureEvent(batchId, bankId, command.fileName(), errorMessage, errorType, tempFileKey);
                     } else {
                         log.info("Async batch processing completed successfully; details={}", Map.of("batchId", batchId.value()));
                     }
@@ -234,6 +244,36 @@ public class UploadAndProcessFileCommandHandler {
             return sb.toString();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("MD5 algorithm not available", e);
+        }
+    }
+
+    private void publishProcessingFailureEvent(
+            BatchId batchId,
+            BankId bankId,
+            String fileName,
+            String errorMessage,
+            String errorType,
+            String tempFileKey) {
+        try {
+            BatchProcessingFailedEvent event = new BatchProcessingFailedEvent(
+                batchId.value(),
+                bankId.value(),
+                fileName,
+                errorMessage,
+                errorType,
+                tempFileKey
+            );
+            eventPublisher.publishEvent(event);
+            log.info("Published batch processing failure event; details={}", Map.of(
+                "batchId", batchId.value(),
+                "bankId", bankId.value(),
+                "fileName", fileName
+            ));
+        } catch (Exception e) {
+            log.error("Failed to publish batch processing failure event; details={}", Map.of(
+                "batchId", batchId.value(),
+                "errorMessage", e.getMessage()
+            ), e);
         }
     }
 }

@@ -31,7 +31,7 @@ import java.time.format.DateTimeFormatter;
  *   └── ...
  */
 @Service("ingestionLocalFileStorageService")
-@ConditionalOnProperty(name = "storage.type", havingValue = "local", matchIfMissing = false)
+@ConditionalOnProperty(name = "ingestion.storage.type", havingValue = "local", matchIfMissing = false)
 public class LocalFileStorageService implements FileStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(LocalFileStorageService.class);

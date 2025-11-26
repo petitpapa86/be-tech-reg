@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -142,20 +143,28 @@ public class ProcessBatchCommandHandler {
                 bankInfoOpt = bankInfoRepository.findByBankId(batch.getBankId());
             }
             
-            // If still not found, create and cache mock bank info (in production, would call external service)
-            BankInfo bankInfo;
+            // If still not found, this is an error - bank must exist
             if (bankInfoOpt.isEmpty()) {
-                bankInfo = new BankInfo(
-                    batch.getBankId(),
-                    "Bank Name for " + batch.getBankId().value(),
-                    "US",
-                    BankInfo.BankStatus.ACTIVE,
-                    Instant.now()
+                String errorMessage = "Bank not found: " + batch.getBankId().value();
+                batch.markAsFailed(errorMessage);
+                ingestionBatchRepository.save(batch);
+                
+                ErrorDetail error = ErrorDetail.of(
+                    "BANK_NOT_FOUND",
+                    ErrorType.VALIDATION_ERROR,
+                    errorMessage,
+                    "bank.not.found"
                 );
-                bankInfoRepository.save(bankInfo);
-            } else {
-                bankInfo = bankInfoOpt.get();
+                
+                log.error("Bank not found during batch processing; details={}", Map.of(
+                    "batchId", batch.getBatchId().value(),
+                    "bankId", batch.getBankId().value()
+                ));
+                
+                return Result.failure(error);
             }
+            
+            BankInfo bankInfo = bankInfoOpt.get();
             
             // Validate bank eligibility - Let the domain object do the validation
             Result<Void> eligibilityResult = bankInfo.validateEligibilityForProcessing();

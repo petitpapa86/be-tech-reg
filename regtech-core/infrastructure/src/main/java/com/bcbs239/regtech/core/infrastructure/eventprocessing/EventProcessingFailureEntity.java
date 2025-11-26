@@ -23,7 +23,7 @@ public class EventProcessingFailureEntity {
     @Id
     private String id;
 
-    @Column(name = "event_type", nullable = false, length = 255)
+    @Column(name = "event_type", nullable = false, length = 500)
     private String eventType;
 
     @Column(name = "event_payload", nullable = false)

@@ -54,6 +54,10 @@ ingestion:
   # Parser settings
   parser:
     default-max-records: 10000  # Maximum records to parse per file by default
+  
+  # Retry settings for failed batch processing
+  retry:
+    max-retries: 5  # Maximum number of retry attempts for failed batch processing
 
 ---
 # Development profile overrides

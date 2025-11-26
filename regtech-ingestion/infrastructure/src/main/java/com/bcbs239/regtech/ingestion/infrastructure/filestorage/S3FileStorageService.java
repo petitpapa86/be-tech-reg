@@ -31,7 +31,7 @@ import java.util.List;
  * central CoreS3FileStorageService. Keeps ingestion domain types as API.
  */
 @Service
-@ConditionalOnProperty(name = "storage.type", havingValue = "s3", matchIfMissing = true)
+@ConditionalOnProperty(name = "ingestion.storage.type", havingValue = "s3", matchIfMissing = true)
 public class S3FileStorageService implements FileStorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(S3FileStorageService.class);
