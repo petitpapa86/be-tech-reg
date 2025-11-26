@@ -1,0 +1,205 @@
+{{base_url}}/data-quality/reports/batch_20251126_185822_da3d9825-aef2-4a08-986e-6dd24b7a8436
+
+{
+    "data": {
+        "reportId": "qr_626a4d05-2a85-45c7-9797-82c71e7f1bed",
+        "batchId": "batch_20251126_185822_da3d9825-aef2-4a08-986e-6dd24b7a8436",
+        "bankId": "daa4a072",
+        "status": "COMPLETED",
+        "scores": {
+            "completenessScore": 0.0,
+            "accuracyScore": 0.0,
+            "consistencyScore": 80.0,
+            "timelinessScore": 100.0,
+            "uniquenessScore": 100.0,
+            "validityScore": 100.0,
+            "overallScore": 46.0,
+            "grade": "POOR",
+            "isCompliant": false,
+            "requiresAttention": true,
+            "complianceStatus": "NON_COMPLIANT",
+            "gradeDisplay": "F",
+            "dimensionScores": {
+                "validity": 100.0,
+                "uniqueness": 100.0,
+                "accuracy": 0.0,
+                "completeness": 0.0,
+                "timeliness": 100.0,
+                "consistency": 80.0
+            },
+            "lowestScoringDimension": "accuracy",
+            "highestScoringDimension": "validity",
+            "gradeEnum": "POOR",
+            "attentionLevel": "IMMEDIATE"
+        },
+        "validationSummary": {
+            "totalExposures": 5,
+            "validExposures": 0,
+            "invalidExposures": 5,
+            "totalErrors": 16,
+            "validationRate": 0.0,
+            "errorsByDimension": {
+                "CONSISTENCY": 1,
+                "COMPLETENESS": 10,
+                "VALIDITY": 0,
+                "UNIQUENESS": 0,
+                "TIMELINESS": 0,
+                "ACCURACY": 5
+            },
+            "errorsBySeverity": {},
+            "errorsByCode": {},
+            "topErrorCodes": {},
+            "errorRatePercentage": "100,0%",
+            "errorRate": 100.0,
+            "qualitySummary": "POOR",
+            "mostCommonSeverity": "none",
+            "mostFrequentErrorCode": "none",
+            "validationRatePercentage": "0,0%",
+            "mostProblematicDimension": "COMPLETENESS"
+        },
+        "detailsUri": "s3://local/quality/quality_batch_20251126_185822_da3d9825-aef2-4a08-986e-6dd24b7a8436.json",
+        "errorMessage": null,
+        "createdAt": "2025-11-26T17:58:41.562163Z",
+        "updatedAt": "2025-11-26T17:58:41.563165Z",
+        "completed": true,
+        "terminal": true,
+        "totalExposures": 5,
+        "compliant": false,
+        "totalErrors": 16,
+        "overallScore": 46.0,
+        "validExposures": 0,
+        "processingDurationMs": 1,
+        "failed": false,
+        "validationRate": 0.0,
+        "inProgress": false,
+        "pending": false,
+        "statusEnum": "COMPLETED",
+        "statusDescription": "Validation completed successfully",
+        "processingDurationSeconds": 0.001,
+        "summary": "Grade F (46,0%) - 5 exposures processed",
+        "grade": "POOR"
+    },
+    "message": "Quality report retrieved successfully",
+    "messageKey": "data-quality.report.retrieved",
+    "success": true
+}
+
+data-quality esults:
+{"totalExposures":5,"totalErrors":16,"batchErrors":[],"validExposures":0,"dimensionScores":{"timeliness":100.0,"uniqueness":100.0,"accuracy":0.0,"completeness":0.0,"validity":100.0,"consistency":80.0},"exposureResults":[{"isValid":false,"exposureId":"EXP_LOAN004_2024","errorCount":4,"errors":[{"ruleCode":"COMPLETENESS_MATURITY_MISSING","severity":"CRITICAL","fieldName":"completeness.maturity.missing","message":"Maturity date required for term exposures","dimension":"COMPLETENESS"},{"ruleCode":"COMPLETENESS_INTERNAL_RATING_MISSING","severity":"CRITICAL","fieldName":"completeness.internal.rating.missing","message":"Internal rating is required for risk assessment","dimension":"COMPLETENESS"},{"ruleCode":"ACCURACY_INVALID_LEI_FORMAT","severity":"HIGH","fieldName":"accuracy.invalid.lei.format","message":"LEI code must be 20 alphanumeric characters","dimension":"ACCURACY"},{"ruleCode":"CONSISTENCY_CURRENCY_COUNTRY_MISMATCH","severity":"HIGH","fieldName":"consistency.currency.country.mismatch","message":"Currency EUR is not typically used in country CA","dimension":"CONSISTENCY"}]},{"isValid":false,"exposureId":"EXP_LOAN003_2024","errorCount":3,"errors":[{"ruleCode":"COMPLETENESS_MATURITY_MISSING","severity":"CRITICAL","fieldName":"completeness.maturity.missing","message":"Maturity date required for term exposures","dimension":"COMPLETENESS"},{"ruleCode":"COMPLETENESS_INTERNAL_RATING_MISSING","severity":"CRITICAL","fieldName":"completeness.internal.rating.missing","message":"Internal rating is required for risk assessment","dimension":"COMPLETENESS"},{"ruleCode":"ACCURACY_INVALID_LEI_FORMAT","severity":"HIGH","fieldName":"accuracy.invalid.lei.format","message":"LEI code must be 20 alphanumeric characters","dimension":"ACCURACY"}]},{"isValid":false,"exposureId":"EXP_LOAN002_2024","errorCount":3,"errors":[{"ruleCode":"COMPLETENESS_MATURITY_MISSING","severity":"CRITICAL","fieldName":"completeness.maturity.missing","message":"Maturity date required for term exposures","dimension":"COMPLETENESS"},{"ruleCode":"COMPLETENESS_INTERNAL_RATING_MISSING","severity":"CRITICAL","fieldName":"completeness.internal.rating.missing","message":"Internal rating is required for risk assessment","dimension":"COMPLETENESS"},{"ruleCode":"ACCURACY_INVALID_LEI_FORMAT","severity":"HIGH","fieldName":"accuracy.invalid.lei.format","message":"LEI code must be 20 alphanumeric characters","dimension":"ACCURACY"}]},{"isValid":false,"exposureId":"EXP_LOAN001_2024","errorCount":3,"errors":[{"ruleCode":"COMPLETENESS_MATURITY_MISSING","severity":"CRITICAL","fieldName":"completeness.maturity.missing","message":"Maturity date required for term exposures","dimension":"COMPLETENESS"},{"ruleCode":"COMPLETENESS_INTERNAL_RATING_MISSING","severity":"CRITICAL","fieldName":"completeness.internal.rating.missing","message":"Internal rating is required for risk assessment","dimension":"COMPLETENESS"},{"ruleCode":"ACCURACY_INVALID_LEI_FORMAT","severity":"HIGH","fieldName":"accuracy.invalid.lei.format","message":"LEI code must be 20 alphanumeric characters","dimension":"ACCURACY"}]},{"isValid":false,"exposureId":"EXP_LOAN005_2024","errorCount":3,"errors":[{"ruleCode":"COMPLETENESS_MATURITY_MISSING","severity":"CRITICAL","fieldName":"completeness.maturity.missing","message":"Maturity date required for term exposures","dimension":"COMPLETENESS"},{"ruleCode":"COMPLETENESS_INTERNAL_RATING_MISSING","severity":"CRITICAL","fieldName":"completeness.internal.rating.missing","message":"Internal rating is required for risk assessment","dimension":"COMPLETENESS"},{"ruleCode":"ACCURACY_INVALID_LEI_FORMAT","severity":"HIGH","fieldName":"accuracy.invalid.lei.format","message":"LEI code must be 20 alphanumeric characters","dimension":"ACCURACY"}]}],"timestamp":"2025-11-26T17:58:41.555162Z"}
+C:\Users\alseny\Desktop\react projects\regtech\data\quality\quality
+
+
+
+C:\Users\alseny\Desktop\react projects\regtech\data\raw\batch_20251126_185822_batch_20251126_185822_da3d9825-aef2-4a08-986e-6dd24b7a8436.json
+
+{
+    "bank_info": {
+        "bank_name": "Community First Bank",
+        "abi_code": "08081",
+        "lei_code": "815600D7623147C25D86",
+        "report_date": "2024-09-12",
+        "total_loans": 5
+    },
+    "loan_portfolio": [
+        {
+            "loan_id": "LOAN001",
+            "exposure_id": "EXP_LOAN001_2024",
+            "borrower_name": "Mike's Pizza Inc",
+            "borrower_id": "CORP12345",
+            "counterparty_lei": "549300ABCDEF1234567890",
+            "loan_amount": 250000,
+            "gross_exposure_amount": 250000.00,
+            "net_exposure_amount": 240000.00,
+            "currency": "EUR",
+            "loan_type": "Business Loan",
+            "sector": "CORPORATE",
+            "exposure_type": "ON_BALANCE",
+            "borrower_country": "IT",
+            "country_code": "IT"
+        },
+        {
+            "loan_id": "LOAN002",
+            "exposure_id": "EXP_LOAN002_2024",
+            "borrower_name": "Sarah Johnson",
+            "borrower_id": "PERS67890",
+            "counterparty_lei": "",
+            "loan_amount": 450000,
+            "gross_exposure_amount": 450000.00,
+            "net_exposure_amount": 450000.00,
+            "currency": "EUR",
+            "loan_type": "Mortgage",
+            "sector": "RETAIL",
+            "exposure_type": "ON_BALANCE",
+            "borrower_country": "IT",
+            "country_code": "IT"
+        },
+        {
+            "loan_id": "LOAN003",
+            "exposure_id": "EXP_LOAN003_2024",
+            "borrower_name": "Tech Startup LLC",
+            "borrower_id": "CORP54321",
+            "counterparty_lei": "549300TECHSTART123456",
+            "loan_amount": 50000,
+            "gross_exposure_amount": 50000.00,
+            "net_exposure_amount": 45000.00,
+            "currency": "EUR",
+            "loan_type": "Credit Line",
+            "sector": "CORPORATE",
+            "exposure_type": "OFF_BALANCE",
+            "borrower_country": "DE",
+            "country_code": "DE"
+        },
+        {
+            "loan_id": "LOAN004",
+            "exposure_id": "EXP_LOAN004_2024",
+            "borrower_name": "Green Energy Corp",
+            "borrower_id": "CORP98765",
+            "counterparty_lei": "549300GREENENERGY1234",
+            "loan_amount": 750000,
+            "gross_exposure_amount": 750000.00,
+            "net_exposure_amount": 700000.00,
+            "currency": "EUR",
+            "loan_type": "Equipment Loan",
+            "sector": "CORPORATE",
+            "exposure_type": "ON_BALANCE",
+            "borrower_country": "CA",
+            "country_code": "CA"
+        },
+        {
+            "loan_id": "LOAN005",
+            "exposure_id": "EXP_LOAN005_2024",
+            "borrower_name": "Mary's Bakery",
+            "borrower_id": "SMALL98765",
+            "counterparty_lei": "",
+            "loan_amount": 125000,
+            "gross_exposure_amount": 125000.00,
+            "net_exposure_amount": 125000.00,
+            "currency": "EUR",
+            "loan_type": "Small Business",
+            "sector": "RETAIL",
+            "exposure_type": "ON_BALANCE",
+            "borrower_country": "IT",
+            "country_code": "IT"
+        }
+    ],
+    "credit_risk_mitigation": [
+        {
+            "exposure_id": "EXP_LOAN001_2024",
+            "collateral_type": "FINANCIAL_COLLATERAL",
+            "collateral_value": 10000.00,
+            "collateral_currency": "EUR"
+        },
+        {
+            "exposure_id": "EXP_LOAN003_2024",
+            "collateral_type": "GUARANTEE",
+            "collateral_value": 5000.00,
+            "collateral_currency": "EUR"
+        },
+        {
+            "exposure_id": "EXP_LOAN004_2024",
+            "collateral_type": "FINANCIAL_COLLATERAL",
+            "collateral_value": 50000.00,
+            "collateral_currency": "EUR"
+        }
+    ]
+}

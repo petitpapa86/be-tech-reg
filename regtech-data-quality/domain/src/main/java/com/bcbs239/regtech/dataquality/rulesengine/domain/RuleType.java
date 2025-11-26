@@ -6,5 +6,13 @@ public enum RuleType {
     TRANSFORMATION,
     DATA_QUALITY,
     THRESHOLD,
-    BUSINESS_LOGIC
+    BUSINESS_LOGIC,
+    
+    // Data Quality Dimensions (BCBS 239)
+    COMPLETENESS,
+    ACCURACY,
+    CONSISTENCY,
+    TIMELINESS,
+    UNIQUENESS,
+    VALIDITY
 }
