@@ -9,27 +9,37 @@ import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluatio
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Default implementation of the Rules Engine.
+ * Default implementation of the Rules Engine with in-memory caching.
  * 
  * <p>Executes business rules using an expression evaluator and logs all executions.</p>
+ * <p>Implements caching with TTL to improve performance for repeated rule executions.</p>
+ * 
+ * <p><strong>Caching Strategy:</strong></p>
+ * <ul>
+ *   <li>Rules are cached in memory after first load from database</li>
+ *   <li>Cache has configurable TTL (time-to-live) in seconds</li>
+ *   <li>Cache is automatically refreshed when TTL expires</li>
+ *   <li>Parameter updates are reflected after cache refresh</li>
+ *   <li>Cache is shared across all exposures in a batch</li>
+ * </ul>
+ * 
+ * <p><strong>Requirements:</strong> 3.3, 3.4, 5.1, 5.2, 5.3, 5.4, 5.5</p>
  */
 // explicit slf4j logger to avoid Lombok issues during build
-@Service
-@RequiredArgsConstructor
 public class DefaultRulesEngine implements RulesEngine {
     private static final Logger log = LoggerFactory.getLogger(DefaultRulesEngine.class);
     
@@ -38,15 +48,63 @@ public class DefaultRulesEngine implements RulesEngine {
     private final RuleViolationRepository violationRepository;
     private final ExpressionEvaluator expressionEvaluator;
     
+    // Cache configuration
+    private final boolean cacheEnabled;
+    private final int cacheTtlSeconds;
+    
+    // In-memory cache for rules
+    private final Map<String, CachedRule> ruleCache = new ConcurrentHashMap<>();
+    private volatile Instant lastCacheRefresh = Instant.now();
+    
+    /**
+     * Cached rule wrapper that includes the rule and its load timestamp.
+     */
+    private static class CachedRule {
+        final BusinessRule rule;
+        final Instant loadedAt;
+        
+        CachedRule(BusinessRule rule, Instant loadedAt) {
+            this.rule = rule;
+            this.loadedAt = loadedAt;
+        }
+    }
+    
+    /**
+     * Constructor with cache configuration.
+     * 
+     * @param ruleRepository Repository for loading rules
+     * @param executionLogRepository Repository for logging executions
+     * @param violationRepository Repository for storing violations
+     * @param expressionEvaluator Evaluator for SpEL expressions
+     * @param cacheEnabled Whether caching is enabled
+     * @param cacheTtlSeconds Cache TTL in seconds
+     */
+    public DefaultRulesEngine(
+            BusinessRuleRepository ruleRepository,
+            RuleExecutionLogRepository executionLogRepository,
+            RuleViolationRepository violationRepository,
+            ExpressionEvaluator expressionEvaluator,
+            boolean cacheEnabled,
+            int cacheTtlSeconds) {
+        this.ruleRepository = ruleRepository;
+        this.executionLogRepository = executionLogRepository;
+        this.violationRepository = violationRepository;
+        this.expressionEvaluator = expressionEvaluator;
+        this.cacheEnabled = cacheEnabled;
+        this.cacheTtlSeconds = cacheTtlSeconds;
+        
+        log.info("DefaultRulesEngine initialized with caching: enabled={}, ttl={}s", 
+            cacheEnabled, cacheTtlSeconds);
+    }
+    
     @Override
     @Transactional
     public RuleExecutionResult executeRule(String ruleId, RuleContext context) {
         long startTime = System.currentTimeMillis();
         
         try {
-            // Load the rule
-            BusinessRule rule = ruleRepository.findById(ruleId)
-                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+            // Load the rule (from cache if enabled and valid, otherwise from database)
+            BusinessRule rule = loadRule(ruleId);
             
             // Check if rule is active
             if (!rule.isActive()) {
@@ -77,8 +135,8 @@ public class DefaultRulesEngine implements RulesEngine {
                 RuleViolation violation = createViolation(rule, context);
                 List<RuleViolation> violations = List.of(violation);
                 
-                // Save violation
-                violationRepository.save(violation);
+                // Save violation (cast to avoid ambiguity)
+                ((com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository) violationRepository).save(violation);
                 
                 // Log execution
                 RuleExecutionLog execLog = logExecution(rule, context, ExecutionResult.FAILURE, 
@@ -245,7 +303,8 @@ public class DefaultRulesEngine implements RulesEngine {
             .errorMessage(errorMessage)
             .build();
         
-        return executionLogRepository.save(ruleExecLog);
+        // Cast to avoid ambiguity
+        return ((com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExecutionLogRepository) executionLogRepository).save(ruleExecLog);
     }
     
     /**
@@ -255,5 +314,156 @@ public class DefaultRulesEngine implements RulesEngine {
         long executionTime = System.currentTimeMillis() - startTime;
         logExecution(rule, context, ExecutionResult.SKIPPED, 0, executionTime, "Rule skipped");
         return RuleExecutionResult.success(rule.getRuleId(), "Rule skipped (inactive or exempted)");
+    }
+    
+    // ====================================================================
+    // Cache Management Methods
+    // ====================================================================
+    
+    /**
+     * Loads a rule from cache if available and valid, otherwise from database.
+     * 
+     * <p>This method implements the caching strategy:</p>
+     * <ul>
+     *   <li>If caching is disabled, always load from database</li>
+     *   <li>If cache TTL has expired, refresh entire cache from database</li>
+     *   <li>If rule is in cache and cache is valid, return cached rule</li>
+     *   <li>If rule is not in cache, load from database and cache it</li>
+     * </ul>
+     * 
+     * <p><strong>Requirements:</strong></p>
+     * <ul>
+     *   <li>5.1: Cache active rules in memory</li>
+     *   <li>5.2: Reload rules when cache TTL expires</li>
+     *   <li>5.3: Reuse cached rules across exposures</li>
+     *   <li>3.3: Parameter updates reflected after cache refresh</li>
+     * </ul>
+     * 
+     * @param ruleId The rule ID to load
+     * @return The business rule
+     * @throws IllegalArgumentException if rule not found
+     */
+    private BusinessRule loadRule(String ruleId) {
+        if (!cacheEnabled) {
+            // Caching disabled - always load from database
+            log.trace("Cache disabled, loading rule {} from database", ruleId);
+            return ruleRepository.findById(ruleId)
+                .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+        }
+        
+        // Check if cache needs refresh
+        if (isCacheExpired()) {
+            log.info("Cache TTL expired, refreshing rule cache");
+            refreshCache();
+        }
+        
+        // Try to get from cache
+        CachedRule cachedRule = ruleCache.get(ruleId);
+        if (cachedRule != null) {
+            log.trace("Rule {} loaded from cache (age: {}s)", 
+                ruleId, 
+                java.time.Duration.between(cachedRule.loadedAt, Instant.now()).getSeconds());
+            return cachedRule.rule;
+        }
+        
+        // Not in cache - load from database and cache it
+        log.debug("Rule {} not in cache, loading from database", ruleId);
+        BusinessRule rule = ruleRepository.findById(ruleId)
+            .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+        
+        // Add to cache
+        ruleCache.put(ruleId, new CachedRule(rule, Instant.now()));
+        log.debug("Rule {} added to cache", ruleId);
+        
+        return rule;
+    }
+    
+    /**
+     * Checks if the cache has expired based on TTL.
+     * 
+     * @return true if cache should be refreshed
+     */
+    private boolean isCacheExpired() {
+        Instant now = Instant.now();
+        long secondsSinceRefresh = java.time.Duration.between(lastCacheRefresh, now).getSeconds();
+        boolean expired = secondsSinceRefresh >= cacheTtlSeconds;
+        
+        if (expired) {
+            log.debug("Cache expired: age={}s, ttl={}s", secondsSinceRefresh, cacheTtlSeconds);
+        }
+        
+        return expired;
+    }
+    
+    /**
+     * Refreshes the entire rule cache from the database.
+     * 
+     * <p>This method:</p>
+     * <ul>
+     *   <li>Clears the existing cache</li>
+     *   <li>Loads all active rules from database</li>
+     *   <li>Populates cache with fresh rules (including updated parameters)</li>
+     *   <li>Updates the last refresh timestamp</li>
+     * </ul>
+     * 
+     * <p><strong>Requirement 3.3:</strong> Parameter updates are reflected after cache refresh</p>
+     * <p><strong>Requirement 5.2:</strong> Reload rules when cache TTL expires</p>
+     */
+    private void refreshCache() {
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            // Clear existing cache
+            int oldSize = ruleCache.size();
+            ruleCache.clear();
+            
+            // Load all active rules from database
+            List<BusinessRule> activeRules = ruleRepository.findByEnabledTrue();
+            
+            // Populate cache with fresh rules
+            Instant loadTime = Instant.now();
+            for (BusinessRule rule : activeRules) {
+                ruleCache.put(rule.getRuleId(), new CachedRule(rule, loadTime));
+            }
+            
+            // Update last refresh timestamp
+            lastCacheRefresh = loadTime;
+            
+            long refreshTime = System.currentTimeMillis() - startTime;
+            log.info("Rule cache refreshed: oldSize={}, newSize={}, refreshTime={}ms", 
+                oldSize, ruleCache.size(), refreshTime);
+            
+        } catch (Exception e) {
+            log.error("Error refreshing rule cache: {}", e.getMessage(), e);
+            // On error, clear cache to force database loads
+            ruleCache.clear();
+            lastCacheRefresh = Instant.now();
+        }
+    }
+    
+    /**
+     * Manually clears the rule cache.
+     * Useful for testing or administrative operations.
+     */
+    public void clearCache() {
+        log.info("Manually clearing rule cache");
+        ruleCache.clear();
+        lastCacheRefresh = Instant.now();
+    }
+    
+    /**
+     * Gets cache statistics for monitoring.
+     * 
+     * @return Map containing cache statistics
+     */
+    public Map<String, Object> getCacheStats() {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("cacheEnabled", cacheEnabled);
+        stats.put("cacheTtlSeconds", cacheTtlSeconds);
+        stats.put("cachedRuleCount", ruleCache.size());
+        stats.put("cacheAgeSeconds", 
+            java.time.Duration.between(lastCacheRefresh, Instant.now()).getSeconds());
+        stats.put("cacheExpired", isCacheExpired());
+        return stats;
     }
 }
