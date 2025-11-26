@@ -12,9 +12,11 @@ import java.util.List;
 
 /**
  * Repository interface for RuleExecutionLog entity operations.
+ * Extends both JpaRepository for Spring Data operations and the domain repository interface.
  */
 @Repository
-public interface RuleExecutionLogRepository extends JpaRepository<RuleExecutionLog, Long> {
+public interface RuleExecutionLogRepository extends JpaRepository<RuleExecutionLog, Long>,
+        com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExecutionLogRepository {
     
     /**
      * Finds all execution logs for a specific rule.

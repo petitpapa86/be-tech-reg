@@ -13,9 +13,11 @@ import java.util.List;
 
 /**
  * Repository interface for RuleViolation entity operations.
+ * Extends both JpaRepository for Spring Data operations and the domain repository interface.
  */
 @Repository
-public interface RuleViolationRepository extends JpaRepository<RuleViolation, Long> {
+public interface RuleViolationRepository extends JpaRepository<RuleViolation, Long>, 
+        com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository {
     
     /**
      * Finds all violations for a specific rule.

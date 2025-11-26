@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface BusinessRuleRepository {
+    List<BusinessRule> findByEnabledTrue();
     List<BusinessRule> findByRuleTypeAndEnabledTrueOrderByExecutionOrder(RuleType ruleType);
     List<BusinessRule> findByRuleCategoryAndEnabledTrue(String category);
     Optional<BusinessRule> findByRuleCode(String ruleCode);

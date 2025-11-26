@@ -3,18 +3,19 @@ package com.bcbs239.regtech.dataquality.application.rulesengine;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRule;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ParameterType;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
 import com.bcbs239.regtech.dataquality.rulesengine.repository.BusinessRuleRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExecutionLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -41,22 +42,24 @@ public class DataQualityRulesService {
     
     private final RulesEngine rulesEngine;
     private final BusinessRuleRepository ruleRepository;
+    private final RuleViolationRepository violationRepository;
+    private final RuleExecutionLogRepository executionLogRepository;
     
     /**
-     * Validates configurable threshold rules for a single exposure.
-     * This complements the existing Specification-based validations.
+     * Validates configurable rules for a single exposure.
+     * This method executes all enabled rules, persists violations and execution logs,
+     * and returns validation errors for integration with the validation pipeline.
      * 
      * @param exposure The exposure record to validate
      * @return List of validation errors from rules engine
      */
     public List<ValidationError> validateConfigurableRules(ExposureRecord exposure) {
         
-        // Get all active data quality rules
-        List<BusinessRule> rules = ruleRepository
-            .findByRuleTypeAndEnabledTrueOrderByExecutionOrder(RuleType.DATA_QUALITY);
+        // Get all active rules (all enabled rules, not just DATA_QUALITY type)
+        List<BusinessRule> rules = ruleRepository.findByEnabledTrue();
         
         if (rules.isEmpty()) {
-            log.debug("No configurable data quality rules found, skipping");
+            log.debug("No configurable rules found, skipping");
             return Collections.emptyList();
         }
         
@@ -68,19 +71,44 @@ public class DataQualityRulesService {
         // Execute each rule
         for (BusinessRule rule : rules) {
             if (!rule.isApplicableOn(LocalDate.now())) {
+                log.debug("Rule {} not applicable on current date, skipping", rule.getRuleId());
                 continue;
             }
             
+            long startTime = System.currentTimeMillis();
+            RuleExecutionResult result = null;
+            String errorMessage = null;
+            
             try {
-                RuleExecutionResult result = rulesEngine.executeRule(rule.getRuleId(), context);
+                result = rulesEngine.executeRule(rule.getRuleId(), context);
                 
                 if (!result.isSuccess() && result.hasViolations()) {
                     // Convert rule violations to ValidationErrors
-                    errors.addAll(convertViolationsToErrors(result.getViolations(), rule));
+                    for (RuleViolation violation : result.getViolations()) {
+                        // Persist violation
+                        violationRepository.save(violation);
+                        
+                        // Convert to ValidationError
+                        ValidationError validationError = convertToValidationError(violation, rule);
+                        errors.add(validationError);
+                    }
                 }
                 
             } catch (Exception e) {
-                log.error("Error executing rule {}: {}", rule.getRuleId(), e.getMessage());
+                log.error("Error executing rule {}: {}", rule.getRuleId(), e.getMessage(), e);
+                errorMessage = e.getMessage();
+            } finally {
+                long executionTime = System.currentTimeMillis() - startTime;
+                
+                // Persist execution log
+                RuleExecutionLog executionLog = createExecutionLog(
+                    rule, 
+                    exposure, 
+                    result, 
+                    executionTime, 
+                    errorMessage
+                );
+                executionLogRepository.save(executionLog);
             }
         }
         
@@ -88,34 +116,15 @@ public class DataQualityRulesService {
     }
     
     /**
-     * Validates threshold rules (amounts, dates, counts)
+     * Validates threshold rules (amounts, dates, counts).
+     * This method is kept for backward compatibility but delegates to validateConfigurableRules.
+     * 
+     * @deprecated Use validateConfigurableRules instead
      */
+    @Deprecated
     public List<ValidationError> validateThresholdRules(ExposureRecord exposure) {
-        
-        List<BusinessRule> thresholdRules = ruleRepository
-            .findByRuleCategoryAndEnabledTrue("THRESHOLDS");
-        
-        if (thresholdRules.isEmpty()) {
-            return Collections.emptyList();
-        }
-        
-        RuleContext context = createContextFromExposure(exposure);
-        List<ValidationError> errors = new ArrayList<>();
-        
-        for (BusinessRule rule : thresholdRules) {
-            try {
-                RuleExecutionResult result = rulesEngine.executeRule(rule.getRuleId(), context);
-                
-                if (!result.isSuccess() && result.hasViolations()) {
-                    errors.addAll(convertViolationsToErrors(result.getViolations(), rule));
-                }
-                
-            } catch (Exception e) {
-                log.error("Error executing threshold rule {}: {}", rule.getRuleId(), e.getMessage());
-            }
-        }
-        
-        return errors;
+        // Delegate to the main validation method which handles all rules including thresholds
+        return validateConfigurableRules(exposure);
     }
     
     /**
@@ -234,59 +243,117 @@ public class DataQualityRulesService {
     }
     
     /**
-     * Converts rule violations to validation errors.
+     * Converts a single RuleViolation to a ValidationError.
      * Maps the Rules Engine domain to the Data Quality domain.
+     * 
+     * @param violation The rule violation to convert
+     * @param rule The business rule that was violated
+     * @return ValidationError for use in validation pipeline
      */
-    private List<ValidationError> convertViolationsToErrors(
-            List<com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation> violations,
-            BusinessRule rule) {
+    private ValidationError convertToValidationError(RuleViolation violation, BusinessRule rule) {
+        QualityDimension dimension = mapToQualityDimension(rule.getRuleType());
+        ValidationError.ErrorSeverity severity = mapToValidationSeverity(violation.getSeverity());
+        String fieldName = extractFieldFromDetails(violation.getViolationDetails());
         
-        return violations.stream()
-            .map(violation -> {
-                QualityDimension dimension = mapRuleToDimension(rule);
-                
-                return new ValidationError(
-                    violation.getViolationType(),
-                    violation.getViolationDescription(),
-                    extractFieldFromDetails(violation.getViolationDetails()),
-                    dimension,
-                    violation.getEntityId(),
-                    mapSeverity(violation.getSeverity())
-                );
-            })
-            .collect(Collectors.toList());
+        return new ValidationError(
+            violation.getViolationType(),
+            violation.getViolationDescription(),
+            fieldName,
+            dimension,
+            violation.getEntityId(),
+            severity
+        );
     }
     
     /**
-     * Maps rule category to quality dimension.
+     * Maps RuleType to QualityDimension.
+     * This mapping ensures that rule violations are correctly categorized
+     * into BCBS 239 quality dimensions.
+     * 
+     * @param ruleType The rule type from the business rule
+     * @return The corresponding quality dimension
      */
-    private QualityDimension mapRuleToDimension(BusinessRule rule) {
-        // Map rule category to quality dimension
-        if (rule.getRuleCategory() == null) {
+    private QualityDimension mapToQualityDimension(RuleType ruleType) {
+        if (ruleType == null) {
+            log.warn("Rule type is null, defaulting to ACCURACY dimension");
             return QualityDimension.ACCURACY;
         }
         
-        return switch (rule.getRuleCategory().toUpperCase()) {
-            case "COMPLETENESS" -> QualityDimension.COMPLETENESS;
-            case "ACCURACY" -> QualityDimension.ACCURACY;
-            case "CONSISTENCY" -> QualityDimension.CONSISTENCY;
-            case "TIMELINESS" -> QualityDimension.TIMELINESS;
-            case "UNIQUENESS" -> QualityDimension.UNIQUENESS;
-            default -> QualityDimension.ACCURACY;
+        return switch (ruleType) {
+            case COMPLETENESS -> QualityDimension.COMPLETENESS;
+            case ACCURACY -> QualityDimension.ACCURACY;
+            case CONSISTENCY -> QualityDimension.CONSISTENCY;
+            case TIMELINESS -> QualityDimension.TIMELINESS;
+            case UNIQUENESS -> QualityDimension.UNIQUENESS;
+            case VALIDITY -> QualityDimension.VALIDITY;
+            // For non-dimension specific rule types, map to ACCURACY as default
+            case VALIDATION, CALCULATION, TRANSFORMATION, DATA_QUALITY, 
+                 THRESHOLD, BUSINESS_LOGIC -> QualityDimension.ACCURACY;
         };
     }
     
     /**
-     * Maps Rules Engine severity to ValidationError severity.
+     * Maps Rules Engine Severity to ValidationError ErrorSeverity.
+     * 
+     * @param severity The severity from the rule violation
+     * @return The corresponding validation error severity
      */
-    private ValidationError.ErrorSeverity mapSeverity(
-            com.bcbs239.regtech.dataquality.rulesengine.domain.Severity severity) {
+    private ValidationError.ErrorSeverity mapToValidationSeverity(Severity severity) {
+        if (severity == null) {
+            log.warn("Severity is null, defaulting to MEDIUM");
+            return ValidationError.ErrorSeverity.MEDIUM;
+        }
         
         return switch (severity) {
             case LOW -> ValidationError.ErrorSeverity.LOW;
             case MEDIUM -> ValidationError.ErrorSeverity.MEDIUM;
-            case HIGH, CRITICAL -> ValidationError.ErrorSeverity.CRITICAL;
+            case HIGH -> ValidationError.ErrorSeverity.HIGH;
+            case CRITICAL -> ValidationError.ErrorSeverity.CRITICAL;
         };
+    }
+    
+    /**
+     * Creates a RuleExecutionLog entry for persistence.
+     * 
+     * @param rule The business rule that was executed
+     * @param exposure The exposure record that was validated
+     * @param result The execution result (may be null if exception occurred)
+     * @param executionTimeMs The execution time in milliseconds
+     * @param errorMessage The error message if execution failed
+     * @return RuleExecutionLog ready for persistence
+     */
+    private RuleExecutionLog createExecutionLog(
+            BusinessRule rule,
+            ExposureRecord exposure,
+            RuleExecutionResult result,
+            long executionTimeMs,
+            String errorMessage) {
+        
+        ExecutionResult executionResult;
+        int violationCount = 0;
+        
+        if (errorMessage != null) {
+            executionResult = ExecutionResult.ERROR;
+        } else if (result != null && result.isSuccess()) {
+            executionResult = ExecutionResult.SUCCESS;
+        } else if (result != null && result.hasViolations()) {
+            executionResult = ExecutionResult.FAILURE;
+            violationCount = result.getViolations().size();
+        } else {
+            executionResult = ExecutionResult.SUCCESS;
+        }
+        
+        return RuleExecutionLog.builder()
+            .ruleId(rule.getRuleId())
+            .executionTimestamp(Instant.now())
+            .entityType("EXPOSURE")
+            .entityId(exposure.exposureId())
+            .executionResult(executionResult)
+            .violationCount(violationCount)
+            .executionTimeMs(executionTimeMs)
+            .errorMessage(errorMessage)
+            .executedBy("SYSTEM") // Could be enhanced to track actual user
+            .build();
     }
     
     /**

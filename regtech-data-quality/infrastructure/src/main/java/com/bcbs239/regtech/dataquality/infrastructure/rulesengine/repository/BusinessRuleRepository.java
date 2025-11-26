@@ -18,6 +18,13 @@ import java.util.Optional;
 public interface BusinessRuleRepository extends JpaRepository<BusinessRule, String>, com.bcbs239.regtech.dataquality.rulesengine.repository.BusinessRuleRepository {
     
     /**
+     * Finds all enabled rules.
+     * 
+     * @return List of all enabled rules
+     */
+    List<BusinessRule> findByEnabledTrue();
+    
+    /**
      * Finds a rule by its unique code.
      * 
      * @param ruleCode The rule code
