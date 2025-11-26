@@ -9,9 +9,11 @@ import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExemption;
 import com.bcbs239.regtech.dataquality.rulesengine.repository.BusinessRuleRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExecutionLogRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExemptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,7 @@ public class DataQualityRulesService {
     private final BusinessRuleRepository ruleRepository;
     private final RuleViolationRepository violationRepository;
     private final RuleExecutionLogRepository executionLogRepository;
+    private final RuleExemptionRepository exemptionRepository;
     
     /**
      * Validates configurable rules for a single exposure.
@@ -84,6 +87,23 @@ public class DataQualityRulesService {
                 result = rulesEngine.executeRule(rule.getRuleId(), context);
                 
                 if (!result.isSuccess() && result.hasViolations()) {
+                    // Check for exemptions before reporting violations
+                    String entityType = (String) context.get("entity_type");
+                    String entityId = (String) context.get("entity_id");
+                    
+                    boolean hasActiveExemption = checkExemption(
+                        rule.getRuleId(), 
+                        entityType, 
+                        entityId
+                    );
+                    
+                    if (hasActiveExemption) {
+                        log.debug("Active exemption found for rule {} and entity {}/{}. Skipping violation reporting.", 
+                            rule.getRuleId(), entityType, entityId);
+                        // Don't report violations for exempted entities
+                        continue;
+                    }
+                    
                     // Convert rule violations to ValidationErrors
                     for (RuleViolation violation : result.getViolations()) {
                         // Persist violation
@@ -365,5 +385,79 @@ public class DataQualityRulesService {
             return String.valueOf(details.get("field"));
         }
         return null;
+    }
+    
+    /**
+     * Checks if an active exemption exists for a specific rule and entity.
+     * 
+     * <p>An exemption is considered active if:</p>
+     * <ul>
+     *   <li>The exemption status is ACTIVE (not EXPIRED or REVOKED)</li>
+     *   <li>The current date is on or after the effective_date</li>
+     *   <li>The current date is before the expiration_date (or expiration_date is null)</li>
+     *   <li>The exemption applies to the specified entity type and ID</li>
+     * </ul>
+     * 
+     * <p>This method implements Requirements 10.1, 10.2, 10.3, 10.4, 10.5:</p>
+     * <ul>
+     *   <li>10.1: Check exemption validity before reporting violations</li>
+     *   <li>10.2: Skip violation reporting for active exemptions</li>
+     *   <li>10.3: Report violations for expired exemptions</li>
+     *   <li>10.4: Report violations for revoked exemptions (handled by not finding them)</li>
+     *   <li>10.5: Validate exemption dates (valid_from, valid_to)</li>
+     * </ul>
+     * 
+     * @param ruleId The rule ID to check exemptions for
+     * @param entityType The entity type (e.g., "EXPOSURE")
+     * @param entityId The entity ID
+     * @return true if an active exemption exists, false otherwise
+     */
+    private boolean checkExemption(String ruleId, String entityType, String entityId) {
+        if (ruleId == null || entityType == null || entityId == null) {
+            log.debug("Cannot check exemption: ruleId={}, entityType={}, entityId={}", 
+                ruleId, entityType, entityId);
+            return false;
+        }
+        
+        try {
+            LocalDate currentDate = LocalDate.now();
+            
+            // Find active exemptions for this rule and entity
+            List<RuleExemption> activeExemptions = exemptionRepository.findActiveExemptions(
+                ruleId, 
+                entityType, 
+                entityId, 
+                currentDate
+            );
+            
+            if (!activeExemptions.isEmpty()) {
+                // Log exemption details for audit trail
+                for (RuleExemption exemption : activeExemptions) {
+                    log.info("Active exemption found: exemptionId={}, ruleId={}, entityType={}, entityId={}, " +
+                            "exemptionType={}, effectiveDate={}, expirationDate={}, approvedBy={}, reason={}", 
+                        exemption.getExemptionId(),
+                        ruleId,
+                        entityType,
+                        entityId,
+                        exemption.getExemptionType(),
+                        exemption.getEffectiveDate(),
+                        exemption.getExpirationDate(),
+                        exemption.getApprovedBy(),
+                        exemption.getExemptionReason()
+                    );
+                }
+                return true;
+            }
+            
+            log.debug("No active exemption found for rule {} and entity {}/{}", 
+                ruleId, entityType, entityId);
+            return false;
+            
+        } catch (Exception e) {
+            log.error("Error checking exemption for rule {} and entity {}/{}: {}", 
+                ruleId, entityType, entityId, e.getMessage(), e);
+            // On error, fail safe by not granting exemption
+            return false;
+        }
     }
 }
