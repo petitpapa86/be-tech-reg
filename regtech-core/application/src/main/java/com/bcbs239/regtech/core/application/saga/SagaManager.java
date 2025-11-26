@@ -182,7 +182,7 @@ public class SagaManager {
     @SuppressWarnings("unchecked")
     private <T> AbstractSaga<T> createSagaInstance(Class<? extends AbstractSaga<T>> sagaClass, SagaId sagaId, T data) {
         try {
-            // Try 6-param constructor first (with IIntegrationEventBus)
+            // Try 5-param constructor first (with IIntegrationEventBus)
             try {
                 Constructor<?> constructor = sagaClass.getDeclaredConstructor(
                     SagaId.class, data.getClass(), TimeoutScheduler.class,
@@ -190,7 +190,7 @@ public class SagaManager {
                 return (AbstractSaga<T>) constructor.newInstance(
                     sagaId, data, timeoutScheduler, eventPublisher, integrationEventBus);
             } catch (NoSuchMethodException e) {
-                // Try 5-param constructor (with ApplicationEventPublisher)
+                // Try 4-param constructor (with ApplicationEventPublisher)
                 try {
                     Constructor<?> constructor = sagaClass.getDeclaredConstructor(
                         SagaId.class, data.getClass(), TimeoutScheduler.class,
@@ -198,7 +198,7 @@ public class SagaManager {
                     return (AbstractSaga<T>) constructor.newInstance(
                         sagaId, data, timeoutScheduler, eventPublisher);
                 } catch (NoSuchMethodException e2) {
-                    // Fall back to 4-param constructor
+                    // Fall back to 3-param constructor
                     Constructor<?> constructor = sagaClass.getDeclaredConstructor(
                         SagaId.class, data.getClass(), TimeoutScheduler.class);
                     return (AbstractSaga<T>) constructor.newInstance(
@@ -222,7 +222,7 @@ public class SagaManager {
             // Deserialize saga data
             Object data = objectMapper.readValue(snapshot.getSagaData(), dataClass);
 
-            // Create saga instance - try 6-param, then 5-param, then 4-param
+            // Create saga instance - try 5-param, then 4-param, then 3-param
             AbstractSaga<?> saga;
             try {
                 Constructor<?> constructor = sagaClass.getDeclaredConstructor(
@@ -231,7 +231,7 @@ public class SagaManager {
                 saga = (AbstractSaga<?>) constructor.newInstance(
                     snapshot.getSagaId(), data, timeoutScheduler, eventPublisher, integrationEventBus);
             } catch (NoSuchMethodException e) {
-                // Try 5-param constructor
+                // Try 4-param constructor
                 try {
                     Constructor<?> constructor = sagaClass.getDeclaredConstructor(
                         SagaId.class, dataClass, TimeoutScheduler.class,
@@ -239,7 +239,7 @@ public class SagaManager {
                     saga = (AbstractSaga<?>) constructor.newInstance(
                         snapshot.getSagaId(), data, timeoutScheduler, eventPublisher);
                 } catch (NoSuchMethodException e2) {
-                    // Fall back to 4-param constructor
+                    // Fall back to 3-param constructor
                     Constructor<?> constructor = sagaClass.getDeclaredConstructor(
                         SagaId.class, dataClass, TimeoutScheduler.class);
                     saga = (AbstractSaga<?>) constructor.newInstance(
@@ -282,39 +282,50 @@ public class SagaManager {
     }
 
     private Class<?> discoverSagaDataClass(Class<? extends AbstractSaga<?>> sagaClass) throws NoSuchMethodException {
-        // Try 6-param constructor first (SagaId, T, TimeoutScheduler, ApplicationEventPublisher, IIntegrationEventBus)
+        // Try to find constructor with expected patterns, checking in priority order
+        // Priority: 5-param > 4-param > 3-param
+        
+        Constructor<?> foundConstructor = null;
+        int foundPriority = -1;
+        
         for (Constructor<?> constructor : sagaClass.getDeclaredConstructors()) {
             Class<?>[] paramTypes = constructor.getParameterTypes();
-            if (paramTypes.length == 6 && 
+            
+            // Check if first param is SagaId and third param is TimeoutScheduler
+            if (paramTypes.length >= 3 && 
                 paramTypes[0] == SagaId.class && 
-                paramTypes[2] == TimeoutScheduler.class &&
-                paramTypes[3] == ApplicationEventPublisher.class &&
-                paramTypes[4] == IIntegrationEventBus.class) {
-                return paramTypes[1]; // Return the data class type
+                paramTypes[2] == TimeoutScheduler.class) {
+                
+                int priority = -1;
+                
+                // 5-param: (SagaId, T, TimeoutScheduler, ApplicationEventPublisher, IIntegrationEventBus)
+                if (paramTypes.length == 5 && 
+                    paramTypes[3] == ApplicationEventPublisher.class &&
+                    paramTypes[4] == IIntegrationEventBus.class) {
+                    priority = 3;
+                }
+                // 4-param: (SagaId, T, TimeoutScheduler, ApplicationEventPublisher)
+                else if (paramTypes.length == 4 && 
+                         paramTypes[3] == ApplicationEventPublisher.class) {
+                    priority = 2;
+                }
+                // 3-param: (SagaId, T, TimeoutScheduler)
+                else if (paramTypes.length == 3) {
+                    priority = 1;
+                }
+                
+                // Keep the highest priority constructor found
+                if (priority > foundPriority) {
+                    foundConstructor = constructor;
+                    foundPriority = priority;
+                }
             }
         }
         
-        // Try 5-param constructor (SagaId, T, TimeoutScheduler, ApplicationEventPublisher)
-        for (Constructor<?> constructor : sagaClass.getDeclaredConstructors()) {
-            Class<?>[] paramTypes = constructor.getParameterTypes();
-            if (paramTypes.length == 5 && 
-                paramTypes[0] == SagaId.class && 
-                paramTypes[2] == TimeoutScheduler.class &&
-                paramTypes[3] == ApplicationEventPublisher.class) {
-                return paramTypes[1]; // Return the data class type
-            }
+        if (foundConstructor != null) {
+            return foundConstructor.getParameterTypes()[1]; // Return the data class type (second parameter)
         }
         
-        // Fall back to 4-param constructor (SagaId, T, TimeoutScheduler)
-        for (Constructor<?> constructor : sagaClass.getDeclaredConstructors()) {
-            Class<?>[] paramTypes = constructor.getParameterTypes();
-            if (paramTypes.length == 4 && 
-                paramTypes[0] == SagaId.class && 
-                paramTypes[2] == TimeoutScheduler.class &&
-                paramTypes[3] == Object.class) {
-                return paramTypes[1]; // Return the data class type
-            }
-        }
         throw new NoSuchMethodException("Could not find saga constructor with expected signature");
     }
 
