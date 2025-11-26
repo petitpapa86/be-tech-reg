@@ -109,6 +109,36 @@ public class DataQualityProperties {
         private int cacheTtl = 300; // 5 minutes in seconds
 
         private boolean parallelExecution = false;
+        
+        @NotNull(message = "Logging configuration must be specified")
+        private LoggingProperties logging = new LoggingProperties();
+        
+        @NotNull(message = "Performance configuration must be specified")
+        private PerformanceProperties performance = new PerformanceProperties();
+        
+        /**
+         * Logging configuration for Rules Engine
+         * Requirements: 6.1, 6.2, 6.3, 6.4
+         */
+        @Data
+        public static class LoggingProperties {
+            private boolean logExecutions = true;
+            private boolean logViolations = true;
+            private boolean logSummary = true;
+        }
+        
+        /**
+         * Performance thresholds for Rules Engine
+         * Requirement: 6.5
+         */
+        @Data
+        public static class PerformanceProperties {
+            @Min(value = 0, message = "Warn threshold must be non-negative")
+            private int warnThresholdMs = 100;
+            
+            @Min(value = 0, message = "Max execution time must be non-negative")
+            private int maxExecutionTimeMs = 5000;
+        }
     }
 
     /**

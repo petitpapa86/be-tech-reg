@@ -39,8 +39,6 @@ import java.util.stream.Collectors;
  * from implementation (Rules Engine) allowing both to vary independently.</p>
  */
 @Slf4j
-@Service
-@RequiredArgsConstructor
 public class DataQualityRulesService {
     
     private final RulesEngine rulesEngine;
@@ -49,42 +47,154 @@ public class DataQualityRulesService {
     private final RuleExecutionLogRepository executionLogRepository;
     private final RuleExemptionRepository exemptionRepository;
     
+    // Configuration thresholds - using default values that can be overridden
+    private final int warnThresholdMs;
+    private final int maxExecutionTimeMs;
+    private final boolean logExecutions;
+    private final boolean logViolations;
+    private final boolean logSummary;
+    
+    /**
+     * Constructor with default configuration values.
+     * Used when configuration properties are not available.
+     */
+    public DataQualityRulesService(
+            RulesEngine rulesEngine,
+            BusinessRuleRepository ruleRepository,
+            RuleViolationRepository violationRepository,
+            RuleExecutionLogRepository executionLogRepository,
+            RuleExemptionRepository exemptionRepository) {
+        this(rulesEngine, ruleRepository, violationRepository, executionLogRepository, 
+             exemptionRepository, 100, 5000, true, true, true);
+    }
+    
+    /**
+     * Constructor with configurable thresholds.
+     * Requirements: 6.1, 6.2, 6.3, 6.4, 6.5
+     * 
+     * @param rulesEngine The rules engine
+     * @param ruleRepository Repository for business rules
+     * @param violationRepository Repository for violations
+     * @param executionLogRepository Repository for execution logs
+     * @param exemptionRepository Repository for exemptions
+     * @param warnThresholdMs Threshold for slow rule warning (Requirement 6.5)
+     * @param maxExecutionTimeMs Threshold for slow validation warning (Requirement 6.5)
+     * @param logExecutions Whether to log individual rule executions (Requirement 6.1)
+     * @param logViolations Whether to log violation details (Requirement 6.2)
+     * @param logSummary Whether to log summary statistics (Requirement 6.4)
+     */
+    public DataQualityRulesService(
+            RulesEngine rulesEngine,
+            BusinessRuleRepository ruleRepository,
+            RuleViolationRepository violationRepository,
+            RuleExecutionLogRepository executionLogRepository,
+            RuleExemptionRepository exemptionRepository,
+            int warnThresholdMs,
+            int maxExecutionTimeMs,
+            boolean logExecutions,
+            boolean logViolations,
+            boolean logSummary) {
+        this.rulesEngine = rulesEngine;
+        this.ruleRepository = ruleRepository;
+        this.violationRepository = violationRepository;
+        this.executionLogRepository = executionLogRepository;
+        this.exemptionRepository = exemptionRepository;
+        this.warnThresholdMs = warnThresholdMs;
+        this.maxExecutionTimeMs = maxExecutionTimeMs;
+        this.logExecutions = logExecutions;
+        this.logViolations = logViolations;
+        this.logSummary = logSummary;
+        
+        log.info("DataQualityRulesService initialized with logging configuration: " +
+                "logExecutions={}, logViolations={}, logSummary={}, warnThresholdMs={}, maxExecutionTimeMs={}",
+            logExecutions, logViolations, logSummary, warnThresholdMs, maxExecutionTimeMs);
+    }
+    
     /**
      * Validates configurable rules for a single exposure.
      * This method executes all enabled rules, persists violations and execution logs,
      * and returns validation errors for integration with the validation pipeline.
      * 
+     * <p><strong>Logging:</strong> This method implements comprehensive logging per Requirements 6.1-6.5:</p>
+     * <ul>
+     *   <li>6.1: Logs rule execution count and duration</li>
+     *   <li>6.2: Logs violation details with exposure ID</li>
+     *   <li>6.3: Logs errors with rule code and context</li>
+     *   <li>6.4: Logs summary statistics after validation</li>
+     *   <li>6.5: Emits warnings for slow rule execution</li>
+     * </ul>
+     * 
      * @param exposure The exposure record to validate
      * @return List of validation errors from rules engine
      */
     public List<ValidationError> validateConfigurableRules(ExposureRecord exposure) {
+        long validationStartTime = System.currentTimeMillis();
         
         // Get all active rules (all enabled rules, not just DATA_QUALITY type)
         List<BusinessRule> rules = ruleRepository.findByEnabledTrue();
         
         if (rules.isEmpty()) {
-            log.debug("No configurable rules found, skipping");
+            log.debug("No configurable rules found, skipping validation for exposure {}", 
+                exposure.exposureId());
             return Collections.emptyList();
         }
+        
+        // Requirement 6.1: Log rule execution count at start
+        log.info("Starting Rules Engine validation for exposure {} with {} active rules", 
+            exposure.exposureId(), rules.size());
         
         // Create rule context from exposure
         RuleContext context = createContextFromExposure(exposure);
         
         List<ValidationError> errors = new ArrayList<>();
         
+        // Statistics tracking for summary (Requirement 6.4)
+        int rulesExecuted = 0;
+        int rulesSkipped = 0;
+        int rulesFailed = 0;
+        int rulesErrored = 0;
+        int totalViolations = 0;
+        long totalRuleExecutionTime = 0;
+        long slowestRuleTime = 0;
+        String slowestRuleId = null;
+        
         // Execute each rule
         for (BusinessRule rule : rules) {
             if (!rule.isApplicableOn(LocalDate.now())) {
                 log.debug("Rule {} not applicable on current date, skipping", rule.getRuleId());
+                rulesSkipped++;
                 continue;
             }
             
-            long startTime = System.currentTimeMillis();
+            long ruleStartTime = System.currentTimeMillis();
             RuleExecutionResult result = null;
             String errorMessage = null;
             
             try {
                 result = rulesEngine.executeRule(rule.getRuleId(), context);
+                rulesExecuted++;
+                
+                long ruleExecutionTime = System.currentTimeMillis() - ruleStartTime;
+                totalRuleExecutionTime += ruleExecutionTime;
+                
+                // Track slowest rule
+                if (ruleExecutionTime > slowestRuleTime) {
+                    slowestRuleTime = ruleExecutionTime;
+                    slowestRuleId = rule.getRuleId();
+                }
+                
+                // Requirement 6.5: Emit warnings for slow rule execution
+                if (ruleExecutionTime > warnThresholdMs) {
+                    log.warn("Slow rule execution detected: rule={}, exposureId={}, executionTime={}ms, threshold={}ms", 
+                        rule.getRuleId(), exposure.exposureId(), ruleExecutionTime, warnThresholdMs);
+                }
+                
+                // Requirement 6.1: Log individual rule execution
+                if (logExecutions) {
+                    log.debug("Rule {} executed for exposure {} in {}ms - result: {}", 
+                        rule.getRuleId(), exposure.exposureId(), ruleExecutionTime, 
+                        result.isSuccess() ? "SUCCESS" : "FAILURE");
+                }
                 
                 if (!result.isSuccess() && result.hasViolations()) {
                     // Check for exemptions before reporting violations
@@ -104,10 +214,30 @@ public class DataQualityRulesService {
                         continue;
                     }
                     
+                    rulesFailed++;
+                    int violationCount = result.getViolations().size();
+                    totalViolations += violationCount;
+                    
+                    // Requirement 6.2: Log violation details with exposure ID
+                    if (logViolations) {
+                        log.info("Rule {} violated for exposure {}: {} violation(s) detected", 
+                            rule.getRuleId(), exposure.exposureId(), violationCount);
+                    }
+                    
                     // Convert rule violations to ValidationErrors
                     for (RuleViolation violation : result.getViolations()) {
                         // Persist violation
                         violationRepository.save(violation);
+                        
+                        // Requirement 6.2: Log detailed violation information
+                        if (logViolations) {
+                            log.debug("Violation details: ruleCode={}, exposureId={}, severity={}, type={}, description={}", 
+                                rule.getRuleCode(), 
+                                exposure.exposureId(), 
+                                violation.getSeverity(), 
+                                violation.getViolationType(), 
+                                violation.getViolationDescription());
+                        }
                         
                         // Convert to ValidationError
                         ValidationError validationError = convertToValidationError(violation, rule);
@@ -116,10 +246,21 @@ public class DataQualityRulesService {
                 }
                 
             } catch (Exception e) {
-                log.error("Error executing rule {}: {}", rule.getRuleId(), e.getMessage(), e);
+                rulesErrored++;
+                
+                // Requirement 6.3: Log errors with rule code and context
+                log.error("Error executing rule {} for exposure {}: {} - Context: entityType={}, ruleType={}, severity={}", 
+                    rule.getRuleId(), 
+                    exposure.exposureId(), 
+                    e.getMessage(), 
+                    context.get("entity_type"),
+                    rule.getRuleType(),
+                    rule.getSeverity(),
+                    e);
+                
                 errorMessage = e.getMessage();
             } finally {
-                long executionTime = System.currentTimeMillis() - startTime;
+                long executionTime = System.currentTimeMillis() - ruleStartTime;
                 
                 // Persist execution log
                 RuleExecutionLog executionLog = createExecutionLog(
@@ -131,6 +272,39 @@ public class DataQualityRulesService {
                 );
                 executionLogRepository.save(executionLog);
             }
+        }
+        
+        long totalValidationTime = System.currentTimeMillis() - validationStartTime;
+        
+        // Requirement 6.4: Log summary statistics after validation
+        if (logSummary) {
+            log.info("Rules Engine validation completed for exposure {}: " +
+                    "totalRules={}, executed={}, skipped={}, failed={}, errored={}, " +
+                    "totalViolations={}, totalTime={}ms, avgRuleTime={}ms, slowestRule={} ({}ms)",
+                exposure.exposureId(),
+                rules.size(),
+                rulesExecuted,
+                rulesSkipped,
+                rulesFailed,
+                rulesErrored,
+                totalViolations,
+                totalValidationTime,
+                rulesExecuted > 0 ? totalRuleExecutionTime / rulesExecuted : 0,
+                slowestRuleId,
+                slowestRuleTime
+            );
+        }
+        
+        // Requirement 6.5: Emit warning if overall validation is slow
+        if (totalValidationTime > maxExecutionTimeMs) {
+            log.warn("Slow validation detected for exposure {}: totalTime={}ms, threshold={}ms, " +
+                    "rulesExecuted={}, avgRuleTime={}ms",
+                exposure.exposureId(),
+                totalValidationTime,
+                maxExecutionTimeMs,
+                rulesExecuted,
+                rulesExecuted > 0 ? totalRuleExecutionTime / rulesExecuted : 0
+            );
         }
         
         return errors;

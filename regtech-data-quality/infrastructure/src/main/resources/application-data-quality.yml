@@ -39,6 +39,17 @@ data-quality:
     cache-enabled: true
     cache-ttl: 300  # 5 minutes in seconds
     parallel-execution: false  # Execute rules sequentially for now
+    
+    # Logging configuration (Requirements 6.1-6.5)
+    logging:
+      log-executions: true  # Log each rule execution
+      log-violations: true  # Log all violations with details
+      log-summary: true  # Log summary statistics after validation
+      
+    # Performance thresholds (Requirement 6.5)
+    performance:
+      warn-threshold-ms: 100  # Warn if single rule execution exceeds this
+      max-execution-time-ms: 5000  # Warn if total validation exceeds this
   
   # Rules migration configuration
   rules-migration:

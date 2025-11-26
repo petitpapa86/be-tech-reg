@@ -1,7 +1,9 @@
 package com.bcbs239.regtech.dataquality.infrastructure.config;
 
+import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
 import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluator;
+import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository;
@@ -78,6 +80,61 @@ public class RulesEngineConfiguration {
             expressionEvaluator,
             cacheEnabled,
             cacheTtl
+        );
+    }
+    
+    /**
+     * Creates the DataQualityRulesService bean with logging configuration.
+     * 
+     * <p>The logging settings are injected from DataQualityProperties:</p>
+     * <ul>
+     *   <li>logExecutions: Whether to log individual rule executions (Requirement 6.1)</li>
+     *   <li>logViolations: Whether to log violation details (Requirement 6.2)</li>
+     *   <li>logSummary: Whether to log summary statistics (Requirement 6.4)</li>
+     *   <li>warnThresholdMs: Threshold for slow rule warning (Requirement 6.5)</li>
+     *   <li>maxExecutionTimeMs: Threshold for slow validation warning (Requirement 6.5)</li>
+     * </ul>
+     * 
+     * @param rulesEngine The rules engine
+     * @param ruleRepository Repository for business rules
+     * @param violationRepository Repository for violations
+     * @param executionLogRepository Repository for execution logs
+     * @param exemptionRepository Repository for exemptions
+     * @param properties Data quality configuration properties
+     * @return Configured DataQualityRulesService instance
+     */
+    @Bean
+    public DataQualityRulesService dataQualityRulesService(
+            RulesEngine rulesEngine,
+            BusinessRuleRepository ruleRepository,
+            RuleViolationRepository violationRepository,
+            RuleExecutionLogRepository executionLogRepository,
+            RuleExemptionRepository exemptionRepository,
+            DataQualityProperties properties) {
+        
+        DataQualityProperties.RulesEngineProperties.LoggingProperties logging = 
+            properties.getRulesEngine().getLogging();
+        DataQualityProperties.RulesEngineProperties.PerformanceProperties performance = 
+            properties.getRulesEngine().getPerformance();
+        
+        log.info("✓ DataQualityRulesService configured with logging:");
+        log.info("  - Log executions: {}", logging.isLogExecutions());
+        log.info("  - Log violations: {}", logging.isLogViolations());
+        log.info("  - Log summary: {}", logging.isLogSummary());
+        log.info("  - Warn threshold: {}ms", performance.getWarnThresholdMs());
+        log.info("  - Max execution time: {}ms", performance.getMaxExecutionTimeMs());
+        
+        return new DataQualityRulesService(
+            rulesEngine,
+            ruleRepository,
+            violationRepository,
+            executionLogRepository,
+            exemptionRepository,
+            performance.getWarnThresholdMs(),
+            performance.getMaxExecutionTimeMs(),
+            logging.isLogExecutions(),
+            logging.isLogViolations(),
+            logging.isLogSummary()
         );
     }
 }
