@@ -99,20 +99,50 @@ public class DataQualityProperties {
 
     /**
      * Rules engine configuration
+     * Requirement 7.1: Rules Engine must be explicitly enabled (no default to false)
      */
     @Data
     public static class RulesEngineProperties {
-        private boolean enabled = true;
+        /**
+         * Enable/disable Rules Engine.
+         * REQUIRED: Must be explicitly set to true for validation to work.
+         * Requirement 7.1: No default to false - must be explicitly configured.
+         */
+        @NotNull(message = "Rules Engine enabled flag must be explicitly specified (true or false)")
+        private Boolean enabled;
+        
+        /**
+         * Enable/disable in-memory rule caching.
+         * Default: true (recommended for performance)
+         * Requirement 7.2: Cache configuration
+         */
         private boolean cacheEnabled = true;
 
+        /**
+         * Cache time-to-live in seconds.
+         * Rules are reloaded from database after this period.
+         * Requirement 7.2: Cache TTL configuration
+         */
         @Min(value = 0, message = "Cache TTL must be non-negative")
         private int cacheTtl = 300; // 5 minutes in seconds
 
+        /**
+         * Enable parallel rule execution (future feature).
+         * Currently not implemented - rules execute sequentially.
+         */
         private boolean parallelExecution = false;
         
+        /**
+         * Logging configuration for Rules Engine.
+         * Requirement 7.4: Logging configuration
+         */
         @NotNull(message = "Logging configuration must be specified")
         private LoggingProperties logging = new LoggingProperties();
         
+        /**
+         * Performance thresholds for Rules Engine.
+         * Requirement 7.3: Performance configuration
+         */
         @NotNull(message = "Performance configuration must be specified")
         private PerformanceProperties performance = new PerformanceProperties();
         

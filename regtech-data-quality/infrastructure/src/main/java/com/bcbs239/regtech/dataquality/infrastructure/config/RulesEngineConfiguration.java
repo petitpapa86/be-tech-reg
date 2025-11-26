@@ -38,7 +38,7 @@ import org.springframework.context.annotation.Configuration;
     prefix = "data-quality.rules-engine",
     name = "enabled",
     havingValue = "true",
-    matchIfMissing = true  // Enabled by default
+    matchIfMissing = false  // Requirement 7.1: Must be explicitly enabled, no default
 )
 public class RulesEngineConfiguration {
     

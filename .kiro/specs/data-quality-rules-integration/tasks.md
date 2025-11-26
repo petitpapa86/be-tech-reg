@@ -233,6 +233,7 @@
 
 
 
+
   - Log rule execution count and duration
   - Log violation details with exposure ID
   - Log errors with rule code and context
@@ -240,7 +241,12 @@
   - Emit warnings for slow rule execution
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 9. Update configuration
+- [x] 9. Update configuration
+
+
+
+
+
   - Ensure rules-engine.enabled is required (no default to false)
   - Add configuration validation on startup
   - Document all configuration properties

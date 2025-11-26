@@ -1,59 +1,166 @@
+# ============================================================================
 # Data Quality Module Configuration
-# Requirements: 1.2, 1.3, 2.2, 13.1
+# ============================================================================
+# This file contains configuration for the Data Quality module, including:
+#   - Storage configuration (S3 and local filesystem)
+#   - Async thread pool configuration
+#   - Rules Engine configuration (database-driven validation)
+#   - Rules migration configuration
+#
+# Requirements: 1.2, 1.3, 2.2, 7.1, 7.2, 7.3, 7.4, 7.5, 13.1
+# ============================================================================
+
 data-quality:
+  # Module enable/disable flag
+  # Set to false to completely disable the Data Quality module
   enabled: true
   
+  # ============================================================================
+  # STORAGE CONFIGURATION
+  # ============================================================================
   # Storage configuration (Requirement 2.2)
-  # Supports both S3 and local filesystem storage
+  # Supports both S3 and local filesystem storage for quality reports
   storage:
-    type: s3  # Options: 's3' for AWS S3, 'local' for filesystem (default: s3)
+    # Storage type: 's3' for AWS S3, 'local' for filesystem
+    # Default: s3 (recommended for production)
+    type: s3
     
     # S3 storage configuration
+    # Used when storage.type=s3
     s3:
+      # S3 bucket name for storing quality reports
       bucket: regtech-data-quality
+      
+      # AWS region where the bucket is located
       region: us-east-1
+      
+      # Prefix for all quality report objects in the bucket
+      # Example: quality/ results in s3://bucket/quality/report.json
       prefix: quality/
+      
+      # AWS credentials (use environment variables in production)
       access-key: ${AWS_ACCESS_KEY_ID:}
       secret-key: ${AWS_SECRET_ACCESS_KEY:}
-      endpoint: ${AWS_S3_ENDPOINT:}  # For LocalStack testing
+      
+      # S3 endpoint (for LocalStack testing or custom S3-compatible storage)
+      # Leave empty for AWS S3
+      endpoint: ${AWS_S3_ENDPOINT:}
+      
+      # Server-side encryption type
+      # Options: AES256, aws:kms
       encryption: AES256
     
     # Local filesystem storage configuration
+    # Used when storage.type=local
     local:
+      # Base directory for storing quality reports
+      # Relative paths are relative to application working directory
       base-path: ./data/quality
+      
+      # Automatically create directories if they don't exist
       create-directories: true
   
+  # ============================================================================
+  # ASYNC THREAD POOL CONFIGURATION
+  # ============================================================================
   # Async thread pool configuration (Requirement 13.1)
   # Purpose: Handles async quality validation operations
   async:
+    # Enable/disable async processing
     enabled: true
+    
+    # Core pool size (minimum number of threads)
+    # Threads are created up to this number even if idle
     core-pool-size: 5
+    
+    # Maximum pool size (maximum number of threads)
+    # Additional threads are created when queue is full
     max-pool-size: 10
+    
+    # Queue capacity for pending tasks
+    # Tasks are queued when all core threads are busy
     queue-capacity: 100
+    
+    # Thread name prefix for identification in logs
     thread-name-prefix: data-quality-async-
+    
+    # Graceful shutdown timeout in seconds
+    # Application waits this long for tasks to complete on shutdown
     await-termination-seconds: 60
   
-  # Rules engine configuration
+  # ============================================================================
+  # RULES ENGINE CONFIGURATION
+  # ============================================================================
+  # Rules Engine configuration (Requirements 7.1, 7.2, 7.3, 7.4)
+  # The Rules Engine provides database-driven validation using SpEL expressions
   rules-engine:
-    enabled: true  # Enable database-driven rules engine
-    cache-enabled: true
-    cache-ttl: 300  # 5 minutes in seconds
-    parallel-execution: false  # Execute rules sequentially for now
+    # REQUIRED: Enable database-driven rules engine
+    # Must be true for validation to work
+    # Requirement 7.1: No default to false - must be explicitly set
+    enabled: true
     
-    # Logging configuration (Requirements 6.1-6.5)
+    # Enable in-memory caching of rules
+    # Improves performance by avoiding database queries for every validation
+    # Requirement 7.2: Cache configuration
+    cache-enabled: true
+    
+    # Cache time-to-live in seconds
+    # Rules are reloaded from database after this period
+    # Recommended: 300 (5 minutes) for production
+    # Minimum: 60 (1 minute) to avoid excessive database load
+    # Requirement 7.2: Cache TTL configuration
+    cache-ttl: 300
+    
+    # Enable parallel rule execution (future feature)
+    # Currently not implemented - rules execute sequentially
+    parallel-execution: false
+    
+    # ============================================================================
+    # LOGGING CONFIGURATION
+    # ============================================================================
+    # Logging configuration (Requirements 6.1, 6.2, 6.3, 6.4, 7.4)
     logging:
-      log-executions: true  # Log each rule execution
-      log-violations: true  # Log all violations with details
-      log-summary: true  # Log summary statistics after validation
+      # Log each individual rule execution
+      # Requirement 6.1: Log rule execution count and duration
+      # Produces logs like: "Executed rule ACCURACY_POSITIVE_AMOUNT in 5ms"
+      log-executions: true
       
-    # Performance thresholds (Requirement 6.5)
+      # Log all rule violations with details
+      # Requirement 6.2: Log violation details with exposure ID
+      # Produces logs like: "Violation: ACCURACY_POSITIVE_AMOUNT for exposure EXP_001"
+      log-violations: true
+      
+      # Log summary statistics after validation
+      # Requirement 6.4: Log summary statistics after validation
+      # Produces logs like: "Validation completed: 50 rules, 5 violations, 250ms"
+      log-summary: true
+    
+    # ============================================================================
+    # PERFORMANCE THRESHOLDS
+    # ============================================================================
+    # Performance thresholds (Requirement 6.5, 7.3)
     performance:
-      warn-threshold-ms: 100  # Warn if single rule execution exceeds this
-      max-execution-time-ms: 5000  # Warn if total validation exceeds this
+      # Warn if a single rule execution exceeds this threshold (milliseconds)
+      # Requirement 6.5: Emit warnings for slow rule execution
+      # Recommended: 100ms for individual rules
+      warn-threshold-ms: 100
+      
+      # Warn if total validation time exceeds this threshold (milliseconds)
+      # Requirement 6.5: Emit warnings for slow validation
+      # Recommended: 5000ms (5 seconds) for batch validation
+      max-execution-time-ms: 5000
   
-  # Rules migration configuration
+  # ============================================================================
+  # RULES MIGRATION CONFIGURATION
+  # ============================================================================
+  # Rules migration configuration (Requirement 7.5)
+  # Controls initial population of rules from Specification classes
   rules-migration:
-    enabled: true  # Run once to populate initial rules, then disable
+    # Enable rules migration on startup
+    # WARNING: Should only be enabled during initial setup
+    # After migration completes, set to false to avoid re-running migration
+    # Requirement 7.5: Migration configuration
+    enabled: true
 
 ---
 # Development profile overrides

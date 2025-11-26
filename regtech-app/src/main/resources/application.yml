@@ -308,6 +308,58 @@ logging:
     com.bcbs239.regtech.riskcalculation: DEBUG
     com.bcbs239.regtech.reportgeneration: DEBUG
 
+# ============================================================================
+# RULES ENGINE CONFIGURATION EXAMPLES
+# ============================================================================
+# Example configurations for different scenarios
+# Uncomment and modify as needed
+
+# Example 1: Disable Rules Engine (not recommended)
+# data-quality:
+#   rules-engine:
+#     enabled: false  # This will cause validation to fail
+
+# Example 2: Disable caching (for debugging)
+# data-quality:
+#   rules-engine:
+#     cache-enabled: false  # Rules loaded from DB every time
+
+# Example 3: Aggressive caching (for high-volume production)
+# data-quality:
+#   rules-engine:
+#     cache-enabled: true
+#     cache-ttl: 600  # 10 minutes
+
+# Example 4: Minimal logging (for production)
+# data-quality:
+#   rules-engine:
+#     logging:
+#       log-executions: false
+#       log-violations: true
+#       log-summary: true
+
+# Example 5: Verbose logging (for debugging)
+# data-quality:
+#   rules-engine:
+#     logging:
+#       log-executions: true
+#       log-violations: true
+#       log-summary: true
+
+# Example 6: Strict performance thresholds
+# data-quality:
+#   rules-engine:
+#     performance:
+#       warn-threshold-ms: 50  # Warn if rule takes > 50ms
+#       max-execution-time-ms: 2000  # Warn if validation takes > 2s
+
+# Example 7: Relaxed performance thresholds
+# data-quality:
+#   rules-engine:
+#     performance:
+#       warn-threshold-ms: 200  # Warn if rule takes > 200ms
+#       max-execution-time-ms: 10000  # Warn if validation takes > 10s
+
 ---
 # ============================================================================
 # PRODUCTION PROFILE
