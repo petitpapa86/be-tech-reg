@@ -184,7 +184,12 @@
   - **Property 21: Exemption Date Validation**
   - **Validates: Requirements 10.5**
 
-- [ ] 6. Add rule enable/disable functionality
+- [x] 6. Add rule enable/disable functionality
+
+
+
+
+
   - Ensure DataQualityRulesService loads only enabled rules
   - Add test for disabled rule skipping
   - Add test for enabled rule execution

@@ -42,6 +42,9 @@ class ValidateBatchQualityCommandHandlerTest {
     @Mock
     private IIntegrationEventBus eventBus;
     
+    @Mock
+    private com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService rulesService;
+    
     private ValidateBatchQualityCommandHandler handler;
     
     private BatchId testBatchId;
@@ -53,7 +56,8 @@ class ValidateBatchQualityCommandHandlerTest {
         handler = new ValidateBatchQualityCommandHandler(
             qualityReportRepository,
             s3StorageService,
-            eventBus
+            eventBus,
+            rulesService
         );
         
         testBatchId = BatchId.of("batch_batch-123");
@@ -347,19 +351,22 @@ class ValidateBatchQualityCommandHandlerTest {
         
         List<ExposureRecord> exposures = Collections.emptyList();
         
+        S3Reference s3Reference = S3Reference.of("bucket", "results/report.json", "v1");
+        
         when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(false);
         when(qualityReportRepository.save(any(QualityReport.class)))
             .thenAnswer(invocation -> Result.success(invocation.getArgument(0)));
         when(s3StorageService.downloadExposures(testS3Uri))
             .thenReturn(Result.success(exposures));
-        // Note: storeDetailedResults is not stubbed as the handler fails before reaching that point
+        when(s3StorageService.storeDetailedResults(eq(testBatchId), any(ValidationResult.class), anyMap()))
+            .thenReturn(Result.success(s3Reference));
         
         // Act
         Result<Void> result = handler.handle(command);
         
         // Assert
-        assertTrue(result.isFailure());
-        verify(eventBus).publish(any(BatchQualityFailedEvent.class));
+        assertTrue(result.isSuccess(), "Empty exposure list should be handled successfully with score of 0");
+        verify(eventBus).publish(any(BatchQualityCompletedEvent.class));
     }
     
     // Helper methods
