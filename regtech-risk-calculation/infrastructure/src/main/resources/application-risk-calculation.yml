@@ -49,6 +49,13 @@ risk-calculation:
       timeout: 30000  # 30 seconds
       retry-attempts: 3
       mock-enabled: false  # Use real provider by default
+    
+    # CurrencyAPI configuration
+    api:
+      api-key: ${CURRENCY_API_KEY:cur_live_uQYFLcNvMmlt34FHKxBLr7tRrEe7BV8R6GguneHl}
+      timeout: 30000  # 30 seconds
+      retry-attempts: 3
+      enabled: true
   
   # Performance settings
   performance:

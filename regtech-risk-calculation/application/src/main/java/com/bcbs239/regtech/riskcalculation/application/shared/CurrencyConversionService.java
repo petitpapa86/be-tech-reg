@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 
+import com.bcbs239.regtech.riskcalculation.domain.services.ExchangeRateProvider;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.AmountEur;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.OriginalAmount;
@@ -158,21 +159,4 @@ public class CurrencyConversionService implements com.bcbs239.regtech.riskcalcul
     public int getCacheSize() {
         return rateCache.size();
     }
-}
-
-/**
- * Interface for external exchange rate providers.
- * Allows for different implementations (ECB, commercial providers, etc.)
- */
-interface ExchangeRateProvider {
-    
-    /**
-     * Gets the exchange rate between two currencies for a specific date.
-     * 
-     * @param fromCurrency The source currency code
-     * @param toCurrency The target currency code
-     * @param date The date for the exchange rate
-     * @return Result containing the exchange rate or error details
-     */
-    Result<ExchangeRate> getRate(String fromCurrency, String toCurrency, LocalDate date);
 }

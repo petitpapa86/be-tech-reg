@@ -1,6 +1,11 @@
 package com.bcbs239.regtech.riskcalculation.application.integration;
 
+import com.bcbs239.regtech.core.domain.events.DomainEventBus;
+import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationCompletedEvent;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationFailedEvent;
 import lombok.RequiredArgsConstructor;
@@ -23,41 +28,75 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 @Slf4j
 public class BatchCompletedIntegrationAdapter {
-    
-    private final RiskCalculationEventPublisher eventPublisher;
+
+    private final DomainEventBus domainEventBus;
 
     /**
      * Handles successful batch calculation completion.
      * Publishes integration events to notify downstream modules.
      * 
-     * @param event The batch calculation completed domain event
+     * @param integrationEvent The batch calculation completed domain event
      */
     @EventListener
-    @Transactional
-    public void handleBatchCalculationCompleted(BatchCalculationCompletedEvent event) {
-        log.info("Handling BatchCalculationCompletedEvent for batch: {}", event.getBatchId().value());
-        
-        try {
-            // Publish integration event for downstream modules
-            Result<Void> publishResult = eventPublisher.publishBatchCalculationCompleted(event);
-            
-            if (publishResult.isFailure()) {
-                log.error("Failed to publish BatchCalculationCompletedEvent for batch: {}", 
-                    event.getBatchId().value());
-                // Note: We don't throw here to avoid rolling back the calculation
-                // The event will be retried by the event retry mechanism
-            } else {
-                log.info("Successfully published BatchCalculationCompletedEvent for batch: {}", 
-                    event.getBatchId().value());
-            }
-            
-        } catch (Exception e) {
-            log.error("Unexpected error handling BatchCalculationCompletedEvent for batch: {}", 
-                event.getBatchId().value(), e);
-            // Note: We don't re-throw to avoid rolling back the successful calculation
+    //@Transactional
+    public void handleBatchCalculationCompleted(BatchCompletedIntegrationEvent integrationEvent) {
+        log.info("Handling BatchCalculationCompletedEvent for batch: {}", integrationEvent.getBatchId());
+
+        Result<Void> validationResult = validateCompletedEvent(integrationEvent);
+        if (validationResult.isFailure()) {
+            log.error("Event validation failed for batch: {}", integrationEvent.getBatchId());
         }
+
+        BatchIngestedEvent batchIngestedEvent = new BatchIngestedEvent(
+                integrationEvent.getBatchId(),
+                integrationEvent.getBankId(),
+                integrationEvent.getS3Uri(),
+                integrationEvent.getTotalExposures(),
+                integrationEvent.getFileSizeBytes(),
+                integrationEvent.getCompletedAt()
+        );
+
+        // Publish as replay so existing data-quality handlers receive it
+        // This will trigger the BatchIngestedEventListener to process the batch
+        domainEventBus.publishAsReplay(batchIngestedEvent);
     }
-    
+
+    /**
+     * Validates BatchCalculationCompletedEvent content.
+     */
+    private Result<Void> validateCompletedEvent(BatchCompletedIntegrationEvent event) {
+        if (event.getBatchId() == null || event.getBatchId().trim().isEmpty()) {
+            return Result.failure(ErrorDetail.of(
+                    "INVALID_EVENT_CONTENT",
+                    ErrorType.BUSINESS_RULE_ERROR,
+                    "Batch ID is required for event publishing",
+                    "event.validation.batch.id.required"
+            ));
+        }
+
+        if (event.getBankId() == null || event.getBankId().trim().isEmpty()) {
+            return Result.failure(ErrorDetail.of(
+                    "INVALID_EVENT_CONTENT",
+                    ErrorType.BUSINESS_RULE_ERROR,
+                    "Bank ID is required for event publishing",
+                    "event.validation.bank.id.required"
+            ));
+        }
+
+        if (event.getS3Uri() == null || event.getS3Uri().trim().isEmpty()) {
+            return Result.failure(ErrorDetail.of(
+                    "INVALID_EVENT_CONTENT",
+                    ErrorType.BUSINESS_RULE_ERROR,
+                    "Result file URI is required for event publishing",
+                    "event.validation.result.uri.required"
+            ));
+        }
+
+        return Result.success(null);
+    }
+
+
+
     /**
      * Handles failed batch calculation.
      * Publishes failure events to notify downstream modules and support teams.
@@ -72,7 +111,7 @@ public class BatchCompletedIntegrationAdapter {
         
         try {
             // Publish integration event for downstream modules
-            Result<Void> publishResult = eventPublisher.publishBatchCalculationFailed(event);
+            Result<Void> publishResult = null; // eventPublisher.publishBatchCalculationFailed(event);
             
             if (publishResult.isFailure()) {
                 log.error("Failed to publish BatchCalculationFailedEvent for batch: {}", 

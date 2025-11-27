@@ -47,7 +47,7 @@ public class BatchIngestedEventListener {
      */
     @EventListener
     @Async("riskCalculationExecutor")
-    @Transactional
+    //@Transactional
     public void handleBatchIngestedEvent(BatchIngestedEvent event) {
         log.info("Received BatchIngestedEvent for batch: {} from bank: {}", 
             event.getBatchId(), event.getBankId());

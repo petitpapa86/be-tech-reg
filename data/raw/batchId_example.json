@@ -1,0 +1,111 @@
+{
+  "bank_info": {
+    "bank_name": "Community First Bank",
+    "abi_code": "08081",
+    "lei_code": "815600D7623147C25D86",
+    "report_date": "2024-09-12",
+    "total_loans": 5
+  },
+  "loan_portfolio": [
+    {
+      "loan_id": "LOAN001",
+      "exposure_id": "EXP_LOAN001_2024",
+      "borrower_name": "Mike's Pizza Inc",
+      "borrower_id": "CORP12345",
+      "counterparty_lei": "549300ABCDEF1234567890",
+      "loan_amount": 250000,
+      "gross_exposure_amount": 250000.00,
+      "net_exposure_amount": 240000.00,
+      "currency": "EUR",
+      "loan_type": "Business Loan",
+      "sector": "CORPORATE",
+      "exposure_type": "ON_BALANCE",
+      "borrower_country": "IT",
+      "country_code": "IT"
+    },
+    {
+      "loan_id": "LOAN002",
+      "exposure_id": "EXP_LOAN002_2024",
+      "borrower_name": "Sarah Johnson",
+      "borrower_id": "PERS67890",
+      "counterparty_lei": "",
+      "loan_amount": 450000,
+      "gross_exposure_amount": 450000.00,
+      "net_exposure_amount": 450000.00,
+      "currency": "EUR",
+      "loan_type": "Mortgage",
+      "sector": "RETAIL",
+      "exposure_type": "ON_BALANCE",
+      "borrower_country": "IT",
+      "country_code": "IT"
+    },
+    {
+      "loan_id": "LOAN003",
+      "exposure_id": "EXP_LOAN003_2024",
+      "borrower_name": "Tech Startup LLC",
+      "borrower_id": "CORP54321",
+      "counterparty_lei": "549300TECHSTART123456",
+      "loan_amount": 50000,
+      "gross_exposure_amount": 50000.00,
+      "net_exposure_amount": 45000.00,
+      "currency": "EUR",
+      "loan_type": "Credit Line",
+      "sector": "CORPORATE",
+      "exposure_type": "OFF_BALANCE",
+      "borrower_country": "DE",
+      "country_code": "DE"
+    },
+    {
+      "loan_id": "LOAN004",
+      "exposure_id": "EXP_LOAN004_2024",
+      "borrower_name": "Green Energy Corp",
+      "borrower_id": "CORP98765",
+      "counterparty_lei": "549300GREENENERGY1234",
+      "loan_amount": 750000,
+      "gross_exposure_amount": 750000.00,
+      "net_exposure_amount": 700000.00,
+      "currency": "EUR",
+      "loan_type": "Equipment Loan",
+      "sector": "CORPORATE",
+      "exposure_type": "ON_BALANCE",
+      "borrower_country": "CA",
+      "country_code": "CA"
+    },
+    {
+      "loan_id": "LOAN005",
+      "exposure_id": "EXP_LOAN005_2024",
+      "borrower_name": "Mary's Bakery",
+      "borrower_id": "SMALL98765",
+      "counterparty_lei": "",
+      "loan_amount": 125000,
+      "gross_exposure_amount": 125000.00,
+      "net_exposure_amount": 125000.00,
+      "currency": "EUR",
+      "loan_type": "Small Business",
+      "sector": "RETAIL",
+      "exposure_type": "ON_BALANCE",
+      "borrower_country": "IT",
+      "country_code": "IT"
+    }
+  ],
+  "credit_risk_mitigation": [
+    {
+      "exposure_id": "EXP_LOAN001_2024",
+      "collateral_type": "FINANCIAL_COLLATERAL",
+      "collateral_value": 10000.00,
+      "collateral_currency": "EUR"
+    },
+    {
+      "exposure_id": "EXP_LOAN003_2024",
+      "collateral_type": "GUARANTEE",
+      "collateral_value": 5000.00,
+      "collateral_currency": "EUR"
+    },
+    {
+      "exposure_id": "EXP_LOAN004_2024",
+      "collateral_type": "FINANCIAL_COLLATERAL",
+      "collateral_value": 50000.00,
+      "collateral_currency": "EUR"
+    }
+  ]
+}

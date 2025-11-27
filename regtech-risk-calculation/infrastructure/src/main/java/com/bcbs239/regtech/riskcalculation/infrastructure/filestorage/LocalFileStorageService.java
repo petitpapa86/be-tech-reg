@@ -24,7 +24,7 @@ import java.util.List;
  * Used in development profile for storing calculation results.
  */
 @Service
-@Profile("development")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "storage.type", havingValue = "local")
 @RequiredArgsConstructor
 @Slf4j
 public class LocalFileStorageService implements IFileStorageService {
