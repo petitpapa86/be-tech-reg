@@ -4,9 +4,12 @@
 -- Description: Create tables for dynamic business rules management
 -- =====================================================================
 
+-- Create dataquality schema if it doesn't exist
+CREATE SCHEMA IF NOT EXISTS dataquality;
+
 -- Table: regulations
 -- Stores regulatory frameworks and their metadata
-CREATE TABLE IF NOT EXISTS regulations (
+CREATE TABLE IF NOT EXISTS dataquality.regulations (
     regulation_id VARCHAR(100) PRIMARY KEY,
     regulation_name VARCHAR(255) NOT NULL,
     regulation_code VARCHAR(50) UNIQUE,
@@ -20,16 +23,16 @@ CREATE TABLE IF NOT EXISTS regulations (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_parent_regulation FOREIGN KEY (parent_regulation_id) 
-        REFERENCES regulations(regulation_id)
+        REFERENCES dataquality.regulations(regulation_id)
 );
 
-CREATE INDEX idx_regulations_code ON regulations(regulation_code);
-CREATE INDEX idx_regulations_status ON regulations(status);
-CREATE INDEX idx_regulations_dates ON regulations(effective_date, expiration_date);
+CREATE INDEX idx_regulations_code ON dataquality.regulations(regulation_code);
+CREATE INDEX idx_regulations_status ON dataquality.regulations(status);
+CREATE INDEX idx_regulations_dates ON dataquality.regulations(effective_date, expiration_date);
 
 -- Table: regulation_templates
 -- Stores reusable rule templates
-CREATE TABLE IF NOT EXISTS regulation_templates (
+CREATE TABLE IF NOT EXISTS dataquality.regulation_templates (
     template_id VARCHAR(100) PRIMARY KEY,
     template_name VARCHAR(255) NOT NULL,
     template_code VARCHAR(50) UNIQUE,
@@ -41,11 +44,11 @@ CREATE TABLE IF NOT EXISTS regulation_templates (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_templates_type ON regulation_templates(template_type);
+CREATE INDEX idx_templates_type ON dataquality.regulation_templates(template_type);
 
 -- Table: business_rules
 -- Stores configurable business rules
-CREATE TABLE IF NOT EXISTS business_rules (
+CREATE TABLE IF NOT EXISTS dataquality.business_rules (
     rule_id VARCHAR(100) PRIMARY KEY,
     regulation_id VARCHAR(100) NOT NULL,
     template_id VARCHAR(100),
@@ -65,21 +68,21 @@ CREATE TABLE IF NOT EXISTS business_rules (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(100),
     CONSTRAINT fk_rule_regulation FOREIGN KEY (regulation_id) 
-        REFERENCES regulations(regulation_id),
+        REFERENCES dataquality.regulations(regulation_id),
     CONSTRAINT fk_rule_template FOREIGN KEY (template_id) 
-        REFERENCES regulation_templates(template_id)
+        REFERENCES dataquality.regulation_templates(template_id)
 );
 
-CREATE INDEX idx_rules_regulation ON business_rules(regulation_id);
-CREATE INDEX idx_rules_type ON business_rules(rule_type);
-CREATE INDEX idx_rules_category ON business_rules(rule_category);
-CREATE INDEX idx_rules_enabled ON business_rules(enabled);
-CREATE INDEX idx_rules_dates ON business_rules(effective_date, expiration_date);
-CREATE INDEX idx_rules_execution_order ON business_rules(execution_order);
+CREATE INDEX idx_rules_regulation ON dataquality.business_rules(regulation_id);
+CREATE INDEX idx_rules_type ON dataquality.business_rules(rule_type);
+CREATE INDEX idx_rules_category ON dataquality.business_rules(rule_category);
+CREATE INDEX idx_rules_enabled ON dataquality.business_rules(enabled);
+CREATE INDEX idx_rules_dates ON dataquality.business_rules(effective_date, expiration_date);
+CREATE INDEX idx_rules_execution_order ON dataquality.business_rules(execution_order);
 
 -- Table: rule_parameters
 -- Stores configurable parameters for rules
-CREATE TABLE IF NOT EXISTS rule_parameters (
+CREATE TABLE IF NOT EXISTS dataquality.rule_parameters (
     parameter_id BIGSERIAL PRIMARY KEY,
     rule_id VARCHAR(100) NOT NULL,
     parameter_name VARCHAR(100) NOT NULL,
@@ -94,16 +97,16 @@ CREATE TABLE IF NOT EXISTS rule_parameters (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_parameter_rule FOREIGN KEY (rule_id) 
-        REFERENCES business_rules(rule_id) ON DELETE CASCADE,
+        REFERENCES dataquality.business_rules(rule_id) ON DELETE CASCADE,
     CONSTRAINT unique_rule_parameter UNIQUE (rule_id, parameter_name)
 );
 
-CREATE INDEX idx_parameters_rule ON rule_parameters(rule_id);
-CREATE INDEX idx_parameters_name ON rule_parameters(parameter_name);
+CREATE INDEX idx_parameters_rule ON dataquality.rule_parameters(rule_id);
+CREATE INDEX idx_parameters_name ON dataquality.rule_parameters(parameter_name);
 
 -- Table: rule_exemptions
 -- Stores exemptions from specific rules
-CREATE TABLE IF NOT EXISTS rule_exemptions (
+CREATE TABLE IF NOT EXISTS dataquality.rule_exemptions (
     exemption_id BIGSERIAL PRIMARY KEY,
     rule_id VARCHAR(100) NOT NULL,
     entity_type VARCHAR(50) NOT NULL,
@@ -117,16 +120,16 @@ CREATE TABLE IF NOT EXISTS rule_exemptions (
     conditions JSONB,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_exemption_rule FOREIGN KEY (rule_id) 
-        REFERENCES business_rules(rule_id) ON DELETE CASCADE
+        REFERENCES dataquality.business_rules(rule_id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_exemptions_rule ON rule_exemptions(rule_id);
-CREATE INDEX idx_exemptions_entity ON rule_exemptions(entity_type, entity_id);
-CREATE INDEX idx_exemptions_dates ON rule_exemptions(effective_date, expiration_date);
+CREATE INDEX idx_exemptions_rule ON dataquality.rule_exemptions(rule_id);
+CREATE INDEX idx_exemptions_entity ON dataquality.rule_exemptions(entity_type, entity_id);
+CREATE INDEX idx_exemptions_dates ON dataquality.rule_exemptions(effective_date, expiration_date);
 
 -- Table: rule_execution_log
 -- Stores audit trail of rule executions
-CREATE TABLE IF NOT EXISTS rule_execution_log (
+CREATE TABLE IF NOT EXISTS dataquality.rule_execution_log (
     execution_id BIGSERIAL PRIMARY KEY,
     rule_id VARCHAR(100) NOT NULL,
     execution_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -139,17 +142,17 @@ CREATE TABLE IF NOT EXISTS rule_execution_log (
     error_message TEXT,
     executed_by VARCHAR(100),
     CONSTRAINT fk_execution_rule FOREIGN KEY (rule_id) 
-        REFERENCES business_rules(rule_id)
+        REFERENCES dataquality.business_rules(rule_id)
 );
 
-CREATE INDEX idx_execution_rule ON rule_execution_log(rule_id);
-CREATE INDEX idx_execution_timestamp ON rule_execution_log(execution_timestamp);
-CREATE INDEX idx_execution_entity ON rule_execution_log(entity_type, entity_id);
-CREATE INDEX idx_execution_result ON rule_execution_log(execution_result);
+CREATE INDEX idx_execution_rule ON dataquality.rule_execution_log(rule_id);
+CREATE INDEX idx_execution_timestamp ON dataquality.rule_execution_log(execution_timestamp);
+CREATE INDEX idx_execution_entity ON dataquality.rule_execution_log(entity_type, entity_id);
+CREATE INDEX idx_execution_result ON dataquality.rule_execution_log(execution_result);
 
 -- Table: rule_violations
 -- Stores detected rule violations
-CREATE TABLE IF NOT EXISTS rule_violations (
+CREATE TABLE IF NOT EXISTS dataquality.rule_violations (
     violation_id BIGSERIAL PRIMARY KEY,
     rule_id VARCHAR(100) NOT NULL,
     execution_id BIGINT NOT NULL,
@@ -165,17 +168,17 @@ CREATE TABLE IF NOT EXISTS rule_violations (
     resolved_by VARCHAR(100),
     resolution_notes TEXT,
     CONSTRAINT fk_violation_rule FOREIGN KEY (rule_id) 
-        REFERENCES business_rules(rule_id),
+        REFERENCES dataquality.business_rules(rule_id),
     CONSTRAINT fk_violation_execution FOREIGN KEY (execution_id) 
-        REFERENCES rule_execution_log(execution_id)
+        REFERENCES dataquality.rule_execution_log(execution_id)
 );
 
-CREATE INDEX idx_violations_rule ON rule_violations(rule_id);
-CREATE INDEX idx_violations_execution ON rule_violations(execution_id);
-CREATE INDEX idx_violations_entity ON rule_violations(entity_type, entity_id);
-CREATE INDEX idx_violations_status ON rule_violations(resolution_status);
-CREATE INDEX idx_violations_severity ON rule_violations(severity);
-CREATE INDEX idx_violations_detected ON rule_violations(detected_at);
+CREATE INDEX idx_violations_rule ON dataquality.rule_violations(rule_id);
+CREATE INDEX idx_violations_execution ON dataquality.rule_violations(execution_id);
+CREATE INDEX idx_violations_entity ON dataquality.rule_violations(entity_type, entity_id);
+CREATE INDEX idx_violations_status ON dataquality.rule_violations(resolution_status);
+CREATE INDEX idx_violations_severity ON dataquality.rule_violations(severity);
+CREATE INDEX idx_violations_detected ON dataquality.rule_violations(detected_at);
 
 -- Comments for documentation
 COMMENT ON TABLE regulations IS 'Stores regulatory frameworks and compliance requirements';
@@ -185,3 +188,4 @@ COMMENT ON TABLE rule_parameters IS 'Dynamic parameters for business rules';
 COMMENT ON TABLE rule_exemptions IS 'Approved exemptions from specific rules';
 COMMENT ON TABLE rule_execution_log IS 'Audit trail of all rule executions';
 COMMENT ON TABLE rule_violations IS 'Detected violations of business rules';
+

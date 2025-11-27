@@ -160,7 +160,7 @@ data-quality:
     # WARNING: Should only be enabled during initial setup
     # After migration completes, set to false to avoid re-running migration
     # Requirement 7.5: Migration configuration
-    enabled: true
+    enabled: false
 
 ---
 # Development profile overrides

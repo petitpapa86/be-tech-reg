@@ -14,7 +14,7 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "rule_parameters")
+@Table(name = "rule_parameters", schema = "dataquality")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

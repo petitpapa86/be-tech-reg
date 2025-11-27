@@ -93,27 +93,27 @@ The Rules Engine consists of several key components:
 
 The Rules Engine uses the following database tables:
 
-**business_rules**
+**dataquality.business_rules**
 - Stores rule definitions with SpEL expressions
 - Fields: rule_code, rule_name, rule_type, rule_expression, enabled, severity
 
-**rule_parameters**
+**dataquality.rule_parameters**
 - Stores configurable parameters for rules
 - Fields: rule_id, parameter_name, parameter_value, parameter_type
 
-**rule_lists**
+**dataquality.rule_lists**
 - Stores list values for rules (e.g., valid currencies)
 - Fields: rule_id, list_name, list_values (array)
 
-**rule_violations**
+**dataquality.rule_violations**
 - Audit trail of all detected violations
 - Fields: batch_id, exposure_id, rule_code, violation_message, detected_at
 
-**rule_execution_log**
+**dataquality.rule_execution_log**
 - Performance metrics for rule executions
 - Fields: rule_code, execution_duration_ms, status, violation_count, executed_at
 
-**rule_exemptions**
+**dataquality.rule_exemptions**
 - Manages approved exemptions for specific rules
 - Fields: rule_code, exemption_reason, valid_from, valid_to, status
 
@@ -201,7 +201,7 @@ Query all active rules:
 
 ```sql
 SELECT rule_code, rule_name, rule_type, enabled
-FROM business_rules
+FROM dataquality.business_rules
 WHERE enabled = true
 ORDER BY rule_type, rule_code;
 ```
@@ -216,8 +216,8 @@ SELECT
     br.severity,
     rp.parameter_name,
     rp.parameter_value
-FROM business_rules br
-LEFT JOIN rule_parameters rp ON br.id = rp.rule_id
+FROM dataquality.business_rules br
+LEFT JOIN dataquality.rule_parameters rp ON br.id = rp.rule_id
 WHERE br.rule_code = 'ACCURACY_POSITIVE_AMOUNT';
 ```
 
@@ -226,7 +226,7 @@ WHERE br.rule_code = 'ACCURACY_POSITIVE_AMOUNT';
 Disable a rule:
 
 ```sql
-UPDATE business_rules
+UPDATE dataquality.business_rules
 SET enabled = false
 WHERE rule_code = 'ACCURACY_REASONABLE_AMOUNT';
 ```
@@ -234,7 +234,7 @@ WHERE rule_code = 'ACCURACY_REASONABLE_AMOUNT';
 Enable a rule:
 
 ```sql
-UPDATE business_rules
+UPDATE dataquality.business_rules
 SET enabled = true
 WHERE rule_code = 'ACCURACY_REASONABLE_AMOUNT';
 ```
@@ -246,18 +246,18 @@ WHERE rule_code = 'ACCURACY_REASONABLE_AMOUNT';
 Update a parameter value:
 
 ```sql
-UPDATE rule_parameters
+UPDATE dataquality.rule_parameters
 SET parameter_value = '1000000'
-WHERE rule_id = (SELECT id FROM business_rules WHERE rule_code = 'ACCURACY_REASONABLE_AMOUNT')
+WHERE rule_id = (SELECT id FROM dataquality.business_rules WHERE rule_code = 'ACCURACY_REASONABLE_AMOUNT')
   AND parameter_name = 'maxReasonableAmount';
 ```
 
 Update a list parameter:
 
 ```sql
-UPDATE rule_lists
+UPDATE dataquality.rule_lists
 SET list_values = ARRAY['EUR', 'USD', 'GBP', 'CHF', 'JPY']
-WHERE rule_id = (SELECT id FROM business_rules WHERE rule_code = 'ACCURACY_VALID_CURRENCY')
+WHERE rule_id = (SELECT id FROM dataquality.business_rules WHERE rule_code = 'ACCURACY_VALID_CURRENCY')
   AND list_name = 'validCurrencies';
 ```
 
@@ -266,7 +266,7 @@ WHERE rule_id = (SELECT id FROM business_rules WHERE rule_code = 'ACCURACY_VALID
 Update a rule's SpEL expression:
 
 ```sql
-UPDATE business_rules
+UPDATE dataquality.business_rules
 SET rule_expression = '#amount > 0 && #amount < 10000000'
 WHERE rule_code = 'ACCURACY_POSITIVE_AMOUNT';
 ```
@@ -279,7 +279,7 @@ Insert a new rule:
 
 ```sql
 -- Insert the rule
-INSERT INTO business_rules (
+INSERT INTO dataquality.business_rules (
     rule_code, 
     rule_name, 
     rule_type, 
@@ -298,12 +298,12 @@ INSERT INTO business_rules (
 );
 
 -- Add list parameter
-INSERT INTO rule_lists (
+INSERT INTO dataquality.rule_lists (
     rule_id,
     list_name,
     list_values
 ) VALUES (
-    (SELECT id FROM business_rules WHERE rule_code = 'ACCURACY_VALID_PRODUCT_TYPE'),
+    (SELECT id FROM dataquality.business_rules WHERE rule_code = 'ACCURACY_VALID_PRODUCT_TYPE'),
     'validProductTypes',
     ARRAY['LOAN', 'BOND', 'EQUITY', 'DERIVATIVE']
 );
@@ -314,7 +314,7 @@ INSERT INTO rule_lists (
 Create an exemption:
 
 ```sql
-INSERT INTO rule_exemptions (
+INSERT INTO dataquality.rule_exemptions (
     rule_id,
     exemption_reason,
     valid_from,
@@ -322,7 +322,7 @@ INSERT INTO rule_exemptions (
     status,
     created_by
 ) VALUES (
-    (SELECT id FROM business_rules WHERE rule_code = 'TIMELINESS_REPORTING_PERIOD'),
+    (SELECT id FROM dataquality.business_rules WHERE rule_code = 'TIMELINESS_REPORTING_PERIOD'),
     'Year-end processing exception',
     '2025-12-20',
     '2026-01-10',
@@ -334,7 +334,7 @@ INSERT INTO rule_exemptions (
 Revoke an exemption:
 
 ```sql
-UPDATE rule_exemptions
+UPDATE dataquality.rule_exemptions
 SET status = 'REVOKED'
 WHERE id = 123;
 ```
@@ -462,7 +462,7 @@ SELECT
     COUNT(*) as execution_count,
     AVG(execution_duration_ms) as avg_duration_ms,
     SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failure_count
-FROM rule_execution_log
+FROM dataquality.rule_execution_log
 WHERE executed_at >= NOW() - INTERVAL '24 hours'
 GROUP BY rule_code
 ORDER BY avg_duration_ms DESC;
@@ -477,7 +477,7 @@ SELECT
     rule_code,
     COUNT(*) as violation_count,
     COUNT(DISTINCT batch_id) as affected_batches
-FROM rule_violations
+FROM dataquality.rule_violations
 WHERE detected_at >= NOW() - INTERVAL '24 hours'
 GROUP BY rule_code
 ORDER BY violation_count DESC;
@@ -495,7 +495,7 @@ SELECT
     AVG(execution_duration_ms) as avg_duration_ms,
     MAX(execution_duration_ms) as max_duration_ms,
     COUNT(*) as execution_count
-FROM rule_execution_log
+FROM dataquality.rule_execution_log
 WHERE executed_at >= NOW() - INTERVAL '7 days'
 GROUP BY rule_code
 HAVING AVG(execution_duration_ms) > 100
@@ -525,8 +525,8 @@ SELECT
     br.rule_name,
     COUNT(rv.id) as violation_count,
     COUNT(DISTINCT rv.batch_id) as affected_batches
-FROM business_rules br
-LEFT JOIN rule_violations rv ON br.rule_code = rv.rule_code
+FROM dataquality.business_rules br
+LEFT JOIN dataquality.rule_violations rv ON br.rule_code = rv.rule_code
 WHERE rv.detected_at >= NOW() - INTERVAL '30 days'
 GROUP BY br.rule_code, br.rule_name
 ORDER BY violation_count DESC
@@ -543,8 +543,8 @@ SELECT
     re.exemption_reason,
     re.valid_to,
     re.status
-FROM rule_exemptions re
-JOIN business_rules br ON re.rule_id = br.id
+FROM dataquality.rule_exemptions re
+JOIN dataquality.business_rules br ON re.rule_id = br.id
 WHERE re.valid_to <= NOW() + INTERVAL '30 days'
   AND re.status = 'ACTIVE'
 ORDER BY re.valid_to;
@@ -566,7 +566,7 @@ systemctl restart regtech-app
 Disable all rules of a specific type:
 
 ```sql
-UPDATE business_rules
+UPDATE dataquality.business_rules
 SET enabled = false
 WHERE rule_type = 'TIMELINESS';
 ```
@@ -574,7 +574,7 @@ WHERE rule_type = 'TIMELINESS';
 Enable all rules:
 
 ```sql
-UPDATE business_rules
+UPDATE dataquality.business_rules
 SET enabled = true;
 ```
 
@@ -584,7 +584,7 @@ SET enabled = true;
 COPY (
     SELECT rule_code, rule_name, rule_type, rule_expression, 
            error_message, enabled, severity
-    FROM business_rules
+    FROM dataquality.business_rules
 ) TO '/tmp/rules_backup.csv' WITH CSV HEADER;
 ```
 
@@ -600,7 +600,7 @@ COPY (
 
 **Diagnosis:**
 ```sql
-SELECT COUNT(*) FROM business_rules WHERE enabled = true;
+SELECT COUNT(*) FROM dataquality.business_rules WHERE enabled = true;
 ```
 
 **Solutions:**
@@ -619,7 +619,7 @@ SELECT COUNT(*) FROM business_rules WHERE enabled = true;
 **Diagnosis:**
 ```sql
 SELECT rule_code, AVG(execution_duration_ms) as avg_ms
-FROM rule_execution_log
+FROM dataquality.rule_execution_log
 WHERE executed_at >= NOW() - INTERVAL '1 hour'
 GROUP BY rule_code
 ORDER BY avg_ms DESC
@@ -665,7 +665,7 @@ data-quality:
 **Diagnosis:**
 ```sql
 SELECT rule_code, rule_expression
-FROM business_rules
+FROM dataquality.business_rules
 WHERE rule_code = 'PROBLEMATIC_RULE';
 ```
 
@@ -685,7 +685,7 @@ WHERE rule_code = 'PROBLEMATIC_RULE';
 
 **Diagnosis:**
 ```sql
-SELECT COUNT(*) FROM rule_violations
+SELECT COUNT(*) FROM dataquality.rule_violations
 WHERE detected_at >= NOW() - INTERVAL '1 hour';
 ```
 
@@ -715,7 +715,7 @@ If the Rules Engine encounters critical issues in production:
 
 ```sql
 -- Disable specific problematic rule
-UPDATE business_rules
+UPDATE dataquality.business_rules
 SET enabled = false
 WHERE rule_code = 'PROBLEMATIC_RULE';
 ```
@@ -754,7 +754,7 @@ If validation performance degrades significantly:
 
 ```sql
 SELECT rule_code, AVG(execution_duration_ms) as avg_ms
-FROM rule_execution_log
+FROM dataquality.rule_execution_log
 WHERE executed_at >= NOW() - INTERVAL '1 hour'
 GROUP BY rule_code
 HAVING AVG(execution_duration_ms) > 200
@@ -765,7 +765,7 @@ ORDER BY avg_ms DESC;
 
 ```sql
 -- Disable slow rules temporarily
-UPDATE business_rules
+UPDATE dataquality.business_rules
 SET enabled = false
 WHERE rule_code IN ('SLOW_RULE_1', 'SLOW_RULE_2');
 ```
@@ -803,20 +803,20 @@ systemctl stop regtech-app
 
 ```sql
 -- Restore rules from backup
-TRUNCATE business_rules CASCADE;
+TRUNCATE dataquality.business_rules CASCADE;
 
-COPY business_rules FROM '/backup/rules_backup.csv' WITH CSV HEADER;
+COPY dataquality.business_rules FROM '/backup/rules_backup.csv' WITH CSV HEADER;
 ```
 
 #### Step 3: Verify Data Integrity
 
 ```sql
 -- Check rule count
-SELECT COUNT(*) FROM business_rules;
+SELECT COUNT(*) FROM dataquality.business_rules;
 
 -- Verify rule expressions are valid
 SELECT rule_code, rule_expression
-FROM business_rules
+FROM dataquality.business_rules
 WHERE rule_expression IS NULL OR rule_expression = '';
 ```
 

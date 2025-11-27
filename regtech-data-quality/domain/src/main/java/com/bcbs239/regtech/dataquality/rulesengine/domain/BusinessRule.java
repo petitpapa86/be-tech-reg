@@ -16,7 +16,7 @@ import java.util.List;
  * Business Rule domain entity (moved from infrastructure model)
  */
 @Entity
-@Table(name = "business_rules")
+@Table(name = "business_rules", schema = "dataquality")
 @Getter
 @Setter
 @NoArgsConstructor

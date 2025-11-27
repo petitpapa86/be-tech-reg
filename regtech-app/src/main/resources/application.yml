@@ -166,7 +166,7 @@ iam:
       # In production, use a secure random key via JWT_SECRET environment variable
       secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890}
       expiration: 86400  # 24 hours in seconds (deprecated, use access-token-expiration-minutes)
-      access-token-expiration-minutes: 15  # 15 minutes (Requirement 5.1)
+      access-token-expiration-minutes: 24  # 15 minutes (Requirement 5.1)
       refresh-token-expiration-days: 7  # 7 days (Requirement 5.2)
     
     # Password policy

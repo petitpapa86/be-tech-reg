@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.Map;
 
 @Entity
-@Table(name = "rule_violations")
+@Table(name = "rule_violations", schema = "dataquality")
 @Getter
 @Setter
 @NoArgsConstructor

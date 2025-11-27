@@ -12,7 +12,7 @@ import java.time.LocalDate;
 import java.util.Map;
 
 @Entity
-@Table(name = "rule_exemptions")
+@Table(name = "rule_exemptions", schema = "dataquality")
 @Getter
 @Setter
 @NoArgsConstructor
