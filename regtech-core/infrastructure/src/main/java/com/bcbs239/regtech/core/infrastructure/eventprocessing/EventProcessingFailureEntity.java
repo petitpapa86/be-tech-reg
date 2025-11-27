@@ -21,6 +21,7 @@ import java.time.Instant;
 public class EventProcessingFailureEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
     @Column(name = "event_type", nullable = false, length = 500)

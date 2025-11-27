@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.riskcalculation.presentation.monitoring;
 
 import com.bcbs239.regtech.riskcalculation.domain.calculation.IBatchSummaryRepository;
-import com.bcbs239.regtech.riskcalculation.infrastructure.filestorage.IFileStorageService;
+import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

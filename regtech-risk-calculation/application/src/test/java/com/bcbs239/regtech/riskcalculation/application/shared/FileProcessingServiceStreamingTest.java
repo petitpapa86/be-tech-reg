@@ -35,10 +35,14 @@ class FileProcessingServiceStreamingTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
+        // Mock file storage service for testing
+        com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService mockFileStorageService = 
+            org.mockito.Mockito.mock(com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService.class);
+        
         fileProcessingService = new FileProcessingService(
             objectMapper,
             currencyConversionService,
-            httpClient
+            mockFileStorageService
         );
     }
     

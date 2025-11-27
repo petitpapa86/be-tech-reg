@@ -3,177 +3,234 @@ package com.bcbs239.regtech.riskcalculation.infrastructure.filestorage;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
+import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
+import com.bcbs239.regtech.riskcalculation.infrastructure.config.RiskCalculationProperties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.ResponseInputStream;
-import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
-import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * S3 implementation of file storage service for risk calculation module.
- * Handles downloading exposure data and uploading calculation results to S3.
- * Active when storage.type=s3 or by default in production.
+ * Used in production profile for storing calculation results in AWS S3.
  */
-@Service
-@ConditionalOnProperty(name = "storage.type", havingValue = "s3", matchIfMissing = true)
+@Service("riskCalculationS3FileStorageService")
+@ConditionalOnProperty(name = "risk-calculation.storage.type", havingValue = "s3", matchIfMissing = true)
+@RequiredArgsConstructor
+@Slf4j
 public class S3FileStorageService implements IFileStorageService {
-
+    
     private final CoreS3Service coreS3Service;
-    private final String bucketName;
-    private final String keyPrefix;
-    private final ObjectMapper objectMapper;
-    private final JsonFactory jsonFactory;
-
-    public S3FileStorageService(CoreS3Service coreS3Service,
-            @Value("${aws.s3.bucket-name:regtech-storage}") String bucketName,
-            @Value("${aws.s3.key-prefix:risk-calculation/}") String keyPrefix) {
-        this.coreS3Service = coreS3Service;
-        this.bucketName = bucketName;
-        this.keyPrefix = keyPrefix;
-        this.objectMapper = new ObjectMapper();
-        this.jsonFactory = new JsonFactory();
-    }
-
+    private final RiskCalculationProperties properties;
+    
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
+    
     @Override
-    public Result<List<ExposureRecord>> downloadExposures(FileStorageUri uri) {
+    public Result<String> downloadFileContent(FileStorageUri uri) {
         try {
-            LoggingConfiguration.logStructured("Starting exposure file download",
-                Map.of("uri", uri.uri(), "eventType", "EXPOSURE_DOWNLOAD_START"));
-
-            String s3Uri = uri.uri();
-            var parsed = com.bcbs239.regtech.core.infrastructure.filestorage.S3Utils.parseS3Uri(s3Uri);
-            if (parsed.isEmpty()) {
-                return Result.failure(ErrorDetail.of("INVALID_S3_URI", ErrorType.BUSINESS_RULE_ERROR,
-                    "Invalid S3 URI format: " + s3Uri, "file.storage.invalid.uri"));
-            }
-            String bucket = parsed.get().bucket();
-            String key = parsed.get().key();
-
-            try (ResponseInputStream<GetObjectResponse> s3Object = coreS3Service.getObjectStream(bucket, key)) {
-                List<ExposureRecord> exposures = parseExposuresFromStream(s3Object);
-                LoggingConfiguration.logStructured("Exposure file downloaded successfully",
-                    Map.of("uri", uri.uri(), "exposureCount", exposures.size(), "eventType", "EXPOSURE_DOWNLOAD_SUCCESS"));
-                return Result.success(exposures);
-            }
-
-        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
-            LoggingConfiguration.logStructured("S3 error downloading exposure file",
-                Map.of("uri", uri.uri(), "eventType", "EXPOSURE_DOWNLOAD_S3_ERROR"), e);
-            return Result.failure(ErrorDetail.of("S3_DOWNLOAD_ERROR", ErrorType.SYSTEM_ERROR,
-                "Failed to download file from S3: " + e.getMessage(), "file.storage.s3.download.error"));
-        } catch (IOException e) {
-            LoggingConfiguration.logStructured("IO error parsing exposure file",
-                Map.of("uri", uri.uri(), "eventType", "EXPOSURE_DOWNLOAD_IO_ERROR"), e);
-            return Result.failure(ErrorDetail.of("FILE_PARSE_ERROR", ErrorType.SYSTEM_ERROR,
-                "Failed to parse exposure file: " + e.getMessage(), "file.storage.parse.error"));
-        } catch (Exception e) {
-            LoggingConfiguration.logStructured("Unexpected error downloading exposure file",
-                Map.of("uri", uri.uri(), "eventType", "EXPOSURE_DOWNLOAD_ERROR"), e);
-            return Result.failure(ErrorDetail.of("DOWNLOAD_ERROR", ErrorType.SYSTEM_ERROR,
-                "Unexpected error downloading file: " + e.getMessage(), "file.storage.download.error"));
-        }
-    }
-
-    @Override
-    public Result<FileStorageUri> uploadCalculationResults(String batchId, String bankId, String calculationResults) {
-        try {
-            LoggingConfiguration.logStructured("Starting calculation results upload",
-                Map.of("batchId", batchId, "bankId", bankId, "eventType", "CALCULATION_UPLOAD_START"));
-
-            String key = generateResultsKey(batchId, bankId);
-
-            Map<String, String> metadata = Map.of(
-                "batch-id", batchId,
-                "bank-id", bankId,
-                "upload-timestamp", Instant.now().toString(),
-                "content-type", "risk-calculation-results"
+            // Parse S3 URI (format: s3://bucket/key or https://bucket.s3.region.amazonaws.com/key)
+            S3Location location = parseS3Uri(uri.uri());
+            
+            log.info("Downloading file from S3 [bucket:{},key:{}]", location.bucket(), location.key());
+            
+            // Download from S3
+            ResponseInputStream<GetObjectResponse> response = coreS3Service.getObjectStream(
+                location.bucket(), 
+                location.key()
             );
-
-            coreS3Service.putString(bucketName, key, calculationResults, "application/json", metadata, null);
-
-            String uri = "s3://" + bucketName + "/" + key;
-            FileStorageUri storageUri = FileStorageUri.of(uri);
-
-            LoggingConfiguration.logStructured("Calculation results uploaded successfully",
-                Map.of("batchId", batchId, "bankId", bankId, "uri", uri, "eventType", "CALCULATION_UPLOAD_SUCCESS"));
-
-            return Result.success(storageUri);
-
-        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
-            LoggingConfiguration.logStructured("S3 error uploading calculation results",
-                Map.of("batchId", batchId, "bankId", bankId, "eventType", "CALCULATION_UPLOAD_S3_ERROR"), e);
-            return Result.failure(ErrorDetail.of("S3_UPLOAD_ERROR", ErrorType.SYSTEM_ERROR,
-                "Failed to upload results to S3: " + e.getMessage(), "file.storage.s3.upload.error"));
+            
+            // Read content
+            String content = new String(response.readAllBytes(), StandardCharsets.UTF_8);
+            
+            log.info("Successfully downloaded file from S3 [bucket:{},key:{},size:{}bytes]", 
+                location.bucket(), location.key(), content.length());
+            
+            return Result.success(content);
+            
+        } catch (NoSuchKeyException e) {
+            log.error("File not found in S3 [uri:{},error:{}]", uri.uri(), e.getMessage());
+            return Result.failure(ErrorDetail.of(
+                "S3_FILE_NOT_FOUND",
+                ErrorType.SYSTEM_ERROR,
+                "File not found in S3: " + uri.uri(),
+                "file.storage.s3.not.found"
+            ));
+            
+        } catch (S3Exception e) {
+            log.error("S3 error downloading file [uri:{},error:{}]", uri.uri(), e.getMessage(), e);
+            return Result.failure(ErrorDetail.of(
+                "S3_DOWNLOAD_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "S3 error downloading file: " + e.getMessage(),
+                "file.storage.s3.download.error"
+            ));
+            
+        } catch (IOException e) {
+            log.error("IO error reading S3 response [uri:{},error:{}]", uri.uri(), e.getMessage(), e);
+            return Result.failure(ErrorDetail.of(
+                "S3_READ_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to read S3 response: " + e.getMessage(),
+                "file.storage.s3.read.error"
+            ));
+            
         } catch (Exception e) {
-            LoggingConfiguration.logStructured("Unexpected error uploading calculation results",
-                Map.of("batchId", batchId, "bankId", bankId, "eventType", "CALCULATION_UPLOAD_ERROR"), e);
-            return Result.failure(ErrorDetail.of("UPLOAD_ERROR", ErrorType.SYSTEM_ERROR,
-                "Unexpected error uploading results: " + e.getMessage(), "file.storage.upload.error"));
+            log.error("Unexpected error downloading from S3 [uri:{},error:{}]", uri.uri(), e.getMessage(), e);
+            return Result.failure(ErrorDetail.of(
+                "S3_UNEXPECTED_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "Unexpected error downloading from S3: " + e.getMessage(),
+                "file.storage.s3.unexpected.error"
+            ));
         }
     }
-
+    
+    @Override
+    public Result<FileStorageUri> storeCalculationResults(BatchId batchId, String content) {
+        try {
+            String bucket = properties.getStorage().getS3().getBucket();
+            String prefix = properties.getStorage().getS3().getPrefix();
+            
+            // Generate S3 key with timestamp
+            String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
+            String key = String.format("%s%s/results_%s.json", prefix, batchId.value(), timestamp);
+            
+            log.info("Storing calculation results to S3 [bucket:{},key:{},size:{}bytes]", 
+                bucket, key, content.length());
+            
+            // Add metadata
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("batch-id", batchId.value());
+            metadata.put("timestamp", timestamp);
+            metadata.put("content-type", "application/json");
+            
+            // Upload to S3
+            coreS3Service.putString(
+                bucket, 
+                key, 
+                content, 
+                "application/json", 
+                metadata,
+                properties.getStorage().getS3().getEncryption()
+            );
+            
+            // Generate URI
+            String uri = String.format("s3://%s/%s", bucket, key);
+            
+            log.info("Successfully stored calculation results to S3 [bucket:{},key:{},uri:{}]", 
+                bucket, key, uri);
+            
+            return Result.success(new FileStorageUri(uri));
+            
+        } catch (S3Exception e) {
+            log.error("S3 error storing results [batchId:{},error:{}]", batchId.value(), e.getMessage(), e);
+            return Result.failure(ErrorDetail.of(
+                "S3_UPLOAD_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "S3 error storing results: " + e.getMessage(),
+                "file.storage.s3.upload.error"
+            ));
+            
+        } catch (Exception e) {
+            log.error("Unexpected error storing results to S3 [batchId:{},error:{}]", 
+                batchId.value(), e.getMessage(), e);
+            return Result.failure(ErrorDetail.of(
+                "S3_STORAGE_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "Unexpected error storing results to S3: " + e.getMessage(),
+                "file.storage.s3.storage.error"
+            ));
+        }
+    }
+    
     @Override
     public Result<Boolean> checkServiceHealth() {
         try {
-            // Use head/list via coreS3Service
-            coreS3Service.headObject(bucketName, "");
-            LoggingConfiguration.logStructured("S3 service health check passed",
-                Map.of("bucket", bucketName, "eventType", "S3_HEALTH_CHECK_SUCCESS"));
+            String bucket = properties.getStorage().getS3().getBucket();
+            
+            // Try to head the bucket to verify access
+            coreS3Service.headObject(bucket, ".health-check");
+            
+            log.debug("S3 file storage health check passed [bucket:{}]", bucket);
             return Result.success(true);
-        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
-            LoggingConfiguration.logStructured("S3 service health check failed",
-                Map.of("bucket", bucketName, "eventType", "S3_HEALTH_CHECK_FAILED"), e);
-            return Result.failure(ErrorDetail.of("S3_HEALTH_CHECK_FAILED", ErrorType.SYSTEM_ERROR,
-                "S3 service is not available: " + e.getMessage(), "file.storage.s3.health.check.failed"));
+            
+        } catch (NoSuchKeyException e) {
+            // Key not found is OK - we just want to verify bucket access
+            log.debug("S3 file storage health check passed (key not found is expected) [bucket:{}]", 
+                properties.getStorage().getS3().getBucket());
+            return Result.success(true);
+            
+        } catch (S3Exception e) {
+            log.warn("S3 file storage health check failed [error:{}]", e.getMessage());
+            return Result.failure(ErrorDetail.of(
+                "S3_HEALTH_CHECK_FAILED",
+                ErrorType.SYSTEM_ERROR,
+                "S3 storage health check failed: " + e.getMessage(),
+                "file.storage.s3.health.error"
+            ));
+            
         } catch (Exception e) {
-            LoggingConfiguration.logStructured("Unexpected error during S3 health check",
-                Map.of("bucket", bucketName, "eventType", "S3_HEALTH_CHECK_ERROR"), e);
-            return Result.failure(ErrorDetail.of("S3_HEALTH_CHECK_ERROR", ErrorType.SYSTEM_ERROR,
-                "Unexpected error during S3 health check: " + e.getMessage(), "file.storage.s3.health.check.error"));
+            log.warn("Unexpected error during S3 health check [error:{}]", e.getMessage());
+            return Result.failure(ErrorDetail.of(
+                "S3_HEALTH_CHECK_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "Unexpected error during S3 health check: " + e.getMessage(),
+                "file.storage.s3.health.unexpected.error"
+            ));
         }
     }
-
-    private List<ExposureRecord> parseExposuresFromStream(ResponseInputStream<GetObjectResponse> inputStream) throws IOException {
-        List<ExposureRecord> exposures = new ArrayList<>();
-        try (JsonParser parser = jsonFactory.createParser(inputStream)) {
-            if (parser.nextToken() != JsonToken.START_ARRAY) {
-                throw new IOException("Expected JSON array of exposures");
+    
+    /**
+     * Parses S3 URI into bucket and key components.
+     * Supports both s3:// and https:// formats.
+     */
+    private S3Location parseS3Uri(String uri) {
+        if (uri.startsWith("s3://")) {
+            // Format: s3://bucket/key
+            String withoutProtocol = uri.substring(5);
+            int slashIndex = withoutProtocol.indexOf('/');
+            if (slashIndex == -1) {
+                throw new IllegalArgumentException("Invalid S3 URI format: " + uri);
             }
-            while (parser.nextToken() == JsonToken.START_OBJECT) {
-                JsonNode exposureNode = objectMapper.readTree(parser);
-                ExposureRecord exposure = new ExposureRecord(
-                    exposureNode.path("exposureId").asText(),
-                    exposureNode.path("clientName").asText(),
-                    exposureNode.path("originalAmount").asText(),
-                    exposureNode.path("originalCurrency").asText(),
-                    exposureNode.path("country").asText(),
-                    exposureNode.path("sector").asText()
-                );
-                exposures.add(exposure);
+            String bucket = withoutProtocol.substring(0, slashIndex);
+            String key = withoutProtocol.substring(slashIndex + 1);
+            return new S3Location(bucket, key);
+            
+        } else if (uri.startsWith("https://")) {
+            // Format: https://bucket.s3.region.amazonaws.com/key
+            String withoutProtocol = uri.substring(8);
+            int firstDot = withoutProtocol.indexOf('.');
+            int firstSlash = withoutProtocol.indexOf('/');
+            
+            if (firstDot == -1 || firstSlash == -1) {
+                throw new IllegalArgumentException("Invalid S3 HTTPS URI format: " + uri);
             }
+            
+            String bucket = withoutProtocol.substring(0, firstDot);
+            String key = withoutProtocol.substring(firstSlash + 1);
+            return new S3Location(bucket, key);
+            
+        } else {
+            throw new IllegalArgumentException("Unsupported URI format (must be s3:// or https://): " + uri);
         }
-        return exposures;
     }
-
-    private String generateResultsKey(String batchId, String bankId) {
-        String uuid = UUID.randomUUID().toString().substring(0, 8);
-        return String.format("%sresults/%s/%s/%s-results.json", keyPrefix, bankId, batchId, uuid);
-    }
+    
+    /**
+     * Record for S3 location (bucket and key).
+     */
+    private record S3Location(String bucket, String key) {}
 }

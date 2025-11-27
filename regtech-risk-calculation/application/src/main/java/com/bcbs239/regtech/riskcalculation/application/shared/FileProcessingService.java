@@ -39,7 +39,7 @@ public class FileProcessingService {
     
     private final ObjectMapper objectMapper;
     private final CurrencyConversionService currencyConversionService;
-    private final HttpClient httpClient;
+    private final com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService fileStorageService;
     private final RetryPolicy retryPolicy = RetryPolicy.defaultPolicy();
     
     /**
@@ -59,8 +59,8 @@ public class FileProcessingService {
             sourceUri.uri(), startMemory / (1024 * 1024));
         
         try {
-            // Download file content
-            Result<String> downloadResult = downloadFileContent(sourceUri);
+            // Download file content using file storage service
+            Result<String> downloadResult = fileStorageService.downloadFileContent(sourceUri);
             if (downloadResult.isFailure()) {
                 return Result.failure(downloadResult.getError().get());
             }
@@ -237,14 +237,15 @@ public class FileProcessingService {
             // Serialize to JSON
             String jsonContent = objectMapper.writeValueAsString(resultDocument);
             
-            // Generate storage URI (simplified - would use actual S3/filesystem service)
-            String storageUri = generateStorageUri(batchId);
+            // Store using file storage service (S3 or local based on configuration)
+            Result<FileStorageUri> storageResult = fileStorageService.storeCalculationResults(batchId, jsonContent);
             
-            // TODO: Implement actual storage logic based on profile
-            // For now, return the generated URI
-            log.info("Calculation results stored at: {}", storageUri);
+            if (storageResult.isSuccess()) {
+                log.info("Calculation results stored successfully [batchId:{},uri:{}]", 
+                    batchId.value(), storageResult.getValue().get().uri());
+            }
             
-            return Result.success(new FileStorageUri(storageUri));
+            return storageResult;
             
         } catch (Exception e) {
             log.error("Failed to store calculation results for batch: {}", batchId.value(), e);
@@ -257,105 +258,7 @@ public class FileProcessingService {
         }
     }
     
-    /**
-     * Downloads file content from the given URI with retry logic.
-     * Implements exponential backoff strategy using configured retry policy.
-     * 
-     * @param sourceUri The URI to download from
-     * @return Result containing file content or error details
-     */
-    private Result<String> downloadFileContent(FileStorageUri sourceUri) {
-        int attemptNumber = 0;
-        Exception lastException = null;
-        
-        while (attemptNumber < retryPolicy.getMaxAttempts()) {
-            attemptNumber++;
-            long startTime = System.currentTimeMillis();
-            
-            try {
-                // Structured logging for retry attempt
-                log.info("File download attempt {}/{} for URI: {} [retryPolicy=maxAttempts:{},backoff:{}ms]", 
-                    attemptNumber, retryPolicy.getMaxAttempts(), sourceUri.uri(),
-                    retryPolicy.getMaxAttempts(), retryPolicy.getInitialBackoffMillis());
-                
-                HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(sourceUri.uri()))
-                    .timeout(Duration.ofMinutes(5))
-                    .GET()
-                    .build();
-                
-                HttpResponse<String> response = httpClient.send(request, 
-                    HttpResponse.BodyHandlers.ofString());
-                
-                long duration = System.currentTimeMillis() - startTime;
-                
-                if (response.statusCode() == 200) {
-                    // Structured logging for successful download
-                    log.info("File download successful on attempt {}/{} for URI: {} [duration:{}ms,size:{}bytes]", 
-                        attemptNumber, retryPolicy.getMaxAttempts(), sourceUri.uri(), 
-                        duration, response.body().length());
-                    return Result.success(response.body());
-                } else {
-                    String errorMsg = String.format(
-                        "HTTP %d received for URI: %s on attempt %d/%d",
-                        response.statusCode(), sourceUri.uri(), attemptNumber, retryPolicy.getMaxAttempts());
-                    
-                    // Structured logging for HTTP error
-                    log.warn("File download HTTP error [uri:{},attempt:{}/{},httpStatus:{},duration:{}ms]",
-                        sourceUri.uri(), attemptNumber, retryPolicy.getMaxAttempts(), 
-                        response.statusCode(), duration);
-                    
-                    lastException = new RuntimeException(errorMsg);
-                }
-                
-            } catch (Exception e) {
-                long duration = System.currentTimeMillis() - startTime;
-                
-                // Structured logging for exception
-                log.warn("File download attempt failed [uri:{},attempt:{}/{},duration:{}ms,error:{}]", 
-                    sourceUri.uri(), attemptNumber, retryPolicy.getMaxAttempts(), 
-                    duration, e.getMessage(), e);
-                
-                lastException = e;
-            }
-            
-            // Apply exponential backoff if more retries remain
-            if (retryPolicy.shouldRetry(attemptNumber)) {
-                long backoffMillis = retryPolicy.calculateBackoff(attemptNumber);
-                
-                // Structured logging for retry backoff
-                log.info("Applying retry backoff [uri:{},attempt:{}/{},backoff:{}ms,nextAttempt:{}]", 
-                    sourceUri.uri(), attemptNumber, retryPolicy.getMaxAttempts(), 
-                    backoffMillis, attemptNumber + 1);
-                
-                try {
-                    Thread.sleep(backoffMillis);
-                } catch (InterruptedException ie) {
-                    log.warn("Retry backoff interrupted [uri:{},attempt:{}/{}]", 
-                        sourceUri.uri(), attemptNumber, retryPolicy.getMaxAttempts());
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        }
-        
-        // All retries exhausted - structured error logging
-        String errorMessage = String.format(
-            "Failed to download file from %s after %d attempts. Last error: %s",
-            sourceUri.uri(), retryPolicy.getMaxAttempts(), 
-            lastException != null ? lastException.getMessage() : "Unknown error");
-        
-        log.error("File download failed after all retry attempts [uri:{},totalAttempts:{},lastError:{}]",
-            sourceUri.uri(), retryPolicy.getMaxAttempts(), 
-            lastException != null ? lastException.getMessage() : "Unknown");
-        
-        return Result.failure(ErrorDetail.of(
-            "FILE_DOWNLOAD_ERROR",
-            ErrorType.SYSTEM_ERROR,
-            errorMessage,
-            "file.processing.download.error"
-        ));
-    }
+
     
     /**
      * Parses a single exposure from JSON node.
@@ -403,13 +306,7 @@ public class FileProcessingService {
         );
     }
     
-    /**
-     * Generates storage URI for calculation results.
-     */
-    private String generateStorageUri(BatchId batchId) {
-        // Simplified URI generation - would use actual storage service
-        return String.format("s3://risk-calculation-results/%s/calculation-results.json", batchId.value());
-    }
+
     
     /**
      * Record for calculation result document structure.
