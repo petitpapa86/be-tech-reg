@@ -2,7 +2,7 @@ package com.bcbs239.regtech.app.config;
 
 import com.bcbs239.regtech.billing.infrastructure.config.BillingProperties;
 import com.bcbs239.regtech.iam.infrastructure.config.IAMProperties;
-import com.bcbs239.regtech.modules.dataquality.infrastructure.config.DataQualityProperties;
+import com.bcbs239.regtech.dataquality.infrastructure.config.DataQualityProperties;
 import com.bcbs239.regtech.modules.ingestion.infrastructure.config.IngestionProperties;
 import com.bcbs239.regtech.reportgeneration.infrastructure.config.ReportGenerationProperties;
 import com.bcbs239.regtech.riskcalculation.infrastructure.config.RiskCalculationProperties;

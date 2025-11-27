@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.dataquality.infrastructure.config;
 
-import com.bcbs239.regtech.modules.dataquality.infrastructure.config.DataQualityProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;

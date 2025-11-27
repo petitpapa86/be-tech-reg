@@ -1,4 +1,7 @@
-package com.bcbs239.regtech.dataquality.rulesengine.engine;
+package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine;
+
+import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
+import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 
 import java.util.List;
 
