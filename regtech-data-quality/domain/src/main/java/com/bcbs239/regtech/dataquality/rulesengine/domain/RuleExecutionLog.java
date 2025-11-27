@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.Map;
 
@@ -47,7 +49,7 @@ public class RuleExecutionLog {
     private Long executionTimeMs;
     
     @Column(name = "context_data", columnDefinition = "JSONB")
-    @Convert(converter = JsonbConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> contextData;
     
     @Column(name = "error_message", columnDefinition = "TEXT")

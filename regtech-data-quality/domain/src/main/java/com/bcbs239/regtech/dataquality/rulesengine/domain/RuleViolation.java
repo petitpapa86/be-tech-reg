@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.Map;
 
@@ -49,7 +51,7 @@ public class RuleViolation {
     private Instant detectedAt = Instant.now();
     
     @Column(name = "violation_details", columnDefinition = "JSONB")
-    @Convert(converter = JsonbConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> violationDetails;
     
     @Enumerated(EnumType.STRING)

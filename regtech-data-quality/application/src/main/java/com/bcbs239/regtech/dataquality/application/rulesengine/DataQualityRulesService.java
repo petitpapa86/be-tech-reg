@@ -409,22 +409,22 @@ public class DataQualityRulesService {
     private RuleContext createContextFromExposure(ExposureRecord exposure) {
         Map<String, Object> data = new HashMap<>();
         
-        // Map exposure fields to context
-        data.put("exposure_id", exposure.exposureId());
-        data.put("amount", exposure.amount());
-        data.put("currency", exposure.currency());
-        data.put("country", exposure.country());
-        data.put("sector", exposure.sector());
-        data.put("counterparty_id", exposure.counterpartyId());
-        data.put("counterparty_type", exposure.counterpartyType());
-        data.put("lei_code", exposure.leiCode());
-        data.put("product_type", exposure.productType());
-        data.put("internal_rating", exposure.internalRating());
-        data.put("risk_category", exposure.riskCategory());
-        data.put("reporting_date", exposure.reportingDate());
-        data.put("valuation_date", exposure.valuationDate());
-        data.put("maturity_date", exposure.maturityDate());
-        data.put("reference_number", exposure.referenceNumber());
+        // Map exposure fields to context (only non-null values)
+        putIfNotNull(data, "exposure_id", exposure.exposureId());
+        putIfNotNull(data, "amount", exposure.amount());
+        putIfNotNull(data, "currency", exposure.currency());
+        putIfNotNull(data, "country", exposure.country());
+        putIfNotNull(data, "sector", exposure.sector());
+        putIfNotNull(data, "counterparty_id", exposure.counterpartyId());
+        putIfNotNull(data, "counterparty_type", exposure.counterpartyType());
+        putIfNotNull(data, "lei_code", exposure.leiCode());
+        putIfNotNull(data, "product_type", exposure.productType());
+        putIfNotNull(data, "internal_rating", exposure.internalRating());
+        putIfNotNull(data, "risk_category", exposure.riskCategory());
+        putIfNotNull(data, "reporting_date", exposure.reportingDate());
+        putIfNotNull(data, "valuation_date", exposure.valuationDate());
+        putIfNotNull(data, "maturity_date", exposure.maturityDate());
+        putIfNotNull(data, "reference_number", exposure.referenceNumber());
         
         // Add helper flags
         data.put("is_corporate_exposure", exposure.isCorporateExposure());
@@ -432,9 +432,19 @@ public class DataQualityRulesService {
         
         // Add entity metadata for exemption checking
         data.put("entity_type", "EXPOSURE");
-        data.put("entity_id", exposure.exposureId());
+        putIfNotNull(data, "entity_id", exposure.exposureId());
         
         return new DefaultRuleContext(data);
+    }
+    
+    /**
+     * Helper method to put a value in a map only if it's not null.
+     * Prevents NullPointerException when using ConcurrentHashMap.
+     */
+    private void putIfNotNull(Map<String, Object> map, String key, Object value) {
+        if (value != null) {
+            map.put(key, value);
+        }
     }
     
     /**

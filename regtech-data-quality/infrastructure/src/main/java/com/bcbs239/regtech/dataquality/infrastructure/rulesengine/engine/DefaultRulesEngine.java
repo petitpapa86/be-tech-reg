@@ -131,17 +131,17 @@ public class DefaultRulesEngine implements RulesEngine {
                 logExecution(rule, context, ExecutionResult.SUCCESS, 0, executionTime, null);
                 return RuleExecutionResult.success(ruleId);
             } else {
-                // Rule failed - create violation
+                // Rule failed - log execution first to get execution ID
+                RuleExecutionLog execLog = logExecution(rule, context, ExecutionResult.FAILURE, 
+                    1, executionTime, null);
+                
+                // Create violation with execution ID
                 RuleViolation violation = createViolation(rule, context);
+                violation.setExecutionId(execLog.getExecutionId());
                 List<RuleViolation> violations = List.of(violation);
                 
                 // Save violation (cast to avoid ambiguity)
                 ((com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository) violationRepository).save(violation);
-                
-                // Log execution
-                RuleExecutionLog execLog = logExecution(rule, context, ExecutionResult.FAILURE, 
-                    1, executionTime, null);
-                violation.setExecutionId(execLog.getExecutionId());
                 
                 return RuleExecutionResult.failure(ruleId, violations);
             }
@@ -235,7 +235,52 @@ public class DefaultRulesEngine implements RulesEngine {
      */
     private void enrichContextWithParameters(BusinessRule rule, RuleContext context) {
         for (RuleParameter param : rule.getParameters()) {
-            context.put(param.getParameterName(), param.getParameterValue());
+            Object value = convertParameterValue(param);
+            context.put(param.getParameterName(), value);
+        }
+    }
+    
+    /**
+     * Converts a parameter value to its appropriate type based on dataType.
+     */
+    private Object convertParameterValue(RuleParameter param) {
+        String value = param.getParameterValue();
+        if (value == null) {
+            return null;
+        }
+        
+        String dataType = param.getDataType();
+        if (dataType == null) {
+            return value; // Return as string if no type specified
+        }
+        
+        try {
+            switch (dataType.toUpperCase()) {
+                case "DECIMAL":
+                case "NUMERIC":
+                    return new java.math.BigDecimal(value);
+                case "INTEGER":
+                case "INT":
+                    return Integer.valueOf(value);
+                case "LONG":
+                    return Long.valueOf(value);
+                case "DOUBLE":
+                    return Double.valueOf(value);
+                case "BOOLEAN":
+                    return Boolean.valueOf(value);
+                case "STRING":
+                default:
+                    // For LIST type, return as comma-separated string
+                    // SpEL can handle splitting if needed
+                    if (param.getParameterType() == ParameterType.LIST) {
+                        return param.getListValue();
+                    }
+                    return value;
+            }
+        } catch (NumberFormatException e) {
+            log.warn("Failed to convert parameter {} value '{}' to type {}, using string value", 
+                param.getParameterName(), value, dataType);
+            return value;
         }
     }
     
