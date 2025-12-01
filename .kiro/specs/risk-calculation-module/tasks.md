@@ -279,8 +279,15 @@
   - **Property 28: Portfolio Analysis Completeness**
   - **Validates: Requirements 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 8.1, 8.2, 8.3, 8.4, 8.5**
 
-- [ ] 10. Implement infrastructure layer - External Services
-- [ ] 10.1 Create exchange rate provider
+- [x] 10. Implement infrastructure layer - External Services
+
+
+
+
+
+
+- [x] 10.1 Create exchange rate provider
+
   - Create infrastructure/external/CurrencyApiExchangeRateProvider
   - Implement ExchangeRateProvider interface
   - Add WebClient configuration for currency API
@@ -288,7 +295,9 @@
   - Add error handling for unavailable rates
   - _Requirements: 2.1, 2.5_
 
-- [ ] 10.2 Create configuration
+
+- [x] 10.2 Create configuration
+
   - Create infrastructure/config/RiskCalculationConfiguration
   - Configure WebClient bean for currency API
   - Set up async executor for event processing

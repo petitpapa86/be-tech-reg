@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.infrastructure.external;
 
-import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateUnavailableException;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,10 +11,13 @@ import java.net.http.HttpClient;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Integration test for CurrencyApiExchangeRateProvider.
  * Requires CURRENCY_API_KEY environment variable to be set.
+ * 
+ * Requirements: 2.1, 2.5
  */
 class CurrencyApiExchangeRateProviderTest {
     
@@ -41,20 +44,15 @@ class CurrencyApiExchangeRateProviderTest {
         // Given
         String fromCurrency = "USD";
         String toCurrency = "EUR";
-        LocalDate today = LocalDate.now();
         
         // When
-        Result<ExchangeRate> result = provider.getRate(fromCurrency, toCurrency, today);
+        ExchangeRate rate = provider.getRate(fromCurrency, toCurrency);
         
         // Then
-        assertThat(result.isSuccess()).isTrue();
-        assertThat(result.getValue()).isPresent();
-        
-        ExchangeRate rate = result.getValue().get();
         assertThat(rate.rate()).isPositive();
         assertThat(rate.fromCurrency()).isEqualTo(fromCurrency);
         assertThat(rate.toCurrency()).isEqualTo(toCurrency);
-        assertThat(rate.date()).isEqualTo(today);
+        assertThat(rate.date()).isEqualTo(LocalDate.now());
         
         System.out.println("Exchange rate: 1 " + fromCurrency + " = " + rate.rate() + " " + toCurrency);
     }
@@ -68,13 +66,9 @@ class CurrencyApiExchangeRateProviderTest {
         LocalDate historicalDate = LocalDate.now().minusDays(7);
         
         // When
-        Result<ExchangeRate> result = provider.getRate(fromCurrency, toCurrency, historicalDate);
+        ExchangeRate rate = provider.getRate(fromCurrency, toCurrency, historicalDate);
         
         // Then
-        assertThat(result.isSuccess()).isTrue();
-        assertThat(result.getValue()).isPresent();
-        
-        ExchangeRate rate = result.getValue().get();
         assertThat(rate.rate()).isPositive();
         assertThat(rate.fromCurrency()).isEqualTo(fromCurrency);
         assertThat(rate.toCurrency()).isEqualTo(toCurrency);
@@ -85,17 +79,36 @@ class CurrencyApiExchangeRateProviderTest {
     }
     
     @Test
-    void shouldHandleInvalidCurrency() {
+    void shouldThrowExceptionForInvalidCurrency() {
         // Given
         String fromCurrency = "INVALID";
         String toCurrency = "EUR";
-        LocalDate today = LocalDate.now();
         
-        // When
-        Result<ExchangeRate> result = provider.getRate(fromCurrency, toCurrency, today);
+        // When/Then - API should throw exception for invalid currency
+        assertThatThrownBy(() -> provider.getRate(fromCurrency, toCurrency))
+            .isInstanceOf(ExchangeRateUnavailableException.class)
+            .hasMessageContaining("INVALID")
+            .hasMessageContaining("EUR");
+    }
+    
+    @Test
+    @EnabledIfEnvironmentVariable(named = "CURRENCY_API_KEY", matches = ".*")
+    void shouldHandleMultipleCurrencies() {
+        // Given
+        String[][] currencyPairs = {
+            {"USD", "EUR"},
+            {"GBP", "EUR"},
+            {"JPY", "EUR"},
+            {"CHF", "EUR"}
+        };
         
-        // Then - API should return an error for invalid currency
-        // Note: This test behavior depends on the API's error handling
-        assertThat(result).isNotNull();
+        // When/Then
+        for (String[] pair : currencyPairs) {
+            ExchangeRate rate = provider.getRate(pair[0], pair[1]);
+            assertThat(rate.rate()).isPositive();
+            assertThat(rate.fromCurrency()).isEqualTo(pair[0]);
+            assertThat(rate.toCurrency()).isEqualTo(pair[1]);
+            System.out.println("Exchange rate: 1 " + pair[0] + " = " + rate.rate() + " " + pair[1]);
+        }
     }
 }

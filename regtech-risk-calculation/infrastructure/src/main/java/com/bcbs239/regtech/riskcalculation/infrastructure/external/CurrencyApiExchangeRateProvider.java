@@ -1,9 +1,7 @@
 package com.bcbs239.regtech.riskcalculation.infrastructure.external;
 
-import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.shared.ErrorType;
-import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.domain.services.ExchangeRateProvider;
+import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
+import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateUnavailableException;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -33,6 +31,8 @@ import java.util.Map;
  * - Historical rates
  * - Multiple currency support
  * - Automatic retry on failure
+ * 
+ * Requirements: 2.1, 2.5
  */
 @Component
 @RequiredArgsConstructor
@@ -47,14 +47,29 @@ public class CurrencyApiExchangeRateProvider implements ExchangeRateProvider {
     private final ObjectMapper objectMapper;
     
     /**
+     * Gets the exchange rate between two currencies.
+     * Uses current date for the exchange rate.
+     * 
+     * @param fromCurrency The source currency code (e.g., "USD")
+     * @param toCurrency The target currency code (e.g., "EUR")
+     * @return The exchange rate for conversion
+     * @throws ExchangeRateUnavailableException if the rate cannot be retrieved
+     */
+    @Override
+    public ExchangeRate getRate(String fromCurrency, String toCurrency) {
+        return getRate(fromCurrency, toCurrency, LocalDate.now());
+    }
+    
+    /**
      * Gets the exchange rate between two currencies for a specific date.
      * 
      * @param fromCurrency The source currency code (e.g., "USD")
      * @param toCurrency The target currency code (e.g., "EUR")
      * @param date The date for the exchange rate
-     * @return Result containing the exchange rate or error details
+     * @return The exchange rate for conversion
+     * @throws ExchangeRateUnavailableException if the rate cannot be retrieved
      */
-    public Result<ExchangeRate> getRate(String fromCurrency, String toCurrency, LocalDate date) {
+    public ExchangeRate getRate(String fromCurrency, String toCurrency, LocalDate date) {
         log.debug("Fetching exchange rate from CurrencyAPI: {} to {} on {}", fromCurrency, toCurrency, date);
         
         try {
@@ -76,22 +91,14 @@ public class CurrencyApiExchangeRateProvider implements ExchangeRateProvider {
                 return parseResponse(response.body(), fromCurrency, toCurrency, date);
             } else {
                 log.error("CurrencyAPI returned error status: {} - {}", response.statusCode(), response.body());
-                return Result.failure(ErrorDetail.of(
-                    "CURRENCY_API_ERROR",
-                    ErrorType.SYSTEM_ERROR,
-                    "CurrencyAPI returned error status: " + response.statusCode(),
-                    "currency.api.error"
-                ));
+                throw new ExchangeRateUnavailableException(fromCurrency, toCurrency);
             }
             
+        } catch (ExchangeRateUnavailableException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to fetch exchange rate from CurrencyAPI", e);
-            return Result.failure(ErrorDetail.of(
-                "CURRENCY_API_CONNECTION_ERROR",
-                ErrorType.SYSTEM_ERROR,
-                "Failed to connect to CurrencyAPI: " + e.getMessage(),
-                "currency.api.connection.error"
-            ));
+            throw new ExchangeRateUnavailableException(fromCurrency, toCurrency, e);
         }
     }
     
@@ -133,38 +140,29 @@ public class CurrencyApiExchangeRateProvider implements ExchangeRateProvider {
                 }
             }
         }
-        
+
+        assert lastException != null;
         throw lastException;
     }
     
     /**
      * Parses the CurrencyAPI response and extracts the exchange rate.
      */
-    private Result<ExchangeRate> parseResponse(String responseBody, String fromCurrency, 
-                                               String toCurrency, LocalDate date) {
+    private ExchangeRate parseResponse(String responseBody, String fromCurrency, 
+                                      String toCurrency, LocalDate date) {
         try {
             CurrencyApiResponse apiResponse = objectMapper.readValue(responseBody, CurrencyApiResponse.class);
             
             if (apiResponse.getData() == null || apiResponse.getData().isEmpty()) {
                 log.error("CurrencyAPI returned empty data");
-                return Result.failure(ErrorDetail.of(
-                    "CURRENCY_API_NO_DATA",
-                    ErrorType.SYSTEM_ERROR,
-                    "CurrencyAPI returned no exchange rate data",
-                    "currency.api.no.data"
-                ));
+                throw new ExchangeRateUnavailableException(fromCurrency, toCurrency);
             }
             
             // Extract the rate for the target currency
             CurrencyData currencyData = apiResponse.getData().get(toCurrency);
             if (currencyData == null) {
                 log.error("CurrencyAPI did not return rate for {}", toCurrency);
-                return Result.failure(ErrorDetail.of(
-                    "CURRENCY_API_MISSING_RATE",
-                    ErrorType.SYSTEM_ERROR,
-                    "CurrencyAPI did not return rate for " + toCurrency,
-                    "currency.api.missing.rate"
-                ));
+                throw new ExchangeRateUnavailableException(fromCurrency, toCurrency);
             }
             
             BigDecimal rate = currencyData.getValue();
@@ -173,16 +171,13 @@ public class CurrencyApiExchangeRateProvider implements ExchangeRateProvider {
             log.debug("Successfully fetched exchange rate from CurrencyAPI: {} {} = 1 {}", 
                 rate, toCurrency, fromCurrency);
             
-            return Result.success(exchangeRate);
+            return exchangeRate;
             
+        } catch (ExchangeRateUnavailableException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Failed to parse CurrencyAPI response", e);
-            return Result.failure(ErrorDetail.of(
-                "CURRENCY_API_PARSE_ERROR",
-                ErrorType.SYSTEM_ERROR,
-                "Failed to parse CurrencyAPI response: " + e.getMessage(),
-                "currency.api.parse.error"
-            ));
+            throw new ExchangeRateUnavailableException(fromCurrency, toCurrency, e);
         }
     }
     
