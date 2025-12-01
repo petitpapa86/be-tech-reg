@@ -74,25 +74,7 @@ public class RiskCalculationConfiguration {
         return new com.fasterxml.jackson.databind.ObjectMapper();
     }
 
-    /**
-     * Geographic classifier bean for classifying countries into regions
-     */
-    @Bean
-    public com.bcbs239.regtech.riskcalculation.domain.classification.GeographicClassifier geographicClassifier(
-            RiskCalculationProperties properties) {
-        String homeCountryCode = properties.getGeographic().getHomeCountry();
-        com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.Country homeCountry =
-                com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.Country.of(homeCountryCode);
-        return new com.bcbs239.regtech.riskcalculation.domain.classification.GeographicClassifier(homeCountry);
-    }
-
-    /**
-     * Sector classifier bean for classifying sectors into categories
-     */
-    @Bean
-    public com.bcbs239.regtech.riskcalculation.domain.classification.SectorClassifier sectorClassifier() {
-        return new com.bcbs239.regtech.riskcalculation.domain.classification.SectorClassifier();
-    }
+    // Removed deprecated classifier beans - functionality moved to ExposureClassifier
 
     /**
      * Async executor for event processing

@@ -40,10 +40,10 @@ public class S3FileStorageService implements IFileStorageService {
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
     
     @Override
-    public Result<String> downloadFileContent(FileStorageUri uri) {
+    public Result<String> retrieveFile(String storageUri) {
         try {
             // Parse S3 URI (format: s3://bucket/key or https://bucket.s3.region.amazonaws.com/key)
-            S3Location location = parseS3Uri(uri.uri());
+            S3Location location = parseS3Uri(storageUri);
             
             log.info("Downloading file from S3 [bucket:{},key:{}]", location.bucket(), location.key());
             
@@ -62,16 +62,16 @@ public class S3FileStorageService implements IFileStorageService {
             return Result.success(content);
             
         } catch (NoSuchKeyException e) {
-            log.error("File not found in S3 [uri:{},error:{}]", uri.uri(), e.getMessage());
+            log.error("File not found in S3 [uri:{},error:{}]", storageUri, e.getMessage());
             return Result.failure(ErrorDetail.of(
                 "S3_FILE_NOT_FOUND",
                 ErrorType.SYSTEM_ERROR,
-                "File not found in S3: " + uri.uri(),
+                "File not found in S3: " + storageUri,
                 "file.storage.s3.not.found"
             ));
             
         } catch (S3Exception e) {
-            log.error("S3 error downloading file [uri:{},error:{}]", uri.uri(), e.getMessage(), e);
+            log.error("S3 error downloading file [uri:{},error:{}]", storageUri, e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "S3_DOWNLOAD_ERROR",
                 ErrorType.SYSTEM_ERROR,
@@ -80,7 +80,7 @@ public class S3FileStorageService implements IFileStorageService {
             ));
             
         } catch (IOException e) {
-            log.error("IO error reading S3 response [uri:{},error:{}]", uri.uri(), e.getMessage(), e);
+            log.error("IO error reading S3 response [uri:{},error:{}]", storageUri, e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "S3_READ_ERROR",
                 ErrorType.SYSTEM_ERROR,
@@ -89,7 +89,7 @@ public class S3FileStorageService implements IFileStorageService {
             ));
             
         } catch (Exception e) {
-            log.error("Unexpected error downloading from S3 [uri:{},error:{}]", uri.uri(), e.getMessage(), e);
+            log.error("Unexpected error downloading from S3 [uri:{},error:{}]", storageUri, e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "S3_UNEXPECTED_ERROR",
                 ErrorType.SYSTEM_ERROR,
@@ -100,22 +100,20 @@ public class S3FileStorageService implements IFileStorageService {
     }
     
     @Override
-    public Result<FileStorageUri> storeCalculationResults(BatchId batchId, String content) {
+    public Result<String> storeFile(String fileName, String content) {
         try {
             String bucket = properties.getStorage().getS3().getBucket();
             String prefix = properties.getStorage().getS3().getPrefix();
             
-            // Generate S3 key with timestamp
-            String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
-            String key = String.format("%s%s/results_%s.json", prefix, batchId.value(), timestamp);
+            // Generate S3 key
+            String key = prefix + fileName;
             
-            log.info("Storing calculation results to S3 [bucket:{},key:{},size:{}bytes]", 
+            log.info("Storing file to S3 [bucket:{},key:{},size:{}bytes]", 
                 bucket, key, content.length());
             
             // Add metadata
             Map<String, String> metadata = new HashMap<>();
-            metadata.put("batch-id", batchId.value());
-            metadata.put("timestamp", timestamp);
+            metadata.put("file-name", fileName);
             metadata.put("content-type", "application/json");
             
             // Upload to S3
@@ -131,65 +129,75 @@ public class S3FileStorageService implements IFileStorageService {
             // Generate URI
             String uri = String.format("s3://%s/%s", bucket, key);
             
-            log.info("Successfully stored calculation results to S3 [bucket:{},key:{},uri:{}]", 
+            log.info("Successfully stored file to S3 [bucket:{},key:{},uri:{}]", 
                 bucket, key, uri);
             
-            return Result.success(new FileStorageUri(uri));
+            return Result.success(uri);
             
         } catch (S3Exception e) {
-            log.error("S3 error storing results [batchId:{},error:{}]", batchId.value(), e.getMessage(), e);
+            log.error("S3 error storing file [fileName:{},error:{}]", fileName, e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "S3_UPLOAD_ERROR",
                 ErrorType.SYSTEM_ERROR,
-                "S3 error storing results: " + e.getMessage(),
+                "S3 error storing file: " + e.getMessage(),
                 "file.storage.s3.upload.error"
             ));
             
         } catch (Exception e) {
-            log.error("Unexpected error storing results to S3 [batchId:{},error:{}]", 
-                batchId.value(), e.getMessage(), e);
+            log.error("Unexpected error storing file to S3 [fileName:{},error:{}]", 
+                fileName, e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "S3_STORAGE_ERROR",
                 ErrorType.SYSTEM_ERROR,
-                "Unexpected error storing results to S3: " + e.getMessage(),
+                "Unexpected error storing file to S3: " + e.getMessage(),
                 "file.storage.s3.storage.error"
             ));
         }
     }
     
     @Override
-    public Result<Boolean> checkServiceHealth() {
+    public Result<Void> deleteFile(String storageUri) {
         try {
-            String bucket = properties.getStorage().getS3().getBucket();
+            // Parse S3 URI
+            S3Location location = parseS3Uri(storageUri);
             
-            // Try to head the bucket to verify access
-            coreS3Service.headObject(bucket, ".health-check");
+            log.info("Deleting file from S3 [bucket:{},key:{}]", location.bucket(), location.key());
             
-            log.debug("S3 file storage health check passed [bucket:{}]", bucket);
-            return Result.success(true);
+            // Delete from S3
+            coreS3Service.deleteObject(location.bucket(), location.key());
+            
+            log.info("Successfully deleted file from S3 [bucket:{},key:{}]", 
+                location.bucket(), location.key());
+            
+            return Result.success();
             
         } catch (NoSuchKeyException e) {
-            // Key not found is OK - we just want to verify bucket access
-            log.debug("S3 file storage health check passed (key not found is expected) [bucket:{}]", 
-                properties.getStorage().getS3().getBucket());
-            return Result.success(true);
+            log.warn("File not found for deletion in S3 [uri:{}]", storageUri);
+            return Result.failure(ErrorDetail.of(
+                "S3_FILE_NOT_FOUND",
+                ErrorType.SYSTEM_ERROR,
+                "File not found for deletion in S3: " + storageUri,
+                "file.storage.s3.not.found"
+            ));
             
         } catch (S3Exception e) {
-            log.warn("S3 file storage health check failed [error:{}]", e.getMessage());
+            log.error("S3 error deleting file [uri:{},error:{}]", storageUri, e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
-                "S3_HEALTH_CHECK_FAILED",
+                "S3_DELETE_ERROR",
                 ErrorType.SYSTEM_ERROR,
-                "S3 storage health check failed: " + e.getMessage(),
-                "file.storage.s3.health.error"
+                "S3 error deleting file: " + e.getMessage(),
+                "file.storage.s3.delete.error"
             ));
             
         } catch (Exception e) {
-            log.warn("Unexpected error during S3 health check [error:{}]", e.getMessage());
+            log.error("Unexpected error deleting file from S3 [uri:{},error:{}]", 
+                storageUri, e.getMessage(), e);
+            
             return Result.failure(ErrorDetail.of(
-                "S3_HEALTH_CHECK_ERROR",
+                "S3_UNEXPECTED_ERROR",
                 ErrorType.SYSTEM_ERROR,
-                "Unexpected error during S3 health check: " + e.getMessage(),
-                "file.storage.s3.health.unexpected.error"
+                "Unexpected error deleting file from S3: " + e.getMessage(),
+                "file.storage.s3.unexpected.error"
             ));
         }
     }

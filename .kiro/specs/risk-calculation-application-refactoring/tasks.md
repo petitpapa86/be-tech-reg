@@ -75,7 +75,9 @@
   - Verify domain event creation logic
   - _Requirements: 5.1, 5.2_
 
-- [ ] 7. Verify domain service integration
+- [x] 7. Verify domain service integration
+
+
 
 
   - Confirm IFileStorageService.retrieveFile() is called correctly
@@ -112,7 +114,12 @@
   - Check event publishing works correctly
   - _Requirements: 1.1, 5.3, 5.4, 6.2_
 
-- [ ] 12. Final verification
+- [x] 12. Final verification
+
+
+
+
+
   - Run full Maven build: `mvn clean install`
   - Verify all tests pass
   - Check build completes in under 2 minutes

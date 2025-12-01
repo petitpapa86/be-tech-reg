@@ -133,47 +133,48 @@ public class LocalFileStorageService implements IFileStorageService {
     }
     
     @Override
-    public Result<Boolean> checkServiceHealth() {
+    public Result<Void> deleteFile(String storageUri) {
         try {
-            // Check if base directory exists or can be created
-            Path directoryPath = Paths.get(basePath);
-            if (!Files.exists(directoryPath)) {
-                Files.createDirectories(directoryPath);
-            }
+            // Extract file path from URI
+            String filePath = parseFileUri(storageUri);
+            Path path = Paths.get(filePath);
             
-            // Verify we can write to the directory
-            if (!Files.isWritable(directoryPath)) {
+            if (!Files.exists(path)) {
+                log.warn("File not found for deletion [uri:{}]", storageUri);
                 return Result.failure(ErrorDetail.of(
-                    "LOCAL_STORAGE_NOT_WRITABLE",
+                    "LOCAL_FILE_NOT_FOUND",
                     ErrorType.SYSTEM_ERROR,
-                    "Local storage directory is not writable: " + basePath,
-                    "file.storage.local.not.writable"
+                    "File not found for deletion: " + storageUri,
+                    "file.storage.local.not.found"
                 ));
             }
             
-            // Try to create a test file to verify write permissions
-            Path testFile = directoryPath.resolve(".health_check");
-            Files.writeString(testFile, "health check");
-            Files.deleteIfExists(testFile);
+            // Delete the file
+            Files.delete(path);
             
-            log.debug("Local file storage health check passed [basePath:{}]", basePath);
-            return Result.success(true);
+            log.info("Deleted file from local storage [uri:{}]", storageUri);
+            
+            return Result.success();
             
         } catch (IOException e) {
-            log.warn("Local file storage health check failed [error:{}]", e.getMessage());
+            log.error("Failed to delete file from local storage [uri:{},error:{}]", 
+                storageUri, e.getMessage(), e);
+            
             return Result.failure(ErrorDetail.of(
-                "LOCAL_STORAGE_HEALTH_CHECK_FAILED",
+                "LOCAL_DELETE_ERROR",
                 ErrorType.SYSTEM_ERROR,
-                "Local storage health check failed: " + e.getMessage(),
-                "file.storage.local.health.error"
+                "Failed to delete file from local filesystem: " + e.getMessage(),
+                "file.storage.local.delete.error"
             ));
         } catch (Exception e) {
-            log.warn("Unexpected error during local storage health check [error:{}]", e.getMessage());
+            log.error("Unexpected error deleting file from local storage [uri:{},error:{}]", 
+                storageUri, e.getMessage(), e);
+            
             return Result.failure(ErrorDetail.of(
-                "LOCAL_STORAGE_HEALTH_CHECK_ERROR",
+                "LOCAL_UNEXPECTED_ERROR",
                 ErrorType.SYSTEM_ERROR,
-                "Unexpected error during local storage health check: " + e.getMessage(),
-                "file.storage.local.health.unexpected.error"
+                "Unexpected error deleting file from local filesystem: " + e.getMessage(),
+                "file.storage.local.unexpected.error"
             ));
         }
     }

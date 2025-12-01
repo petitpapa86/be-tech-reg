@@ -64,4 +64,9 @@ public class CoreS3Service {
         HeadObjectRequest req = HeadObjectRequest.builder().bucket(bucket).key(key).build();
         return s3Client.headObject(req);
     }
+
+    public DeleteObjectResponse deleteObject(String bucket, String key) {
+        DeleteObjectRequest deleteReq = DeleteObjectRequest.builder().bucket(bucket).key(key).build();
+        return s3Client.deleteObject(deleteReq);
+    }
 }
