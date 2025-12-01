@@ -28,6 +28,14 @@ public interface IBatchSummaryRepository {
     Optional<Object> findByBatchId(String batchId);
     
     /**
+     * Checks if a batch summary exists for the given batch ID.
+     *
+     * @param batchId The batch identifier
+     * @return true if exists, false otherwise
+     */
+    boolean existsByBatchId(String batchId);
+    
+    /**
      * Deletes a batch summary.
      *
      * @param batchId The batch identifier

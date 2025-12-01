@@ -27,7 +27,9 @@
   - Ensure all ErrorDetail objects have proper error codes, types, and context keys
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [-] 3. Fix record accessor usage in CalculationResultsJsonSerializer
+- [x] 3. Fix record accessor usage in CalculationResultsJsonSerializer
+
+
 
 
 
@@ -37,13 +39,25 @@
   - Fix domain object accessor calls (Share, Breakdown, etc.)
   - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-- [ ] 4. Fix repository method calls in BatchIngestedEventListener
+
+
+- [x] 4. Fix repository method calls in BatchIngestedEventListener
+
+
+
+
+
   - Replace existsByBatchId() with existsById()
   - Wrap String batchId in BatchId value object
   - Update any other repository usage
   - _Requirements: 3.2_
 
-- [ ] 5. Verify compilation success
+- [x] 5. Verify compilation success
+
+
+
+
+
   - Run `mvn clean compile` on application layer
   - Fix any remaining compilation errors
   - Verify all imports are resolved
@@ -51,13 +65,19 @@
 
 ## Phase 2: Event System and Domain Integration
 
-- [ ] 6. Verify event publisher method signatures
+- [x] 6. Verify event publisher method signatures
+
+
+
+
   - Confirm publishBatchCalculationCompleted() accepts correct parameters
   - Confirm publishBatchCalculationFailed() accepts correct parameters
   - Verify domain event creation logic
   - _Requirements: 5.1, 5.2_
 
 - [ ] 7. Verify domain service integration
+
+
   - Confirm IFileStorageService.retrieveFile() is called correctly
   - Verify FileStorageUri parameter usage
   - Check domain event publishing flow

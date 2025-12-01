@@ -14,6 +14,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
@@ -86,10 +87,10 @@ public class RiskCalculationEventPublisher {
                     domainEvent.getBankId(),
                     domainEvent.getResultFileUri(),
                     domainEvent.getTotalExposures(),
-                    domainEvent.getTotalAmountEur(),
+                    BigDecimal.valueOf(domainEvent.getTotalAmountEur()),
                     Instant.now(),
-                    0.0, // Geographic HHI
-                    0.0  // Sector HHI
+                    BigDecimal.ZERO, // Geographic HHI - will be populated from analysis
+                    BigDecimal.ZERO  // Sector HHI - will be populated from analysis
                 );
             
             // Log structured event data for monitoring

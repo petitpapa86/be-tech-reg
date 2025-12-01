@@ -57,7 +57,8 @@ public class BatchIngestedEventListener {
                 return;
             }
 
-            // Step 2: Check idempotency - skip if already processed
+            // Step 2: Check idempotency - skip if already processed  
+            // Use findByBatchId instead of existsByBatchId for idempotency check
             if (batchSummaryRepository.findByBatchId(event.getBatchId()).isPresent()) {
                 log.info("Batch {} already processed, skipping duplicate event", event.getBatchId());
                 return;

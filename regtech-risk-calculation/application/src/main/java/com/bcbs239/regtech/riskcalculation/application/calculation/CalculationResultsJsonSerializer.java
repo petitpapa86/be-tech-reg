@@ -50,15 +50,16 @@ public class CalculationResultsJsonSerializer {
             // Basic metadata
             rootNode.put("batch_id", result.batchId());
             rootNode.put("calculated_at", ISO_FORMATTER.format(result.ingestedAt()));
-            rootNode.put("bank_id", result.bankInfo().getBankId());
-            rootNode.put("bank_name", result.bankInfo().getBankName());
+            rootNode.put("bank_name", result.bankInfo().bankName());
+            rootNode.put("abi_code", result.bankInfo().abiCode());
+            rootNode.put("lei_code", result.bankInfo().leiCode());
 
             // Summary section
             ObjectNode summaryNode = createSummaryNode(result);
             rootNode.set("summary", summaryNode);
 
             // Detailed exposures section
-            ArrayNode exposuresNode = createExposuresNode(result.getCalculatedExposures());
+            ArrayNode exposuresNode = createExposuresNode(result.calculatedExposures());
             rootNode.set("calculated_exposures", exposuresNode);
 
             // Convert to JSON string
@@ -79,7 +80,7 @@ public class CalculationResultsJsonSerializer {
         ObjectNode summaryNode = objectMapper.createObjectNode();
         
         // Basic totals
-        summaryNode.put("total_exposures", result.totalExposures());
+        summaryNode.put("total_exposures", result.calculatedExposures().size());
         summaryNode.put("total_amount_eur", result.analysis().getTotalPortfolio().value());
 
         // Geographic breakdown
@@ -118,46 +119,37 @@ public class CalculationResultsJsonSerializer {
         
         // Calculate total portfolio amount for percentage calculations
         double totalPortfolioAmount = exposures.stream()
-            .mapToDouble(e -> e.getExposure().getAmount().getEurAmount().getValue())
+            .mapToDouble(e -> e.getGrossExposure().value().doubleValue())
             .sum();
         
         for (ProtectedExposure exposure : exposures) {
             ObjectNode exposureNode = objectMapper.createObjectNode();
             
             // Basic exposure data
-            exposureNode.put("instrument_id", exposure.getExposure().getInstrumentId().getValue());
-            exposureNode.put("counterparty_ref", exposure.getExposure().getCounterpartyRef().getValue());
+            exposureNode.put("exposure_id", exposure.getExposureId().value());
             
             // Amounts
-            exposureNode.put("original_amount", exposure.getExposure().getAmount().getOriginalAmount());
-            exposureNode.put("original_currency", exposure.getExposure().getAmount().getOriginalCurrency());
-            exposureNode.put("eur_amount", exposure.getExposure().getAmount().getEurAmount().getValue());
-            exposureNode.put("mitigated_amount_eur", exposure.getMitigatedAmount().getValue());
-            
-            // Exchange rate used for conversion
-            double eurAmount = exposure.getExposure().getAmount().getEurAmount().getValue();
-            double originalAmount = exposure.getExposure().getAmount().getOriginalAmount();
-            double exchangeRate = originalAmount > 0 ? eurAmount / originalAmount : 1.0;
-            exposureNode.put("exchange_rate_used", exchangeRate);
+            exposureNode.put("gross_exposure_eur", exposure.getGrossExposure().value().doubleValue());
+            exposureNode.put("net_exposure_eur", exposure.getNetExposure().value().doubleValue());
+            exposureNode.put("total_mitigation_eur", exposure.getTotalMitigation().value().doubleValue());
             
             // Percentage of total portfolio
+            double eurAmount = exposure.getGrossExposure().value().doubleValue();
             double percentageOfTotal = totalPortfolioAmount > 0 
                 ? (eurAmount / totalPortfolioAmount) * 100.0 
                 : 0.0;
             exposureNode.put("percentage_of_total", percentageOfTotal);
             
-            // Classification
-            exposureNode.put("country", exposure.getClassification().getCountryCode());
-            exposureNode.put("geographic_region", exposure.getClassification().getGeographicRegion());
-            exposureNode.put("economic_sector", exposure.getClassification().getEconomicSector().name());
-            
             // Mitigation details (if any)
-            if (exposure.getMitigation() != null) {
-                ObjectNode mitigationNode = objectMapper.createObjectNode();
-                mitigationNode.put("type", exposure.getMitigation().getType());
-                mitigationNode.put("coverage_ratio", exposure.getMitigation().getCoverageRatio());
-                mitigationNode.put("provider", exposure.getMitigation().getProvider());
-                exposureNode.set("mitigation", mitigationNode);
+            if (exposure.hasMitigations()) {
+                ArrayNode mitigationsArray = objectMapper.createArrayNode();
+                for (var mitigation : exposure.getMitigations()) {
+                    ObjectNode mitigationNode = objectMapper.createObjectNode();
+                    mitigationNode.put("type", mitigation.getType().name());
+                    mitigationNode.put("eur_value", mitigation.getEurValue().value().doubleValue());
+                    mitigationsArray.add(mitigationNode);
+                }
+                exposureNode.set("mitigations", mitigationsArray);
             }
             
             exposuresArray.add(exposureNode);

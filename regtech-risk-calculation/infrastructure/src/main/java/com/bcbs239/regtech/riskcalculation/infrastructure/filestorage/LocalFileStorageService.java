@@ -38,18 +38,18 @@ public class LocalFileStorageService implements IFileStorageService {
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
     
     @Override
-    public Result<String> downloadFileContent(FileStorageUri uri) {
+    public Result<String> retrieveFile(String storageUri) {
         try {
             // Extract file path from URI (handle both file:// and absolute paths)
-            String filePath = parseFileUri(uri.uri());
+            String filePath = parseFileUri(storageUri);
             Path path = Paths.get(filePath);
             
             if (!Files.exists(path)) {
-                log.error("File not found in local storage [uri:{}]", uri.uri());
+                log.error("File not found in local storage [uri:{}]", storageUri);
                 return Result.failure(ErrorDetail.of(
                     "LOCAL_FILE_NOT_FOUND",
                     ErrorType.SYSTEM_ERROR,
-                    "File not found in local filesystem: " + uri.uri(),
+                    "File not found in local filesystem: " + storageUri,
                     "file.storage.local.not.found"
                 ));
             }
@@ -58,13 +58,13 @@ public class LocalFileStorageService implements IFileStorageService {
             String content = Files.readString(path);
             
             log.info("Downloaded file from local storage [uri:{},size:{}bytes]", 
-                uri.uri(), content.length());
+                storageUri, content.length());
             
             return Result.success(content);
             
         } catch (IOException e) {
             log.error("Failed to download file from local storage [uri:{},error:{}]", 
-                uri.uri(), e.getMessage(), e);
+                storageUri, e.getMessage(), e);
             
             return Result.failure(ErrorDetail.of(
                 "LOCAL_DOWNLOAD_ERROR",
@@ -74,7 +74,7 @@ public class LocalFileStorageService implements IFileStorageService {
             ));
         } catch (Exception e) {
             log.error("Unexpected error downloading from local storage [uri:{},error:{}]", 
-                uri.uri(), e.getMessage(), e);
+                storageUri, e.getMessage(), e);
             
             return Result.failure(ErrorDetail.of(
                 "LOCAL_UNEXPECTED_ERROR",
@@ -86,7 +86,7 @@ public class LocalFileStorageService implements IFileStorageService {
     }
     
     @Override
-    public Result<FileStorageUri> storeCalculationResults(BatchId batchId, String content) {
+    public Result<String> storeFile(String fileName, String content) {
         try {
             // Create directory if it doesn't exist
             Path directoryPath = Paths.get(basePath);
@@ -95,9 +95,7 @@ public class LocalFileStorageService implements IFileStorageService {
                 log.info("Created base directory [path:{}]", directoryPath.toAbsolutePath());
             }
             
-            // Generate filename with timestamp
-            String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
-            String fileName = String.format("%s_results_%s.json", batchId.value(), timestamp);
+            // Resolve file path
             Path filePath = directoryPath.resolve(fileName);
             
             // Write content to file
@@ -106,29 +104,29 @@ public class LocalFileStorageService implements IFileStorageService {
             // Generate URI
             String uri = String.format("file://%s", filePath.toAbsolutePath());
             
-            log.info("Stored calculation results locally [batchId:{},path:{},size:{}bytes]", 
-                batchId.value(), filePath.toAbsolutePath(), content.length());
+            log.info("Stored file locally [fileName:{},path:{},size:{}bytes]", 
+                fileName, filePath.toAbsolutePath(), content.length());
             
-            return Result.success(new FileStorageUri(uri));
+            return Result.success(uri);
             
         } catch (IOException e) {
-            log.error("Failed to store results locally [batchId:{},error:{}]", 
-                batchId.value(), e.getMessage(), e);
+            log.error("Failed to store file locally [fileName:{},error:{}]", 
+                fileName, e.getMessage(), e);
             
             return Result.failure(ErrorDetail.of(
                 "LOCAL_STORAGE_ERROR",
                 ErrorType.SYSTEM_ERROR,
-                "Failed to store results to local filesystem: " + e.getMessage(),
+                "Failed to store file to local filesystem: " + e.getMessage(),
                 "file.storage.local.storage.error"
             ));
         } catch (Exception e) {
-            log.error("Unexpected error storing results locally [batchId:{},error:{}]", 
-                batchId.value(), e.getMessage(), e);
+            log.error("Unexpected error storing file locally [fileName:{},error:{}]", 
+                fileName, e.getMessage(), e);
             
             return Result.failure(ErrorDetail.of(
                 "LOCAL_UNEXPECTED_ERROR",
                 ErrorType.SYSTEM_ERROR,
-                "Unexpected error storing results to local filesystem: " + e.getMessage(),
+                "Unexpected error storing file to local filesystem: " + e.getMessage(),
                 "file.storage.local.unexpected.error"
             ));
         }

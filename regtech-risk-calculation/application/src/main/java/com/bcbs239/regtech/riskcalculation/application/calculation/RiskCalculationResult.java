@@ -1,9 +1,11 @@
 package com.bcbs239.regtech.riskcalculation.application.calculation;
 
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
+import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -11,25 +13,22 @@ import java.util.Objects;
  * Contains all information about a completed risk calculation
  * Requirement: 6.1
  */
-public record RiskCalculationResult(String batchId, BankInfo bankInfo, int totalExposures, PortfolioAnalysis analysis,
-                                    Instant ingestedAt) {
+public record RiskCalculationResult(
+        String batchId,
+        BankInfo bankInfo,
+        List<ProtectedExposure> calculatedExposures,
+        PortfolioAnalysis analysis,
+        Instant ingestedAt) {
 
-    public RiskCalculationResult(
-            String batchId,
-            BankInfo bankInfo,
-            int totalExposures,
-            PortfolioAnalysis analysis,
-            Instant ingestedAt
-    ) {
-        this.batchId = Objects.requireNonNull(batchId, "Batch ID cannot be null");
-        this.bankInfo = Objects.requireNonNull(bankInfo, "Bank info cannot be null");
-        this.totalExposures = totalExposures;
-        this.analysis = Objects.requireNonNull(analysis, "Portfolio analysis cannot be null");
-        this.ingestedAt = Objects.requireNonNull(ingestedAt, "Ingested timestamp cannot be null");
-
-        if (totalExposures < 0) {
-            throw new IllegalArgumentException("Total exposures cannot be negative");
-        }
+    public RiskCalculationResult {
+        Objects.requireNonNull(batchId, "Batch ID cannot be null");
+        Objects.requireNonNull(bankInfo, "Bank info cannot be null");
+        Objects.requireNonNull(calculatedExposures, "Calculated exposures cannot be null");
+        Objects.requireNonNull(analysis, "Portfolio analysis cannot be null");
+        Objects.requireNonNull(ingestedAt, "Ingested timestamp cannot be null");
+        
+        // Make defensive copy
+        calculatedExposures = List.copyOf(calculatedExposures);
     }
 
     @Override
@@ -37,7 +36,7 @@ public record RiskCalculationResult(String batchId, BankInfo bankInfo, int total
         return "RiskCalculationResult{" +
                 "batchId='" + batchId + '\'' +
                 ", bankInfo=" + bankInfo +
-                ", totalExposures=" + totalExposures +
+                ", totalExposures=" + calculatedExposures.size() +
                 ", totalPortfolio=" + analysis.getTotalPortfolio() +
                 ", ingestedAt=" + ingestedAt +
                 '}';

@@ -25,6 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -114,10 +115,14 @@ public class CalculateRiskMetricsCommandHandler {
                     // Convert to EUR using exchange rate provider
                     EurAmount eurAmount;
                     try {
-                        eurAmount = exchangeRateProvider.convertToEur(
-                            exposure.exposureAmount().amount(),
-                            exposure.exposureAmount().currency()
-                        );
+                        String currency = exposure.exposureAmount().currencyCode();
+                        if ("EUR".equals(currency)) {
+                            eurAmount = EurAmount.of(exposure.exposureAmount().amount());
+                        } else {
+                            var rate = exchangeRateProvider.getRate(currency, "EUR");
+                            BigDecimal eurValue = exposure.exposureAmount().amount().multiply(rate.rate());
+                            eurAmount = EurAmount.of(eurValue);
+                        }
                     } catch (Exception e) {
                         log.warn("Failed to convert exposure {} to EUR, using zero", exposure.id());
                         eurAmount = EurAmount.zero();
