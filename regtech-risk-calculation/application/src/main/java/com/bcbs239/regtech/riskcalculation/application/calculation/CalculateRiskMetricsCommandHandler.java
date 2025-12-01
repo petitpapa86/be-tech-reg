@@ -79,8 +79,12 @@ public class CalculateRiskMetricsCommandHandler {
             Result<String> downloadResult = fileStorageService.retrieveFile(command.getS3Uri());
             
             if (downloadResult.isFailure()) {
-                log.error("Failed to download exposure data: {}", downloadResult.getError());
-                return Result.failure(downloadResult.getError());
+                ErrorDetail error = downloadResult.getError().orElse(
+                    ErrorDetail.of("FILE_DOWNLOAD_FAILED", ErrorType.SYSTEM_ERROR,
+                        "Failed to download exposure data", "calculation.file.download.failed")
+                );
+                log.error("Failed to download exposure data: {}", error.getMessage());
+                return Result.failure(error);
             }
             
             String jsonContent = downloadResult.getValue().orElse("");

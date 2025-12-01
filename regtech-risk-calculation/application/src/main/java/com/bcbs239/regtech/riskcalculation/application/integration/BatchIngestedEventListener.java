@@ -58,8 +58,7 @@ public class BatchIngestedEventListener {
             }
 
             // Step 2: Check idempotency - skip if already processed
-            BatchId batchId = BatchId.of(event.getBatchId());
-            if (batchSummaryRepository.existsByBatchId(batchId)) {
+            if (batchSummaryRepository.findByBatchId(event.getBatchId()).isPresent()) {
                 log.info("Batch {} already processed, skipping duplicate event", event.getBatchId());
                 return;
             }

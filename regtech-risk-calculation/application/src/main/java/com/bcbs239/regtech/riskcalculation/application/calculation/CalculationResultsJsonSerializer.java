@@ -48,10 +48,10 @@ public class CalculationResultsJsonSerializer {
             ObjectNode rootNode = objectMapper.createObjectNode();
 
             // Basic metadata
-            rootNode.put("batch_id", result.getBatchId());
-            rootNode.put("calculated_at", ISO_FORMATTER.format(result.getCalculatedAt()));
-            rootNode.put("bank_id", result.getBankInfo().getBankId());
-            rootNode.put("bank_name", result.getBankInfo().getBankName());
+            rootNode.put("batch_id", result.batchId());
+            rootNode.put("calculated_at", ISO_FORMATTER.format(result.ingestedAt()));
+            rootNode.put("bank_id", result.bankInfo().getBankId());
+            rootNode.put("bank_name", result.bankInfo().getBankName());
 
             // Summary section
             ObjectNode summaryNode = createSummaryNode(result);
@@ -64,11 +64,11 @@ public class CalculationResultsJsonSerializer {
             // Convert to JSON string
             String jsonString = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(rootNode);
 
-            log.debug("Successfully serialized calculation results for batch: {}", result.getBatchId());
+            log.debug("Successfully serialized calculation results for batch: {}", result.batchId());
             return Result.success(jsonString);
 
         } catch (Exception e) {
-            log.error("Failed to serialize calculation results for batch: {}", result.getBatchId(), e);
+            log.error("Failed to serialize calculation results for batch: {}", result.batchId(), e);
             return Result.failure(ErrorDetail.of("JSON_SERIALIZATION_ERROR", ErrorType.SYSTEM_ERROR,
                 String.format("Failed to serialize calculation results: %s", e.getMessage()),
                 "calculation.serialization.error"));
@@ -79,21 +79,21 @@ public class CalculationResultsJsonSerializer {
         ObjectNode summaryNode = objectMapper.createObjectNode();
         
         // Basic totals
-        summaryNode.put("total_exposures", result.getCalculatedExposures().size());
-        summaryNode.put("total_amount_eur", result.getPortfolioAnalysis().getTotalAmount().getValue());
+        summaryNode.put("total_exposures", result.totalExposures());
+        summaryNode.put("total_amount_eur", result.analysis().getTotalPortfolio().value());
 
         // Geographic breakdown
-        ObjectNode geographicNode = createBreakdownNode(result.getPortfolioAnalysis().getGeographicBreakdown());
+        ObjectNode geographicNode = createBreakdownNode(result.analysis().getGeographicBreakdown());
         summaryNode.set("geographic_breakdown", geographicNode);
 
         // Sector breakdown
-        ObjectNode sectorNode = createBreakdownNode(result.getPortfolioAnalysis().getSectorBreakdown());
+        ObjectNode sectorNode = createBreakdownNode(result.analysis().getSectorBreakdown());
         summaryNode.set("sector_breakdown", sectorNode);
 
         // Concentration indices
         ObjectNode concentrationNode = objectMapper.createObjectNode();
-        concentrationNode.put("herfindahl_geographic", result.getPortfolioAnalysis().getGeographicHHI().getValue());
-        concentrationNode.put("herfindahl_sector", result.getPortfolioAnalysis().getSectorHHI().getValue());
+        concentrationNode.put("herfindahl_geographic", result.analysis().getGeographicHHI().value());
+        concentrationNode.put("herfindahl_sector", result.analysis().getSectorHHI().value());
         summaryNode.set("concentration_indices", concentrationNode);
 
         return summaryNode;
@@ -102,11 +102,11 @@ public class CalculationResultsJsonSerializer {
     private ObjectNode createBreakdownNode(Breakdown breakdown) {
         ObjectNode breakdownNode = objectMapper.createObjectNode();
         
-        Map<String, Share> shares = breakdown.getShares();
+        Map<String, Share> shares = breakdown.shares();
         for (Map.Entry<String, Share> entry : shares.entrySet()) {
             ObjectNode shareNode = objectMapper.createObjectNode();
-            shareNode.put("amount_eur", entry.getValue().getAmount().getValue());
-            shareNode.put("percentage", entry.getValue().getPercentage().getValue());
+            shareNode.put("amount_eur", entry.getValue().amount().value());
+            shareNode.put("percentage", entry.getValue().percentage().doubleValue());
             breakdownNode.set(entry.getKey().toLowerCase(), shareNode);
         }
         

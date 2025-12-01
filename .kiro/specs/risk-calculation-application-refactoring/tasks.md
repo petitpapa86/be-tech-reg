@@ -14,7 +14,12 @@
   - Call recordBatchFailure() in catch block
   - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-- [ ] 2. Fix Result API usage across application layer
+- [x] 2. Fix Result API usage across application layer
+
+
+
+
+
   - Update CalculateRiskMetricsCommandHandler Result.failure() calls
   - Update BatchIngestedEventListener error handling
   - Update CalculationResultsJsonSerializer error cases
@@ -22,7 +27,10 @@
   - Ensure all ErrorDetail objects have proper error codes, types, and context keys
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 3. Fix record accessor usage in CalculationResultsJsonSerializer
+- [-] 3. Fix record accessor usage in CalculationResultsJsonSerializer
+
+
+
   - Replace result.getBatchId() with result.batchId()
   - Replace result.getBankInfo() with result.bankInfo()
   - Replace result.getAnalysis() with result.analysis()
