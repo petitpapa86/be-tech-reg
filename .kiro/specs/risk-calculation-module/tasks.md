@@ -227,8 +227,15 @@
   - Create BatchCalculationFailedEvent record
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 9. Implement infrastructure layer - Database
-- [ ] 9.1 Create database schema
+- [x] 9. Implement infrastructure layer - Database
+
+
+
+
+
+- [x] 9.1 Create database schema
+
+
   - Create migration V2__Create_risk_calculation_tables.sql
   - Add batches table (batch_id, bank_name, abi_code, lei_code, report_date, total_exposures, status, timestamps)
   - Add exposures table (exposure_id, batch_id, instrument_id, instrument_type, counterparty fields, amounts, currency, classification, timestamps)
@@ -236,17 +243,23 @@
   - Add portfolio_analysis table (batch_id, totals, geographic breakdown, sector breakdown, HHI metrics, timestamps)
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [ ] 9.2 Create repository interfaces
+- [x] 9.2 Create repository interfaces
+
+
   - Create domain/repositories/ExposureRepository interface
   - Create domain/repositories/MitigationRepository interface
   - Create domain/repositories/PortfolioAnalysisRepository interface
   - _Requirements: 7.3, 7.5, 8.1_
+
+
 
 - [ ] 9.3 Create JPA entities
   - Create infrastructure/database/entities/BatchEntity
   - Create infrastructure/database/entities/ExposureEntity
   - Create infrastructure/database/entities/MitigationEntity
   - Create infrastructure/database/entities/PortfolioAnalysisEntity
+
+
   - _Requirements: 7.1, 7.3, 7.5, 8.1_
 
 - [ ] 9.4 Create repository implementations
