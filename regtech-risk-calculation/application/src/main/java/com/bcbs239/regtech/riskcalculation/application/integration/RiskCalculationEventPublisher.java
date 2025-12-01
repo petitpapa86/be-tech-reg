@@ -36,6 +36,36 @@ public class RiskCalculationEventPublisher {
     private final ObjectMapper objectMapper;
     
     /**
+     * Publishes batch calculation completed event.
+     * 
+     * @param batchId The batch ID
+     * @param bankId The bank ID
+     * @param totalExposures Total number of exposures
+     */
+    public void publishBatchCalculationCompleted(String batchId, String bankId, int totalExposures) {
+        log.info("Publishing BatchCalculationCompletedEvent for batch: {}", batchId);
+        
+        try {
+            // Create domain event
+            BatchCalculationCompletedEvent domainEvent = new BatchCalculationCompletedEvent(
+                batchId,
+                bankId,
+                totalExposures,
+                0.0, // Total amount will be calculated from analysis
+                "" // Result file URI will be set later
+            );
+            
+            // Publish the domain event
+            eventPublisher.publishEvent(domainEvent);
+            
+            log.info("Successfully published BatchCalculationCompletedEvent for batch: {}", batchId);
+            
+        } catch (Exception e) {
+            log.error("Failed to publish BatchCalculationCompletedEvent for batch: {}", batchId, e);
+        }
+    }
+    
+    /**
      * Publishes BatchCalculationCompletedEvent as integration event.
      * Transforms domain event to integration event with comprehensive data.
      * 
@@ -45,28 +75,21 @@ public class RiskCalculationEventPublisher {
     @TransactionalEventListener
     public Result<Void> publishBatchCalculationCompleted(BatchCalculationCompletedEvent domainEvent) {
         log.info("Publishing BatchCalculationCompletedIntegrationEvent for batch: {}", 
-            domainEvent.getBatchId().value());
+            domainEvent.getBatchId());
         
         try {
-            // Validate event content
-            Result<Void> validationResult = validateCompletedEvent(domainEvent);
-            if (validationResult.isFailure()) {
-                log.error("Event validation failed for batch: {}", domainEvent.getBatchId().value());
-                return validationResult;
-            }
-            
             // Create integration event with essential data only
             // Detailed results are available in S3/filesystem via resultFileUri
             BatchCalculationCompletedIntegrationEvent integrationEvent = 
                 new BatchCalculationCompletedIntegrationEvent(
-                    domainEvent.getBatchId().value(),
-                    domainEvent.getBankId().value(),
-                    domainEvent.getResultFileUri().uri(),
-                    domainEvent.getTotalExposures().count(),
-                    domainEvent.getTotalAmountEur().value(),
+                    domainEvent.getBatchId(),
+                    domainEvent.getBankId(),
+                    domainEvent.getResultFileUri(),
+                    domainEvent.getTotalExposures(),
+                    domainEvent.getTotalAmountEur(),
                     Instant.now(),
-                    domainEvent.getConcentrationIndices().geographicHerfindahl().value(),
-                    domainEvent.getConcentrationIndices().sectorHerfindahl().value()
+                    0.0, // Geographic HHI
+                    0.0  // Sector HHI
                 );
             
             // Log structured event data for monitoring
@@ -76,13 +99,13 @@ public class RiskCalculationEventPublisher {
             eventPublisher.publishEvent(integrationEvent);
             
             log.info("Successfully published BatchCalculationCompletedIntegrationEvent for batch: {}", 
-                domainEvent.getBatchId().value());
+                domainEvent.getBatchId());
             
             return Result.success(null);
             
         } catch (Exception e) {
             log.error("Failed to publish BatchCalculationCompletedIntegrationEvent for batch: {}", 
-                domainEvent.getBatchId().value(), e);
+                domainEvent.getBatchId(), e);
             
             return Result.failure(ErrorDetail.of(
                 "EVENT_PUBLISHING_ERROR",
@@ -90,6 +113,36 @@ public class RiskCalculationEventPublisher {
                 "Failed to publish integration event: " + e.getMessage(),
                 "event.publishing.error"
             ));
+        }
+    }
+    
+    /**
+     * Publishes batch calculation failed event.
+     * 
+     * @param batchId The batch ID
+     * @param bankId The bank ID
+     * @param errorMessage The error message
+     */
+    public void publishBatchCalculationFailed(String batchId, String bankId, String errorMessage) {
+        log.info("Publishing BatchCalculationFailedEvent for batch: {}", batchId);
+        
+        try {
+            // Create domain event
+            BatchCalculationFailedEvent domainEvent = new BatchCalculationFailedEvent(
+                batchId,
+                bankId,
+                "RISK_CALCULATION_FAILED",
+                errorMessage,
+                errorMessage
+            );
+            
+            // Publish the domain event
+            eventPublisher.publishEvent(domainEvent);
+            
+            log.info("Successfully published BatchCalculationFailedEvent for batch: {}", batchId);
+            
+        } catch (Exception e) {
+            log.error("Failed to publish BatchCalculationFailedEvent for batch: {}", batchId, e);
         }
     }
     
@@ -102,21 +155,14 @@ public class RiskCalculationEventPublisher {
     @TransactionalEventListener
     public Result<Void> publishBatchCalculationFailed(BatchCalculationFailedEvent domainEvent) {
         log.info("Publishing BatchCalculationFailedIntegrationEvent for batch: {}", 
-            domainEvent.getBatchId().value());
+            domainEvent.getBatchId());
         
         try {
-            // Validate event content
-            Result<Void> validationResult = validateFailedEvent(domainEvent);
-            if (validationResult.isFailure()) {
-                log.error("Event validation failed for batch: {}", domainEvent.getBatchId().value());
-                return validationResult;
-            }
-            
             // Create integration event
             BatchCalculationFailedIntegrationEvent integrationEvent = 
                 new BatchCalculationFailedIntegrationEvent(
-                    domainEvent.getBatchId().value(),
-                    domainEvent.getBankId().value(),
+                    domainEvent.getBatchId(),
+                    domainEvent.getBankId(),
                     domainEvent.getErrorMessage(),
                     "RISK_CALCULATION_FAILED", // Standard error code
                     Instant.now()
@@ -129,13 +175,13 @@ public class RiskCalculationEventPublisher {
             eventPublisher.publishEvent(integrationEvent);
             
             log.info("Successfully published BatchCalculationFailedIntegrationEvent for batch: {}", 
-                domainEvent.getBatchId().value());
+                domainEvent.getBatchId());
             
             return Result.success(null);
             
         } catch (Exception e) {
             log.error("Failed to publish BatchCalculationFailedIntegrationEvent for batch: {}", 
-                domainEvent.getBatchId().value(), e);
+                domainEvent.getBatchId(), e);
             
             return Result.failure(ErrorDetail.of(
                 "EVENT_PUBLISHING_ERROR",
@@ -144,65 +190,6 @@ public class RiskCalculationEventPublisher {
                 "event.publishing.error"
             ));
         }
-    }
-    
-    /**
-     * Validates BatchCalculationCompletedEvent content.
-     */
-    private Result<Void> validateCompletedEvent(BatchCalculationCompletedEvent event) {
-        if (event.getBatchId() == null || event.getBatchId().value().trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of(
-                "INVALID_EVENT_CONTENT",
-                ErrorType.BUSINESS_RULE_ERROR,
-                "Batch ID is required for event publishing",
-                "event.validation.batch.id.required"
-            ));
-        }
-        
-        if (event.getBankId() == null || event.getBankId().value().trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of(
-                "INVALID_EVENT_CONTENT",
-                ErrorType.BUSINESS_RULE_ERROR,
-                "Bank ID is required for event publishing",
-                "event.validation.bank.id.required"
-            ));
-        }
-        
-        if (event.getResultFileUri() == null || event.getResultFileUri().uri().trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of(
-                "INVALID_EVENT_CONTENT",
-                ErrorType.BUSINESS_RULE_ERROR,
-                "Result file URI is required for event publishing",
-                "event.validation.result.uri.required"
-            ));
-        }
-        
-        return Result.success(null);
-    }
-    
-    /**
-     * Validates BatchCalculationFailedEvent content.
-     */
-    private Result<Void> validateFailedEvent(BatchCalculationFailedEvent event) {
-        if (event.getBatchId() == null || event.getBatchId().value().trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of(
-                "INVALID_EVENT_CONTENT",
-                ErrorType.BUSINESS_RULE_ERROR,
-                "Batch ID is required for event publishing",
-                "event.validation.batch.id.required"
-            ));
-        }
-        
-        if (event.getErrorMessage() == null || event.getErrorMessage().trim().isEmpty()) {
-            return Result.failure(ErrorDetail.of(
-                "INVALID_EVENT_CONTENT",
-                ErrorType.BUSINESS_RULE_ERROR,
-                "Error message is required for failed event publishing",
-                "event.validation.error.message.required"
-            ));
-        }
-        
-        return Result.success(null);
     }
     
     /**

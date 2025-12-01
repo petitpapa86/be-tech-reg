@@ -1,56 +1,52 @@
 package com.bcbs239.regtech.riskcalculation.domain.calculation;
 
-import com.bcbs239.regtech.riskcalculation.domain.shared.enums.ConcentrationLevel;
-import com.bcbs239.regtech.riskcalculation.domain.aggregation.HerfindahlIndex;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.HHI;
 
 /**
- * Concentration indices for risk assessment
- * Immutable value object containing Herfindahl-Hirschman indices for different dimensions
+ * Value object representing concentration indices for portfolio analysis.
+ * Contains Herfindahl-Hirschman Index (HHI) values for geographic and sector concentration.
  */
-public record ConcentrationIndices(
-    HerfindahlIndex geographicHerfindahl,
-    HerfindahlIndex sectorHerfindahl
-) {
-    
-    public ConcentrationIndices {
-        if (geographicHerfindahl == null) {
-            throw new IllegalArgumentException("Geographic Herfindahl index cannot be null");
-        }
-        if (sectorHerfindahl == null) {
-            throw new IllegalArgumentException("Sector Herfindahl index cannot be null");
-        }
+public class ConcentrationIndices {
+    private final HHI geographicHHI;
+    private final HHI sectorHHI;
+
+    public ConcentrationIndices(HHI geographicHHI, HHI sectorHHI) {
+        this.geographicHHI = geographicHHI;
+        this.sectorHHI = sectorHHI;
     }
-    
-    /**
-     * Get the overall concentration level based on the highest HHI
-     */
-    public ConcentrationLevel getOverallConcentrationLevel() {
-        ConcentrationLevel geoLevel = geographicHerfindahl.getConcentrationLevel();
-        ConcentrationLevel sectorLevel = sectorHerfindahl.getConcentrationLevel();
-        
-        // Return the higher concentration level
-        if (geoLevel == ConcentrationLevel.HIGH || sectorLevel == ConcentrationLevel.HIGH) {
-            return ConcentrationLevel.HIGH;
-        }
-        if (geoLevel == ConcentrationLevel.MODERATE || sectorLevel == ConcentrationLevel.MODERATE) {
-            return ConcentrationLevel.MODERATE;
-        }
-        return ConcentrationLevel.LOW;
+
+    public static ConcentrationIndices of(HHI geographicHHI, HHI sectorHHI) {
+        return new ConcentrationIndices(geographicHHI, sectorHHI);
     }
-    
-    /**
-     * Check if any concentration index indicates high risk
-     */
-    public boolean hasHighConcentrationRisk() {
-        return getOverallConcentrationLevel() == ConcentrationLevel.HIGH;
+
+    public HHI getGeographicHHI() {
+        return geographicHHI;
     }
-    
-    /**
-     * Get the maximum HHI value across all dimensions
-     */
-    public HerfindahlIndex getMaximumHerfindahl() {
-        return geographicHerfindahl.value().compareTo(sectorHerfindahl.value()) >= 0 
-            ? geographicHerfindahl 
-            : sectorHerfindahl;
+
+    public HHI getSectorHHI() {
+        return sectorHHI;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ConcentrationIndices that = (ConcentrationIndices) o;
+        return geographicHHI.equals(that.geographicHHI) && sectorHHI.equals(that.sectorHHI);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = geographicHHI.hashCode();
+        result = 31 * result + sectorHHI.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "ConcentrationIndices{" +
+                "geographicHHI=" + geographicHHI +
+                ", sectorHHI=" + sectorHHI +
+                '}';
     }
 }

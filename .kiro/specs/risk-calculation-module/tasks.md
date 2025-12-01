@@ -163,7 +163,8 @@
   - **Property 22: HHI Range Constraint**
   - **Validates: Requirements 6.4**
 
-- [ ] 7. Implement application layer orchestration
+- [x] 7. Implement application layer orchestration
+
 
 
 
@@ -187,11 +188,13 @@
 
 - [x] 7.3 Create risk calculation service
 
+
   - Create application/calculation/RiskCalculationService
   - Implement orchestration across all bounded contexts
   - Add convertMitigations() helper method
   - Coordinate: Valuation → Protection → Classification → Analysis
   - _Requirements: 2.1, 3.1, 4.1, 5.1, 6.1_
+
 
 
 - [x] 7.4 Create result value object
@@ -225,9 +228,11 @@
   - Implement publishCalculationFailed() method
   - Create BatchCalculationCompletedEvent record
   - Create BatchCalculationFailedEvent record
+
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
 - [x] 9. Implement infrastructure layer - Database
+
 
 
 
@@ -253,16 +258,21 @@
 
 
 
-- [ ] 9.3 Create JPA entities
+
+- [x] 9.3 Create JPA entities
+
   - Create infrastructure/database/entities/BatchEntity
   - Create infrastructure/database/entities/ExposureEntity
   - Create infrastructure/database/entities/MitigationEntity
   - Create infrastructure/database/entities/PortfolioAnalysisEntity
 
 
+
   - _Requirements: 7.1, 7.3, 7.5, 8.1_
 
-- [ ] 9.4 Create repository implementations
+
+- [x] 9.4 Create repository implementations
+
   - Create infrastructure/database/repositories/JpaExposureRepository
   - Create infrastructure/database/repositories/JpaMitigationRepository
   - Create infrastructure/database/repositories/JpaPortfolioAnalysisRepository
@@ -304,15 +314,24 @@
   - Add profile-based configuration
   - _Requirements: 2.1_
 
-- [ ] 11. Implement presentation layer
-- [ ] 11.1 Create DTOs
+- [x] 11. Implement presentation layer
+
+
+
+
+
+- [x] 11.1 Create DTOs
+
+
   - Create presentation/dto/RiskReportDTO
   - Create presentation/dto/BankInfoDTO
   - Create presentation/dto/ExposureDTO (generic with instrument_type)
   - Create presentation/dto/CreditRiskMitigationDTO
   - _Requirements: 1.1, 1.2_
 
-- [ ] 11.2 Create health and monitoring endpoints
+- [x] 11.2 Create health and monitoring endpoints
+
+
   - Verify existing health check controller
   - Verify existing metrics collector
   - Add batch status query endpoints if needed

@@ -1,47 +1,61 @@
 package com.bcbs239.regtech.riskcalculation.domain.calculation.events;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankId;
-
-import java.time.Instant;
 
 /**
- * Domain event published when risk calculation fails for a batch
+ * Domain event indicating that a batch calculation has failed.
  */
 public class BatchCalculationFailedEvent extends DomainEvent {
-    
-    private final BatchId batchId;
-    private final BankId bankId;
+    private final String batchId;
+    private final String bankId;
+    private final String errorCode;
     private final String errorMessage;
-    private final Instant failedAt;
-    
-    public BatchCalculationFailedEvent(BatchId batchId, BankId bankId, String errorMessage, Instant failedAt) {
-        super(batchId.value(), "BatchCalculationFailedEvent");
+    private final String failureReason;
+
+    public BatchCalculationFailedEvent(String batchId, String bankId, String errorCode, 
+                                      String errorMessage, String failureReason) {
+        super(batchId, "BatchCalculationFailed");
         this.batchId = batchId;
         this.bankId = bankId;
+        this.errorCode = errorCode;
         this.errorMessage = errorMessage;
-        this.failedAt = failedAt;
+        this.failureReason = failureReason;
     }
-    
-    public BatchId getBatchId() {
+
+    @Override
+    public String eventType() {
+        return "BatchCalculationFailed";
+    }
+
+    public String getBatchId() {
         return batchId;
     }
-    
-    public BankId getBankId() {
+
+    public String getBankId() {
         return bankId;
     }
-    
+
+    public String getErrorCode() {
+        return errorCode;
+    }
+
     public String getErrorMessage() {
         return errorMessage;
     }
-    
-    public Instant getFailedAt() {
-        return failedAt;
+
+    public String getFailureReason() {
+        return failureReason;
     }
-    
+
     @Override
-    public String eventType() {
-        return "BatchCalculationFailedEvent";
+    public String toString() {
+        return "BatchCalculationFailedEvent{" +
+                "batchId='" + batchId + '\'' +
+                ", bankId='" + bankId + '\'' +
+                ", errorCode='" + errorCode + '\'' +
+                ", errorMessage='" + errorMessage + '\'' +
+                ", failureReason='" + failureReason + '\'' +
+                ", timestamp=" + getTimestamp() +
+                '}';
     }
 }

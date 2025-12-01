@@ -20,19 +20,19 @@ public class ExposureMapper {
      */
     public ExposureEntity toEntity(ExposureRecording exposure, String batchId) {
         return ExposureEntity.builder()
-            .exposureId(exposure.getId().value())
+            .exposureId(exposure.id().value())
             .batchId(batchId)
-            .instrumentId(exposure.getInstrumentId().value())
-            .counterpartyId(exposure.getCounterparty().counterpartyId())
-            .counterpartyName(exposure.getCounterparty().name())
-            .counterpartyLei(exposure.getCounterparty().leiCode().orElse(null))
-            .exposureAmount(exposure.getExposureAmount().amount())
-            .currencyCode(exposure.getExposureAmount().currencyCode())
-            .productType(exposure.getClassification().productType())
-            .instrumentType(exposure.getClassification().instrumentType().name())
-            .balanceSheetType(exposure.getClassification().balanceSheetType().name())
-            .countryCode(exposure.getClassification().countryCode())
-            .recordedAt(exposure.getRecordedAt())
+            .instrumentId(exposure.instrumentId().value())
+            .counterpartyId(exposure.counterparty().counterpartyId())
+            .counterpartyName(exposure.counterparty().name())
+            .counterpartyLei(exposure.counterparty().leiCode().orElse(null))
+            .exposureAmount(exposure.exposureAmount().amount())
+            .currencyCode(exposure.exposureAmount().currencyCode())
+            .productType(exposure.classification().productType())
+            .instrumentType(exposure.classification().instrumentType().name())
+            .balanceSheetType(exposure.classification().balanceSheetType().name())
+            .countryCode(exposure.classification().countryCode())
+            .recordedAt(exposure.recordedAt())
             .build();
     }
     

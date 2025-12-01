@@ -3,154 +3,281 @@ package com.bcbs239.regtech.riskcalculation.application.calculation;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.riskcalculation.application.integration.RiskCalculationEventPublisher;
 import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchSummary;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.IBatchSummaryRepository;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchSummaryId;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
+import com.bcbs239.regtech.riskcalculation.domain.classification.ClassifiedExposure;
+import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
+import com.bcbs239.regtech.riskcalculation.domain.classification.ExposureClassifier;
+import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRecording;
+import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
+import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
+import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
+import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
+import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
+import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
+import com.bcbs239.regtech.riskcalculation.domain.valuation.ExposureValuation;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Command handler for calculating risk metrics.
- * Orchestrates the risk calculation workflow by coordinating with
- * classification and aggregation services.
+ * Orchestrates the risk calculation workflow using the new domain-driven architecture.
+ * 
+ * Workflow:
+ * 1. Download exposure data from S3/local filesystem
+ * 2. Parse JSON and create ExposureRecording objects
+ * 3. Save exposures to database
+ * 4. Convert to EUR using exchange rates
+ * 5. Classify exposures by region and sector
+ * 6. Calculate concentration indices (HHI)
+ * 7. Generate portfolio analysis
+ * 8. Persist results
+ * 9. Publish completion event
  */
 @Component
 @RequiredArgsConstructor
 @Slf4j
 public class CalculateRiskMetricsCommandHandler {
-    
-    private final IBatchSummaryRepository batchSummaryRepository;
-    private final RiskCalculationService riskCalculationService;
+
+    private final ExposureRepository exposureRepository;
+    private final PortfolioAnalysisRepository portfolioAnalysisRepository;
+    private final IFileStorageService fileStorageService;
+    private final ExchangeRateProvider exchangeRateProvider;
+    private final RiskCalculationEventPublisher eventPublisher;
+    private final ObjectMapper objectMapper;
     private final PerformanceMetrics performanceMetrics;
-    
+
     /**
      * Handles the risk metrics calculation command.
-     * Creates a batch summary and orchestrates the calculation workflow.
      * 
-     * Transaction boundaries:
-     * - @Transactional ensures automatic rollback on any exception
-     * - Error status is persisted before transaction commits
-     * - Failed calculations are marked with error messages for troubleshooting
-     * 
-     * @param command The calculate risk metrics command
-     * @return Result indicating success or failure of the operation
+     * @param command The calculation command
+     * @return Result indicating success or failure
      */
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional
     public Result<Void> handle(CalculateRiskMetricsCommand command) {
-        log.info("Starting risk calculation [batchId:{},bankId:{},sourceUri:{}]", 
-            command.batchId().value(), command.bankId().value(), command.sourceFileUri().uri());
+        String batchId = command.getBatchId();
         
-        // Record batch start for performance tracking
-        performanceMetrics.recordBatchStart(command.batchId().value());
+        // Record batch start
+        performanceMetrics.recordBatchStart(batchId);
         
-        BatchSummary batchSummary = null;
-        
+        log.info("Starting risk metrics calculation for batch: {} from bank: {}", 
+            batchId, command.getBankId());
+
         try {
-            // Step 1: Check idempotency - skip if batch already exists
-            if (batchSummaryRepository.existsByBatchId(command.batchId())) {
-                log.warn("Batch already exists, skipping duplicate processing [batchId:{}]", 
-                    command.batchId().value());
-                performanceMetrics.recordBatchSuccess(command.batchId().value(), 0);
-                return Result.success(null);
+            // Step 1: Download exposure data from S3/local filesystem
+            log.info("Downloading exposure data from: {}", command.getS3Uri());
+            Result<String> downloadResult = fileStorageService.retrieveFile(command.getS3Uri());
+            
+            if (downloadResult.isFailure()) {
+                log.error("Failed to download exposure data: {}", downloadResult.getError());
+                return Result.failure(downloadResult.getError());
             }
             
-            // Step 2: Create new batch summary with PENDING status
-            batchSummary = new BatchSummary(command.batchId(), command.bankId());
+            String jsonContent = downloadResult.getValue().orElse("");
+            log.info("Downloaded exposure data, size: {} bytes", jsonContent.length());
             
-            // Step 3: Start calculation process (transitions to DOWNLOADING)
-            Result<Void> startResult = batchSummary.startCalculation();
-            if (startResult.isFailure()) {
-                log.error("Failed to start calculation [batchId:{},error:{}]", 
-                    command.batchId().value(), startResult.getError().get().getMessage());
-                return startResult;
+            // Step 2: Parse JSON and create ExposureRecording objects
+            log.info("Parsing exposure data from JSON");
+            List<ExposureRecording> exposures = parseExposuresFromJson(jsonContent);
+            
+            if (exposures.isEmpty()) {
+                log.warn("No exposures found in JSON file for batch: {}", command.getBatchId());
+                return Result.failure(ErrorDetail.of("NO_EXPOSURES", ErrorType.BUSINESS_RULE_ERROR,
+                    "No exposures found in JSON file", "calculation.no.exposures"));
             }
             
-            // Step 4: Save initial state with DOWNLOADING status
-            Result<BatchSummary> saveResult = batchSummaryRepository.save(batchSummary);
-            if (saveResult.isFailure()) {
-                log.error("Failed to save initial batch summary [batchId:{},error:{}]", 
-                    command.batchId().value(), saveResult.getError().get().getMessage());
-                return Result.failure(saveResult.getError().get());
-            }
+            log.info("Parsed {} exposures from JSON", exposures.size());
             
-            batchSummary = saveResult.getValue().get();
+            // Step 3: Save exposures to database
+            log.info("Saving {} exposures to database", exposures.size());
+            exposureRepository.saveAll(exposures, command.getBatchId());
+            log.info("Successfully saved {} exposures to database", exposures.size());
+
+            // Step 4 & 5: Convert to EUR and classify exposures
+            ExposureClassifier classifier = new ExposureClassifier();
+            List<ClassifiedExposure> classifiedExposures = exposures.stream()
+                .map(exposure -> {
+                    // Convert to EUR using exchange rate provider
+                    EurAmount eurAmount;
+                    try {
+                        eurAmount = exchangeRateProvider.convertToEur(
+                            exposure.exposureAmount().amount(),
+                            exposure.exposureAmount().currency()
+                        );
+                    } catch (Exception e) {
+                        log.warn("Failed to convert exposure {} to EUR, using zero", exposure.id());
+                        eurAmount = EurAmount.zero();
+                    }
+                    
+                    // Classify by region and sector
+                    GeographicRegion region = classifier.classifyRegion(
+                        exposure.classification().countryCode()
+                    );
+                    EconomicSector sector = classifier.classifySector(
+                        exposure.classification().productType()
+                    );
+                    
+                    return ClassifiedExposure.of(
+                        exposure.id(),
+                        eurAmount,
+                        region,
+                        sector
+                    );
+                })
+                .collect(Collectors.toList());
+
+            log.info("Classified {} exposures", classifiedExposures.size());
+
+            // Step 6 & 7: Analyze portfolio (calculates concentration indices and breakdowns)
+            PortfolioAnalysis analysis = PortfolioAnalysis.analyze(
+                command.getBatchId(), 
+                classifiedExposures
+            );
+
+            log.info("Portfolio analysis completed - Geographic HHI: {}, Sector HHI: {}", 
+                analysis.getGeographicHHI().value(), analysis.getSectorHHI().value());
+
+            // Step 8: Persist results
+            portfolioAnalysisRepository.save(analysis);
             
-            // Step 5: Delegate to risk calculation service for processing
-            // This will handle file download, classification, aggregation, and storage
-            Result<Void> calculationResult = riskCalculationService.calculateRiskMetrics(
-                command, batchSummary);
-            
-            if (calculationResult.isFailure()) {
-                // Calculation failed - update status to FAILED with error message
-                String errorMessage = calculationResult.getError().get().getMessage();
-                log.error("Risk calculation failed [batchId:{},error:{}]", 
-                    command.batchId().value(), errorMessage);
-                
-                // Record failure for performance tracking
-                performanceMetrics.recordBatchFailure(command.batchId().value(), errorMessage);
-                
-                // Mark batch as failed and persist error status
-                Result<Void> failResult = batchSummary.failCalculation(errorMessage);
-                if (failResult.isFailure()) {
-                    log.error("Failed to mark batch as failed [batchId:{},error:{}]",
-                        command.batchId().value(), failResult.getError().get().getMessage());
-                }
-                
-                // Persist failed status (transaction will commit with FAILED status)
-                Result<BatchSummary> failedSaveResult = batchSummaryRepository.save(batchSummary);
-                if (failedSaveResult.isFailure()) {
-                    log.error("Failed to persist error status [batchId:{},error:{}]",
-                        command.batchId().value(), failedSaveResult.getError().get().getMessage());
-                }
-                
-                // Return the original calculation failure
-                return calculationResult;
-            }
-            
-            log.info("Risk calculation completed successfully [batchId:{},status:{}]", 
-                command.batchId().value(), batchSummary.getStatus());
-            
-            // Record successful completion with exposure count
-            performanceMetrics.recordBatchSuccess(
-                command.batchId().value(), 
-                command.expectedExposures().count());
-            
-            return Result.success(null);
-            
+            log.info("Risk metrics calculation completed successfully for batch: {}", 
+                batchId);
+
+            // Step 9: Publish success event
+            eventPublisher.publishBatchCalculationCompleted(
+                batchId,
+                command.getBankId(),
+                classifiedExposures.size()
+            );
+
+            // Record batch success with exposure count
+            performanceMetrics.recordBatchSuccess(batchId, classifiedExposures.size());
+
+            return Result.success();
+
         } catch (Exception e) {
-            // Unexpected exception - ensure error status is persisted before rollback
-            log.error("Unexpected error during risk calculation [batchId:{},error:{}]", 
-                command.batchId().value(), e.getMessage(), e);
+            log.error("Risk metrics calculation failed for batch: {}", batchId, e);
             
-            // Record failure for performance tracking
-            String errorMessage = "Unexpected error: " + e.getMessage();
-            performanceMetrics.recordBatchFailure(command.batchId().value(), errorMessage);
+            // Record batch failure with error message
+            performanceMetrics.recordBatchFailure(batchId, e.getMessage());
             
-            // Attempt to mark batch as failed if we have a batch summary
-            if (batchSummary != null) {
-                try {
-                    batchSummary.failCalculation(errorMessage);
-                    batchSummaryRepository.save(batchSummary);
-                    log.info("Marked batch as failed due to unexpected error [batchId:{}]",
-                        command.batchId().value());
-                } catch (Exception saveException) {
-                    log.error("Failed to persist error status after unexpected error [batchId:{},error:{}]",
-                        command.batchId().value(), saveException.getMessage());
-                }
-            }
-            
-            // Transaction will rollback, but error status should be persisted
-            return Result.failure(ErrorDetail.of(
-                "RISK_CALCULATION_ERROR",
-                ErrorType.SYSTEM_ERROR,
-                "Unexpected error during risk calculation: " + e.getMessage(),
-                "risk.calculation.unexpected.error"
-            ));
+            // Publish failure event
+            eventPublisher.publishBatchCalculationFailed(
+                batchId,
+                command.getBankId(),
+                e.getMessage()
+            );
+
+            return Result.failure(ErrorDetail.of("CALCULATION_FAILED", ErrorType.SYSTEM_ERROR,
+                "Risk calculation failed: " + e.getMessage(), "calculation.failed"));
         }
+    }
+    
+    /**
+     * Parses exposure data from JSON content.
+     * Expected JSON structure:
+     * {
+     *   "bank_info": {...},
+     *   "exposures": [
+     *     {
+     *       "exposure_id": "...",
+     *       "instrument_id": "...",
+     *       "instrument_type": "LOAN|BOND|DERIVATIVE",
+     *       "counterparty_name": "...",
+     *       "counterparty_id": "...",
+     *       "counterparty_lei": "...",
+     *       "exposure_amount": 123.45,
+     *       "currency": "EUR",
+     *       "product_type": "...",
+     *       "balance_sheet_type": "ON_BALANCE|OFF_BALANCE",
+     *       "country_code": "IT"
+     *     }
+     *   ]
+     * }
+     * 
+     * @param jsonContent The JSON content containing exposure data
+     * @return List of ExposureRecording objects
+     */
+    private List<ExposureRecording> parseExposuresFromJson(String jsonContent) throws Exception {
+        List<ExposureRecording> exposures = new ArrayList<>();
+        
+        JsonNode root = objectMapper.readTree(jsonContent);
+        JsonNode exposuresNode = root.get("exposures");
+        
+        if (exposuresNode == null || !exposuresNode.isArray()) {
+            log.warn("No 'exposures' array found in JSON");
+            return exposures;
+        }
+        
+        for (JsonNode exposureNode : exposuresNode) {
+            try {
+                ExposureRecording exposure = parseExposureFromNode(exposureNode);
+                if (exposure != null) {
+                    exposures.add(exposure);
+                }
+            } catch (Exception e) {
+                log.error("Failed to parse exposure from JSON node: {}", exposureNode, e);
+                // Continue parsing other exposures
+            }
+        }
+        
+        return exposures;
+    }
+    
+    /**
+     * Parses a single exposure from a JSON node.
+     */
+    private ExposureRecording parseExposureFromNode(JsonNode exposureNode) {
+        // Parse exposure fields
+        String exposureId = exposureNode.get("exposure_id").asText();
+        String instrumentId = exposureNode.get("instrument_id").asText();
+        String instrumentTypeStr = exposureNode.get("instrument_type").asText();
+        String counterpartyName = exposureNode.get("counterparty_name").asText();
+        String counterpartyId = exposureNode.get("counterparty_id").asText();
+        String counterpartyLei = exposureNode.has("counterparty_lei") ? 
+            exposureNode.get("counterparty_lei").asText() : "";
+        double exposureAmount = exposureNode.get("exposure_amount").asDouble();
+        String currency = exposureNode.get("currency").asText();
+        String productType = exposureNode.get("product_type").asText();
+        String balanceSheetTypeStr = exposureNode.get("balance_sheet_type").asText();
+        String countryCode = exposureNode.get("country_code").asText();
+        
+        // Create domain objects
+        var exposureIdObj = com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId.of(exposureId);
+        var instrumentIdObj = com.bcbs239.regtech.riskcalculation.domain.exposure.InstrumentId.of(instrumentId);
+        var counterparty = com.bcbs239.regtech.riskcalculation.domain.exposure.CounterpartyRef.of(
+            counterpartyId, counterpartyName, counterpartyLei);
+        var monetaryAmount = com.bcbs239.regtech.riskcalculation.domain.exposure.MonetaryAmount.of(
+            java.math.BigDecimal.valueOf(exposureAmount), currency);
+        
+        // Parse enums
+        var instrumentType = com.bcbs239.regtech.riskcalculation.domain.exposure.InstrumentType.valueOf(instrumentTypeStr);
+        var balanceSheetType = com.bcbs239.regtech.riskcalculation.domain.exposure.BalanceSheetType.valueOf(balanceSheetTypeStr);
+        
+        var classification = com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureClassification.of(
+            productType,
+            instrumentType,
+            balanceSheetType,
+            countryCode
+        );
+        
+        // Create ExposureRecording
+        return ExposureRecording.create(
+            exposureIdObj,
+            instrumentIdObj,
+            counterparty,
+            monetaryAmount,
+            classification
+        );
     }
 }

@@ -97,7 +97,7 @@ public class RiskReportIngestionService {
         // Requirement 1.3: Verify all exposure IDs are unique
         Set<ExposureId> exposureIds = new HashSet<>();
         for (var exposure : report.exposures()) {
-            if (!exposureIds.add(exposure.getId())) {
+            if (!exposureIds.add(exposure.id())) {
                 throw new InvalidReportException("Duplicate exposure IDs detected");
             }
         }

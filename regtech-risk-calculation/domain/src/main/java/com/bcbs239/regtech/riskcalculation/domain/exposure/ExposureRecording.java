@@ -10,15 +10,10 @@ import java.util.Objects;
  * Captures immutable facts about financial instruments
  * Represents a generic financial exposure (loan, bond, derivative, guarantee, etc.)
  */
-public class ExposureRecording {
-    
-    private final ExposureId id;
-    private final InstrumentId instrumentId;
-    private final CounterpartyRef counterparty;
-    private final MonetaryAmount exposureAmount;
-    private final ExposureClassification classification;
-    private final Instant recordedAt;
-    
+public record ExposureRecording(ExposureId id, InstrumentId instrumentId, CounterpartyRef counterparty,
+                                MonetaryAmount exposureAmount, ExposureClassification classification,
+                                Instant recordedAt) {
+
     public ExposureRecording(
             ExposureId id,
             InstrumentId instrumentId,
@@ -34,74 +29,50 @@ public class ExposureRecording {
         this.classification = Objects.requireNonNull(classification, "Classification cannot be null");
         this.recordedAt = Objects.requireNonNull(recordedAt, "Recorded timestamp cannot be null");
     }
-    
+
     /**
      * Factory method to create a new exposure recording
      */
     public static ExposureRecording create(
-        ExposureId id,
-        InstrumentId instrumentId,
-        CounterpartyRef counterparty,
-        MonetaryAmount exposureAmount,
-        ExposureClassification classification
+            ExposureId id,
+            InstrumentId instrumentId,
+            CounterpartyRef counterparty,
+            MonetaryAmount exposureAmount,
+            ExposureClassification classification
     ) {
         return new ExposureRecording(
-            id,
-            instrumentId,
-            counterparty,
-            exposureAmount,
-            classification,
-            Instant.now()
+                id,
+                instrumentId,
+                counterparty,
+                exposureAmount,
+                classification,
+                Instant.now()
         );
     }
-    
+
     /**
      * Factory method to reconstitute an exposure recording from persistence
      */
     public static ExposureRecording reconstitute(
-        ExposureId id,
-        InstrumentId instrumentId,
-        CounterpartyRef counterparty,
-        MonetaryAmount exposureAmount,
-        ExposureClassification classification,
-        Instant recordedAt
+            ExposureId id,
+            InstrumentId instrumentId,
+            CounterpartyRef counterparty,
+            MonetaryAmount exposureAmount,
+            ExposureClassification classification,
+            Instant recordedAt
     ) {
         return new ExposureRecording(
-            id,
-            instrumentId,
-            counterparty,
-            exposureAmount,
-            classification,
-            recordedAt
+                id,
+                instrumentId,
+                counterparty,
+                exposureAmount,
+                classification,
+                recordedAt
         );
     }
-    
+
     // Getters only - immutable aggregate
-    
-    public ExposureId getId() {
-        return id;
-    }
-    
-    public InstrumentId getInstrumentId() {
-        return instrumentId;
-    }
-    
-    public CounterpartyRef getCounterparty() {
-        return counterparty;
-    }
-    
-    public MonetaryAmount getExposureAmount() {
-        return exposureAmount;
-    }
-    
-    public ExposureClassification getClassification() {
-        return classification;
-    }
-    
-    public Instant getRecordedAt() {
-        return recordedAt;
-    }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -109,12 +80,12 @@ public class ExposureRecording {
         ExposureRecording that = (ExposureRecording) o;
         return Objects.equals(id, that.id);
     }
-    
+
     @Override
     public int hashCode() {
         return Objects.hash(id);
     }
-    
+
     @Override
     public String toString() {
         return "ExposureRecording{" +

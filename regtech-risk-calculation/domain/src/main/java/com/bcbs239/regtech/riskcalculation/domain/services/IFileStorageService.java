@@ -1,36 +1,35 @@
 package com.bcbs239.regtech.riskcalculation.domain.services;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
 
 /**
- * Domain service interface for file storage operations in risk calculation module.
- * Abstracts storage implementation (S3 or local filesystem) from domain logic.
+ * Domain service interface for file storage operations.
+ * This interface defines the contract for storing and retrieving files.
  */
 public interface IFileStorageService {
     
     /**
-     * Downloads file content from the given URI.
-     * 
-     * @param uri The file storage URI
-     * @return Result containing file content as string or error details
+     * Stores a file with the given content.
+     *
+     * @param fileName The name of the file to store
+     * @param content The content to store
+     * @return Result containing the storage URI or error
      */
-    Result<String> downloadFileContent(FileStorageUri uri);
+    Result<String> storeFile(String fileName, String content);
     
     /**
-     * Stores calculation results to file storage.
-     * 
-     * @param batchId The batch ID
-     * @param content The content to store (JSON string)
-     * @return Result containing the storage URI or error details
+     * Retrieves a file by its storage URI.
+     *
+     * @param storageUri The URI of the file to retrieve
+     * @return Result containing the file content or error
      */
-    Result<FileStorageUri> storeCalculationResults(BatchId batchId, String content);
+    Result<String> retrieveFile(String storageUri);
     
     /**
-     * Checks if the storage service is available and healthy.
-     * 
-     * @return Result containing true if service is healthy, error details otherwise
+     * Deletes a file by its storage URI.
+     *
+     * @param storageUri The URI of the file to delete
+     * @return Result indicating success or error
      */
-    Result<Boolean> checkServiceHealth();
+    Result<Void> deleteFile(String storageUri);
 }
