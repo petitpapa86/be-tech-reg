@@ -19,13 +19,13 @@ public class ExposureRecording {
     private final ExposureClassification classification;
     private final Instant recordedAt;
     
-    private ExposureRecording(
-        ExposureId id,
-        InstrumentId instrumentId,
-        CounterpartyRef counterparty,
-        MonetaryAmount exposureAmount,
-        ExposureClassification classification,
-        Instant recordedAt
+    public ExposureRecording(
+            ExposureId id,
+            InstrumentId instrumentId,
+            CounterpartyRef counterparty,
+            MonetaryAmount exposureAmount,
+            ExposureClassification classification,
+            Instant recordedAt
     ) {
         this.id = Objects.requireNonNull(id, "Exposure ID cannot be null");
         this.instrumentId = Objects.requireNonNull(instrumentId, "Instrument ID cannot be null");

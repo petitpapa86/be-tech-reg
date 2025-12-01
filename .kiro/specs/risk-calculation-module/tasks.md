@@ -164,26 +164,38 @@
   - **Validates: Requirements 6.4**
 
 - [ ] 7. Implement application layer orchestration
-- [ ] 7.1 Create ingestion service
+
+
+
+
+
+
+
+- [x] 7.1 Create ingestion service
+
   - Create application/ingestion/RiskReportIngestionService
   - Create application/ingestion/RiskReportMapper (DTO → Domain)
   - Create application/ingestion/IngestedRiskReport value object
   - Add validateRawReport() and validateIngestedReport() methods
   - _Requirements: 1.1, 1.3, 1.4, 1.5, 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [ ]* 7.2 Write property test for validation
+- [ ]* 7.2 Write property test for validationapplication
   - **Property 2: Exposure ID Uniqueness Detection**
   - **Property 3: Mitigation Referential Integrity**
   - **Validates: Requirements 1.3, 1.4**
 
-- [ ] 7.3 Create risk calculation service
+
+- [x] 7.3 Create risk calculation service
+
   - Create application/calculation/RiskCalculationService
   - Implement orchestration across all bounded contexts
   - Add convertMitigations() helper method
   - Coordinate: Valuation → Protection → Classification → Analysis
   - _Requirements: 2.1, 3.1, 4.1, 5.1, 6.1_
 
-- [ ] 7.4 Create result value object
+
+- [x] 7.4 Create result value object
+
   - Create application/calculation/RiskCalculationResult
   - Include batchId, bankInfo, totalExposures, analysis, ingestedAt
   - _Requirements: 6.1_
