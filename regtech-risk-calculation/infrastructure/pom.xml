@@ -108,5 +108,12 @@
 			<artifactId>postgresql</artifactId>
 			<scope>test</scope>
 		</dependency>
+		
+		<!-- jqwik for property-based testing -->
+		<dependency>
+			<groupId>net.jqwik</groupId>
+			<artifactId>jqwik</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 </project>

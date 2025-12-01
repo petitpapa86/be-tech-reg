@@ -26,6 +26,7 @@
 		
 		<!-- Version management for risk calculation module dependencies -->
 		<jackson.version>2.15.2</jackson.version>
+		<jqwik.version>1.8.2</jqwik.version>
 	</properties>
 	
 	<dependencyManagement>
@@ -69,6 +70,14 @@
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
 				<version>${jackson.version}</version>
+			</dependency>
+			
+			<!-- jqwik for property-based testing -->
+			<dependency>
+				<groupId>net.jqwik</groupId>
+				<artifactId>jqwik</artifactId>
+				<version>${jqwik.version}</version>
+				<scope>test</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

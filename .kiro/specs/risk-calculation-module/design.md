@@ -2,21 +2,22 @@
 
 ## Overview
 
-The Risk Calculation Module is a critical component of the RegTech platform that processes financial exposure data to calculate comprehensive risk metrics, geographic and sector concentration analysis, and regulatory compliance indicators. The module follows Clean Architecture principles with Domain-Driven Design (DDD) and integrates seamlessly with the existing event-driven architecture.
+The Risk Calculation Module processes financial exposure data through distinct bounded contexts following Domain-Driven Design principles. The module separates concerns across Exposure Recording, Valuation, Credit Protection, Classification, and Portfolio Analysis contexts, ensuring clean separation of responsibilities and supporting generic financial instruments (loans, bonds, derivatives, guarantees, etc.).
 
 ### Key Capabilities
 
-- **Real-time Risk Processing**: Automatically triggered by batch ingestion events
-- **Currency Normalization**: Converts all exposures to EUR using current exchange rates
+- **Generic Exposure Support**: Handles any type of financial instrument (LOAN, BOND, DERIVATIVE, GUARANTEE, CREDIT_LINE, REPO, SECURITY, INTERBANK, OTHER)
+- **Bounded Context Separation**: Clear separation between Recording, Valuation, Protection, Classification, and Analysis
+- **Currency Normalization**: Converts all exposures to EUR using exchange rates
+- **Credit Risk Mitigation**: Calculates net exposures after applying collateral and guarantees
 - **Geographic Classification**: Categorizes exposures by ITALY, EU_OTHER, and NON_EUROPEAN regions
 - **Sector Analysis**: Classifies exposures across RETAIL_MORTGAGE, SOVEREIGN, CORPORATE, BANKING, and OTHER sectors
 - **Concentration Metrics**: Calculates Herfindahl-Hirschman Index for both geographic and sector concentration
-- **Dual Storage Strategy**: Database for aggregated summaries, S3/filesystem for detailed calculations
-- **Event-Driven Integration**: Publishes completion events for downstream processing
+- **Database Persistence**: Stores batches, exposures, mitigations, and portfolio analysis results
 
 ## Architecture
 
-The Risk Calculation Module follows the established 4-layer architecture pattern with Maven multi-module structure:
+The Risk Calculation Module follows the established 4-layer architecture pattern with Maven multi-module structure and event-driven integration:
 
 ```
 regtech-risk-calculation/
@@ -26,195 +27,13 @@ regtech-risk-calculation/
 │   └── src/main/java/.../domain/             # Pure business logic
 ├── application/
 │   ├── pom.xml                               # Application layer POM  
-│   └── src/main/java/.../application/        # Commands, handlers, sagas
+│   └── src/main/java/.../application/        # Commands, handlers, services
 ├── infrastructure/
 │   ├── pom.xml                               # Infrastructure layer POM
 │   └── src/main/java/.../infrastructure/     # Repositories, external services
 └── presentation/
     ├── pom.xml                               # Presentation layer POM
     └── src/main/java/.../presentation/       # Controllers, DTOs, APIs
-```
-
-### Layer Dependencies
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Presentation Layer (regtech-risk-calculation-presentation) │
-│  - Health endpoints, monitoring APIs                        │
-│  - Risk calculation status queries                          │
-│  Dependencies: Application + Domain ONLY                    │
-├─────────────────────────────────────────────────────────────┤
-│  Infrastructure Layer (regtech-risk-calculation-infrastructure) │
-│  - File storage (S3 + filesystem)                          │
-│  - Database repositories                                    │
-│  - Currency exchange rate providers                        │
-│  - Event publishing infrastructure                          │
-│  Dependencies: Domain ONLY                                  │
-├─────────────────────────────────────────────────────────────┤
-│  Application Layer (regtech-risk-calculation-application)   │
-│  - Event listeners (BatchIngestedEventListener)            │
-│  - Command handlers (CalculateRiskMetricsCommandHandler)   │
-│  - Integration adapters                                     │
-│  Dependencies: Domain + regtech-core-application           │
-├─────────────────────────────────────────────────────────────┤
-│  Domain Layer (regtech-risk-calculation-domain)            │
-│  - Risk calculation aggregates                              │
-│  - Geographic and sector classification                     │
-│  - Concentration index calculations                         │
-│  - Currency conversion logic                                │
-│  Dependencies: regtech-core-domain ONLY                    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Maven POM Structure
-
-**Parent POM** (`regtech-risk-calculation/pom.xml`):
-```xml
-<parent>
-    <groupId>com.bcbs239</groupId>
-    <artifactId>regtech</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-</parent>
-
-<artifactId>regtech-risk-calculation</artifactId>
-<packaging>pom</packaging>
-<name>regtech-risk-calculation</name>
-
-<modules>
-    <module>domain</module>
-    <module>application</module>
-    <module>infrastructure</module>
-    <module>presentation</module>
-</modules>
-```
-
-**Domain Layer POM** (`regtech-risk-calculation/domain/pom.xml`):
-```xml
-<parent>
-    <groupId>com.bcbs239</groupId>
-    <artifactId>regtech-risk-calculation</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-</parent>
-
-<artifactId>regtech-risk-calculation-domain</artifactId>
-<name>regtech-risk-calculation-domain</name>
-
-<dependencies>
-    <dependency>
-        <groupId>com.bcbs239</groupId>
-        <artifactId>regtech-core-domain</artifactId>
-        <version>${project.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>org.projectlombok</groupId>
-        <artifactId>lombok</artifactId>
-        <optional>true</optional>
-    </dependency>
-</dependencies>
-```
-
-**Application Layer POM** (`regtech-risk-calculation/application/pom.xml`):
-```xml
-<parent>
-    <groupId>com.bcbs239</groupId>
-    <artifactId>regtech-risk-calculation</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-</parent>
-
-<artifactId>regtech-risk-calculation-application</artifactId>
-<name>regtech-risk-calculation-application</name>
-
-<dependencies>
-    <dependency>
-        <groupId>com.bcbs239</groupId>
-        <artifactId>regtech-risk-calculation-domain</artifactId>
-        <version>${project.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>com.bcbs239</groupId>
-        <artifactId>regtech-core-application</artifactId>
-        <version>${project.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-validation</artifactId>
-    </dependency>
-</dependencies>
-```
-
-**Infrastructure Layer POM** (`regtech-risk-calculation/infrastructure/pom.xml`):
-```xml
-<parent>
-    <groupId>com.bcbs239</groupId>
-    <artifactId>regtech-risk-calculation</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-</parent>
-
-<artifactId>regtech-risk-calculation-infrastructure</artifactId>
-<name>regtech-risk-calculation-infrastructure</name>
-
-<dependencies>
-    <dependency>
-        <groupId>com.bcbs239</groupId>
-        <artifactId>regtech-risk-calculation-domain</artifactId>
-        <version>${project.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>com.bcbs239</groupId>
-        <artifactId>regtech-core-infrastructure</artifactId>
-        <version>${project.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>software.amazon.awssdk</groupId>
-        <artifactId>s3</artifactId>
-    </dependency>
-</dependencies>
-```
-
-**Presentation Layer POM** (`regtech-risk-calculation/presentation/pom.xml`):
-```xml
-<parent>
-    <groupId>com.bcbs239</groupId>
-    <artifactId>regtech-risk-calculation</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-</parent>
-
-<artifactId>regtech-risk-calculation-presentation</artifactId>
-<name>regtech-risk-calculation-presentation</name>
-
-<dependencies>
-    <dependency>
-        <groupId>com.bcbs239</groupId>
-        <artifactId>regtech-risk-calculation-domain</artifactId>
-        <version>${project.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>com.bcbs239</groupId>
-        <artifactId>regtech-risk-calculation-application</artifactId>
-        <version>${project.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>com.bcbs239</groupId>
-        <artifactId>regtech-core-presentation</artifactId>
-        <version>${project.version}</version>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-validation</artifactId>
-    </dependency>
-</dependencies>
 ```
 
 ### Event Flow
@@ -224,725 +43,995 @@ sequenceDiagram
     participant Ingestion as Ingestion Module
     participant EventBus as Event Bus
     participant RiskCalc as Risk Calculation Module
-    participant S3 as S3/FileSystem
     participant DB as Database
     participant Downstream as Downstream Modules
 
     Ingestion->>EventBus: BatchIngestedEvent
     EventBus->>RiskCalc: Event received
-    RiskCalc->>DB: Create batch summary (PENDING)
-    RiskCalc->>S3: Download exposure data
-    RiskCalc->>RiskCalc: Convert currencies to EUR
-    RiskCalc->>RiskCalc: Classify geographic regions
-    RiskCalc->>RiskCalc: Classify sectors
-    RiskCalc->>RiskCalc: Calculate aggregates & HHI
-    RiskCalc->>S3: Upload detailed results
-    RiskCalc->>DB: Update batch summary (COMPLETED)
+    RiskCalc->>DB: Create batch (INGESTED)
+    RiskCalc->>RiskCalc: Valuation - Convert to EUR
+    RiskCalc->>RiskCalc: Protection - Apply mitigations
+    RiskCalc->>RiskCalc: Classification - Classify exposures
+    RiskCalc->>RiskCalc: Analysis - Calculate HHI
+    RiskCalc->>DB: Persist exposures, mitigations, analysis
+    RiskCalc->>DB: Update batch (COMPLETED)
     RiskCalc->>EventBus: BatchCalculationCompletedEvent
     EventBus->>Downstream: Notify completion
 ```
+
+### Bounded Contexts Flow
+
+```mermaid
+graph LR
+    A[Exposure Recording] --> B[Valuation Engine]
+    B --> C[Credit Protection]
+    C --> D[Classification Service]
+    D --> E[Portfolio Analysis]
+```
+
+**Data Flow:**
+1. **Exposure Recording**: Captures immutable facts (instrument ID, counterparty, original amount, currency, country, product type)
+2. **Valuation Engine**: Converts original amounts to EUR using exchange rates
+3. **Credit Protection**: Applies mitigations to calculate net exposures
+4. **Classification Service**: Classifies by geographic region and economic sector
+5. **Portfolio Analysis**: Aggregates and calculates concentration metrics (HHI)
 
 ## Components and Interfaces
 
 ### Domain Layer Components
 
-**Domain Organization by Capabilities**:
+**Domain Organization by Bounded Contexts**:
 
 ```
 domain/
-├── calculation/                    # Core calculation aggregates
-│   ├── BatchSummary.java          # Main aggregate root
-│   ├── CalculatedExposure.java    # Individual exposure entity
-│   └── events/
-│       ├── BatchCalculationStartedEvent.java
-│       ├── BatchCalculationCompletedEvent.java
-│       └── BatchCalculationFailedEvent.java
-├── classification/                 # Classification domain logic
-│   ├── GeographicClassifier.java
-│   ├── SectorClassifier.java
-│   └── ClassificationRules.java
-├── aggregation/                    # Aggregation and concentration
-│   ├── ConcentrationCalculator.java
-│   ├── HerfindahlIndex.java
-│   └── AggregationRules.java
-└── shared/                        # Shared value objects and enums
-    ├── valueobjects/
-    │   ├── BatchId.java
-    │   ├── AmountEur.java
-    │   └── ExchangeRate.java
-    └── enums/
-        ├── GeographicRegion.java
-        ├── SectorCategory.java
-        └── CalculationStatus.java
+├── exposure/                       # Exposure Recording context
+│   ├── ExposureRecording.java     # Aggregate root
+│   ├── InstrumentId.java          # Value object
+│   ├── InstrumentType.java        # Enum
+│   ├── CounterpartyRef.java       # Value object
+│   ├── MonetaryAmount.java        # Value object
+│   └── ExposureClassification.java # Value object
+├── valuation/                      # Valuation Engine context
+│   ├── ExposureValuation.java     # Aggregate root
+│   ├── EurAmount.java             # Value object
+│   ├── ExchangeRate.java          # Value object
+│   └── ExchangeRateProvider.java  # Domain service interface
+├── protection/                     # Credit Protection context
+│   ├── ProtectedExposure.java     # Aggregate root
+│   ├── Mitigation.java            # Entity
+│   ├── MitigationType.java        # Enum
+│   └── RawMitigationData.java     # Value object
+├── classification/                 # Classification context
+│   ├── ExposureClassifier.java    # Domain service
+│   ├── ClassifiedExposure.java    # Value object
+│   ├── GeographicRegion.java      # Enum
+│   └── EconomicSector.java        # Enum
+├── analysis/                       # Portfolio Analysis context
+│   ├── PortfolioAnalysis.java     # Aggregate root
+│   ├── Breakdown.java             # Value object
+│   ├── Share.java                 # Value object
+│   ├── HHI.java                   # Value object
+│   └── ConcentrationLevel.java    # Enum
+└── shared/                        # Shared value objects
+    ├── ExposureId.java
+    ├── BankInfo.java
+    └── BalanceSheetType.java
 ```
 
-#### Core Aggregates
+#### Exposure Recording Context
 
-**calculation/BatchSummary** - Main aggregate root for risk calculation results (using Lombok)
+**ExposureRecording** - Aggregate root for immutable exposure facts
 ```java
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class BatchSummary extends AggregateRoot<BatchSummaryId> {
-    private BatchId batchId;
-    private BankId bankId;
-    private CalculationStatus status;
-    private TotalExposures totalExposures;
-    private TotalAmountEur totalAmountEur;
-    private GeographicBreakdown geographicBreakdown;
-    private SectorBreakdown sectorBreakdown;
-    private ConcentrationIndices concentrationIndices;
-    private FileStorageUri resultFileUri;
-    private ProcessingTimestamps timestamps;
+public class ExposureRecording {
+    private final ExposureId id;
+    private final InstrumentId instrumentId;           // Generic: loan ID, bond ISIN, derivative contract, etc.
+    private final CounterpartyRef counterparty;
+    private final MonetaryAmount exposureAmount;       // Original amount in original currency
+    private final ExposureClassification classification;
+    private final Instant recordedAt;
     
-    // DDD: Ask the object to do the work
-    public void startCalculation() {
-        this.status = CalculationStatus.PENDING;
-        this.timestamps = ProcessingTimestamps.started();
-        addDomainEvent(new BatchCalculationStartedEvent(this.batchId));
-    }
-    
-    public void completeCalculation(GeographicBreakdown geographic, 
-                                  SectorBreakdown sector, 
-                                  ConcentrationIndices indices,
-                                  FileStorageUri resultUri) {
-        this.geographicBreakdown = geographic;
-        this.sectorBreakdown = sector;
-        this.concentrationIndices = indices;
-        this.resultFileUri = resultUri;
-        this.status = CalculationStatus.COMPLETED;
-        this.timestamps = this.timestamps.completed();
-        addDomainEvent(new BatchCalculationCompletedEvent(this.batchId, resultUri));
-    }
-    
-    public void failCalculation(String errorMessage) {
-        this.status = CalculationStatus.FAILED;
-        this.timestamps = this.timestamps.failed();
-        addDomainEvent(new BatchCalculationFailedEvent(this.batchId, errorMessage));
-    }
+    // Only getters - immutable
 }
 ```
 
-**calculation/CalculatedExposure** - Individual exposure with calculated metrics (using Lombok)
+**Value Objects**:
 ```java
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class CalculatedExposure extends Entity<ExposureId> {
-    private ExposureId exposureId;
-    private ClientName clientName;
-    private OriginalAmount originalAmount;
-    private OriginalCurrency originalCurrency;
-    private AmountEur amountEur;
-    private ExchangeRate exchangeRateUsed;
-    private Country country;
-    private GeographicRegion geographicRegion;
-    private Sector sector;
-    private SectorCategory sectorCategory;
-    private PercentageOfTotal percentageOfTotal;
-    
-    // DDD: Ask the object to do the work
-    public void convertCurrency(CurrencyConversionService conversionService) {
-        if (!originalCurrency.isEur()) {
-            var conversionResult = conversionService.convertToEur(originalAmount, originalCurrency, LocalDate.now());
-            if (conversionResult.isSuccess()) {
-                this.amountEur = conversionResult.getValue().get();
-                this.exchangeRateUsed = conversionService.getExchangeRate(originalCurrency, LocalDate.now()).getValue().get();
-            }
-        } else {
-            this.amountEur = AmountEur.from(originalAmount);
-            this.exchangeRateUsed = null; // No conversion needed
-        }
-    }
-    
-    public void classify(GeographicClassificationService geoService, SectorClassificationService sectorService, Country bankHomeCountry) {
-        this.geographicRegion = geoService.classify(this.country, bankHomeCountry);
-        this.sectorCategory = sectorService.classify(this.sector);
-    }
-    
-    public void calculatePercentage(TotalAmountEur totalPortfolio) {
-        this.percentageOfTotal = PercentageOfTotal.calculate(this.amountEur, totalPortfolio);
-    }
+public record InstrumentId(String value) {}
+
+public enum InstrumentType {
+    LOAN, BOND, DERIVATIVE, GUARANTEE, CREDIT_LINE, 
+    REPO, SECURITY, INTERBANK, OTHER
+}
+
+public record CounterpartyRef(
+    String counterpartyId,
+    String name,
+    Optional<String> leiCode
+) {}
+
+public record MonetaryAmount(
+    BigDecimal amount,
+    String currencyCode
+) {}
+
+public record ExposureClassification(
+    String productType,              // "Business Loan", "Corporate Bond", "IRS", etc.
+    InstrumentType instrumentType,   // LOAN, BOND, DERIVATIVE, etc.
+    BalanceSheetType balanceSheetType,
+    String countryCode
+) {}
+
+public enum BalanceSheetType {
+    ON_BALANCE,
+    OFF_BALANCE
 }
 ```
 
-#### Value Objects
+#### Valuation Engine Context
 
-**Key Value Objects (using records for immutability)**:
+**ExposureValuation** - Aggregate root for currency conversion
 ```java
-// Currency and amounts
-public record OriginalAmount(BigDecimal value) {
-    public OriginalAmount {
-        if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Amount must be positive");
+public class ExposureValuation {
+    private final ExposureId exposureId;
+    private final MonetaryAmount original;
+    private final EurAmount converted;
+    private final ExchangeRate rateUsed;
+    private final Instant valuedAt;
+    
+    public static ExposureValuation convert(
+        ExposureId exposureId,
+        MonetaryAmount original,
+        ExchangeRateProvider rateProvider
+    ) {
+        if ("EUR".equals(original.currencyCode())) {
+            // No conversion needed
+            return new ExposureValuation(
+                exposureId,
+                original,
+                new EurAmount(original.amount()),
+                ExchangeRate.identity(),
+                Instant.now()
+            );
         }
-    }
-}
-
-public record AmountEur(BigDecimal value) {
-    public static AmountEur from(OriginalAmount original) {
-        return new AmountEur(original.value());
-    }
-}
-
-public record OriginalCurrency(String code) {
-    public boolean isEur() {
-        return "EUR".equals(code);
-    }
-}
-
-public record ExchangeRate(BigDecimal rate, LocalDate date) {}
-
-// Identifiers
-public record BatchId(String value) {}
-public record BankId(String value) {}
-public record ExposureId(String value) {}
-public record BatchSummaryId(String value) {}
-
-// Business concepts
-public record ClientName(String value) {}
-public record Country(String code) {}
-public record Sector(String code) {}
-public record TotalExposures(int count) {}
-public record TotalAmountEur(BigDecimal value) {}
-public record PercentageOfTotal(BigDecimal value) {
-    public static PercentageOfTotal calculate(AmountEur amount, TotalAmountEur total) {
-        if (total.value().compareTo(BigDecimal.ZERO) == 0) {
-            return new PercentageOfTotal(BigDecimal.ZERO);
-        }
-        return new PercentageOfTotal(
-            amount.value()
-                .divide(total.value(), 4, RoundingMode.HALF_UP)
-                .multiply(new BigDecimal("100"))
-                .setScale(2, RoundingMode.HALF_UP)
+        
+        ExchangeRate rate = rateProvider.getRate(original.currencyCode(), "EUR");
+        BigDecimal eurAmount = original.amount().multiply(rate.rate());
+        
+        return new ExposureValuation(
+            exposureId,
+            original,
+            new EurAmount(eurAmount),
+            rate,
+            Instant.now()
         );
     }
 }
+```
 
-public record FileStorageUri(String uri) {}
+**Value Objects**:
+```java
+public record EurAmount(BigDecimal value) {
+    public EurAmount {
+        Objects.requireNonNull(value);
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("EUR amount cannot be negative");
+        }
+    }
+}
 
-public record ProcessingTimestamps(Instant startedAt, Instant completedAt, Instant failedAt) {
-    public static ProcessingTimestamps started() {
-        return new ProcessingTimestamps(Instant.now(), null, null);
-    }
-    
-    public ProcessingTimestamps completed() {
-        return new ProcessingTimestamps(startedAt, Instant.now(), failedAt);
-    }
-    
-    public ProcessingTimestamps failed() {
-        return new ProcessingTimestamps(startedAt, completedAt, Instant.now());
+public record ExchangeRate(
+    String fromCurrency,
+    String toCurrency,
+    BigDecimal rate,
+    LocalDate effectiveDate
+) {
+    public static ExchangeRate identity() {
+        return new ExchangeRate("EUR", "EUR", BigDecimal.ONE, LocalDate.now());
     }
 }
 ```
 
-**GeographicRegion** - Classification of exposure locations
+**Domain Service Interface**:
+```java
+public interface ExchangeRateProvider {
+    ExchangeRate getRate(String fromCurrency, String toCurrency);
+}
+```
+
+#### Credit Protection Context
+
+**ProtectedExposure** - Aggregate root for net exposure calculation
+```java
+public class ProtectedExposure {
+    private final ExposureId exposureId;
+    private final EurAmount grossExposure;
+    private final List<Mitigation> mitigations;
+    private final EurAmount netExposure;
+    
+    public static ProtectedExposure calculate(
+        ExposureId exposureId,
+        EurAmount grossExposure,
+        List<Mitigation> mitigations
+    ) {
+        BigDecimal totalMitigation = mitigations.stream()
+            .map(m -> m.eurValue().value())
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal net = grossExposure.value()
+            .subtract(totalMitigation)
+            .max(BigDecimal.ZERO);  // Net exposure cannot be negative
+        
+        return new ProtectedExposure(
+            exposureId,
+            grossExposure,
+            mitigations,
+            new EurAmount(net)
+        );
+    }
+}
+```
+
+**Mitigation Entity**:
+```java
+public class Mitigation {
+    private final MitigationType type;
+    private final EurAmount eurValue;
+    
+    public Mitigation(
+        MitigationType type,
+        BigDecimal value,
+        String currency,
+        ExchangeRateProvider rateProvider
+    ) {
+        this.type = Objects.requireNonNull(type);
+        
+        // Convert to EUR immediately
+        if ("EUR".equals(currency)) {
+            this.eurValue = new EurAmount(value);
+        } else {
+            ExchangeRate rate = rateProvider.getRate(currency, "EUR");
+            BigDecimal eurVal = value.multiply(rate.rate());
+            this.eurValue = new EurAmount(eurVal);
+        }
+    }
+}
+```
+
+**Value Objects**:
+```java
+public enum MitigationType {
+    FINANCIAL_COLLATERAL,
+    GUARANTEE,
+    PHYSICAL_ASSET,
+    REAL_ESTATE
+}
+
+public record RawMitigationData(
+    MitigationType type,
+    BigDecimal value,
+    String currency
+) {}
+```
+
+#### Classification Context
+
+**ExposureClassifier** - Domain service for classification
+```java
+public class ExposureClassifier {
+    
+    private static final Set<String> EU_COUNTRIES = Set.of(
+        "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR",
+        "DE", "GR", "HU", "IE", "LV", "LT", "LU", "MT", "NL", "PL",
+        "PT", "RO", "SK", "SI", "ES", "SE"
+    );
+    
+    public GeographicRegion classifyRegion(String countryCode) {
+        Objects.requireNonNull(countryCode);
+        
+        if ("IT".equals(countryCode)) {
+            return GeographicRegion.ITALY;
+        } else if (EU_COUNTRIES.contains(countryCode)) {
+            return GeographicRegion.EU_OTHER;
+        } else {
+            return GeographicRegion.NON_EUROPEAN;
+        }
+    }
+    
+    public EconomicSector classifySector(String productType) {
+        Objects.requireNonNull(productType);
+        
+        String normalized = productType.toUpperCase().trim();
+        
+        if (normalized.contains("MORTGAGE")) {
+            return EconomicSector.RETAIL_MORTGAGE;
+        } else if (normalized.contains("GOVERNMENT") || normalized.contains("TREASURY")) {
+            return EconomicSector.SOVEREIGN;
+        } else if (normalized.contains("INTERBANK")) {
+            return EconomicSector.BANKING;
+        } else if (normalized.contains("BUSINESS") || normalized.contains("EQUIPMENT") || 
+                   normalized.contains("CREDIT LINE")) {
+            return EconomicSector.CORPORATE;
+        } else {
+            return EconomicSector.OTHER;
+        }
+    }
+}
+```
+
+**Value Objects**:
 ```java
 public enum GeographicRegion {
-    ITALY,      // Home country exposures
-    EU_OTHER,   // Other European Union countries
-    NON_EUROPEAN // Rest of world
+    ITALY,
+    EU_OTHER,
+    NON_EUROPEAN
 }
+
+public enum EconomicSector {
+    RETAIL_MORTGAGE,
+    SOVEREIGN,
+    CORPORATE,
+    BANKING,
+    OTHER
+}
+
+public record ClassifiedExposure(
+    ExposureId exposureId,
+    EurAmount netExposure,
+    GeographicRegion region,
+    EconomicSector sector
+) {}
 ```
 
-**SectorCategory** - Economic sector classifications
-```java
-public enum SectorCategory {
-    RETAIL_MORTGAGE,  // Retail home loans
-    SOVEREIGN,        // Government bonds
-    CORPORATE,        // Corporate loans/bonds
-    BANKING,          // Interbank exposures
-    OTHER             // Other sectors
-}
-```
+#### Portfolio Analysis Context
 
-**HerfindahlIndex** - Concentration measurement (using record)
+**PortfolioAnalysis** - Aggregate root for concentration metrics
 ```java
-public record HerfindahlIndex(BigDecimal value) {
+public class PortfolioAnalysis {
+    private final String batchId;
+    private final EurAmount totalPortfolio;
+    private final Breakdown geographicBreakdown;
+    private final Breakdown sectorBreakdown;
+    private final HHI geographicHHI;
+    private final HHI sectorHHI;
+    private final Instant analyzedAt;
     
-    public static HerfindahlIndex calculate(Map<?, BigDecimal> breakdown, BigDecimal total) {
-        double hhi = breakdown.values().stream()
-            .mapToDouble(amount -> {
-                double share = amount.divide(total, 4, RoundingMode.HALF_UP).doubleValue();
-                return share * share;
+    public static PortfolioAnalysis analyze(
+        String batchId,
+        List<ClassifiedExposure> exposures
+    ) {
+        // Calculate total
+        BigDecimal total = exposures.stream()
+            .map(e -> e.netExposure().value())
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        EurAmount totalPortfolio = new EurAmount(total);
+        
+        // Geographic breakdown
+        Map<GeographicRegion, BigDecimal> geoAmounts = exposures.stream()
+            .collect(Collectors.groupingBy(
+                ClassifiedExposure::region,
+                Collectors.mapping(
+                    e -> e.netExposure().value(),
+                    Collectors.reducing(BigDecimal.ZERO, BigDecimal::add)
+                )
+            ));
+        
+        Breakdown geoBreakdown = Breakdown.from(geoAmounts, total);
+        HHI geoHHI = HHI.calculate(geoBreakdown);
+        
+        // Sector breakdown
+        Map<EconomicSector, BigDecimal> sectorAmounts = exposures.stream()
+            .collect(Collectors.groupingBy(
+                ClassifiedExposure::sector,
+                Collectors.mapping(
+                    e -> e.netExposure().value(),
+                    Collectors.reducing(BigDecimal.ZERO, BigDecimal::add)
+                )
+            ));
+        
+        Breakdown sectorBreakdown = Breakdown.from(sectorAmounts, total);
+        HHI sectorHHI = HHI.calculate(sectorBreakdown);
+        
+        return new PortfolioAnalysis(
+            batchId,
+            totalPortfolio,
+            geoBreakdown,
+            sectorBreakdown,
+            geoHHI,
+            sectorHHI,
+            Instant.now()
+        );
+    }
+}
+```
+
+**Value Objects**:
+```java
+public record Breakdown(Map<String, Share> shares) {
+    
+    public static Breakdown from(Map<?, BigDecimal> amounts, BigDecimal total) {
+        Map<String, Share> shares = amounts.entrySet().stream()
+            .collect(Collectors.toMap(
+                e -> e.getKey().toString(),
+                e -> Share.calculate(e.getValue(), total)
+            ));
+        return new Breakdown(Map.copyOf(shares));
+    }
+}
+
+public record Share(
+    EurAmount amount,
+    BigDecimal percentage
+) {
+    public static Share calculate(BigDecimal amount, BigDecimal total) {
+        BigDecimal pct = amount
+            .divide(total, 4, RoundingMode.HALF_UP)
+            .multiply(BigDecimal.valueOf(100));
+        return new Share(new EurAmount(amount), pct);
+    }
+}
+
+public record HHI(BigDecimal value, ConcentrationLevel level) {
+    
+    public HHI {
+        if (value.compareTo(BigDecimal.ZERO) < 0 || value.compareTo(BigDecimal.ONE) > 0) {
+            throw new IllegalArgumentException("HHI must be between 0 and 1");
+        }
+    }
+    
+    public static HHI calculate(Breakdown breakdown) {
+        BigDecimal hhi = breakdown.shares().values().stream()
+            .map(share -> {
+                BigDecimal decimal = share.percentage()
+                    .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP);
+                return decimal.multiply(decimal);
             })
-            .sum();
-        return new HerfindahlIndex(BigDecimal.valueOf(hhi).setScale(4, RoundingMode.HALF_UP));
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        ConcentrationLevel level;
+        if (hhi.compareTo(BigDecimal.valueOf(0.15)) < 0) {
+            level = ConcentrationLevel.LOW;
+        } else if (hhi.compareTo(BigDecimal.valueOf(0.25)) < 0) {
+            level = ConcentrationLevel.MODERATE;
+        } else {
+            level = ConcentrationLevel.HIGH;
+        }
+        
+        return new HHI(hhi, level);
     }
-    
-    public ConcentrationLevel getConcentrationLevel() {
-        if (value.compareTo(new BigDecimal("0.15")) < 0) return ConcentrationLevel.LOW;
-        if (value.compareTo(new BigDecimal("0.25")) < 0) return ConcentrationLevel.MODERATE;
-        return ConcentrationLevel.HIGH;
-    }
 }
-```
 
-#### Domain Services
-
-**CurrencyConversionService** - Handles currency conversion logic
-```java
-public interface CurrencyConversionService {
-    Result<AmountEur> convertToEur(OriginalAmount amount, OriginalCurrency currency, LocalDate date);
-    Result<ExchangeRate> getExchangeRate(OriginalCurrency from, LocalDate date);
-}
-```
-
-**GeographicClassificationService** - Classifies exposures by geography
-```java
-public interface GeographicClassificationService {
-    GeographicRegion classify(Country country, Country bankHomeCountry);
-}
-```
-
-**SectorClassificationService** - Classifies exposures by sector
-```java
-public interface SectorClassificationService {
-    SectorCategory classify(Sector sector);
+public enum ConcentrationLevel {
+    LOW,
+    MODERATE,
+    HIGH
 }
 ```
 
 ### Application Layer Components
 
-**Organized by Capabilities** (following regtech-billing pattern):
+**Organized by Capabilities**:
 
 ```
 application/
-├── calculation/                    # Core risk calculation capability
-│   ├── CalculateRiskMetricsCommand.java
-│   ├── CalculateRiskMetricsCommandHandler.java
-│   └── RiskCalculationService.java
-├── classification/                 # Geographic and sector classification
-│   ├── ClassifyExposuresCommand.java
-│   ├── ClassifyExposuresCommandHandler.java
-│   ├── GeographicClassificationService.java
-│   └── SectorClassificationService.java
-├── aggregation/                    # Summary statistics and concentration
-│   ├── CalculateAggregatesCommand.java
-│   ├── CalculateAggregatesCommandHandler.java
-│   └── ConcentrationCalculationService.java
-├── integration/                    # Cross-module event handling
-│   ├── BatchIngestedEventListener.java
-│   ├── BatchCompletedIntegrationAdapter.java
-│   └── RiskCalculationEventPublisher.java
-└── shared/                        # Common application services
-    ├── FileProcessingService.java
-    └── CurrencyConversionService.java
+├── ingestion/                      # Report ingestion and validation
+│   ├── RiskReportIngestionService.java
+│   ├── RiskReportMapper.java
+│   └── IngestedRiskReport.java
+├── calculation/                    # Risk calculation orchestration
+│   ├── RiskCalculationService.java
+│   └── RiskCalculationResult.java
+└── shared/                        # Shared exceptions
+    └── InvalidReportException.java
 ```
 
-#### Core Capability Components
+#### Ingestion Service
 
-**calculation/CalculateRiskMetricsCommand**
+**RiskReportIngestionService** - Orchestrates the entire calculation flow
 ```java
-public record CalculateRiskMetricsCommand(
-    BatchId batchId,
-    BankId bankId,
-    FileStorageUri sourceFileUri,
-    TotalExposures expectedExposures,
-    Maybe<String> correlationId
-) implements Command {
-    public static Result<CalculateRiskMetricsCommand> create(
+@Service
+public class RiskReportIngestionService {
+    
+    private final RiskReportMapper mapper;
+    private final RiskCalculationService calculationService;
+    
+    @Transactional
+    public RiskCalculationResult ingestAndCalculate(RiskReportDTO rawReport) {
+        
+        // Step 1: Validate raw input
+        validateRawReport(rawReport);
+        
+        // Step 2: Convert DTO → Domain
+        IngestedRiskReport ingestedReport = mapper.toDomain(rawReport);
+        
+        // Step 3: Validate domain model
+        validateIngestedReport(ingestedReport);
+        
+        // Step 4: Calculate risk metrics
+        PortfolioAnalysis analysis = calculationService.calculateRisk(
+            ingestedReport.getBatchId(),
+            ingestedReport.getExposures(),
+            ingestedReport.getMitigations()
+        );
+        
+        // Step 5: Return result
+        return new RiskCalculationResult(
+            ingestedReport.getBatchId(),
+            ingestedReport.getBankInfo(),
+            ingestedReport.getTotalExposures(),
+            analysis,
+            ingestedReport.getIngestedAt()
+        );
+    }
+}
+```
+
+**RiskCalculationService** - Orchestrates bounded context flow
+```java
+@Service
+public class RiskCalculationService {
+    
+    private final ExchangeRateProvider exchangeRateProvider;
+    private final ExposureClassifier classifier;
+    
+    public PortfolioAnalysis calculateRisk(
         String batchId,
-        String bankId,
-        String sourceFileUri,
-        int expectedExposures,
-        String correlationId
+        List<ExposureRecording> exposures,
+        Map<ExposureId, List<RawMitigationData>> mitigations
     ) {
-        // Validation logic
-    }
-}
-```
-
-**calculation/CalculateRiskMetricsCommandHandler**
-```java
-@Component
-@RequiredArgsConstructor
-public class CalculateRiskMetricsCommandHandler {
-    private final ILogger asyncLogger;
-    private final BaseUnitOfWork unitOfWork;
-    private final IBatchSummaryRepository batchSummaryRepository;
-    private final FileProcessingService fileProcessingService;
-    private final ClassifyExposuresCommandHandler classificationHandler;
-    private final CalculateAggregatesCommandHandler aggregationHandler;
-    
-    @Transactional
-    public Result<Void> handle(CalculateRiskMetricsCommand command) {
-        // Orchestrate the calculation workflow
-    }
-}
-```
-
-**integration/BatchIngestedEventListener**
-```java
-@Component
-@RequiredArgsConstructor
-public class BatchIngestedEventListener {
-    private final CalculateRiskMetricsCommandHandler commandHandler;
-    private final IBatchSummaryRepository batchSummaryRepository;
-    private final IEventProcessingFailureRepository failureRepository;
-    
-    @EventListener
-    @Async("riskCalculationExecutor")
-    @Transactional
-    public void handleBatchIngestedEvent(BatchIngestedEvent event) {
-        // Event processing with idempotency and error handling
+        // Step 1: Valuation - Convert to EUR
+        Map<ExposureId, ExposureValuation> valuations = exposures.stream()
+            .collect(Collectors.toMap(
+                ExposureRecording::getId,
+                exp -> ExposureValuation.convert(
+                    exp.getId(),
+                    exp.getExposureAmount(),
+                    exchangeRateProvider
+                )
+            ));
+        
+        // Step 2: Protection - Apply mitigations
+        Map<ExposureId, ProtectedExposure> protectedExposures = exposures.stream()
+            .collect(Collectors.toMap(
+                ExposureRecording::getId,
+                exp -> {
+                    EurAmount grossExposure = valuations.get(exp.getId()).getConverted();
+                    List<Mitigation> mits = convertMitigations(
+                        mitigations.getOrDefault(exp.getId(), List.of())
+                    );
+                    return ProtectedExposure.calculate(exp.getId(), grossExposure, mits);
+                }
+            ));
+        
+        // Step 3: Classification - Classify by region and sector
+        List<ClassifiedExposure> classified = exposures.stream()
+            .map(exp -> new ClassifiedExposure(
+                exp.getId(),
+                protectedExposures.get(exp.getId()).getNetExposure(),
+                classifier.classifyRegion(exp.getClassification().countryCode()),
+                classifier.classifySector(exp.getClassification().productType())
+            ))
+            .toList();
+        
+        // Step 4: Analysis - Calculate concentration metrics
+        return PortfolioAnalysis.analyze(batchId, classified);
     }
 }
 ```
 
 ### Infrastructure Layer Components
 
-#### Repositories
+#### Database Schema
 
-**IBatchSummaryRepository** - Domain interface for batch summary persistence
-```java
-public interface IBatchSummaryRepository {
-    Result<BatchSummary> save(BatchSummary batchSummary);
-    Result<BatchSummary> findByBatchId(BatchId batchId);
-    boolean existsByBatchId(BatchId batchId);
-    Result<List<BatchSummary>> findByBankId(BankId bankId);
-}
-```
-
-#### File Storage
-
-**IFileStorageService** - Abstraction for file operations
-```java
-public interface IFileStorageService {
-    Result<List<ExposureRecord>> downloadExposures(FileStorageUri uri);
-    Result<FileStorageUri> uploadCalculationResults(String batchId, CalculationResult results);
-}
-```
-
-**FileStorageServiceImpl** - Implementation with S3/filesystem switching
-```java
-@Service
-public class FileStorageServiceImpl implements IFileStorageService {
-    private final S3FileStorageService s3Service;
-    private final LocalFileStorageService localService;
-    private final boolean useS3;
-    
-    @Override
-    public Result<List<ExposureRecord>> downloadExposures(FileStorageUri uri) {
-        return useS3 ? s3Service.downloadExposures(uri) : localService.downloadExposures(uri);
-    }
-}
-```
-
-#### Currency Exchange
-
-**ExchangeRateProvider** - External exchange rate integration
-```java
-public interface ExchangeRateProvider {
-    Result<ExchangeRate> getRate(String fromCurrency, String toCurrency, LocalDate date);
-}
-```
-
-## Data Models
-
-### Database Schema
-
-**batch_summaries** - Main summary table
+**batches** - Batch metadata table
 ```sql
-CREATE TABLE batch_summaries (
-    id SERIAL PRIMARY KEY,
-    batch_id VARCHAR(100) UNIQUE NOT NULL,
-    bank_id VARCHAR(50) NOT NULL,
-    
-    -- Status and timestamps
-    status VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    
-    -- Totals
+CREATE TABLE batches (
+    batch_id VARCHAR(100) PRIMARY KEY,
+    bank_name VARCHAR(255) NOT NULL,
+    abi_code VARCHAR(10) NOT NULL,
+    lei_code VARCHAR(20) NOT NULL,
+    report_date DATE NOT NULL,
     total_exposures INTEGER NOT NULL,
-    total_amount_eur DECIMAL(20,2) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    ingested_at TIMESTAMP NOT NULL,
+    processed_at TIMESTAMP,
     
-    -- Geographic breakdown
-    italy_amount DECIMAL(20,2) NOT NULL,
-    italy_pct DECIMAL(5,2) NOT NULL,
-    italy_count INTEGER NOT NULL,
-    eu_amount DECIMAL(20,2) NOT NULL,
-    eu_pct DECIMAL(5,2) NOT NULL,
-    eu_count INTEGER NOT NULL,
-    non_eu_amount DECIMAL(20,2) NOT NULL,
-    non_eu_pct DECIMAL(5,2) NOT NULL,
-    non_eu_count INTEGER NOT NULL,
-    
-    -- Sector breakdown
-    retail_amount DECIMAL(20,2) NOT NULL,
-    retail_pct DECIMAL(5,2) NOT NULL,
-    retail_count INTEGER NOT NULL,
-    sovereign_amount DECIMAL(20,2) NOT NULL,
-    sovereign_pct DECIMAL(5,2) NOT NULL,
-    sovereign_count INTEGER NOT NULL,
-    corporate_amount DECIMAL(20,2) NOT NULL,
-    corporate_pct DECIMAL(5,2) NOT NULL,
-    corporate_count INTEGER NOT NULL,
-    banking_amount DECIMAL(20,2) NOT NULL,
-    banking_pct DECIMAL(5,2) NOT NULL,
-    banking_count INTEGER NOT NULL,
-    other_amount DECIMAL(20,2) NOT NULL,
-    other_pct DECIMAL(5,2) NOT NULL,
-    other_count INTEGER NOT NULL,
-    
-    -- Concentration metrics
-    herfindahl_geographic DECIMAL(6,4) NOT NULL,
-    herfindahl_sector DECIMAL(6,4) NOT NULL,
-    
-    -- File reference
-    result_file_uri TEXT NOT NULL,
-    
-    -- Error handling
-    error_message TEXT,
-    
-    -- Indexes
-    INDEX idx_batch_id (batch_id),
-    INDEX idx_bank_id (bank_id),
-    INDEX idx_status (status),
-    INDEX idx_created_at (created_at),
-    
-    -- Foreign key
-    FOREIGN KEY (batch_id) REFERENCES ingestion_batches(batch_id)
+    INDEX idx_report_date (report_date),
+    INDEX idx_status (status)
 );
 ```
 
-### File Storage Format
+**exposures** - Exposure records table
+```sql
+CREATE TABLE exposures (
+    exposure_id VARCHAR(100) PRIMARY KEY,
+    batch_id VARCHAR(100) NOT NULL,
+    instrument_id VARCHAR(100) NOT NULL,
+    
+    -- Counterparty
+    counterparty_id VARCHAR(100) NOT NULL,
+    counterparty_name VARCHAR(255) NOT NULL,
+    counterparty_lei VARCHAR(20),
+    
+    -- Monetary amount
+    exposure_amount DECIMAL(20, 2) NOT NULL,
+    currency_code VARCHAR(3) NOT NULL,
+    
+    -- Classification
+    product_type VARCHAR(100) NOT NULL,
+    instrument_type VARCHAR(20) NOT NULL,
+    balance_sheet_type VARCHAR(20) NOT NULL,
+    country_code VARCHAR(2) NOT NULL,
+    
+    -- Metadata
+    recorded_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    
+    FOREIGN KEY (batch_id) REFERENCES batches(batch_id),
+    INDEX idx_batch_id (batch_id),
+    INDEX idx_country_code (country_code)
+);
+```
 
-**Detailed Calculation Results** (JSON)
-```json
-{
-  "batch_id": "batch_20240331_001",
-  "calculated_at": "2024-03-31T14:23:47Z",
-  "summary": {
-    "total_exposures": 8,
-    "total_amount_eur": 2758075000.00,
-    "geographic_breakdown": {
-      "italy": {"amount": 2220000000.00, "pct": 80.50, "count": 3},
-      "eu_other": {"amount": 400000000.00, "pct": 14.50, "count": 3},
-      "non_eu": {"amount": 138075000.00, "pct": 5.00, "count": 2}
-    },
-    "sector_breakdown": {
-      "retail_mortgage": {"amount": 950000000.00, "pct": 34.45, "count": 1},
-      "sovereign": {"amount": 928242500.00, "pct": 33.66, "count": 2},
-      "corporate": {"amount": 545000000.00, "pct": 19.76, "count": 2},
-      "banking": {"amount": 334832500.00, "pct": 12.14, "count": 3}
-    },
-    "concentration_indices": {
-      "herfindahl_geographic": 0.6716,
-      "herfindahl_sector": 0.2858
-    }
-  },
-  "exposures": [
-    {
-      "exposure_id": "EXP_001",
-      "client_name": "MUTUI CASA TRENTINO",
-      "original_amount": 950000000.00,
-      "original_currency": "EUR",
-      "amount_eur": 950000000.00,
-      "exchange_rate_used": null,
-      "country": "IT",
-      "geographic_region": "ITALY",
-      "sector": "RETAIL_MORTGAGE",
-      "sector_category": "RETAIL_MORTGAGE",
-      "percentage_of_total": 34.45
-    }
-  ]
+**mitigations** - Credit risk mitigation table
+```sql
+CREATE TABLE mitigations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    exposure_id VARCHAR(100) NOT NULL,
+    batch_id VARCHAR(100) NOT NULL,
+    mitigation_type VARCHAR(50) NOT NULL,
+    value DECIMAL(20, 2) NOT NULL,
+    currency_code VARCHAR(3) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    
+    FOREIGN KEY (exposure_id) REFERENCES exposures(exposure_id),
+    FOREIGN KEY (batch_id) REFERENCES batches(batch_id),
+    INDEX idx_exposure_id (exposure_id),
+    INDEX idx_batch_id (batch_id)
+);
+```
+
+**portfolio_analysis** - Portfolio analysis results table
+```sql
+CREATE TABLE portfolio_analysis (
+    batch_id VARCHAR(100) PRIMARY KEY,
+    
+    -- Totals
+    total_portfolio_eur DECIMAL(20, 2) NOT NULL,
+    
+    -- Geographic breakdown
+    italy_amount DECIMAL(20, 2),
+    italy_percentage DECIMAL(5, 2),
+    eu_other_amount DECIMAL(20, 2),
+    eu_other_percentage DECIMAL(5, 2),
+    non_european_amount DECIMAL(20, 2),
+    non_european_percentage DECIMAL(5, 2),
+    
+    -- Sector breakdown
+    retail_mortgage_amount DECIMAL(20, 2),
+    retail_mortgage_percentage DECIMAL(5, 2),
+    sovereign_amount DECIMAL(20, 2),
+    sovereign_percentage DECIMAL(5, 2),
+    corporate_amount DECIMAL(20, 2),
+    corporate_percentage DECIMAL(5, 2),
+    banking_amount DECIMAL(20, 2),
+    banking_percentage DECIMAL(5, 2),
+    other_amount DECIMAL(20, 2),
+    other_percentage DECIMAL(5, 2),
+    
+    -- Concentration indices
+    geographic_hhi DECIMAL(6, 4) NOT NULL,
+    geographic_concentration_level VARCHAR(20) NOT NULL,
+    sector_hhi DECIMAL(6, 4) NOT NULL,
+    sector_concentration_level VARCHAR(20) NOT NULL,
+    
+    -- Metadata
+    analyzed_at TIMESTAMP NOT NULL,
+    
+    FOREIGN KEY (batch_id) REFERENCES batches(batch_id)
+);
+```
+
+#### Repository Interfaces
+
+**Domain Interfaces**:
+```java
+public interface ExposureRepository {
+    void save(ExposureRecording exposure, String batchId);
+    void saveAll(List<ExposureRecording> exposures, String batchId);
+    Optional<ExposureRecording> findById(ExposureId id);
+    List<ExposureRecording> findByBatchId(String batchId);
+}
+
+public interface MitigationRepository {
+    void save(ExposureId exposureId, String batchId, RawMitigationData mitigation);
+    void saveAll(ExposureId exposureId, String batchId, List<RawMitigationData> mitigations);
+    List<RawMitigationData> findByExposureId(ExposureId exposureId);
+}
+
+public interface PortfolioAnalysisRepository {
+    void save(PortfolioAnalysis analysis);
+    Optional<PortfolioAnalysis> findByBatchId(String batchId);
 }
 ```
 
-## Correctness Properties
+### Presentation Layer Components
 
-*A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
+**DTOs for Generic Exposures**:
 
-### Property Reflection
+```java
+public class RiskReportDTO {
+    private BankInfoDTO bankInfo;
+    private List<ExposureDTO> exposures;  // Generic exposures
+    private List<CreditRiskMitigationDTO> creditRiskMitigation;
+}
 
-After analyzing all acceptance criteria, I identified several areas where properties can be consolidated:
+public class ExposureDTO {
+    private String exposureId;
+    private String instrumentId;          // Generic: loan ID, bond ISIN, etc.
+    private String instrumentType;        // LOAN, BOND, DERIVATIVE, etc.
+    private String counterpartyName;
+    private String counterpartyId;
+    private String counterpartyLei;
+    private BigDecimal exposureAmount;
+    private String currency;
+    private String productType;           // "Business Loan", "Corporate Bond", etc.
+    private String balanceSheetType;
+    private String countryCode;
+}
+```
 
-**Redundancy Elimination:**
-- Properties 2.1, 2.2, 2.3, 2.4 can be combined into a comprehensive currency conversion property
-- Properties 3.1, 3.2, 3.3, 3.4, 3.5 can be combined into a comprehensive geographic classification property  
-- Properties 4.1, 4.2, 4.3, 4.4, 4.5 can be combined into a comprehensive sector classification property
-- Properties 5.1, 5.2, 5.3 can be combined into a comprehensive Herfindahl calculation property
-- Properties 7.1, 7.2, 7.3, 7.4 can be combined into a comprehensive event publishing property
+## Event-Driven Integration
 
-This consolidation reduces redundancy while maintaining complete validation coverage.
+### Inbound Events
 
-### Core Properties
+**BatchIngestedEvent** - Triggers risk calculation
+```java
+@Component
+public class BatchIngestedEventListener {
+    private final RiskReportIngestionService ingestionService;
+    
+    @EventListener
+    @Async
+    public void handleBatchIngested(BatchIngestedEvent event) {
+        log.info("Received BatchIngestedEvent for batch: {}", event.getBatchId());
+        
+        try {
+            // Download report from S3
+            RiskReportDTO report = downloadReport(event.getFileUri());
+            
+            // Process through bounded contexts
+            RiskCalculationResult result = ingestionService.ingestAndCalculate(report);
+            
+            log.info("Risk calculation completed for batch: {}", event.getBatchId());
+            
+        } catch (Exception e) {
+            log.error("Risk calculation failed for batch: {}", event.getBatchId(), e);
+            throw new RiskCalculationException("Failed to calculate risk metrics", e);
+        }
+    }
+}
+```
 
-**Property 1: Event Processing Responsiveness**
-*For any* valid BatchIngestedEvent, the system should initiate risk calculation processing and create a batch summary record with PENDING status within the specified time limit
-**Validates: Requirements 1.1, 1.2**
+### Outbound Events
 
-**Property 2: Parallel Processing Capability**
-*For any* set of BatchIngestedEvents received simultaneously, the system should process all of them in parallel without blocking or interference
-**Validates: Requirements 1.3**
+**BatchCalculationCompletedEvent** - Notifies downstream modules
+```java
+@Component
+public class RiskCalculationEventPublisher {
+    private final ApplicationEventPublisher eventPublisher;
+    
+    public void publishCalculationCompleted(
+        String batchId,
+        BankInfo bankInfo,
+        PortfolioAnalysis analysis
+    ) {
+        BatchCalculationCompletedEvent event = new BatchCalculationCompletedEvent(
+            batchId,
+            bankInfo,
+            analysis.getTotalPortfolio(),
+            analysis.getGeographicBreakdown(),
+            analysis.getSectorBreakdown(),
+            analysis.getGeographicHHI(),
+            analysis.getSectorHHI(),
+            Instant.now()
+        );
+        
+        eventPublisher.publishEvent(event);
+        log.info("Published BatchCalculationCompletedEvent for batch: {}", batchId);
+    }
+    
+    public void publishCalculationFailed(String batchId, String errorMessage) {
+        BatchCalculationFailedEvent event = new BatchCalculationFailedEvent(
+            batchId,
+            errorMessage,
+            Instant.now()
+        );
+        
+        eventPublisher.publishEvent(event);
+        log.error("Published BatchCalculationFailedEvent for batch: {}", batchId);
+    }
+}
+```
 
-**Property 3: Invalid Event Handling**
-*For any* BatchIngestedEvent with invalid data, the system should log appropriate errors and skip processing without affecting other valid events
-**Validates: Requirements 1.4**
+**Integration Event DTOs**:
+```java
+public record BatchCalculationCompletedEvent(
+    String batchId,
+    BankInfo bankInfo,
+    EurAmount totalPortfolio,
+    Breakdown geographicBreakdown,
+    Breakdown sectorBreakdown,
+    HHI geographicHHI,
+    HHI sectorHHI,
+    Instant completedAt
+) {}
 
-**Property 4: Idempotency Guarantee**
-*For any* BatchIngestedEvent processed multiple times, the system should detect duplicates and process each unique batch exactly once
-**Validates: Requirements 1.5**
-
-**Property 5: Currency Conversion Completeness**
-*For any* set of exposure records, all amounts should be converted to EUR with original amounts preserved, exchange rates recorded, and EUR amounts unchanged when already in EUR
-**Validates: Requirements 2.1, 2.2, 2.3, 2.4**
-
-**Property 6: Geographic Classification Accuracy**
-*For any* exposure record, the geographic region classification should correctly map countries to ITALY (home country), EU_OTHER (EU members), or NON_EUROPEAN (rest of world) with accurate totals and percentages
-**Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
-
-**Property 7: Sector Classification Completeness**
-*For any* exposure record, the sector classification should correctly map sector codes to standardized categories with accurate totals, percentages that sum to 100%, and proper use of total portfolio as denominator
-**Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.5**
-
-**Property 8: Herfindahl Index Calculation Accuracy**
-*For any* portfolio breakdown (geographic or sector), the Herfindahl-Hirschman Index should be calculated using the formula HHI = Σ(share_i)² with 4 decimal precision
-**Validates: Requirements 5.1, 5.2, 5.3, 5.5**
-
-**Property 9: Database Storage Consistency**
-*For any* completed risk calculation, exactly one batch summary record should be stored in the database with all required fields (geographic breakdowns, sector breakdowns, concentration indices, and storage URI reference)
-**Validates: Requirements 6.1, 6.2, 6.6**
-
-**Property 10: Event Publishing Completeness**
-*For any* successful risk calculation, a BatchCalculationCompletedEvent should be published containing batch summary data, storage URI, geographic breakdowns, sector breakdowns, and concentration indices
-**Validates: Requirements 7.1, 7.2, 7.3, 7.4**
-
-**Property 11: Error Event Publishing**
-*For any* failed risk calculation, a BatchCalculationFailedEvent should be published with appropriate error details
-**Validates: Requirements 7.5**
-
-**Property 12: Transaction Rollback on Failure**
-*For any* database operation failure during calculation, the transaction should be rolled back and the batch status should be marked as FAILED with error message
-**Validates: Requirements 8.3, 8.4**
-
-**Property 13: Error Logging Consistency**
-*For any* error that occurs during processing, structured error details should be logged for troubleshooting purposes
-**Validates: Requirements 8.5**
-
-**Property 14: Concurrent Processing Management**
-*For any* multiple batches being processed, the system should execute calculations in parallel using thread pools, and when resources are constrained, queue calculations for sequential processing
-**Validates: Requirements 9.1, 9.4**
-
-**Property 15: Processing Metrics Logging**
-*For any* completed calculation, processing time and throughput metrics should be logged
-**Validates: Requirements 9.5**
+public record BatchCalculationFailedEvent(
+    String batchId,
+    String errorMessage,
+    Instant failedAt
+) {}
+```
 
 ## Error Handling
 
-### Error Types and Recovery Strategies
+**Validation Errors**:
+- Bank information missing → InvalidReportException
+- Empty exposure portfolio → InvalidReportException
+- Missing mitigation data → InvalidReportException
+- Duplicate exposure IDs → InvalidReportException
+- Mitigations referencing non-existent exposures → InvalidReportException
 
-**File Download Failures**
-- Retry up to 3 times with exponential backoff (1s, 2s, 4s)
-- Log each retry attempt with structured details
-- Mark batch as FAILED after max retries exceeded
+**Exchange Rate Errors**:
+- Unavailable exchange rate → ExchangeRateProvider returns error
+- System fails calculation and logs error
 
-**Currency Conversion Failures**
-- Fail fast when exchange rate data unavailable
-- Log specific currency and date that failed
-- Mark entire batch as FAILED (no partial processing)
+**Event Processing Errors**:
+- Event listener catches exceptions and publishes BatchCalculationFailedEvent
+- Failed batches are marked with FAILED status in database
+- Error messages are logged for troubleshooting
 
-**Database Transaction Failures**
-- Automatic rollback via Spring @Transactional
-- Update batch status to FAILED with error message
-- Preserve error details for troubleshooting
+## Correctness Properties
 
-**Validation Failures**
-- Skip invalid events with structured logging
-- Continue processing other valid events
-- Track validation failure metrics
+*A property is a characteristic or behavior that should hold true across all valid executions of a system—essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
-### Error Event Publishing
+### Property 1: Instrument Type Support
+*For any* valid instrument type (LOAN, BOND, DERIVATIVE, GUARANTEE, CREDIT_LINE, REPO, SECURITY, INTERBANK, OTHER), the system should successfully parse and process exposures of that type
+**Validates: Requirements 1.2**
 
-**BatchCalculationFailedEvent**
-```java
-public class BatchCalculationFailedEvent extends IntegrationEvent {
-    private final String batchId;
-    private final String bankId;
-    private final String errorCode;
-    private final String errorMessage;
-    private final Instant failedAt;
-    private final CalculationStage failureStage;
-}
-```
+### Property 2: Exposure ID Uniqueness Detection
+*For any* batch of exposures, if duplicate exposure IDs exist, the system should detect and reject them with InvalidReportException
+**Validates: Requirements 1.3**
+
+### Property 3: Mitigation Referential Integrity
+*For any* set of mitigations, if a mitigation references a non-existent exposure ID, the system should detect and reject it with InvalidReportException
+**Validates: Requirements 1.4**
+
+### Property 4: Currency Conversion Correctness
+*For any* exposure with non-EUR currency, converting to EUR and then using the inverse rate should return approximately the original amount (within rounding tolerance)
+**Validates: Requirements 2.1**
+
+### Property 5: Original Amount Preservation
+*For any* exposure, after currency conversion, the original monetary amount and currency code should remain unchanged
+**Validates: Requirements 2.3**
+
+### Property 6: Net Exposure Calculation
+*For any* exposure with gross exposure G and total mitigations M, the net exposure should equal max(G - M, 0)
+**Validates: Requirements 3.3, 3.4**
+
+### Property 7: Mitigation Currency Conversion
+*For any* mitigation in non-EUR currency, the EUR-converted value should be positive and non-zero when the original value is positive
+**Validates: Requirements 3.2**
+
+### Property 8: Geographic Classification Completeness
+*For any* country code, the classification service should return exactly one of ITALY, EU_OTHER, or NON_EUROPEAN
+**Validates: Requirements 4.1**
+
+### Property 9: EU Country Classification
+*For any* country code in the EU_COUNTRIES set (excluding IT), the classification should be EU_OTHER
+**Validates: Requirements 4.3**
+
+### Property 10: Non-EU Country Classification
+*For any* country code not in the EU_COUNTRIES set and not IT, the classification should be NON_EUROPEAN
+**Validates: Requirements 4.4**
+
+### Property 11: Sector Classification Completeness
+*For any* product type string, the classification service should return exactly one of RETAIL_MORTGAGE, SOVEREIGN, CORPORATE, BANKING, or OTHER
+**Validates: Requirements 5.1**
+
+### Property 12: Mortgage Pattern Matching
+*For any* product type containing "MORTGAGE" (case-insensitive), the sector classification should be RETAIL_MORTGAGE
+**Validates: Requirements 5.2**
+
+### Property 13: Sovereign Pattern Matching
+*For any* product type containing "GOVERNMENT" or "TREASURY" (case-insensitive), the sector classification should be SOVEREIGN
+**Validates: Requirements 5.3**
+
+### Property 14: Banking Pattern Matching
+*For any* product type containing "INTERBANK" (case-insensitive), the sector classification should be BANKING
+**Validates: Requirements 5.4**
+
+### Property 15: Corporate Pattern Matching
+*For any* product type containing "BUSINESS", "EQUIPMENT", or "CREDIT LINE" (case-insensitive), the sector classification should be CORPORATE
+**Validates: Requirements 5.5**
+
+### Property 16: Portfolio Total Calculation
+*For any* list of classified exposures, the total portfolio amount should equal the sum of all net exposure amounts
+**Validates: Requirements 6.1**
+
+### Property 17: Geographic Breakdown Sum
+*For any* portfolio analysis, the sum of geographic breakdown amounts (ITALY + EU_OTHER + NON_EUROPEAN) should equal the total portfolio amount
+**Validates: Requirements 6.2**
+
+### Property 18: Geographic Percentage Sum
+*For any* portfolio analysis, the sum of geographic breakdown percentages should equal 100% (within rounding tolerance)
+**Validates: Requirements 6.2**
+
+### Property 19: Sector Breakdown Sum
+*For any* portfolio analysis, the sum of sector breakdown amounts should equal the total portfolio amount
+**Validates: Requirements 6.3**
+
+### Property 20: Sector Percentage Sum
+*For any* portfolio analysis, the sum of sector breakdown percentages should equal 100% (within rounding tolerance)
+**Validates: Requirements 6.3**
+
+### Property 21: HHI Formula Correctness
+*For any* breakdown with shares s₁, s₂, ..., sₙ, the HHI should equal Σ(sᵢ)² where shares are expressed as decimals (not percentages)
+**Validates: Requirements 6.4**
+
+### Property 22: HHI Range Constraint
+*For any* calculated HHI, the value should be between 0 and 1 (inclusive)
+**Validates: Requirements 6.4**
+
+### Property 23: Batch Persistence Completeness
+*For any* successfully ingested report, the batches table should contain a record with all required fields (bank_name, abi_code, lei_code, report_date, total_exposures, status, timestamps)
+**Validates: Requirements 7.1, 7.2**
+
+### Property 24: Exposure Persistence Count
+*For any* successfully ingested report with N exposures, the exposures table should contain exactly N records for that batch_id
+**Validates: Requirements 7.3**
+
+### Property 25: Exposure Persistence Completeness
+*For any* persisted exposure, all required fields should be non-null (exposure_id, batch_id, instrument_id, counterparty details, amounts, currency, classification, timestamps)
+**Validates: Requirements 7.4**
+
+### Property 26: Mitigation Persistence Count
+*For any* successfully ingested report with M mitigations, the mitigations table should contain exactly M records for that batch_id
+**Validates: Requirements 7.5**
+
+### Property 27: Portfolio Analysis Persistence
+*For any* successfully completed risk calculation, the portfolio_analysis table should contain exactly one record for that batch_id
+**Validates: Requirements 8.1**
+
+### Property 28: Portfolio Analysis Completeness
+*For any* persisted portfolio analysis, all breakdown fields (geographic and sector amounts/percentages) and HHI fields should be non-null
+**Validates: Requirements 8.3, 8.4, 8.5**
 
 ## Testing Strategy
 
-### Dual Testing Approach
-
-The Risk Calculation Module will implement both unit testing and property-based testing to ensure comprehensive coverage:
-
-**Unit Tests:**
-- Verify specific examples and edge cases
-- Test integration points between components
-- Validate error conditions and boundary values
-- Test configuration and setup scenarios
-
-**Property-Based Tests:**
-- Verify universal properties across all valid inputs
-- Use **QuickCheck for Java** as the property-based testing library
-- Configure each property test to run a minimum of 100 iterations
-- Generate random exposure data, currencies, countries, and sectors
-
-### Property-Based Testing Requirements
-
-Each correctness property will be implemented as a single property-based test with the following format:
-
-```java
-@Property
-@Report(Reporting.GENERATED)
-void property1_eventProcessingResponsiveness(@ForAll BatchIngestedEventGenerator event) {
-    /**
-     * Feature: risk-calculation-module, Property 1: Event Processing Responsiveness
-     * For any valid BatchIngestedEvent, the system should initiate risk calculation 
-     * processing and create a batch summary record with PENDING status within the specified time limit
-     */
-    
-    // Test implementation
-}
-```
-
-### Test Data Generation
-
-**Smart Generators:**
-- **CurrencyGenerator**: Generates realistic currency combinations (EUR, USD, GBP, CHF, etc.)
-- **CountryGenerator**: Generates valid country codes with proper EU/non-EU distribution
-- **SectorGenerator**: Generates realistic sector codes and categories
-- **ExposureGenerator**: Generates exposure records with realistic amounts and relationships
-- **BatchGenerator**: Generates complete batches with varying sizes and compositions
+### Unit Testing
+- Test value object validation (ExposureId, MonetaryAmount, EurAmount)
+- Test domain services (ExposureClassifier)
+- Test aggregate behavior (PortfolioAnalysis.analyze())
+- Test calculation logic (HHI.calculate(), Share.calculate())
+- Test specific error cases (Requirements 9.1-9.5)
 
 ### Integration Testing
+- Test complete flow from DTO to PortfolioAnalysis
+- Test database persistence for all entities
+- Test repository implementations
+- Test mapper conversions (DTO → Domain)
+- Test event-driven integration (BatchIngestedEvent → BatchCalculationCompletedEvent)
 
-**Event Flow Testing:**
-- Test complete event flow from BatchIngestedEvent to BatchCalculationCompletedEvent
-- Verify parallel processing with multiple concurrent events
-- Test error scenarios and recovery mechanisms
+### Property-Based Testing
+- Use **jqwik** (recommended for Java)
+- Each correctness property above should be implemented as a property-based test
+- Configure minimum 100 iterations per property test
+- Tag each property test with: `@Property("Feature: risk-calculation-module, Property N: [property description]")`
+- Generate random exposures, mitigations, and classifications for comprehensive testing
+- Test edge cases through generators (empty lists, zero amounts, boundary values)
 
-**Storage Testing:**
-- Test both S3 and filesystem storage implementations
-- Verify file encryption and URI generation
-- Test storage switching based on profile configuration
+## Summary
 
-**Database Testing:**
-- Use Testcontainers for PostgreSQL integration tests
-- Test transaction rollback scenarios
-- Verify foreign key constraints and indexing
-
-### Performance Testing
-
-**Load Testing:**
-- Test processing of batches up to 10,000 exposures
-- Verify 30-second completion time requirement
-- Test memory usage during large batch processing
-
-**Concurrency Testing:**
-- Test parallel processing of multiple batches
-- Verify thread pool configuration and resource management
-- Test system behavior under resource constraints
+This design separates concerns across five bounded contexts (Exposure Recording, Valuation, Credit Protection, Classification, Portfolio Analysis), supports generic financial instruments, and provides clear data flow from ingestion through analysis. The architecture follows Clean Architecture principles with proper layer separation and dependency management.

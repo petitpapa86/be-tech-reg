@@ -1,217 +1,281 @@
 # Implementation Plan
 
-- [x] 1. Set up project structure and core interfaces
-  - Create Maven multi-module structure with parent POM and 4 layer POMs
-  - Set up directory structure following established conventions
-  - Configure dependencies between layers according to Clean Architecture
-  - Set up basic Spring Boot configuration and profiles
-  - _Requirements: 1.1, 6.4_
+- [x] 1. Set up project structure and domain foundations
 
-- [x] 2. Implement domain layer foundations
-- [x] 2.1 Create shared domain foundation
-  - Create domain/shared/enums/ with GeographicRegion, SectorCategory, CalculationStatus
-  - Create domain/shared/valueobjects/ with records (BatchId, BankId, AmountEur, ExchangeRate, etc.)
-  - Add validation logic in record constructors for fail-fast behavior
-  - Create domain/shared/exceptions/ for domain-specific exceptions
-  - _Requirements: 3.1, 4.1, 2.1_
 
-- [x] 2.2 Create calculation capability domain
-  - Create domain/calculation/BatchSummary aggregate root using Lombok
-  - Add DDD behavior methods (startCalculation(), completeCalculation(), failCalculation())
-  - Create domain/calculation/CalculatedExposure entity using Lombok
-  - Add DDD behavior methods (convertCurrency(), classify(), calculatePercentage())
-  - Create domain/calculation/events/ for domain events
-  - Create domain/calculation/IBatchSummaryRepository interface
-  - _Requirements: 6.1, 6.2, 2.3_
 
-- [x] 2.3 Create classification and aggregation capabilities
-  - Create domain/classification/GeographicClassifier with EU country mapping
-  - Create domain/classification/SectorClassifier with sector code mapping (use switch expressions)
-  - Create domain/classification/ClassificationRules for business rules
-  - Create domain/aggregation/HerfindahlIndex as record with static calculate() method
-  - Create domain/aggregation/ConcentrationCalculator for all concentration metrics
-  - Add ConcentrationLevel enum and business logic methods
-  - _Requirements: 2.1, 3.1, 4.1, 5.1_
 
-- [x] 2.4 Create domain service interfaces
-  - Create domain/services/CurrencyConversionService interface
-  - Create domain/services/GeographicClassificationService interface  
-  - Create domain/services/SectorClassificationService interface
-  - _Requirements: 2.1, 3.1, 4.1_
 
-- [x] 3. Implement application layer commands and handlers
-- [x] 3.1 Create calculation capability commands
-  - Create application/calculation/CalculateRiskMetricsCommand as record with validation
-  - Add static factory method create() with Result-based validation
-  - Use Maybe<String> for optional correlationId parameter
-  - Create application/calculation/CalculateRiskMetricsCommandHandler using Lombok
-  - Create application/calculation/RiskCalculationService for orchestration
-  - _Requirements: 1.1, 1.4_
+  - Verify Maven multi-module structure (domain, application, infrastructure, presentation)
+  - Review existing directory structure and layer dependencies
+  - Update domain model to support bounded contexts
+  - _Requirements: 1.1, 1.2_
 
-- [x] 3.2 Create classification capability commands
-  - Create application/classification/ClassifyExposuresCommand and handler
-  - Use DDD approach: ask domain classifiers to do the work
-  - Create application/classification/GeographicClassificationService
-  - Create application/classification/SectorClassificationService
-  - _Requirements: 3.1, 4.1_
+- [x] 2. Implement Exposure Recording bounded context
 
-- [x] 3.3 Create aggregation capability commands
-  - Create application/aggregation/CalculateAggregatesCommand and handler
-  - Use DDD approach: ask ConcentrationCalculator to calculate HHI
-  - Create application/aggregation/ConcentrationCalculationService
-  - Implement summary statistics calculation logic
-  - _Requirements: 5.1, 6.1_
 
-- [x] 3.4 Create integration capability
-  - Create application/integration/BatchIngestedEventListener with async processing
-  - Add idempotency checking and duplicate detection
-  - Implement event filtering and validation
-  - Add error handling with EventProcessingFailure repository
-  - Create application/integration/BatchCompletedIntegrationAdapter (similar to data-quality)
-  - _Requirements: 1.1, 1.3, 1.4, 1.5_
 
-- [x] 3.5 Create shared application services
-  - Create application/shared/FileProcessingService for S3/filesystem operations
-  - Create application/shared/CurrencyConversionService with external rate provider
-  - Add caching and error handling for currency conversion
-  - _Requirements: 2.1, 2.5_
 
-- [x] 3.6 Create integration event publishers
+
+- [x] 2.1 Create Exposure Recording domain model
+
+
+  - Create domain/exposure/ExposureRecording aggregate root (immutable)
+  - Create domain/exposure/InstrumentId value object
+  - Create domain/exposure/InstrumentType enum (LOAN, BOND, DERIVATIVE, GUARANTEE, etc.)
+  - Create domain/exposure/CounterpartyRef value object
+  - Create domain/exposure/MonetaryAmount value object
+  - Create domain/exposure/ExposureClassification value object
+  - Create domain/exposure/BalanceSheetType enum
+  - _Requirements: 1.1, 1.2_
+
+- [ ]* 2.2 Write property test for Exposure Recording
+  - **Property 1: Instrument Type Support**
+  - **Validates: Requirements 1.2**
+
+- [x] 2.3 Create shared domain value objects
+
+
+  - Create domain/shared/ExposureId value object
+  - Create domain/shared/BankInfo value object
+  - Update existing BatchId if needed
+  - _Requirements: 1.1_
+
+- [x] 3. Implement Valuation Engine bounded context
+
+
+
+
+
+- [x] 3.1 Create Valuation Engine domain model
+
+
+  - Create domain/valuation/ExposureValuation aggregate root
+  - Create domain/valuation/EurAmount value object with validation
+  - Create domain/valuation/ExchangeRate value object with identity() factory
+  - Create domain/valuation/ExchangeRateProvider interface
+  - Add ExposureValuation.convert() factory method
+  - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+- [ ]* 3.2 Write property test for currency conversion
+  - **Property 4: Currency Conversion Correctness**
+  - **Validates: Requirements 2.1**
+
+- [ ]* 3.3 Write property test for original amount preservation
+  - **Property 5: Original Amount Preservation**
+  - **Validates: Requirements 2.3**
+
+- [ ] 4. Implement Credit Protection bounded context
+- [ ] 4.1 Create Credit Protection domain model
+  - Create domain/protection/ProtectedExposure aggregate root
+  - Create domain/protection/Mitigation entity with EUR conversion
+  - Create domain/protection/MitigationType enum
+  - Create domain/protection/RawMitigationData value object
+  - Add ProtectedExposure.calculate() factory method
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ]* 4.2 Write property test for net exposure calculation
+  - **Property 6: Net Exposure Calculation**
+  - **Validates: Requirements 3.3, 3.4**
+
+- [ ]* 4.3 Write property test for mitigation currency conversion
+  - **Property 7: Mitigation Currency Conversion**
+  - **Validates: Requirements 3.2**
+
+- [ ] 5. Implement Classification Service bounded context
+- [ ] 5.1 Create Classification domain model
+  - Create domain/classification/ExposureClassifier domain service
+  - Create domain/classification/GeographicRegion enum (ITALY, EU_OTHER, NON_EUROPEAN)
+  - Create domain/classification/EconomicSector enum (RETAIL_MORTGAGE, SOVEREIGN, CORPORATE, BANKING, OTHER)
+  - Create domain/classification/ClassifiedExposure value object
+  - Implement classifyRegion() with EU_COUNTRIES set
+  - Implement classifySector() with pattern matching
+  - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
+
+- [ ]* 5.2 Write property test for geographic classification
+  - **Property 8: Geographic Classification Completeness**
+  - **Validates: Requirements 4.1**
+
+- [ ]* 5.3 Write property test for EU country classification
+  - **Property 9: EU Country Classification**
+  - **Validates: Requirements 4.3**
+
+- [ ]* 5.4 Write property test for non-EU classification
+  - **Property 10: Non-EU Country Classification**
+  - **Validates: Requirements 4.4**
+
+- [ ]* 5.5 Write property test for sector classification
+  - **Property 11: Sector Classification Completeness**
+  - **Validates: Requirements 5.1**
+
+- [ ]* 5.6 Write property tests for sector pattern matching
+  - **Property 12: Mortgage Pattern Matching**
+  - **Property 13: Sovereign Pattern Matching**
+  - **Property 14: Banking Pattern Matching**
+  - **Property 15: Corporate Pattern Matching**
+  - **Validates: Requirements 5.2, 5.3, 5.4, 5.5**
+
+- [ ] 6. Implement Portfolio Analysis bounded context
+- [ ] 6.1 Create Portfolio Analysis domain model
+  - Create domain/analysis/PortfolioAnalysis aggregate root
+  - Create domain/analysis/Breakdown value object with from() factory
+  - Create domain/analysis/Share value object with calculate() factory
+  - Create domain/analysis/HHI value object with calculate() factory
+  - Create domain/analysis/ConcentrationLevel enum (LOW, MODERATE, HIGH)
+  - Add PortfolioAnalysis.analyze() factory method
+  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
+
+- [ ]* 6.2 Write property test for portfolio total
+  - **Property 16: Portfolio Total Calculation**
+  - **Validates: Requirements 6.1**
+
+- [ ]* 6.3 Write property tests for geographic breakdown
+  - **Property 17: Geographic Breakdown Sum**
+  - **Property 18: Geographic Percentage Sum**
+  - **Validates: Requirements 6.2**
+
+- [ ]* 6.4 Write property tests for sector breakdown
+  - **Property 19: Sector Breakdown Sum**
+  - **Property 20: Sector Percentage Sum**
+  - **Validates: Requirements 6.3**
+
+- [ ]* 6.5 Write property tests for HHI calculation
+  - **Property 21: HHI Formula Correctness**
+  - **Property 22: HHI Range Constraint**
+  - **Validates: Requirements 6.4**
+
+- [ ] 7. Implement application layer orchestration
+- [ ] 7.1 Create ingestion service
+  - Create application/ingestion/RiskReportIngestionService
+  - Create application/ingestion/RiskReportMapper (DTO → Domain)
+  - Create application/ingestion/IngestedRiskReport value object
+  - Add validateRawReport() and validateIngestedReport() methods
+  - _Requirements: 1.1, 1.3, 1.4, 1.5, 9.1, 9.2, 9.3, 9.4, 9.5_
+
+- [ ]* 7.2 Write property test for validation
+  - **Property 2: Exposure ID Uniqueness Detection**
+  - **Property 3: Mitigation Referential Integrity**
+  - **Validates: Requirements 1.3, 1.4**
+
+- [ ] 7.3 Create risk calculation service
+  - Create application/calculation/RiskCalculationService
+  - Implement orchestration across all bounded contexts
+  - Add convertMitigations() helper method
+  - Coordinate: Valuation → Protection → Classification → Analysis
+  - _Requirements: 2.1, 3.1, 4.1, 5.1, 6.1_
+
+- [ ] 7.4 Create result value object
+  - Create application/calculation/RiskCalculationResult
+  - Include batchId, bankInfo, totalExposures, analysis, ingestedAt
+  - _Requirements: 6.1_
+
+- [ ] 8. Implement event-driven integration
+- [ ] 8.1 Create event listener
+  - Create application/integration/BatchIngestedEventListener
+  - Add @EventListener and @Async annotations
+  - Implement handleBatchIngested() method
+  - Download report from S3 using file URI
+  - Call RiskReportIngestionService.ingestAndCalculate()
+  - Handle exceptions and publish failure events
+  - _Requirements: 1.1_
+
+- [ ] 8.2 Create event publisher
   - Create application/integration/RiskCalculationEventPublisher
-  - Implement BatchCalculationCompletedEvent and BatchCalculationFailedEvent
-  - Add event content validation and structured logging
-  - Use transactional event listeners for reliable publishing
+  - Implement publishCalculationCompleted() method
+  - Implement publishCalculationFailed() method
+  - Create BatchCalculationCompletedEvent record
+  - Create BatchCalculationFailedEvent record
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [x] 4. Implement infrastructure layer
-- [x] 4.1 Create database persistence
-  - Create infrastructure/database/entities/BatchSummaryEntity using Lombok
-  - Use @Entity, @Table, @Getter, @Setter, @Builder, @NoArgsConstructor/@AllArgsConstructor
-  - Create infrastructure/database/repositories/JpaBatchSummaryRepository
-  - Implement Result-based methods following established patterns
-  - Create infrastructure/database/mappers/ for domain ↔ entity conversion
-  - Create database migration scripts in src/main/resources/db/migration/ for batch_summaries table
-  - _Requirements: 6.1, 6.2, 6.6_
+- [ ] 9. Implement infrastructure layer - Database
+- [ ] 9.1 Create database schema
+  - Create migration V2__Create_risk_calculation_tables.sql
+  - Add batches table (batch_id, bank_name, abi_code, lei_code, report_date, total_exposures, status, timestamps)
+  - Add exposures table (exposure_id, batch_id, instrument_id, instrument_type, counterparty fields, amounts, currency, classification, timestamps)
+  - Add mitigations table (id, exposure_id, batch_id, mitigation_type, value, currency_code, timestamps)
+  - Add portfolio_analysis table (batch_id, totals, geographic breakdown, sector breakdown, HHI metrics, timestamps)
+  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 8.1, 8.2, 8.3, 8.4, 8.5_
 
-- [x] 4.2 Create file storage services
-  - Create infrastructure/filestorage/IFileStorageService interface
-  - Create infrastructure/filestorage/S3FileStorageService for production
-  - Create infrastructure/filestorage/LocalFileStorageService for development
-  - Add profile-based service selection and configuration (similar to ingestion module)
-  - _Requirements: 6.3, 6.4, 6.5_
+- [ ] 9.2 Create repository interfaces
+  - Create domain/repositories/ExposureRepository interface
+  - Create domain/repositories/MitigationRepository interface
+  - Create domain/repositories/PortfolioAnalysisRepository interface
+  - _Requirements: 7.3, 7.5, 8.1_
 
-- [ ] 4.3 Create external services
-  - Create infrastructure/external/ExchangeRateProvider interface and implementation
-  - Add caching for exchange rates to improve performance
-  - Implement error handling for unavailable rates
-  - Add configuration for exchange rate data sources
+- [ ] 9.3 Create JPA entities
+  - Create infrastructure/database/entities/BatchEntity
+  - Create infrastructure/database/entities/ExposureEntity
+  - Create infrastructure/database/entities/MitigationEntity
+  - Create infrastructure/database/entities/PortfolioAnalysisEntity
+  - _Requirements: 7.1, 7.3, 7.5, 8.1_
+
+- [ ] 9.4 Create repository implementations
+  - Create infrastructure/database/repositories/JpaExposureRepository
+  - Create infrastructure/database/repositories/JpaMitigationRepository
+  - Create infrastructure/database/repositories/JpaPortfolioAnalysisRepository
+  - Create Spring Data JPA repository interfaces
+  - Create entity mappers (Domain ↔ Entity)
+  - _Requirements: 7.3, 7.5, 8.1_
+
+- [ ]* 9.5 Write property tests for persistence
+  - **Property 23: Batch Persistence Completeness**
+  - **Property 24: Exposure Persistence Count**
+  - **Property 25: Exposure Persistence Completeness**
+  - **Property 26: Mitigation Persistence Count**
+  - **Property 27: Portfolio Analysis Persistence**
+  - **Property 28: Portfolio Analysis Completeness**
+  - **Validates: Requirements 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 8.1, 8.2, 8.3, 8.4, 8.5**
+
+- [ ] 10. Implement infrastructure layer - External Services
+- [ ] 10.1 Create exchange rate provider
+  - Create infrastructure/external/CurrencyApiExchangeRateProvider
+  - Implement ExchangeRateProvider interface
+  - Add WebClient configuration for currency API
+  - Create infrastructure/external/CurrencyApiProperties
+  - Add error handling for unavailable rates
   - _Requirements: 2.1, 2.5_
 
-- [x] 4.4 Create configuration and async processing
+- [ ] 10.2 Create configuration
   - Create infrastructure/config/RiskCalculationConfiguration
-  - Set up async executor configuration for parallel processing
-  - Configure thread pool sizes and queue management
-  - Add monitoring and metrics for thread pool usage
-  - _Requirements: 9.1, 9.4_
+  - Configure WebClient bean for currency API
+  - Set up async executor for event processing
+  - Add profile-based configuration
+  - _Requirements: 2.1_
 
-- [ ] 5. Implement presentation layer
-- [x] 5.1 Create health and monitoring endpoints
+- [ ] 11. Implement presentation layer
+- [ ] 11.1 Create DTOs
+  - Create presentation/dto/RiskReportDTO
+  - Create presentation/dto/BankInfoDTO
+  - Create presentation/dto/ExposureDTO (generic with instrument_type)
+  - Create presentation/dto/CreditRiskMitigationDTO
+  - _Requirements: 1.1, 1.2_
 
+- [ ] 11.2 Create health and monitoring endpoints
+  - Verify existing health check controller
+  - Verify existing metrics collector
+  - Add batch status query endpoints if needed
+  - _Requirements: 9.1_
 
-
-
-
-
-
-  - Implement health check controller for risk calculation service
-  - Add metrics endpoints for processing statistics
-  - Create status query endpoints for batch summaries
-  - _Requirements: 9.5_
-
-- [x] 6. Add comprehensive error handling and logging
-
-
-
-
-
-- [x] 6.1 Implement retry mechanisms
-
-
-  - Add exponential backoff for file download failures in FileProcessingService
-  - Configure retry policies with maximum attempt limits (3 retries)
-  - Add structured logging for retry attempts
-  - _Requirements: 8.1_
-
-- [x] 6.2 Add transaction rollback and error status handling
-
-
-  - Ensure proper transaction boundaries with @Transactional
-  - Implement error status updates for failed calculations
-  - Add error message persistence and retrieval
-  - _Requirements: 8.3, 8.4_
-
-- [x] 7. Configure integration with existing modules
-
-
-
-- [x] 7.1 Set up event bus integration
-
-
-  - Configure integration with regtech-core event bus
-  - Add event serialization and deserialization
-  - Set up inbox/outbox pattern for reliable event delivery
-  - _Requirements: 1.1, 7.1_
-
-
-- [x] 7.2 Add module to main application
-
-  - Update regtech-app POM to include risk-calculation module dependencies
-  - Configure Spring Boot auto-configuration
-  - Add profile-specific configurations
-  - _Requirements: 6.4_
-
-- [x] 8. Add performance optimizations and monitoring
-
-
-
-
-
-- [x] 8.1 Verify streaming JSON parsing implementation
-
-
-  - Verify streaming parser for large exposure files is working correctly
-  - Test memory usage during file processing
-  - Add memory usage monitoring and alerts
-  - _Requirements: 9.2_
-
-- [x] 8.2 Add performance monitoring and metrics
-
-
-  - Implement processing time tracking
-  - Add throughput metrics and logging
-  - Create performance dashboards and alerts
-  - _Requirements: 9.3, 9.5_
-
-- [ ] 9. Add comprehensive testing
-- [ ] 9.1 Add unit tests for domain layer
-  - Write unit tests for value objects (AmountEur, ExchangeRate, etc.)
-  - Write unit tests for domain entities (BatchSummary, CalculatedExposure)
-  - Write unit tests for classifiers (GeographicClassifier, SectorClassifier)
-  - Write unit tests for aggregation logic (HerfindahlIndex, ConcentrationCalculator)
+- [ ] 12. Add comprehensive testing
+- [ ]* 12.1 Add unit tests for domain layer
+  - Write unit tests for value objects (ExposureId, MonetaryAmount, EurAmount, etc.)
+  - Write unit tests for ExposureClassifier
+  - Write unit tests for aggregate factories (ExposureValuation.convert(), ProtectedExposure.calculate(), PortfolioAnalysis.analyze())
+  - Write unit tests for calculation logic (HHI.calculate(), Share.calculate())
   - _Requirements: All domain requirements_
 
-- [ ] 9.2 Add unit tests for application layer
-  - Write unit tests for command handlers
-  - Write unit tests for application services
-  - Write unit tests for event listeners
+- [ ]* 12.2 Add unit tests for application layer
+  - Write unit tests for RiskReportMapper
+  - Write unit tests for RiskCalculationService orchestration
+  - Write unit tests for validation logic
   - _Requirements: All application requirements_
 
-- [ ] 9.3 Add integration tests
-  - Write integration tests for database repositories
-  - Write integration tests for file storage services
-  - Write integration tests for event flow (BatchIngestedEvent → BatchCalculationCompletedEvent)
-  - _Requirements: 1.1, 6.1, 6.3, 7.1_
+- [ ]* 12.3 Add integration tests
+  - Write integration test for complete flow (DTO → PortfolioAnalysis)
+  - Write integration tests for database persistence
+  - Write integration test for event flow (BatchIngestedEvent → BatchCalculationCompletedEvent)
+  - Write integration test for exchange rate provider
+  - _Requirements: 1.1, 2.1, 6.1, 7.1, 8.1_
 
-- [ ] 10. Final checkpoint - Complete implementation
+- [ ] 13. Final checkpoint - Complete implementation
   - Ensure all tests pass, ask the user if questions arise.
-

@@ -45,6 +45,13 @@ public record ExchangeRate(BigDecimal rate, String fromCurrency, String toCurren
     }
     
     /**
+     * Creates an identity exchange rate for EUR to EUR conversion (rate = 1.0)
+     */
+    public static ExchangeRate identity() {
+        return new ExchangeRate(BigDecimal.ONE, "EUR", "EUR", LocalDate.now());
+    }
+    
+    /**
      * Convert an amount using this exchange rate
      */
     public AmountEur convert(BigDecimal originalAmount) {
