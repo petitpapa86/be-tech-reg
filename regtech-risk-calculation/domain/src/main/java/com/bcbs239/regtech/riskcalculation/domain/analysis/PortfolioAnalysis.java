@@ -4,9 +4,11 @@ import com.bcbs239.regtech.riskcalculation.domain.classification.ClassifiedExpos
 import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
 import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
  * 
  * This is the output of the portfolio analysis process
  */
+@Getter
 public class PortfolioAnalysis {
     
     private final String batchId;
@@ -30,6 +33,11 @@ public class PortfolioAnalysis {
     private final HHI geographicHHI;
     private final HHI sectorHHI;
     private final Instant analyzedAt;
+    
+    // NEW: State management fields
+    private ProcessingState state;
+    private ProcessingProgress progress;
+    private final List<ChunkMetadata> processedChunks;
     
     private PortfolioAnalysis(
         String batchId,
@@ -47,6 +55,11 @@ public class PortfolioAnalysis {
         this.geographicHHI = Objects.requireNonNull(geographicHHI, "Geographic HHI cannot be null");
         this.sectorHHI = Objects.requireNonNull(sectorHHI, "Sector HHI cannot be null");
         this.analyzedAt = Objects.requireNonNull(analyzedAt, "Analyzed timestamp cannot be null");
+        
+        // Initialize state management for completed analysis
+        this.state = ProcessingState.COMPLETED;
+        this.progress = null; // Not applicable for completed analysis
+        this.processedChunks = new ArrayList<>();
     }
     
     /**
@@ -104,33 +117,81 @@ public class PortfolioAnalysis {
         );
     }
     
-    // Getters
+    // NEW: State management methods
     
-    public String getBatchId() {
-        return batchId;
+    /**
+     * Starts processing - transitions to IN_PROGRESS state.
+     */
+    public void startProcessing(int totalExposures) {
+        if (state != ProcessingState.PENDING && state != null) {
+            throw new IllegalStateException("Can only start processing from PENDING state, current state: " + state);
+        }
+        
+        this.state = ProcessingState.IN_PROGRESS;
+        this.progress = ProcessingProgress.initial(totalExposures);
+        this.processedChunks.clear();
     }
     
-    public EurAmount getTotalPortfolio() {
-        return totalPortfolio;
+    /**
+     * Records completion of a chunk.
+     */
+    public void completeChunk(ChunkMetadata chunk) {
+        if (state != ProcessingState.IN_PROGRESS) {
+            throw new IllegalStateException("Can only complete chunks during IN_PROGRESS state, current state: " + state);
+        }
+        
+        this.processedChunks.add(chunk);
+        if (progress != null) {
+            this.progress = progress.addProcessed(chunk.size());
+        }
     }
     
-    public Breakdown getGeographicBreakdown() {
-        return geographicBreakdown;
+    /**
+     * Marks processing as complete.
+     */
+    public void complete() {
+        if (state != ProcessingState.IN_PROGRESS) {
+            throw new IllegalStateException("Can only complete from IN_PROGRESS state, current state: " + state);
+        }
+        
+        this.state = ProcessingState.COMPLETED;
+        // Keep progress for historical tracking
     }
     
-    public Breakdown getSectorBreakdown() {
-        return sectorBreakdown;
+    /**
+     * Marks processing as failed.
+     */
+    public void fail(String reason) {
+        if (state == ProcessingState.COMPLETED) {
+            throw new IllegalStateException("Cannot fail already completed analysis");
+        }
+        
+        this.state = ProcessingState.FAILED;
+        // Keep progress and chunks for debugging
     }
     
-    public HHI getGeographicHHI() {
-        return geographicHHI;
+    /**
+     * Checks if processing can be resumed.
+     */
+    public boolean canResume() {
+        return state == ProcessingState.IN_PROGRESS && !processedChunks.isEmpty();
     }
     
-    public HHI getSectorHHI() {
-        return sectorHHI;
+    /**
+     * Gets the index of the last processed chunk.
+     */
+    public int getLastProcessedChunkIndex() {
+        if (processedChunks.isEmpty()) {
+            return -1;
+        }
+        return processedChunks.get(processedChunks.size() - 1).index();
     }
     
-    public Instant getAnalyzedAt() {
-        return analyzedAt;
+    /**
+     * Gets a copy of the processed chunks list.
+     */
+    public List<ChunkMetadata> getProcessedChunks() {
+        return new ArrayList<>(processedChunks);
     }
+
 }

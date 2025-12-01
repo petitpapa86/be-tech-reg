@@ -17,8 +17,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 /**
  * Local filesystem implementation of FileStorageService for development mode.
@@ -26,9 +24,12 @@ import java.time.format.DateTimeFormatter;
  * 
  * Directory structure:
  * /data/raw/
- *   ├── batch_20240331_001.json
- *   ├── batch_20240331_002.json
+ *   ├── batch_20240331_120000_a1b2c3d4-e5f6-7890-abcd-ef1234567890.json
+ *   ├── batch_20240331_130000_b2c3d4e5-f6a7-8901-bcde-f12345678901.json
  *   └── ...
+ * 
+ * Filename format: {batchId}.json
+ * where batchId = batch_YYYYMMDD_HHMMSS_UUID
  */
 @Service("ingestionLocalFileStorageService")
 @ConditionalOnProperty(name = "ingestion.storage.type", havingValue = "local", matchIfMissing = false)
@@ -36,7 +37,6 @@ public class LocalFileStorageService implements FileStorageService {
 
     private static final Logger log = LoggerFactory.getLogger(LocalFileStorageService.class);
     private static final String BASE_PATH = "data/raw";
-    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
 
     @Override
     public Result<S3Reference> storeFile(InputStream fileStream,
@@ -81,9 +81,9 @@ public class LocalFileStorageService implements FileStorageService {
                 log.info("Created base directory: {}", baseDir.toAbsolutePath());
             }
 
-            // Generate filename: batch_20240331_001.json
-            String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMATTER);
-            String fileName = String.format("batch_%s_%s.json", timestamp, batchId);
+            // Generate filename using batchId (which already contains timestamp and UUID)
+            // Format: batch_YYYYMMDD_HHMMSS_UUID.json
+            String fileName = String.format("%s.json", batchId);
             Path filePath = baseDir.resolve(fileName);
 
             // Write file to filesystem
