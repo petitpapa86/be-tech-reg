@@ -200,8 +200,15 @@
   - Include batchId, bankInfo, totalExposures, analysis, ingestedAt
   - _Requirements: 6.1_
 
-- [ ] 8. Implement event-driven integration
-- [ ] 8.1 Create event listener
+- [x] 8. Implement event-driven integration
+
+
+
+
+
+
+- [x] 8.1 Create event listener
+
   - Create application/integration/BatchIngestedEventListener
   - Add @EventListener and @Async annotations
   - Implement handleBatchIngested() method
@@ -210,7 +217,9 @@
   - Handle exceptions and publish failure events
   - _Requirements: 1.1_
 
-- [ ] 8.2 Create event publisher
+- [x] 8.2 Create event publisher
+
+
   - Create application/integration/RiskCalculationEventPublisher
   - Implement publishCalculationCompleted() method
   - Implement publishCalculationFailed() method
