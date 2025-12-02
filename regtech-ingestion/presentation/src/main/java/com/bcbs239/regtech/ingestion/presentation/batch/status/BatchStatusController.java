@@ -29,7 +29,7 @@ import static org.springframework.web.servlet.function.RouterFunctions.route;
  * Functional endpoint for batch status queries.
  * Provides real-time status information for uploaded batches.
  */
-@Component
+@Component("ingestionBatchStatusController")
 public class BatchStatusController extends BaseController implements IEndpoint {
     
     private final BatchStatusQueryHandler batchStatusQueryHandler;

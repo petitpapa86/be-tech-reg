@@ -18,7 +18,7 @@ import java.util.Map;
 /**
  * Mapper for converting between PortfolioAnalysis domain model and PortfolioAnalysisEntity
  */
-@Component
+@Component("portfolioAnalysisEntityMapper")
 public class PortfolioAnalysisMapper {
     
     /**

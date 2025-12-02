@@ -65,14 +65,7 @@ public class RiskCalculationConfiguration {
             .build();
     }
 
-    /**
-     * ObjectMapper for JSON parsing
-     * Used by CurrencyApiExchangeRateProvider
-     */
-    @Bean
-    public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
-        return new com.fasterxml.jackson.databind.ObjectMapper();
-    }
+    // ObjectMapper bean removed - using the one from core infrastructure (loggingObjectMapper)
 
     // Removed deprecated classifier beans - functionality moved to ExposureClassifier
 

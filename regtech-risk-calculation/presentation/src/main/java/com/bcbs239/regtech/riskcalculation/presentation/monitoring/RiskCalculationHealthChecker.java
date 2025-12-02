@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.riskcalculation.presentation.monitoring;
 
-import com.bcbs239.regtech.riskcalculation.domain.calculation.IBatchSummaryRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.MitigationRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
@@ -11,13 +10,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Map;
 
 /**
  * Health checker for risk calculation module components.
  * Performs health checks on database, file storage, and external services.
- * Verifies connectivity to new bounded context repositories.
+ * Verifies connectivity to bounded context repositories.
  * 
  * Requirements: 5.2, 5.3, 5.4, 5.5
  */
@@ -26,7 +24,6 @@ public class RiskCalculationHealthChecker {
     
     private static final Logger logger = LoggerFactory.getLogger(RiskCalculationHealthChecker.class);
     
-    private final IBatchSummaryRepository batchSummaryRepository;
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
     private final ExposureRepository exposureRepository;
     private final MitigationRepository mitigationRepository;
@@ -34,14 +31,12 @@ public class RiskCalculationHealthChecker {
     private final ExchangeRateProvider exchangeRateProvider;
     
     public RiskCalculationHealthChecker(
-        IBatchSummaryRepository batchSummaryRepository,
         PortfolioAnalysisRepository portfolioAnalysisRepository,
         ExposureRepository exposureRepository,
         MitigationRepository mitigationRepository,
         IFileStorageService fileStorageService,
         ExchangeRateProvider exchangeRateProvider
     ) {
-        this.batchSummaryRepository = batchSummaryRepository;
         this.portfolioAnalysisRepository = portfolioAnalysisRepository;
         this.exposureRepository = exposureRepository;
         this.mitigationRepository = mitigationRepository;
@@ -58,8 +53,7 @@ public class RiskCalculationHealthChecker {
             Instant startTime = Instant.now();
             
             // Verify all repositories are injected
-            boolean allRepositoriesAvailable = batchSummaryRepository != null
-                && portfolioAnalysisRepository != null
+            boolean allRepositoriesAvailable = portfolioAnalysisRepository != null
                 && exposureRepository != null
                 && mitigationRepository != null;
             
@@ -68,7 +62,6 @@ public class RiskCalculationHealthChecker {
                     "DOWN",
                     "One or more database repositories not available",
                     Map.of(
-                        "batchSummaryRepository", batchSummaryRepository != null,
                         "portfolioAnalysisRepository", portfolioAnalysisRepository != null,
                         "exposureRepository", exposureRepository != null,
                         "mitigationRepository", mitigationRepository != null
@@ -87,7 +80,6 @@ public class RiskCalculationHealthChecker {
                         "responseTime", duration + "ms",
                         "connectionPool", "active",
                         "repositories", Map.of(
-                            "batchSummary", "available",
                             "portfolioAnalysis", "available",
                             "exposure", "available",
                             "mitigation", "available"

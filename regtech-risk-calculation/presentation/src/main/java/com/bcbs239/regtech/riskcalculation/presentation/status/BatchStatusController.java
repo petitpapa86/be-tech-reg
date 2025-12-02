@@ -21,7 +21,7 @@ import java.util.Optional;
  * 
  * Requirements: 2.1, 2.2, 5.1
  */
-@Component
+@Component("riskCalculationBatchStatusController")
 public class BatchStatusController extends BaseController {
     
     private static final Logger logger = LoggerFactory.getLogger(BatchStatusController.class);
