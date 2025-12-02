@@ -24,8 +24,14 @@
   - Add comments documenting each schema's purpose
   - _Requirements: 1.1, 1.2, 1.3_
 
-- [ ] 3. Organize existing migrations into schema-specific folders
-- [ ] 3.1 Create migration folder structure
+- [x] 3. Organize existing migrations into schema-specific folders
+
+
+
+
+- [x] 3.1 Create migration folder structure
+
+
   - Create db/migration/common folder
   - Create db/migration/iam folder
   - Create db/migration/billing folder
@@ -35,7 +41,9 @@
   - Create db/migration/reportgeneration folder
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
 
-- [ ] 3.2 Move IAM migrations
+
+- [x] 3.2 Move IAM migrations
+
   - Move V202511142041__Create_roles_and_permissions_tables.sql to db/migration/iam/
   - Move V202511142042__Add_role_id_to_user_roles_table.sql to db/migration/iam/
   - Move V202511242100__Create_refresh_tokens_table.sql to db/migration/iam/
@@ -44,21 +52,28 @@
   - Renumber to V10-V14 range
   - _Requirements: 2.1, 2.8_
 
-- [ ] 3.3 Move Data Quality migrations
+
+
+- [x] 3.3 Move Data Quality migrations
+
   - Move V1.8__create_rules_engine_tables.sql to db/migration/dataquality/
   - Move V1.9__insert_initial_business_rules.sql to db/migration/dataquality/
   - Move V1.8.1__update_business_rules_constraints.sql to db/migration/dataquality/
   - Move V1.8.2__insert_regulations.sql to db/migration/dataquality/
   - Renumber to V40-V43 range
+
   - _Requirements: 2.4, 2.8_
 
-- [ ] 3.4 Move Risk Calculation migrations
+- [x] 3.4 Move Risk Calculation migrations
+
   - Move V2__Create_risk_calculation_tables.sql to db/migration/riskcalculation/
   - Move V4__Create_chunk_metadata_table.sql to db/migration/riskcalculation/
   - Renumber to V50-V51 range
   - _Requirements: 2.5, 2.8_
 
-- [ ] 3.5 Create missing table migrations
+
+- [x] 3.5 Create missing table migrations
+
   - Create V2__create_core_event_tables.sql for common schema (outbox_messages, inbox_messages, event_processing_failures, sagas)
   - Create V30__create_ingestion_tables.sql for ingestion schema
   - Create V60__create_report_generation_tables.sql for report generation schema
