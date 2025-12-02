@@ -37,6 +37,21 @@ public class PortfolioAnalysisMapper {
             .sectorConcentrationLevel(analysis.getSectorHHI().level().name())
             .analyzedAt(analysis.getAnalyzedAt());
         
+        // Map state tracking fields if present
+        if (analysis.getState() != null) {
+            builder.processingState(analysis.getState().name());
+        }
+        if (analysis.getProgress() != null) {
+            builder.totalExposures(analysis.getProgress().totalExposures())
+                   .processedExposures(analysis.getProgress().processedExposures());
+        }
+        if (analysis.getStartedAt() != null) {
+            builder.startedAt(analysis.getStartedAt());
+        }
+        if (analysis.getLastUpdatedAt() != null) {
+            builder.lastUpdatedAt(analysis.getLastUpdatedAt());
+        }
+        
         // Map geographic breakdown
         Breakdown geoBreakdown = analysis.getGeographicBreakdown();
         if (geoBreakdown.hasCategory(GeographicRegion.ITALY.name())) {

@@ -4,17 +4,19 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
+import com.bcbs239.regtech.core.infrastructure.s3.S3Properties;
 import com.bcbs239.regtech.riskcalculation.domain.services.ICalculationResultsStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
 
-import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 
 /**
  * S3 implementation for storing calculation results.
@@ -34,9 +36,11 @@ public class S3CalculationResultsStorageService implements ICalculationResultsSt
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
     
     private final CoreS3Service coreS3Service;
+    private final S3Properties s3Properties;
 
-    public S3CalculationResultsStorageService(CoreS3Service coreS3Service) {
+    public S3CalculationResultsStorageService(CoreS3Service coreS3Service, S3Properties s3Properties) {
         this.coreS3Service = coreS3Service;
+        this.s3Properties = s3Properties;
     }
 
     @Override
@@ -64,21 +68,21 @@ public class S3CalculationResultsStorageService implements ICalculationResultsSt
             String fileName = String.format("calc_%s_%s.json", batchId, timestamp);
             String s3Key = S3_PREFIX + fileName;
 
-            // Convert JSON string to InputStream
-            byte[] jsonBytes = jsonContent.getBytes(StandardCharsets.UTF_8);
-            InputStream inputStream = new ByteArrayInputStream(jsonBytes);
+            // Get bucket name from properties
+            String bucket = s3Properties.getBucket();
 
             // Store in S3 using CoreS3Service
-            Result<String> uploadResult = coreS3Service.uploadFile(s3Key, inputStream, jsonBytes.length, "application/json");
-            
-            if (uploadResult.isFailure()) {
-                log.error("Failed to upload calculation results to S3 for batchId: {}, bankId: {}, error: {}", 
-                    batchId, bankId, uploadResult.getError().getMessage());
-                return Result.failure(uploadResult.getError());
-            }
+            PutObjectResponse response = coreS3Service.putString(
+                bucket, 
+                s3Key, 
+                jsonContent, 
+                "application/json", 
+                new HashMap<>(), 
+                null
+            );
 
             // Create S3 URI
-            String s3Uri = uploadResult.getValue();
+            String s3Uri = String.format("s3://%s/%s", bucket, s3Key);
             FileStorageUri fileStorageUri = FileStorageUri.of(s3Uri);
 
             log.info("Successfully stored calculation results for batch {} to S3: {}", batchId, s3Uri);
@@ -106,7 +110,8 @@ public class S3CalculationResultsStorageService implements ICalculationResultsSt
         try {
             String uriString = fileUri.uri();
             
-            // Extract S3 key from URI
+            // Extract bucket and key from URI
+            String bucket;
             String s3Key;
             if (uriString.startsWith("s3://")) {
                 // Parse s3://bucket-name/key format
@@ -115,23 +120,16 @@ public class S3CalculationResultsStorageService implements ICalculationResultsSt
                     return Result.failure(ErrorDetail.of("INVALID_S3_URI", ErrorType.VALIDATION_ERROR,
                         "Invalid S3 URI format: " + uriString, "calculation.results.invalid.s3.uri"));
                 }
+                bucket = parts[0];
                 s3Key = parts[1];
             } else {
-                // Assume it's already a key
+                // Assume it's already a key, use default bucket
+                bucket = s3Properties.getBucket();
                 s3Key = uriString;
             }
 
             // Download from S3 using CoreS3Service
-            Result<InputStream> downloadResult = coreS3Service.downloadFile(s3Key);
-            
-            if (downloadResult.isFailure()) {
-                log.error("Failed to download calculation results from S3: {}, error: {}", 
-                    fileUri.uri(), downloadResult.getError().getMessage());
-                return Result.failure(downloadResult.getError());
-            }
-
-            // Convert InputStream to String
-            try (InputStream inputStream = downloadResult.getValue()) {
+            try (InputStream inputStream = coreS3Service.getObjectStream(bucket, s3Key)) {
                 String jsonContent = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
                 
                 log.debug("Successfully retrieved calculation results from S3: {}", fileUri.uri());
@@ -150,22 +148,25 @@ public class S3CalculationResultsStorageService implements ICalculationResultsSt
     @Override
     public Result<Boolean> checkServiceHealth() {
         try {
-            // Use CoreS3Service health check
-            Result<Boolean> healthResult = coreS3Service.checkServiceHealth();
+            // Try to perform a simple head operation on the bucket to check connectivity
+            String bucket = s3Properties.getBucket();
+            String testKey = S3_PREFIX + "health-check-test";
             
-            if (healthResult.isFailure()) {
-                log.warn("S3 calculation results storage health check failed: {}", 
-                    healthResult.getError().getMessage());
-                return healthResult;
+            // Try to check if a test object exists (it doesn't need to exist, we just need to verify S3 connectivity)
+            try {
+                coreS3Service.headObject(bucket, testKey);
+            } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
+                // This is expected - the key doesn't exist, but we successfully connected to S3
+                log.debug("S3 health check passed - successfully connected to bucket: {}", bucket);
             }
 
             log.debug("S3 calculation results storage health check passed");
             return Result.success(true);
 
         } catch (Exception e) {
-            log.warn("Unexpected error during S3 storage health check: {}", e.getMessage());
+            log.warn("S3 storage health check failed: {}", e.getMessage());
             return Result.failure(ErrorDetail.of("S3_STORAGE_HEALTH_CHECK_ERROR", ErrorType.SYSTEM_ERROR,
-                "Unexpected error during S3 health check: " + e.getMessage(),
+                "S3 health check failed: " + e.getMessage(),
                 "calculation.results.s3.health.check.error"));
         }
     }

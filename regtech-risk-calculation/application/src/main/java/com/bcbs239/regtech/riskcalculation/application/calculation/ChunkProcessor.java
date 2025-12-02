@@ -126,17 +126,20 @@ public class ChunkProcessor {
         ExposureClassifier classifier
     ) {
         // Get exchange rate from cache
-        String fromCurrency = exposure.getAmount().currency();
+        String fromCurrency = exposure.exposureAmount().currencyCode();
         ExchangeRate rate = cache.getRate(fromCurrency, "EUR");
         
         // Convert to EUR
-        BigDecimal amountInEur = exposure.getAmount().amount().multiply(rate.rate());
+        BigDecimal amountInEur = exposure.exposureAmount().amount().multiply(rate.rate());
         EurAmount eurAmount = EurAmount.of(amountInEur);
         
         // Classify exposure
-        GeographicRegion region = classifier.classifyGeographicRegion(exposure);
-        EconomicSector sector = classifier.classifyEconomicSector(exposure);
+        String countryCode = exposure.classification().countryCode();
+        String productType = exposure.classification().productType();
         
-        return new ClassifiedExposure(exposure, eurAmount, region, sector);
+        GeographicRegion region = classifier.classifyRegion(countryCode);
+        EconomicSector sector = classifier.classifySector(productType);
+        
+        return new ClassifiedExposure(exposure.id(), eurAmount, region, sector);
     }
 }

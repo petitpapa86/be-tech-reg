@@ -16,12 +16,7 @@
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-risk-calculation-domain</artifactId>
 		</dependency>
-		
-		<dependency>
-			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-risk-calculation-application</artifactId>
-			<version>${project.version}</version>
-		</dependency>
+
 		
 		<dependency>
 			<groupId>com.bcbs239</groupId>

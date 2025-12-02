@@ -38,6 +38,8 @@ public class PortfolioAnalysis {
     private ProcessingState state;
     private ProcessingProgress progress;
     private final List<ChunkMetadata> processedChunks;
+    private Instant startedAt;
+    private Instant lastUpdatedAt;
     
     private PortfolioAnalysis(
         String batchId,
@@ -130,6 +132,8 @@ public class PortfolioAnalysis {
         this.state = ProcessingState.IN_PROGRESS;
         this.progress = ProcessingProgress.initial(totalExposures);
         this.processedChunks.clear();
+        this.startedAt = Instant.now();
+        this.lastUpdatedAt = Instant.now();
     }
     
     /**
@@ -144,6 +148,7 @@ public class PortfolioAnalysis {
         if (progress != null) {
             this.progress = progress.addProcessed(chunk.size());
         }
+        this.lastUpdatedAt = Instant.now();
     }
     
     /**

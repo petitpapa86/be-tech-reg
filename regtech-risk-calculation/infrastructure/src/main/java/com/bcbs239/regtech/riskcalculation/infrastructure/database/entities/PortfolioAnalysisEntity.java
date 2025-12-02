@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * JPA Entity for portfolio analysis results persistence
@@ -98,6 +100,27 @@ public class PortfolioAnalysisEntity {
     
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+    
+    // State tracking fields for performance optimization
+    @Column(name = "processing_state", length = 20)
+    private String processingState;
+    
+    @Column(name = "total_exposures")
+    private Integer totalExposures;
+    
+    @Column(name = "processed_exposures")
+    private Integer processedExposures;
+    
+    @Column(name = "started_at")
+    private Instant startedAt;
+    
+    @Column(name = "last_updated_at")
+    private Instant lastUpdatedAt;
+    
+    // Chunk metadata for detailed progress tracking
+    @OneToMany(mappedBy = "portfolioAnalysis", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<ChunkMetadataEntity> chunkMetadata = new ArrayList<>();
     
     @PrePersist
     protected void onCreate() {

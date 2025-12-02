@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.presentation.status;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchSummary;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.IBatchSummaryRepository;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankId;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
