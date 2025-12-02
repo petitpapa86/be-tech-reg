@@ -27,7 +27,7 @@ Changed column lengths from `VARCHAR(36)` to `VARCHAR(255)` in:
   - `bank_id` column
 
 ### 2. Updated Schema Definition
-Updated `schema.sql` to reflect the new column lengths.
+**Note**: The `schema.sql` file has been deprecated and replaced by Flyway migrations. Schema changes are now managed through versioned migration scripts in `db/migration/`.
 
 ### 3. Database Migration Required
 
@@ -98,7 +98,7 @@ Expected output:
 2. `regtech-data-quality/infrastructure/src/main/java/com/bcbs239/regtech/dataquality/infrastructure/reporting/QualityErrorSummaryEntity.java`
 
 ### Schema Files
-3. `regtech-data-quality/infrastructure/src/main/resources/schema.sql`
+3. `regtech-data-quality/infrastructure/src/main/resources/schema.sql` (DEPRECATED - replaced by Flyway migrations)
 
 ### Migration Scripts (New)
 4. `regtech-data-quality/infrastructure/src/main/resources/db/migration/V202511180001__Increase_batch_and_bank_id_length.sql`

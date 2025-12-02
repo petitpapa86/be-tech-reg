@@ -103,7 +103,9 @@
   - Configure migration locations
   - _Requirements: 4.1, 4.2_
 
-- [-] 5. Deprecate schema.sql
+- [x] 5. Deprecate schema.sql
+
+
 
 
 

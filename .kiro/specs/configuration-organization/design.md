@@ -18,7 +18,8 @@ The design follows Spring Boot configuration best practices, using a layered app
 regtech-app/src/main/resources/
 ├── application.yml                          # Root configuration (shared infrastructure)
 ├── logback-spring.xml                       # Logging configuration
-└── schema.sql                               # Database schema
+├── schema.sql.deprecated                    # Deprecated - replaced by Flyway migrations
+└── db/migration/                            # Flyway migration scripts
 
 regtech-ingestion/infrastructure/src/main/resources/
 └── application-ingestion.yml                # Ingestion module configuration
