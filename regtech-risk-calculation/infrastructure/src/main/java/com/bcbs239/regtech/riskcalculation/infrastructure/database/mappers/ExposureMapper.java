@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 /**
  * Mapper for converting between ExposureRecording domain model and ExposureEntity
  */
-@Component
+@Component("exposureEntityMapper")
 public class ExposureMapper {
     
     /**

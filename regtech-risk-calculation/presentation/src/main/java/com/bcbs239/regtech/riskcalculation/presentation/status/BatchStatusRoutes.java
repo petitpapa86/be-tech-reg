@@ -10,38 +10,40 @@ import static org.springframework.web.servlet.function.RequestPredicates.GET;
 import static org.springframework.web.servlet.function.RouterFunctions.route;
 
 /**
- * Router configuration for batch summary status query endpoints.
+ * Router configuration for batch status query endpoints.
  * Defines URL mappings, permissions, and documentation tags.
+ * 
+ * Requirements: 6.1, 6.2, 6.3
  */
 @Component
-public class BatchSummaryStatusRoutes {
+public class BatchStatusRoutes {
     
-    private final BatchSummaryStatusController controller;
+    private final BatchStatusController controller;
     
-    public BatchSummaryStatusRoutes(BatchSummaryStatusController controller) {
+    public BatchStatusRoutes(BatchStatusController controller) {
         this.controller = controller;
     }
     
     /**
-     * Maps the batch summary status query endpoints.
-     * Requires appropriate permissions to view batch summaries.
+     * Maps the batch status query endpoints.
+     * Requires RISK_CALCULATION_READ permission to view batch status.
      */
     public RouterFunction<ServerResponse> createRoutes() {
         return RouterAttributes.withAttributes(
-            route(GET("/api/v1/risk-calculation/batches/{batchId}"), controller::getBatchSummary),
+            route(GET("/api/v1/risk-calculation/batches/{batchId}/status"), controller::getBatchStatus),
             new String[]{"risk-calculation:batches:view"},
-            new String[]{Tags.RISK_CALCULATION, Tags.BATCH_SUMMARIES},
-            "Get batch summary by batch ID"
+            new String[]{Tags.RISK_CALCULATION, Tags.BATCH_STATUS},
+            "Get batch status including processing state and available results"
         ).and(RouterAttributes.withAttributes(
-            route(GET("/api/v1/risk-calculation/banks/{bankId}/batches"), controller::getBatchSummariesByBank),
+            route(GET("/api/v1/risk-calculation/batches/{batchId}/progress"), controller::getProcessingProgress),
             new String[]{"risk-calculation:batches:view"},
-            new String[]{Tags.RISK_CALCULATION, Tags.BATCH_SUMMARIES},
-            "Get all batch summaries for a bank"
+            new String[]{Tags.RISK_CALCULATION, Tags.BATCH_STATUS},
+            "Get detailed processing progress for a batch"
         )).and(RouterAttributes.withAttributes(
-            route(GET("/api/v1/risk-calculation/batches/{batchId}/exists"), controller::checkBatchExists),
+            route(GET("/api/v1/risk-calculation/batches/active"), controller::getActiveBatches),
             new String[]{"risk-calculation:batches:view"},
-            new String[]{Tags.RISK_CALCULATION, Tags.BATCH_SUMMARIES},
-            "Check if a batch has been processed"
+            new String[]{Tags.RISK_CALCULATION, Tags.BATCH_STATUS},
+            "Get all active batches with optional bank filter"
         ));
     }
 }

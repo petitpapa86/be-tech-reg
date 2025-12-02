@@ -94,7 +94,7 @@ public class RiskCalculationHealthController implements IEndpoint {
     public ServerResponse getCurrencyConversionHealth(ServerRequest request) {
         logger.debug("Processing currency conversion health check request");
         
-        HealthCheckResult result = healthChecker.checkCurrencyConversionHealth();
+        HealthCheckResult result = healthChecker.checkCurrencyApiHealth();
         return responseHandler.handleComponentHealthResponse("currency-conversion", result);
     }
     

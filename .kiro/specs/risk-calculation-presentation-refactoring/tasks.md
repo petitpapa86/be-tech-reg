@@ -7,7 +7,9 @@ This implementation plan refactors the risk calculation presentation layer to al
 
 ## Phase 1: DTO Layer Implementation
 
-- [-] 1. Create new response DTOs aligned with bounded contexts
+- [x] 1. Create new response DTOs aligned with bounded contexts
+
+
 
 
 
@@ -25,7 +27,11 @@ This implementation plan refactors the risk calculation presentation layer to al
   - Use BigDecimal for all monetary amounts
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
 
-- [ ] 2. Create status response DTOs
+- [x] 2. Create status response DTOs
+
+
+
+
   - Create BatchStatusResponseDTO with processing state and available results
   - Create PagedResponse<T> generic DTO for paginated results
   - Add proper validation annotations
@@ -41,7 +47,12 @@ This implementation plan refactors the risk calculation presentation layer to al
 
 ## Phase 2: Mapper Layer Implementation
 
-- [ ] 3. Implement domain-to-DTO mappers
+- [x] 3. Implement domain-to-DTO mappers
+
+
+
+
+
   - Create PortfolioAnalysisMapper with toResponseDTO() and helper methods
   - Create ExposureMapper with toClassifiedDTO() and toProtectedDTO()
   - Create StatusMapper for batch status transformations
@@ -61,7 +72,12 @@ This implementation plan refactors the risk calculation presentation layer to al
 
 ## Phase 3: Query Service Layer
 
-- [ ] 4. Implement query services for data retrieval
+- [x] 4. Implement query services for data retrieval
+
+
+
+
+
   - Create PortfolioAnalysisQueryService with methods for portfolio analysis, concentration indices, and breakdowns
   - Create ExposureQueryService with paginated methods for classified and protected exposures
   - Create BatchStatusQueryService for status and progress queries
@@ -80,7 +96,12 @@ This implementation plan refactors the risk calculation presentation layer to al
 
 ## Phase 4: Controller Implementation
 
-- [ ] 5. Create PortfolioAnalysisController
+- [x] 5. Create PortfolioAnalysisController
+
+
+
+
+
   - Implement GET /{batchId} endpoint for full portfolio analysis
   - Implement GET /{batchId}/concentrations for concentration indices
   - Implement GET /{batchId}/breakdowns with optional type filter
@@ -89,14 +110,24 @@ This implementation plan refactors the risk calculation presentation layer to al
   - Inject PortfolioAnalysisQueryService
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3_
 
-- [ ] 6. Create ExposureResultsController
+- [x] 6. Create ExposureResultsController
+
+
+
+
+
   - Implement GET /{batchId}/classified with pagination and sector filtering
   - Implement GET /{batchId}/protected with pagination
   - Use PagedResponse<T> for results
   - Add request parameter validation
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3_
 
-- [ ] 7. Enhance BatchStatusController
+- [x] 7. Enhance BatchStatusController
+
+
+
+
+
   - Implement GET /{batchId}/status for batch status
   - Implement GET /{batchId}/progress for processing progress
   - Implement GET /active for active batches with optional bank filter
@@ -114,7 +145,11 @@ This implementation plan refactors the risk calculation presentation layer to al
 
 ## Phase 5: Route Configuration
 
-- [ ] 8. Implement route configurations
+- [x] 8. Implement route configurations
+
+
+
+
   - Create PortfolioAnalysisRoutes implementing IEndpoint
   - Create ExposureResultsRoutes implementing IEndpoint
   - Update BatchStatusRoutes if needed
@@ -126,7 +161,12 @@ This implementation plan refactors the risk calculation presentation layer to al
 
 ## Phase 6: Error Handling
 
-- [ ] 10. Implement custom exceptions and error handlers
+- [x] 10. Implement custom exceptions and error handlers
+
+
+
+
+
   - Create BatchNotFoundException for missing batches
   - Create CalculationNotCompletedException for incomplete calculations
   - Create RiskCalculationErrorHandler with @ControllerAdvice
@@ -145,7 +185,11 @@ This implementation plan refactors the risk calculation presentation layer to al
 
 ## Phase 7: Monitoring and Health Checks
 
-- [ ] 11. Update health checker and metrics collector
+- [x] 11. Update health checker and metrics collector
+
+
+
+
   - Update RiskCalculationHealthChecker to verify new repositories and services
   - Update RiskCalculationMetricsCollector to track new bounded context metrics
   - Add metrics for portfolio analysis, exposures processed, and calculation times
@@ -175,13 +219,23 @@ This implementation plan refactors the risk calculation presentation layer to al
 
 ## Phase 9: Cleanup and Documentation
 
-- [ ] 13. Remove old DTOs
+- [x] 13. Remove old DTOs
+
+
+
+
+
   - Delete RiskReportDTO, ExposureDTO, CreditRiskMitigationDTO, BankInfoDTO
   - Update any remaining usages to new DTOs
   - Remove any controllers or methods that depend on old DTOs
   - _Requirements: 1.2_
 
-- [ ] 14. Create migration documentation
+- [x] 14. Create migration documentation
+
+
+
+
+
   - Document API changes and new endpoints
   - Provide mapping from old to new DTOs
   - Include code examples for common use cases
