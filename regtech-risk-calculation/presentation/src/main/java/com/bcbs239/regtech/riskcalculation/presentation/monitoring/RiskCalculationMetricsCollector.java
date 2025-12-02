@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.presentation.monitoring;
 
 import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.IBatchSummaryRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.MitigationRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
@@ -21,19 +20,16 @@ import java.util.Map;
 @Component
 public class RiskCalculationMetricsCollector {
     
-    private final IBatchSummaryRepository batchSummaryRepository;
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
     private final ExposureRepository exposureRepository;
     private final MitigationRepository mitigationRepository;
     private final PerformanceMetrics performanceMetrics;
     
     public RiskCalculationMetricsCollector(
-            IBatchSummaryRepository batchSummaryRepository,
             PortfolioAnalysisRepository portfolioAnalysisRepository,
             ExposureRepository exposureRepository,
             MitigationRepository mitigationRepository,
             PerformanceMetrics performanceMetrics) {
-        this.batchSummaryRepository = batchSummaryRepository;
         this.portfolioAnalysisRepository = portfolioAnalysisRepository;
         this.exposureRepository = exposureRepository;
         this.mitigationRepository = mitigationRepository;

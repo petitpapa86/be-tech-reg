@@ -6,7 +6,7 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
 import com.bcbs239.regtech.riskcalculation.application.calculation.CalculateRiskMetricsCommand;
 import com.bcbs239.regtech.riskcalculation.application.calculation.CalculateRiskMetricsCommandHandler;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.IBatchSummaryRepository;
+import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +35,7 @@ import java.util.Map;
 public class BatchIngestedEventListener {
 
     private final CalculateRiskMetricsCommandHandler commandHandler;
-    private final IBatchSummaryRepository batchSummaryRepository;
+    private final PortfolioAnalysisRepository portfolioAnalysisRepository;
     private final IEventProcessingFailureRepository failureRepository;
     private final ObjectMapper objectMapper;
 
@@ -58,8 +58,9 @@ public class BatchIngestedEventListener {
             }
 
             // Step 2: Check idempotency - skip if already processed  
-            // Use findByBatchId instead of existsByBatchId for idempotency check
-            if (batchSummaryRepository.findByBatchId(event.getBatchId()).isPresent()) {
+            // Check if portfolio analysis already exists for this batch
+            BatchId batchId = BatchId.of(event.getBatchId());
+            if (portfolioAnalysisRepository.findByBatchId(batchId.value()).isPresent()) {
                 log.info("Batch {} already processed, skipping duplicate event", event.getBatchId());
                 return;
             }
