@@ -80,7 +80,11 @@
   - Create V20__create_billing_tables.sql for billing schema
   - _Requirements: 2.1, 2.2, 2.3, 2.6_
 
-- [ ] 4. Configure Flyway in application
+
+
+
+- [x] 4. Configure Flyway in application
+
 - [ ] 4.1 Update application.yml
   - Set spring.flyway.enabled: true
   - Set spring.sql.init.mode: never
@@ -89,14 +93,20 @@
   - Set flyway.baseline-on-migrate: true for existing databases
   - _Requirements: 1.4, 1.5, 5.1, 5.2, 5.3_
 
-- [ ] 4.2 Add Flyway Maven plugin to regtech-app/pom.xml
+
+- [x] 4.2 Add Flyway Maven plugin to regtech-app/pom.xml
+
+
   - Add flyway-maven-plugin dependency
   - Configure database connection properties
   - Configure schemas list
   - Configure migration locations
   - _Requirements: 4.1, 4.2_
 
-- [ ] 5. Deprecate schema.sql
+- [-] 5. Deprecate schema.sql
+
+
+
   - Rename schema.sql to schema.sql.deprecated
   - Add comment explaining it's replaced by Flyway migrations
   - Update any documentation referencing schema.sql

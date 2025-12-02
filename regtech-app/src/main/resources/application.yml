@@ -73,21 +73,31 @@ spring:
   
   sql:
     init:
-      mode: always
-      schema-locations: classpath:schema.sql
+      mode: never  # Disable schema.sql execution - Flyway manages all migrations
   
   # Flyway migration configuration (Requirement 3.2)
   # Loads migrations from all module directories
   flyway:
-    enabled: false
+    enabled: true
+    baseline-on-migrate: true  # For existing databases with tables already created
+    baseline-version: 0
     locations:
+      - classpath:db/migration
       - classpath:db/migration/common
-      - classpath:db/migration/ingestion
-      - classpath:db/migration/data-quality
-      - classpath:db/migration/risk-calculation
-      - classpath:db/migration/report-generation
-      - classpath:db/migration/billing
       - classpath:db/migration/iam
+      - classpath:db/migration/billing
+      - classpath:db/migration/ingestion
+      - classpath:db/migration/dataquality
+      - classpath:db/migration/riskcalculation
+      - classpath:db/migration/reportgeneration
+    schemas:
+      - public
+      - iam
+      - billing
+      - ingestion
+      - dataquality
+      - riskcalculation
+      - reportgeneration
   
   docker:
     compose:

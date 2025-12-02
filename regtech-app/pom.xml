@@ -201,6 +201,30 @@
                     </excludes>
                 </configuration>
             </plugin>
+            
+            <!-- Flyway Maven Plugin for database migrations -->
+            <plugin>
+                <groupId>org.flywaydb</groupId>
+                <artifactId>flyway-maven-plugin</artifactId>
+                <version>11.7.2</version>
+                <configuration>
+                    <url>jdbc:postgresql://localhost:5432/regtech</url>
+                    <user>${DB_USERNAME}</user>
+                    <password>${DB_PASSWORD}</password>
+                    <schemas>
+                        <schema>public</schema>
+                        <schema>iam</schema>
+                        <schema>billing</schema>
+                        <schema>ingestion</schema>
+                        <schema>dataquality</schema>
+                        <schema>riskcalculation</schema>
+                        <schema>reportgeneration</schema>
+                    </schemas>
+                    <locations>
+                        <location>filesystem:src/main/resources/db/migration</location>
+                    </locations>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>
