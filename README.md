@@ -113,7 +113,18 @@ regtech/
    # Edit .env with your Stripe keys and database settings
    ```
 
-3. **Run the application**
+3. **Set up database**
+   ```bash
+   # Create PostgreSQL database
+   createdb regtech
+   
+   # Run Flyway migrations
+   mvn flyway:migrate -pl regtech-app
+   ```
+   
+   See [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md) for detailed migration instructions.
+
+4. **Run the application**
    ```bash
    mvn clean install
    mvn spring-boot:run -pl regtech-app
@@ -161,6 +172,7 @@ This platform follows established conventions and best practices. See [IMPLEMENT
 
 ## Support
 
+- **Database Migrations**: [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md)
 - **Architecture Documentation**: [ARCHITECTURE_VIOLATIONS.md](ARCHITECTURE_VIOLATIONS.md)
 - **Role System**: [ROLES_REFERENCE.md](ROLES_REFERENCE.md)
 - **Saga Implementation**: [SAGA_IMPLEMENTATION_GUIDE.md](SAGA_IMPLEMENTATION_GUIDE.md)

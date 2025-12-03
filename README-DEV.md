@@ -40,6 +40,43 @@ VS Code (with Java extensions):
 
 If you still see false positives, add a targeted `@SuppressWarnings("unused")` on the specific class or constructor (last resort).
 
+## Database Setup
+
+### Initial Setup
+Before running the application for the first time, set up the database:
+
+```cmd
+REM Create database (if not exists)
+createdb regtech
+
+REM Run Flyway migrations
+mvn flyway:migrate -pl regtech-app
+```
+
+### Working with Migrations
+
+**Check migration status:**
+```cmd
+mvn flyway:info -pl regtech-app
+```
+
+**Reset database (development only - DESTRUCTIVE):**
+```cmd
+mvn flyway:clean -pl regtech-app
+mvn flyway:migrate -pl regtech-app
+```
+
+**Repair migration history (if checksums mismatch):**
+```cmd
+mvn flyway:repair -pl regtech-app
+```
+
+See [DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md) for complete migration guide including:
+- Migration folder structure
+- Version numbering strategy
+- Creating new migrations
+- Troubleshooting common issues
+
 ## Build & run
 From project root (Windows cmd.exe):
 
@@ -51,6 +88,8 @@ mvn -Dspring-boot.run.profiles=development -Dspring.main.web-application-type=no
 ```
 
 This runs the application without starting the web server (useful when you only need background jobs and event processing in dev).
+
+**Note:** Flyway migrations run automatically on application startup if `spring.flyway.enabled=true` in `application.yml`.
 
 ## Notes
 - Do not commit actual secret keys. Use a secrets manager or environment variables in CI/CD.

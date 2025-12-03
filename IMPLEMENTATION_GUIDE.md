@@ -2300,6 +2300,205 @@ public class InboxProcessor {
 
 ---
 
+## Database Migrations
+
+### Overview
+
+The RegTech platform uses **Flyway** for database schema management and version control. All database schemas, tables, and structural changes are managed through versioned SQL migration scripts.
+
+**Key Benefits**:
+- ✅ Version-controlled schema changes
+- ✅ Reproducible database states across environments
+- ✅ Automatic migration on application startup
+- ✅ Schema-per-module organization
+- ✅ Clear migration history and audit trail
+
+### Migration Organization
+
+Migrations are organized by module in `regtech-app/src/main/resources/db/migration/`:
+
+```
+db/migration/
+├── V1__init_schemas.sql           # Creates all schemas (MUST run first)
+├── common/                         # Shared infrastructure (V2-V9)
+├── iam/                            # IAM module (V10-V19)
+├── billing/                        # Billing module (V20-V29)
+├── ingestion/                      # Ingestion module (V30-V39)
+├── dataquality/                    # Data Quality module (V40-V49)
+├── riskcalculation/                # Risk Calculation module (V50-V59)
+└── reportgeneration/               # Report Generation module (V60-V69)
+```
+
+### Version Numbering Strategy
+
+| Version Range | Module | Purpose |
+|--------------|--------|---------|
+| V1 | Schema Init | Creates all database schemas |
+| V2-V9 | Common | Shared infrastructure |
+| V10-V19 | IAM | Identity and access management |
+| V20-V29 | Billing | Payment processing |
+| V30-V39 | Ingestion | Data ingestion |
+| V40-V49 | Data Quality | Validation rules |
+| V50-V59 | Risk Calculation | Risk assessment |
+| V60-V69 | Report Generation | Regulatory reporting |
+| V70+ | Future | Reserved for new modules |
+
+### Creating a New Migration
+
+**Step 1: Determine Version Number**
+
+Choose the next available version in your module's range:
+```bash
+# Example: Adding a new table to IAM module
+# Check existing migrations: V10, V11, V12, V13, V14
+# Next available: V15
+```
+
+**Step 2: Create Migration File**
+
+```bash
+# Create file in appropriate module folder
+touch regtech-app/src/main/resources/db/migration/iam/V15__create_audit_log_table.sql
+```
+
+**Step 3: Write Migration SQL**
+
+```sql
+-- V15__create_audit_log_table.sql
+-- Description: Add audit logging for user actions
+
+CREATE TABLE IF NOT EXISTS iam.audit_log (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    resource_type VARCHAR(50) NOT NULL,
+    resource_id VARCHAR(255),
+    timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    
+    CONSTRAINT fk_audit_user FOREIGN KEY (user_id) 
+        REFERENCES iam.users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_audit_log_user_id ON iam.audit_log(user_id);
+CREATE INDEX idx_audit_log_timestamp ON iam.audit_log(timestamp);
+
+COMMENT ON TABLE iam.audit_log IS 'Audit trail for user actions';
+```
+
+**Step 4: Update Entity Annotations**
+
+Ensure JPA entities have correct schema annotations:
+
+```java
+@Entity
+@Table(name = "audit_log", schema = "iam")
+public class AuditLogEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+    
+    // ... other fields
+}
+```
+
+**Step 5: Test Migration**
+
+```bash
+# Test on clean database
+mvn flyway:clean -pl regtech-app
+mvn flyway:migrate -pl regtech-app
+
+# Verify migration applied
+mvn flyway:info -pl regtech-app
+
+# Test application startup
+mvn spring-boot:run -pl regtech-app
+```
+
+### Running Migrations
+
+**Using Maven (Recommended)**:
+```bash
+# Apply all pending migrations
+mvn flyway:migrate -pl regtech-app
+
+# Check migration status
+mvn flyway:info -pl regtech-app
+
+# Validate applied migrations
+mvn flyway:validate -pl regtech-app
+
+# Clean database (⚠️ DESTRUCTIVE - Development Only)
+mvn flyway:clean -pl regtech-app
+```
+
+**Automatic on Application Startup**:
+
+Flyway runs automatically when the application starts (configured in `application.yml`):
+```yaml
+spring:
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+```
+
+### Migration Best Practices
+
+**✅ DO**:
+1. Always use `IF NOT EXISTS` for idempotent migrations
+2. Add comments to document table purposes
+3. Create indexes for foreign keys and frequently queried columns
+4. Test migrations on a clean database before committing
+5. Keep migrations small and focused on a single change
+6. Use descriptive names that explain the migration purpose
+
+**❌ DON'T**:
+1. Never modify existing migrations after they've been applied
+2. Don't use `DROP TABLE` without careful consideration (data loss!)
+3. Avoid complex data transformations in migrations
+4. Don't skip version numbers - maintain sequential numbering
+5. Never commit migrations with syntax errors
+
+### Common Issues and Solutions
+
+**Problem: Migration fails with syntax error**
+```bash
+# Fix SQL, then repair and retry
+mvn flyway:repair -pl regtech-app
+mvn flyway:migrate -pl regtech-app
+```
+
+**Problem: Checksum mismatch (modified existing migration)**
+```bash
+# Option 1: Repair (if change was intentional)
+mvn flyway:repair -pl regtech-app
+
+# Option 2: Revert (if change was accidental)
+git checkout HEAD -- regtech-app/src/main/resources/db/migration/...
+```
+
+**Problem: Table already exists**
+- Ensure all CREATE TABLE statements use `IF NOT EXISTS`
+- Use `baseline-on-migrate: true` for existing databases
+
+### Complete Documentation
+
+For comprehensive migration documentation including:
+- Detailed folder structure
+- Troubleshooting guide
+- Migration workflow for different environments
+- Rollback strategies
+- Monitoring and validation
+
+See: **[DATABASE_MIGRATIONS.md](DATABASE_MIGRATIONS.md)**
+
+---
+
 ## Step-by-Step Implementation Guide
 
 ### Implementing a New Feature

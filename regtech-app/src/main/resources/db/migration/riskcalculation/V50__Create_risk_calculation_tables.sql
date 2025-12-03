@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS riskcalculation.batches (
     ingested_at TIMESTAMP NOT NULL,
     processed_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_batches_report_date ON riskcalculation.batches(report_date);
@@ -59,7 +59,7 @@ CREATE INDEX idx_exposures_product_type ON riskcalculation.exposures(product_typ
 
 -- Mitigations table - stores credit risk mitigation data
 CREATE TABLE IF NOT EXISTS riskcalculation.mitigations (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id BIGSERIAL PRIMARY KEY,
     exposure_id VARCHAR(100) NOT NULL,
     batch_id VARCHAR(100) NOT NULL,
     mitigation_type VARCHAR(50) NOT NULL,

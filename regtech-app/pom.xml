@@ -211,6 +211,7 @@
                     <url>jdbc:postgresql://localhost:5432/regtech</url>
                     <user>${DB_USERNAME}</user>
                     <password>${DB_PASSWORD}</password>
+                    <cleanDisabled>false</cleanDisabled>
                     <schemas>
                         <schema>public</schema>
                         <schema>iam</schema>
@@ -224,6 +225,18 @@
                         <location>filesystem:src/main/resources/db/migration</location>
                     </locations>
                 </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.postgresql</groupId>
+                        <artifactId>postgresql</artifactId>
+                        <version>42.7.2</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>org.flywaydb</groupId>
+                        <artifactId>flyway-database-postgresql</artifactId>
+                        <version>11.7.2</version>
+                    </dependency>
+                </dependencies>
             </plugin>
         </plugins>
     </build>

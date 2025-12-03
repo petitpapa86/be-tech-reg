@@ -1,6 +1,24 @@
 -- V10__Create_roles_and_permissions_tables.sql
--- Create roles and permissions tables for database-driven role management
+-- Create IAM tables including users, roles, and permissions
 -- Originally: V202511142041__Create_roles_and_permissions_tables.sql
+
+-- Create users table
+CREATE TABLE IF NOT EXISTS iam.users (
+    id VARCHAR(36) PRIMARY KEY,
+    username VARCHAR(100) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version BIGINT NOT NULL DEFAULT 0
+);
+
+-- Create indexes for users table
+CREATE INDEX IF NOT EXISTS idx_users_username ON iam.users (username);
+CREATE INDEX IF NOT EXISTS idx_users_email ON iam.users (email);
 
 -- Create roles table
 CREATE TABLE IF NOT EXISTS iam.roles (
@@ -171,3 +189,18 @@ INSERT INTO iam.role_permissions (id, role_id, permission) VALUES
 ('perm-sys-admin-27', 'role-system-admin', 'BCBS239_VIEW_CROSS_BANK_DATA'),
 ('perm-sys-admin-28', 'role-system-admin', 'BCBS239_CONSOLIDATE_REPORTS')
 ON CONFLICT (role_id, permission) DO NOTHING;
+
+-- Create user_roles table (junction table for many-to-many relationship)
+CREATE TABLE IF NOT EXISTS iam.user_roles (
+    id VARCHAR(100) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    role_name VARCHAR(50) NOT NULL,
+    assigned_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    assigned_by VARCHAR(36),
+    FOREIGN KEY (user_id) REFERENCES iam.users (id) ON DELETE CASCADE,
+    UNIQUE (user_id, role_name)
+);
+
+-- Create indexes for user_roles table
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON iam.user_roles (user_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_role_name ON iam.user_roles (role_name);
