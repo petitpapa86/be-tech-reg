@@ -24,7 +24,9 @@
   - Update GraalVM version to 25
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 15.1, 15.2, 15.3, 15.4, 15.5_
 
-- [-] 2. Migrate Jakarta EE packages across all modules
+- [x] 2. Migrate Jakarta EE packages across all modules
+
+
 
 
 
@@ -40,7 +42,12 @@
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
 
-- [ ] 3. Migrate Jackson to version 3.x
+- [x] 3. Migrate Jackson to version 3.x
+
+
+
+
+
   - Update Jackson core class imports from com.fasterxml.jackson.* → tools.jackson.*
   - Keep annotation imports as com.fasterxml.jackson.annotation.* (unchanged)
   - Replace Jackson2ObjectMapperBuilder with JsonMapper.builder()
