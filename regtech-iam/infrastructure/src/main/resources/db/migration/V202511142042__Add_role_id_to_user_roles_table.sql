@@ -11,18 +11,18 @@ CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON iam.user_roles (role_id);
 -- ALTER TABLE iam.user_roles ADD CONSTRAINT fk_user_roles_role_id
 -- FOREIGN KEY (role_id) REFERENCES iam.roles (id);
 
--- Update existing records to populate role_id based on role enum
--- This maps the enum values to the corresponding role IDs
+-- Update existing records to populate role_id based on role_name
+-- This maps the role names to the corresponding role IDs
 UPDATE iam.user_roles
 SET role_id = CASE
-    WHEN role = 'VIEWER' THEN 'role-viewer'
-    WHEN role = 'DATA_ANALYST' THEN 'role-data-analyst'
-    WHEN role = 'AUDITOR' THEN 'role-auditor'
-    WHEN role = 'RISK_MANAGER' THEN 'role-risk-manager'
-    WHEN role = 'COMPLIANCE_OFFICER' THEN 'role-compliance-officer'
-    WHEN role = 'BANK_ADMIN' THEN 'role-bank-admin'
-    WHEN role = 'HOLDING_COMPANY_USER' THEN 'role-holding-company'
-    WHEN role = 'SYSTEM_ADMIN' THEN 'role-system-admin'
+    WHEN role_name = 'VIEWER' THEN 'role-viewer'
+    WHEN role_name = 'DATA_ANALYST' THEN 'role-data-analyst'
+    WHEN role_name = 'AUDITOR' THEN 'role-auditor'
+    WHEN role_name = 'RISK_MANAGER' THEN 'role-risk-manager'
+    WHEN role_name = 'COMPLIANCE_OFFICER' THEN 'role-compliance-officer'
+    WHEN role_name = 'BANK_ADMIN' THEN 'role-bank-admin'
+    WHEN role_name = 'HOLDING_COMPANY_USER' THEN 'role-holding-company'
+    WHEN role_name = 'SYSTEM_ADMIN' THEN 'role-system-admin'
     ELSE NULL
 END
 WHERE role_id IS NULL;

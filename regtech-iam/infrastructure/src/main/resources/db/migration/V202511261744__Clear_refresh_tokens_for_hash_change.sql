@@ -4,7 +4,7 @@
 -- Existing tokens cannot be migrated, so we clear them
 -- Users will need to log in again to get new refresh tokens
 
-DELETE FROM refresh_tokens;
+DELETE FROM iam.refresh_tokens;
 
 -- Add comment to table documenting the hash algorithm
-COMMENT ON COLUMN refresh_tokens.token_hash IS 'SHA-256 hash of the refresh token value (Base64 encoded)';
+COMMENT ON COLUMN iam.refresh_tokens.token_hash IS 'SHA-256 hash of the refresh token value (Base64 encoded)';
