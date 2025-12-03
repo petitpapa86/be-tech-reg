@@ -11,7 +11,7 @@ import java.util.Optional;
 @Repository
 public interface InboxMessageRepository extends JpaRepository<InboxMessageEntity, String> {
 
-    @Query("SELECT im FROM InboxMessageEntity im WHERE im.processingStatus = :status ORDER BY im.receivedAt ASC")
+    @Query("SELECT im FROM EventProcessingInboxMessageEntity im WHERE im.processingStatus = :status ORDER BY im.receivedAt ASC")
     List<InboxMessageEntity> findByProcessingStatusOrderByReceivedAt(@Param("status") InboxMessageEntity.ProcessingStatus status);
 
     Optional<InboxMessageEntity> findByEventId(String eventId);

@@ -25,13 +25,20 @@ import org.springframework.scheduling.annotation.EnableAsync;
         // ensure core.infrastructure package is scanned so ModularJpaConfiguration (and other @Configuration classes)
         // are picked up. This allows module-level @EnableJpaRepositories declared in core.infrastructure to register
         // repositories located in other modules (e.g., iam, billing).
-        "com.bcbs239.regtech.core.infrastructure",
+        // Exclude outbox package to avoid conflict with application layer OutboxProcessingConfiguration
+        "com.bcbs239.regtech.core.infrastructure.persistence",
+        "com.bcbs239.regtech.core.infrastructure.eventprocessing",
+        "com.bcbs239.regtech.core.infrastructure.commandprocessing",
+        "com.bcbs239.regtech.core.infrastructure.logging",
+        "com.bcbs239.regtech.core.infrastructure.securityauthorization",
+        "com.bcbs239.regtech.core.infrastructure.authorization",
+        "com.bcbs239.regtech.core.infrastructure.saga",
+        "com.bcbs239.regtech.core.infrastructure.systemservices",
         "com.bcbs239.regtech.iam",
         "com.bcbs239.regtech.billing",
-        "com.bcbs239.regtech.ingestion.infrastructure.configuration",
+        "com.bcbs239.regtech.ingestion.infrastructure.configuration"
         // Ensure module presentation packages are scanned so functional RouterFunction beans are registered
-        "com.bcbs239.regtech.dataquality.infrastructure.config",
-        "com.bcbs239.regtech.riskcalculation"
+}, excludeFilters = {
 })
 @EntityScan(basePackages = {
         "com.bcbs239.regtech.core.infrastructure"

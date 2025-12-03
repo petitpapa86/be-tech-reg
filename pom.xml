@@ -48,8 +48,6 @@
 		<module>regtech-billing</module>
 		<module>regtech-ingestion</module>
 		<module>regtech-data-quality</module>
-		<module>regtech-risk-calculation</module>
-		<module>regtech-report-generation</module>
 		<module>regtech-app</module>
 	</modules>
 	

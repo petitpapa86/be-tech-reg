@@ -1,0 +1,585 @@
+1. Overview
+In late 2022, Spring Boot 3 and Spring Framework 6 brought the most significant shift in the ecosystem since its inception. They introduced a Java 17 baseline, a migration from javax.* to jakarta.*, and early support for GraalVM native images.
+
+Now, in 2025, the next generation is almost here: Spring Boot 4 and Spring Framework 7.
+
+Both releases continue the modernization journey. They adopt recent Java language features and provide tighter Jakarta EE 11 alignment. They also improve developer productivity and offer resilient application support out of the box.
+
+In this article, we’ll walk through the major themes of these releases, with explanations and code samples that highlight what developers can expect.
+
+2. Baseline Upgrades
+Before diving into features, it’s important to note the new baselines.
+
+Because of the wide adoption in the industry at the moment, Java 17 is still the minimum requirement. Java 21 and Java 25 are strongly recommended to take advantage of new JVM features like virtual threads. We can find an official statement in the Spring Blog.
+
+With Spring Framework 7, Jakarta EE 11 is now fully adopted. That means we’re moving up to Servlet 6.1, JPA 3.2, and Bean Validation 3.1.
+
+On the Kotlin side, version 2.2 and above is now supported. This brings smoother coroutine integration and makes working with reactive code feel even more natural.
+
+3. Spring Boot 4
+With its fourth major release, Spring Boot brings several improvements. It enhances performance, observability, maintainability, and configuration support. These changes further strengthen its role as the foundation for modern cloud-native Java applications.
+
+3.1. Native Image Improvements
+Spring Boot 4 continues its strong push toward GraalVM native image support. It’s fully aligned to GraalVM 24. Ahead-of-Time (AOT) processing has been enhanced, meaning faster build times and reduced startup memory footprint.
+
+For example, Spring Data introduces AOT Repositories, i.e., that AOT processing will turn query methods into source code that will be compiled together with the application.
+
+3.2. Observability: Micrometer 2 and OpenTelemetry
+Cloud-native apps rely on good observability. Spring Boot 3 introduced Spring Observability. Spring Boot 4 upgrades to Micrometer 2 and integrates an OpenTelemetry starter. This is making traces, logs, and metrics work seamlessly together.
+
+3.3. Improved SSL Health Reporting
+If a certificate chain contains certificates that will expire soon, we now see them in a new expiringChains entry. The WILL_EXPIRE_SOON status is gone. Instead, expiring certificates are reported as VALID.
+
+These changes make it easier for teams to monitor SSL certificate validity in production environments without false alarms.
+
+3.4. Modularization
+One of the first milestones for Spring Boot 4 was the refactoring of its own codebase into a more modular structure.
+
+In Spring Boot 3, many of the core modules (like auto-configuration, starter dependencies, and build tools) were bundled in larger artifacts. While convenient, this sometimes made it harder to manage dependencies, contributed to classpath scanning overhead, and increased the native-image footprint.
+
+Starting with Spring Boot 4, the team has begun splitting auto-configurations and support code into smaller, more focused modules. This internal modularization means:
+
+Faster builds and native-image generation. GraalVM AOT processing doesn’t need to deal with unnecessary hints and metadata.
+
+Cleaner dependency management. Optional integrations (like Micrometer, OpenTelemetry, or specific persistence technologies) are in separate modules instead of bundled together.
+
+Improved maintainability for the Spring team and contributors. Modules map more directly to features.
+
+As a developer, we may not notice this change directly in our pom.xml or build.gradle. If we use starter dependencies, we don’t need any changes. For example, when we need JPA with Hibernate, we just add this dependency to our pom.xml:
+
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+Copy
+The difference is under the hood: the JPA auto-configuration, the Hibernate integration, and the validation setup are now part of separate modules, which allows the framework to be more selective when processing configurations at runtime or during AOT compilation.
+
+If we do not use starter dependencies, we have to take care of the changes. We can find details about the new modules in the Spring Boot GitHub Wiki.
+
+3.5. New @ConfigurationPropertiesSource Annotation
+Another feature for better modularization is the new annotation named @ConfigurationPropertiesSource. This annotation does not change how configuration properties are bound at runtime. Instead, it acts as a hint for the spring-boot-configuration-processor during build time.
+
+When the processor generates metadata for @ConfigurationProperties classes, it usually collects information from the same module where the class is defined. In modular projects, however, we sometimes rely on nested types or base classes that live in different modules, where source code is not available during build time. In such cases, the generated metadata may be incomplete — for example, property descriptions or default values might be missing.
+
+By marking a class with @ConfigurationPropertiesSource, we instruct the processor to generate full metadata for it, even if it is not directly annotated with @ConfigurationProperties. In practice, this means we no longer need to worry about missing metadata when working across modules. The processor takes care of it for us.
+
+4. Spring Framework 7
+Spring Framework 7 arrives with a mix of long-requested features and thoughtful refinements across testing, API design, and core infrastructure. These changes modernize the framework while reducing boilerplate for everyday development.
+
+4.1. Testing Improvements
+Spring uses Context Caching during tests to find a balance between test performance and isolation. We can find details about that and the resulting pitfalls, and possible solutions in this article.
+
+Spring Framework 7 introduces test context pausing. Previously, long-lived integration tests consumed resources even when idle. Now, Spring can pause and resume contexts stored in the context cache, saving memory and speeding up test execution in large suites. This is helpful, e.g., for JMS listener containers or scheduled tasks.
+
+Additionally, a new RestTestClient makes it easier to test REST endpoints similar to WebTestClient, but without pulling in reactive infrastructure:
+
+This brings REST testing closer to the simplicity of WebTestClient, but without requiring reactive dependencies:
+
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class HelloWorldApiIntegrationTest {
+
+    RestTestClient client;
+
+    @BeforeEach
+    void setUp(WebApplicationContext context) {
+        client = RestTestClient.bindToApplicationContext(context)
+            .build();
+    }
+
+    @Test
+    void shouldFetchHelloV1() {
+        client.get()
+            .uri("/api/v1/hello")
+            .exchange()
+            .expectStatus()
+            .isOk()
+            .expectHeader()
+            .contentTypeCompatibleWith(MediaType.TEXT_PLAIN)
+            .expectBody(String.class)
+            .consumeWith(message -> assertThat(message.getResponseBody()).containsIgnoringCase("hello"));
+    }
+
+}
+Copy
+4.2. API Versioning
+One of the most requested new features comes with first-class API versioning.
+
+Traditionally, we had to roll our own solutions—through URL path conventions (/v1/), custom headers, or media types. Now, the framework provides native support. We can now specify a version attribute, as shown in this sample:
+
+@RestController
+@RequestMapping("/hello")
+public class HelloWorldController {
+
+    @GetMapping(version = "1", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String sayHelloV1() {
+        return "Hello World";
+    }
+
+    @GetMapping(version = "2", produces = MediaType.TEXT_PLAIN_VALUE)
+    public String sayHelloV2() {
+        return "Hi World";
+    }
+ 
+}
+Copy
+We could specify the version at the controller level too:
+
+@RestController
+@RequestMapping(path = "/hello", version = "3")
+public class HelloWorldV3Controller {
+
+    @GetMapping(produces = MediaType.TEXT_PLAIN_VALUE)
+    public String sayHello() {
+        return "Hey World";
+    }
+
+}
+Copy
+Then, we need to configure the mapping strategy, which can be one of:
+
+path-based mapping (e.g. /api/v1/hello vs. /api/v2/hello)
+query-parameter-based (e.g. /hello?version=1 vs. /hello?version=2)
+request-header-based (e.g. X-API-Version: 1 vs. X-API-Version: 2)
+mediatype-header-based (e.g. Accept: application/json; version=1 vs. Accept: application/json; version=2)
+The following configuration uses path-based mapping:
+
+@Configuration
+public class ApiConfig implements WebMvcConfigurer {
+
+    @Override
+    public void configureApiVersioning(ApiVersionConfigurer configurer) {
+        configurer.usePathSegment(1);
+    }
+
+    @Override
+    public void configurePathMatch(PathMatchConfigurer configurer) {
+        configurer.addPathPrefix("/api/v{version}", HandlerTypePredicate.forAnnotation(RestController.class));
+    }
+
+}
+Copy
+Spring will automatically resolve the version. This makes it far easier to evolve APIs without breaking existing clients.
+
+4.3. Smarter HTTP Clients With @HttpServiceClient
+Another notable feature is the declarative HTTP client support. Inspired by Feign, but lighter and fully integrated.
+
+In older Spring versions, we needed to create a proxy for the HttpInterface. Smarter solutions were possible, but built individually. For example, in this repository, we can find a sample with a custom @HttpClient annotation and a custom Bean Registrar (which was also improved with Spring Framework 7, as we can see in this article).
+
+Now, we have a built-in solution with the @HttpServiceClient annotation. Let’s see an example:
+
+@HttpServiceClient("christmasJoy")
+public interface ChristmasJoyClient {
+
+    @GetExchange("/greetings?random")
+    String getRandomGreeting();
+
+}
+Copy
+Then, we need to activate classpath scanning and configure the service group that the client is assigned to:
+
+@Configuration
+@Import(HttpClientConfig.HelloWorldClientHttpServiceRegistrar.class)
+public class HttpClientConfig {
+
+    static class HelloWorldClientHttpServiceRegistrar extends AbstractClientHttpServiceRegistrar {
+
+        @Override
+        protected void registerHttpServices(GroupRegistry registry, AnnotationMetadata metadata) {
+            findAndRegisterHttpServiceClients(registry, List.of("com.baeldung.spring.mvc"));
+        }
+    }
+
+    @Bean
+    RestClientHttpServiceGroupConfigurer christmasJoyServiceGroupConfigurer() String baseUrl) {
+        return groups -> {
+            groups.filterByName("christmasJoy")
+                .forEachClient((group, clientBuilder) -> {
+                    clientBuilder.baseUrl("https://christmasjoy.dev/api");
+                });
+        };
+    }
+
+}
+Copy
+The ChristmasJoyClient is then available for injection into other Spring components as usual:
+
+@RestController
+@RequestMapping(path = "/hello", version = "4")
+@RequiredArgsConstructor
+public class HelloWorldV4Controller {
+
+    private final ChristmasJoyClient christmasJoy;
+
+    @GetMapping(produces = MediaType.TEXT_PLAIN_VALUE)
+    public String sayHello() {
+        return this.christmasJoy.getRandomGreeting();
+    }
+
+}
+Copy
+4.4. Resilience Annotations
+Spring Retry has been part of the ecosystem for years, but it always felt like an “add-on”. In Spring Framework 7, resilience is now built-in. We can annotate Spring component methods with Spring annotations to add retry logic or concurrency limits directly:
+
+@HttpServiceClient("christmasJoy")
+public interface ChristmasJoyClient {
+
+    @GetExchange("/greetings?random")
+    @Retryable(maxAttempts = 3, delay = 100, multiplier = 2, maxDelay = 1000)
+    @ConcurrencyLimit(3)
+    String getRandomGreeting();
+
+}
+Copy
+Those annotations are ignored by default, unless we add @EnableResilientMethods to one of our configurations.
+
+This greatly simplifies adding resilience patterns without needing additional libraries like Resilience4j, although they still integrate nicely.
+
+This makes it much easier to verify resilience policies at runtime, ensuring that our annotations are actually being applied.
+
+4.5. Multiple TaskDecorator Beans
+In earlier Spring versions, when we wanted to customize the execution of asynchronous tasks, we could register a single TaskDecorator on a ThreadPoolTaskExecutor. This allowed us to, for example, propagate the SecurityContext or logging MDC into asynchronous threads. However, if we had multiple concerns to apply, we had to create a composite decorator manually.
+
+Starting with Spring Framework 7, we can now declare multiple TaskDecorator beans in the application context. Spring will automatically compose them into a chain. Each decorator is applied in turn, in the order of their bean definition or @Order annotation.
+
+For example, we have an asynchronous event listener:
+
+@Component
+@Slf4j
+public class HelloWorldEventLogger {
+
+    @Async
+    @EventListener
+    void logHelloWorldEvent(HelloWorldEvent event) {
+        log.info("Hello World Event: {}", event.message());
+    }
+
+}
+Copy
+When we want simple logging and timestamp measuring, we could simply register two TaskDecorator beans:
+
+@Configuration
+@Slf4j
+public class TaskDecoratorConfiguration {
+
+    @Bean
+    @Order(2)
+    TaskDecorator loggingTaskConfigurator() {
+        return runnable -> () -> {
+            log.info("Running Task: {}", runnable);
+            try {
+                runnable.run();
+            } finally {
+                log.info("Finished Task: {}", runnable);
+            }
+        };
+    }
+
+    @Bean
+    @Order(1)
+    TaskDecorator measuringTaskConfigurator() {
+        return runnable -> () -> {
+            final var ts1 = System.currentTimeMillis();
+            try {
+                runnable.run();
+            } finally {
+                final var ts2 = System.currentTimeMillis();
+                log.info("Finished within {}ms (Task: {})", ts2 - ts1, runnable);
+            }
+        };
+    }
+
+}
+Copy
+The resulting logging outputs are:
+
+Running Task: com.baeldung.spring.mvc.TaskDecoratorConfiguration$$Lambda/0x00000ff0014325f8@57e8609
+Hello World Event: "Happy Christmas"
+Finished within 0ms (Task: java.util.concurrent.FutureTask@bb978d6[Completed normally])
+Finished Task: com.baeldung.spring.mvc.TaskDecoratorConfiguration$$Lambda/0x00000ff0014325f8@57e8609
+Copy
+This improvement eliminates the need for boilerplate composite decorators and makes it easier to combine multiple cross-cutting concerns in asynchronous code.
+
+4.6. Null Safety With JSpecify
+Nullability annotations have been all over the place in the Java ecosystem (@Nonnull, @Nullable, @NotNull, etc.). With Spring Framework 7, the team adopts JSpecify as the standard:
+
+@Configuration
+public class ApiConfig implements WebMvcConfigurer {
+
+    @Override
+    public void configureApiVersioning(@NonNull ApiVersionConfigurer configurer) {
+        configurer.usePathSegment(1);
+    }
+
+}
+Copy
+This improves IDE tooling and Kotlin interop, reducing the risk of NullPointerExceptions in larger codebases.
+
+5. Deprecations and Removals
+With modernization comes cleanup:
+
+javax.* packages are gone — only Jakarta EE 11 is supported.
+
+Jackson 2.x support is dropped; Spring 7 expects Jackson 3.x.
+
+Spring JCL (logging bridge) is removed in favor of Apache Commons Logging.
+
+JUnit 4 support is entirely removed — Spring Boot 4 and Spring Framework 7 now exclusively mandate JUnit Jupiter 6.
+
+If we still rely on these older APIs, migration should be part of our upgrade plan.
+
+6. Conclusion
+Spring Boot 4 and Spring Framework 7 are not just incremental releases. They are a deliberate step into a modern, modular, cloud-native era of Java development:
+
+API versioning and resilience annotations make applications easier to evolve and harden.
+
+JSpecify null safety and Kotlin support to reduce runtime errors.
+
+Declarative HTTP clients simplify service-to-service calls.
+
+Native image support and observability tooling improve cloud readiness.
+
+As always with major upgrades, the key is to start testing our applications early, especially around dependency upgrades and deprecated APIs. But the benefits in productivity, performance, and maintainability make the transition worthwhile.
+
+
+
+Spring Framework 7.0 Release Notes
+Sébastien Deleuze edited this page 2 weeks ago · 98 revisions
+Upgrading From Spring Framework 6.2
+Baseline Upgrades
+Spring Framework 7.0 retains a JDK 17 baseline while at the same time recommending JDK 25 as the latest LTS release. It also introduces a Jakarta EE 11 baseline and embraces Kotlin 2.2 as well as GraalVM 25.
+
+Specifically, this new generation raises its minimum requirements for the following:
+
+Servlet 6.1 (Tomcat 11.0, Jetty 12.1)
+JPA 3.2 (Hibernate ORM 7.1/7.2)
+Bean Validation 3.1 (Hibernate Validator 9.0/9.1)
+GraalVM 25 with the new "exact reachability metadata" format
+Netty 4.2 (see #34996)
+Kotlin 2.2 (see #33629)
+JUnit 6
+Removed APIs
+Spring JCL has been removed
+The spring-jcl module has been removed in favor of Apache Commons Logging 1.3.0. This change should be transparent for most applications, as spring-jcl was a transitive dependency and the logging API calls should not change. See #32459 for more details.
+
+Removed support for javax.annotation and javax.inject annotations
+Annotations in the javax.annotation and javax.inject packages are no longer supported. This includes annotations such as @javax.annotation.Resource,@javax.annotation.PostConstruct, @javax.inject.Inject, etc. If your application still uses annotations from those packages, you will need to migrate to their equivalents in the jakarta.annotation and jakarta.inject packages.
+
+Deprecated path mapping options removed
+Several path mapping options have been marked for removal since 6.0. They are now removed completely. This includes:
+
+suffixPatternMatch/registeredSuffixPatternMatch for annotated controller methods
+trailingSlashMatch for extensions of AbstractHandlerMapping
+favorPathExtension/ignoreUnknownPathExtensions and underlying PathExtensionContentNegotiationStrategy and ServletPathExtensionContentNegotiationStrategy for content negotiation, configurable through ContentNegotiationManagerFactoryBean and in the MVC Java config
+matchOptionalTrailingSeparator in PathPatternParser
+Undertow support removed
+The Undertow project currently does not support Servlet 6.1, which is a baseline requirement for this Spring Framework generation. As a result, we have dropped Undertow-specific classes for WebSocket support and low-level HTTP support for WebFlux applications.
+
+Since Spring MVC applications can be deployed on any Servlet 6.1 compliant server, Undertow users will be able to leverage our standard Servlet support once a version of Undertow has been released which is compatible with Servlet 6.1.
+
+Other removals
+Many other APIs and features were removed as part of #33809, including:
+
+ListenableFuture in favor of CompletableFuture
+WebJars support with org.webjars:webjars-locator-core in favor of org.webjars:webjars-locator-lite
+OkHttp3 support
+Theme support
+The RequestContext#jstPresent protected static field has been renamed to JSTL_PRESENT as part of #35525.
+
+The HttpComponentsClientHttpRequestFactory#setConnectTimeout methods have been removed as part of #35748.
+
+JdbcOperations.queryForObject(sql: String, args: Array<out Any>) and JdbcOperations.queryForList(sql: String, args: Array<out Any>) Kotlin extensions have been replaced by variants using a vararg parameter instead of the array one, to align with the Java API as part of #35846.
+
+Breaking Changes
+HttpHeaders changes
+The HttpHeaders API has been revisited in 7.0. This class no longer extends the MultiValueMap contract. Underlying servers treat headers more like a collection of pairs, and many map-like operations do not behave or perform well, because headers are case-insensitive in the first place. We therefore removed several methods as a result and introduced fallbacks as immediately @Deprecated, like HttpHeaders#asMultiValueMap. Please consider other methods as much as possible. See #33913 for more details.
+
+SpringExtension extension context scope
+The SpringExtension, which integrates the Spring TestContext Framework into JUnit Jupiter, now uses a test-method scoped ExtensionContext (see #35697). Although this change allows for consistent dependency injection semantics within @Nested test class hierarchies, it may constitute a breaking change for custom TestExecutionListener implementations.
+
+If you discover that Spring-related integration tests in @Nested test class hierarchies start to fail after an upgrade to Spring Framework 7.0, you may need to annotate the top-level class in such hierarchies with @SpringExtensionConfig(useTestClassScopedExtensionContext = true).
+
+If you have developed a custom TestExecutionListener that overrides prepareTestInstance(TestContext) and that listener no longer works correctly with Spring Framework 7.0, you might need to modify the listener's implementation to look up the current test class via testContext.getTestInstance().getClass() instead of testContext.getTestClass(). See the updated Javadoc for details.
+
+Deprecations
+RestTemplate was previously declared as "feature complete". As of Spring Framework 7.0, we have deprecated this type in our reference documentation, and we will mark it as officially @Deprecated in Spring Framework 7.1. See "the state of HTTP clients" blog post for more details.
+The <mvc:* XML configuration namespace for Spring MVC is now deprecated in favor of the Java configuration variant. There are no plans yet for removing it completely, but XML configuration will not be updated to follow the Java configuration model. Other namespaces (like <bean>) are NOT deprecated.
+The Kotlin team has shared their intention to remove JSR 223 support in a future Kotlin 2.x release. As a result, the templating support for Kotlin scripts in Spring has been deprecated.
+JUnit 4 support in the Spring TestContext Framework is now deprecated in favor of the SpringExtension for JUnit Jupiter. Deprecated classes include the SpringRunner, SpringClassRule, SpringMethodRule, AbstractJUnit4SpringContextTests, AbstractTransactionalJUnit4SpringContextTests, and related support classes.
+Jackson 2.x support has been deprecated in favor of Jackson 3.x (see #33798).
+The use of PathMatcher in Spring MVC is now deprecated (see #34018).
+The HandlerMappingIntrospector SPI (for alignment of Spring Security and Spring MVC path matching) is deprecated (see #34019 and spring-security/16886).
+We updated our HttpStatus class to better align with the latest RFC9110. This mostly materializes with new HTTP statuses and a few deprecations with immediate replacements.
+The org.springframework.web.servlet.view.document and org.springframework.web.servlet.view.feed and all their types have been deprecated. The *View classes for XLS, RSS and PDF support will be removed in a future version. Instead, such types should be shipped independently from Spring Framework in libraries: this will provide broader and more flexible support. As an alternative, applications can use such libraries directly and perform the rendering phase in web handlers.
+The <lang:* XML configuration namespace is now deprecated, see #35719 for more details.
+The BeanShell scripting support is now deprecated since it is not actively maintained anymore.
+Null Safety
+Spring nullness annotations with JSR 305 semantics are deprecated in favor of JSpecify annotations. The Spring Framework codebase has been migrated to Specify and now specifies the nullness of array/vararg elements and generic types. You can find more details in this dedicated section of the reference documentation and in the blog post Null-safe applications with Spring Boot 4.
+
+Spring Framework Kotlin APIs nullability may have changed, requiring code changes in Kotlin projects comsuming them due to:
+
+Spring Framework Java API nullability differences
+Differences between JSR 305 and JSpecify interpretation by Kotlin
+Kotlin extensions nullability refinements to align more closely with Java (for example in JdbcOperations #35846 or RestOperations #35852 ones)
+Servlet 6.1 and WebSocket 2.2
+Spring Framework 7.0 adopted Jakarta Servlet 6.1 and WebSocket 2.2 as new baselines for web applications. In practice, this means that applications should be deployed on recent Servlet containers like Tomcat 11+ and Jetty 12.1+.
+
+We also took this opportunity to update our HTTP mock support with MockHttpServletRequest/MockHttpServletResponse, better aligning with the behavior described in the Servlet API. This is especially relevant when using null names and values in HTTP headers.
+
+JPA 3.2 and Hibernate ORM 7.1/7.2
+JPA 3.2 introduces a new arrangement for dependency injection: An EntityManagerFactory as well as its shared EntityManager reference can be generally injected via @Inject/@Autowired now, including qualifier support for selecting a specific persistence unit. In a typical Spring setup, such a default or qualified EntityManager reference is provided by LocalContainerEntityManagerFactoryBean itself; there is no need for a separate SharedEntityManagerBean definition anymore.
+
+Spring Framework 7.0 also embraces Hibernate ORM 7.1/7.2 as a JPA provider, with the native Hibernate support formerly living in org.springframework.orm.hibernate5 having migrated to the orm.jpa.hibernate package. Note that only the capabilities that make sense in addition to JPA itself are being continued: LocalSessionFactoryBean/Builder, HibernateTransactionManager, SpringBeanContainer, SpringSessionContext. This serves as an alternative to standard JPA bootstrapping and is also able to support SessionFactory#getCurrentSession() based data access code.
+
+Persistence unit management for JPA 3.2/4.0
+For a warning-free experience with JPA 3.2 and forward compatibility with JPA 4.0, Spring's MutablePersistenceUnitInfo is decoupled from the standard PersistenceUnitInfo interface itself now. MutablePersistenceUnitInfo was originally designed as the argument type for PersistenceUnitPostProcessor and now exclusively serves that purpose; it cannot be assigned to jakarta.persistence.spi.PersistenceUnitInfo since it does not implement that interface directly anymore.
+
+For any custom bootstrapping purposes, use the newly public SpringPersistenceUnitInfo class instead, adapting it to jakarta.persistence.spi.PersistenceUnitInfo through SpringPersistenceUnitInfo#asStandardPersistenceUnitInfo() - which automatically adapts to the JPA 3.2/4.0 API as encountered at runtime. We aim to provide early support for JPA 4.0 providers in Spring Framework 7.1, without any changes to your Spring configuration.
+
+JMS destination handling
+Along with the introduction of JmsClient (see below), we changed the default DestinationResolver to the new SimpleDestinationResolver which caches Session-resolved Queue and Topic instances. This also applies to JmsTemplate and listener containers by default now. If you need to enforce fresh resolution on every call (even if this should not be necessary with common JMS brokers), please explicitly configure DynamicDestinationResolver instead.
+
+Jackson 3.x support
+As of #33798, we default to supporting Jackson 3.x in our entire stack, falling back to Jackson 2.x. Support for the Jackson 2.x generation has been deprecated in Spring Framework, and our current plan is to disable its auto-detection in 7.1 and remove its support entirely in 7.2.
+
+Jackson 3.x uses a new tools.jackson package, which differs from the traditional com.fasterxml.jackson package. Classes from the "jackson-annotation" artifact (such as @JsonView and @JsonTypeInfo) remain in the com.fasterxml.jackson package for easier upgrading.
+
+There is no Jackson 3.x equivalent for Jackson2ObjectMapperBuilder. We now recommend using Jackson's JsonMapper.builder(), CBORMapper.builder(), and others as replacements.
+
+The blog post Introducing Jackson 3 support in Spring provides more details on the changes, the migration path and the impact portfolio wide.
+
+kotlinx.serialization support
+Over the years, the combined usage of Kotlin Serialization alongside another general purpose JSON library (typically Jackson) has triggered the creation of a lot of bug reports in Spring Framework. In order to prevent those side effects, #35761 changes the default behavior of Kotlin Serialization converters/codecs to perform an additional check invoking KotlinDetector#hasSerializableAnnotation to decide if the related type should be processed or not. New constructors allowing to specify a custom predicate are also introduced.
+
+Google Gson support in WebFlux
+We added new codecs for JSON (de)serialization in WebFlux, namely GsonEncoder and GsonDecoder. Because the Gson library itself does not support decoding JSON in a non-blocking fashion, the GsonDecoder does not support decoding to Flux<*> types. The encoder does support NDJSON for streaming when serializing to JSON.
+
+GraalVM Native Applications
+Spring Framework 7.0 switches to the unified reachability metadata format, being adopted by the GraalVM community. Applications contributing RuntimeHints should apply the following changes.
+
+The resource hints syntax has changed from a java.util.regex.Pattern format to a "glob pattern" format. In practice, applications might need to change their resource hint registrations if they were using wildcards. Previously, "/files/*.ext" matched both "/files/a.ext" and "/files/folder/b.txt". The new behavior matches only the former. To match both, you will need to use "/files/**/*.ext" instead. Registration of "excludes" has been removed completely.
+
+Registering a reflection hint for a type now implies methods, constructors, and fields introspection. As a result, ExecutableMode.INTROSPECT and all MemberCategory values except MemberCategory.INVOKE_* have been deprecated. They have no replacement, as registering a type hint is enough.
+
+In practice, it is enough to replace this:
+
+hints.reflection().registerType(MyType.class, MemberCategory.DECLARED_FIELDS);
+With this:
+
+hints.reflection().registerType(MyType.class);
+As for MemberCategory.PUBLIC_FIELDS and MemberCategory.DECLARED_FIELDS, those constants were replaced by INVOKE_PUBLIC_FIELDS and INVOKE_DECLARED_FIELDS to make their original intent clearer and to align with the rest of the API. Note, if you were using those values for reflection only, you can safely remove those hints in favor of a simple type hint.
+
+More details on the related changes can be found in #33847.
+
+CORS Pre-Flight requests behavior change
+As of #31839, CORS Pre-Flight requests are not rejected anymore when the CORS configuration is empty.
+
+WebClient behavior changes for Reactor client
+As of #34850, the Reactor client (when used with WebClient) will automatically opt-in for the system properties for proxy configuration, https.proxyHost and https.proxyPort.
+
+New and Noteworthy
+Null Safety
+The Spring Framework codebase is annotated with JSpecify annotations to declare the nullness of APIs, fields, and related type usage. JSpecify provides significant enhancements compared to the previous JSR 305 based arrangement, such as properly defined specifications, a canonical dependency with no split-package issue, better tooling, better Kotlin integration, and the capability to specify nullness for generic types, arrays, and vararg elements. Using JSpecify annotations is also recommended for Spring-based applications. For more on this, check out the revisited "Null Safety" section of our reference documentation.
+
+Class-File API usage for Java 24+ apps
+Spring Framework reads class bytecode to collect metadata about the application code. Historically we have used a reduced ASM fork for this purpose, through the MetadataReaderFactory and MetadataReader types in the org.springframework.core.type.classreading package. Although Spring applications typically have no direct exposure to this API, this is especially useful when parsing @Configuration classes or looking for annotations on application code.
+
+Java 24 introduced a new Class-File API with JEP 484 for reading and writing classes as Java bytecode. Spring Framework 7.0 adopts this feature for Java 24+ applications with a new ClassFileMetadataReader implementation in spring-core. This should be completely transparent for applications.
+
+Programmatic Bean Registration
+Applications should never attempt to register several beans within a single @Bean method in a @Configuration class. Similarly, @Bean methods should declare the most concrete type as their return type. Those requirements often get in the way of more flexible bean registrations when more logic is required, or when multiple registration is needed.
+
+This major version introduces a new programmatic bean registration mechanism with the BeanRegistrar contract that will help with such use cases. See the new "Programmatic Bean Registration" section in the reference documentation.
+
+Optional support with null-safe and Elvis operators in SpEL expressions
+The java.util.Optional type is now better supported in SpEL expressions. Not only can you now call null-safe operations on Optional types with transparent unwrapping, but you can also use the Elvis operator to automatically unwrap an Optional.
+
+Consistent proxy type defaulting and consistent opting out for specific beans
+As of 7.0, global proxy type defaulting to CGLIB - like in Spring Boot - is consistently applied to all proxy processors (including @Async and co). For custom purposes, a bean of type ProxyConfig can be declared under the name AutoProxyUtils.DEFAULT_PROXY_CONFIG_BEAN_NAME, containing default proxy settings for the current application context.
+
+Opting out is possible for individual beans through the new @Proxyable annotation, for example through @Proxyable(INTERFACES) in case of a CGLIB target-class default or also through @Proxyable(TARGET_CLASS) in case of the regular default (JDK dynamic proxy with interfaces), declared at the level of a @Bean method or a scanned @Component class. As a bonus, bean-specific proxy interfaces can be suggested through @Proxyable(interfaces=MyService.class) which also overrides any context-wide default proxy type.
+
+Resilience features: RetryTemplate, @Retryable, @ConcurrencyLimit
+The Spring team has been working on the Spring Retry project for a very long time, and we decided that it was time to trim unnecessary features, revisit some of its APIs, and merge the resulting work into the spring-core module of Spring Framework. This new foundational retry support is located in the org.springframework.core.retry package, which includes RetryTemplate, RetryPolicy, and supporting classes.
+
+Aligned with core.retry, there is also @Retryable annotation support in the spring-context module, accompanied by a @ConcurrencyLimit annotation based on Spring's concurrency throttling support. Both of those can be conveniently enabled through @EnableResilientMethods on a @Configuration class. Check out the new resilience chapter in the reference documentation as well as the related blog post.
+
+Note that @Retryable (including its customization through annotation attributes) automatically adapts to reactive methods with a reactive return type, decorating the pipeline with Reactor’s retry capabilities. Regular imperative methods will be invoked via a RetryTemplate with a corresponding RetryPolicy.
+
+Embracing JPA 3.2 and Hibernate StatelessSession
+LocalEntityManagerFactoryBean accepts a JPA 3.2 PersistenceConfiguration object now, for richer standalone bootstrapping without persistence.xml. LocalContainerEntityManagerFactoryBean accepts PersistenceConfiguration as well, merging it into its default persistence unit. This specifically supports the HibernatePersistenceConfiguration subclass as well, detecting Hibernate ORM 7.1's scanning configuration options.
+
+LocalSessionFactoryBean exposes transactional Session and StatelessSession proxy references for dependency injection, along the lines of the JPA 3.2 arrangement for EntityManager injection with @Inject/@Autowired. We recommend using Hibernate ORM 7.2 (rather than 7.1) for StatelessSession support since we can derive a transactional StatelessSession from the current transactional Session there.
+
+Introducing JmsClient and revisiting JdbcClient
+After JdbcClient and RestClient in 6.1, Spring Framework 7.0 introduces a JmsClient now: with common send and receive operations against a JMS destination, dealing with Spring's common Message or with payload values, throwing MessagingException in alignment with the spring-messaging module. This is effectively an alternative to JmsMessagingTemplate, also delegating to Spring's JmsTemplate for performing actual operations.
+
+JmsClient provides reusable operation handles which can be configured with custom QoS settings. With a similar design, JdbcClient conveniently provides statement-level settings such as fetch size, max rows, and query timeout now.
+
+API Versioning
+Spring MVC and WebFlux now provide first class support for API versioning. On the server side, you can map requests to controller methods and route requests to functional endpoints by taking into account the API version of the request. You can configure how the API version is resolved, parsed, and validated, mark versions as deprecated in order to notify clients, and more. On the client side, there is support for setting the API version on requests in RestClient, WebClient, and also with HTTP interface clients. On the testing side, there is support in WebTestClient as well as in MockMvc.
+
+For more details see the reference docs for Spring MVC and WebFlux, and the blog post API Versioning in Spring.
+
+HTTP Interface Client configuration
+There is now dedicated support for HTTP interface client configuration that can significantly simplify the required configuration especially when you work with many HTTP interfaces and target hosts. This is done through @ImportHttpServices declarations that let applications focus on identifying HTTP Services by group, and customizing the client for each group, while the framework transparently creates a registry of client proxies, and declares each proxy as a bean. For example:
+
+@Configuration(proxyBeanMethods = false)
+@ImportHttpServices(group = "weather", types = {FreeWeather.class, CommercialWeather.class})
+@ImportHttpServices(group = "user", types = {UserServiceInternal.class, UserServiceOfficial.class})
+static class HttpServicesConfiguration extends AbstractHttpServiceRegistrar {
+
+	@Bean
+	public RestClientHttpServiceGroupConfigurer groupConfigurer() {
+		return groups -> groups.filterByName("weather", "user")
+				.configureClient((group, builder) -> builder.defaultHeader("User-Agent", "My-Application"));
+	}
+
+}
+For more details, see the reference documentation, and the blog post HTTP Service Client Enhancements.
+
+HTTP Interface Client support for InputStream and OutputStream
+It is now possible to provide an OutputStream for the request body through an StreamingHttpOutputMessage.Body method parameter, and also to consume the response through an InputStream or ResponseEntity<InputStream> return value.
+
+PathPattern matching improved
+As of Spring Framework 7.0, the legacy AntPathMatcher variant for matching HTTP request mappings is being deprecated. We started this migration back in 5.0, introducing the PathPattern option, then making it the default.
+
+Community members reached out and shared that there was one last missing feature that was preventing their upgrade: the ability to match many path segments at the beginning of the path (think, "/**/pages/index.html"). This is now supported, and we described more thoroughly the allowed patterns in the reference documentation.
+
+Easier message converters configuration with HttpMessageConverters
+Similar to the codecs configuration on the reactive side with WebClient and WebFlux server applications, we have introduced the new HttpMessageConverters class for an easier and centralized experience when it comes to classpath detection of HTTP message converters and their global setup.
+
+In practice, you will encounter them on new configuration methods. For example, WebMvcConfigurer#configureMessageConverters will let you configure a custom JSON converter like this:
+
+@Configuration
+public class WebConfiguration implements WebMvcConfigurer {
+
+	@Override
+	public void configureMessageConverters(HttpMessageConverters.ServerBuilder builder) {
+		JsonMapper jsonMapper = JsonMapper.builder()
+				.findAndAddModules()
+				.enable(SerializationFeature.INDENT_OUTPUT)
+				.defaultDateFormat(new SimpleDateFormat("yyyy-MM-dd"))
+				.build();
+		builder.jsonMessageConverter(new JacksonJsonHttpMessageConverter(jsonMapper));
+	}
+}
+Similar methods exist for RestClient and RestTemplate.
+
+Pausing of Test Application Contexts
+As of Spring Framework 7.0, an application context stored in the test context cache will be stopped when it is no longer actively in use and automatically restarted the next time it is needed. This ensures that background processes within the context are not actively running while the context is not used by tests. For more details, see the reference documentation.
+
+Improved Dependency Injection in @Nested Test Class Hierarchies
+The SpringExtension for JUnit Jupiter now supports dependency injection into test class constructors and fields in @⁠Nested test class hierarchies using the same ApplicationContext that is used to perform dependency injection into lifecycle and test methods such @⁠BeforeEach, @⁠AfterEach, @⁠Test, etc. (see #35697). This provides a more consistent programming model for @Nested tests. However, if you encounter issues after upgrading to Spring Framework 7.0, see SpringExtension extension context scope for details on potentially breaking changes.
+
+Bean Overrides for non-singleton Beans
+Bean Overrides such as @MockitoBean, @MockitoSpyBean and @TestBean can now be applied to non-singleton beans such as prototype or custom scoped beans.
+
+RestTestClient
+This is a popular enhancement request coming from the community: providing a non-reactive variant for WebTestClient. Developers like the way WebTestClient can test live servers and mock setups, with a fluent API and nice assertions.
+
+This is now done with the new RestTestClient; you can bind it to a live server, an MVC @Controller or the application context. See the new RestTestClient documentation section for more.
+
+Context Propagation for Kotlin Coroutines
+Kotlin developers shared that while context propagation for traces worked well for blocking and reactive applications, this information was not available during the execution of a Kotlin Coroutine. This new release introduces automatic context propagation for Coroutines via the PropagationContextElement operator.
+
+

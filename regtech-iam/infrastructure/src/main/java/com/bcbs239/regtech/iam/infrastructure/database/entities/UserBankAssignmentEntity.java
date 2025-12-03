@@ -4,6 +4,7 @@ import com.bcbs239.regtech.iam.domain.users.User.BankAssignment;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.util.UUID;
 
 /**
  * JPA Entity for user_bank_assignments table.
@@ -16,12 +17,12 @@ import java.time.Instant;
 public class UserBankAssignmentEntity {
 
     @Id
-    @Column(name = "id", length = 36)
+    @Column(name = "id", length = 255)
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(name = "user_id", nullable = false, length = 36)
-    private String userId;
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
 
     @Column(name = "bank_id", nullable = false, length = 255)
     private String bankId;
@@ -40,7 +41,7 @@ public class UserBankAssignmentEntity {
     protected UserBankAssignmentEntity() {}
 
     // Constructor for creation
-    public UserBankAssignmentEntity(String userId, String bankId, String role, Instant assignedAt) {
+    public UserBankAssignmentEntity(UUID userId, String bankId, String role, Instant assignedAt) {
         this.userId = userId;
         this.bankId = bankId;
         this.role = role;
@@ -51,7 +52,7 @@ public class UserBankAssignmentEntity {
     /**
      * Factory method to create entity from domain object
      */
-    public static UserBankAssignmentEntity fromDomain(BankAssignment assignment, String userId) {
+    public static UserBankAssignmentEntity fromDomain(BankAssignment assignment, UUID userId) {
         return new UserBankAssignmentEntity(
             userId,
             assignment.getBankId(),
@@ -71,8 +72,8 @@ public class UserBankAssignmentEntity {
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
-    public String getUserId() { return userId; }
-    public void setUserId(String userId) { this.userId = userId; }
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
 
     public String getBankId() { return bankId; }
     public void setBankId(String bankId) { this.bankId = bankId; }

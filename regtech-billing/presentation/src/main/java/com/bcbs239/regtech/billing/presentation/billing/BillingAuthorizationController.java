@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.presentation.billing;
 
-import com.bcbs239.regtech.core.security.authorization.AuthorizationService;
-import com.bcbs239.regtech.core.security.authorization.Permission;
+import com.bcbs239.regtech.core.domain.security.AuthorizationService;
+import com.bcbs239.regtech.core.domain.security.authorization.Permission;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.http.ResponseEntity;

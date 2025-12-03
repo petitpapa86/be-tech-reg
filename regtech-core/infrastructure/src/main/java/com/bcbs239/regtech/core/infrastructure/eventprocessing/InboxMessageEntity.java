@@ -12,7 +12,7 @@ import java.time.Instant;
  */
 @Setter
 @Getter
-@Entity
+@Entity(name = "EventProcessingInboxMessageEntity")
 @Table(name = "inbox_messages", indexes = {
     @Index(name = "idx_inbox_messages_status_received", columnList = "processing_status, received_at"),
     @Index(name = "idx_inbox_messages_event_type", columnList = "event_type"),

@@ -72,7 +72,7 @@ public class JpaInboxMessageRepository implements IInboxMessageRepository {
     @Transactional
     public void markAsProcessing(String id) {
         entityManager.createQuery(
-            "UPDATE InboxMessageEntity i SET i.processingStatus = :processing WHERE i.eventId = :eventId AND i.processingStatus = :pending"
+            "UPDATE EventProcessingInboxMessageEntity i SET i.processingStatus = :processing WHERE i.eventId = :eventId AND i.processingStatus = :pending"
         )
         .setParameter("processing", InboxMessageEntity.ProcessingStatus.PROCESSING)
         .setParameter("eventId", id)
@@ -84,7 +84,7 @@ public class JpaInboxMessageRepository implements IInboxMessageRepository {
     @Transactional
     public void markAsPermanentlyFailed(String id) {
         entityManager.createQuery(
-            "UPDATE InboxMessageEntity i SET i.processingStatus = :failed WHERE i.eventId = :eventId"
+            "UPDATE EventProcessingInboxMessageEntity i SET i.processingStatus = :failed WHERE i.eventId = :eventId"
         )
         .setParameter("failed", InboxMessageEntity.ProcessingStatus.FAILED)
         .setParameter("eventId", id)
@@ -95,7 +95,7 @@ public class JpaInboxMessageRepository implements IInboxMessageRepository {
     @Transactional
     public void markAsProcessed(String id, Instant now) {
         entityManager.createQuery(
-            "UPDATE InboxMessageEntity i SET i.processingStatus = :processed, i.processedAt = :processedAt WHERE i.eventId = :eventId"
+            "UPDATE EventProcessingInboxMessageEntity i SET i.processingStatus = :processed, i.processedAt = :processedAt WHERE i.eventId = :eventId"
         )
         .setParameter("processed", InboxMessageEntity.ProcessingStatus.PROCESSED)
         .setParameter("processedAt", now)

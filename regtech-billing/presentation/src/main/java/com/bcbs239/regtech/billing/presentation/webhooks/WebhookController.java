@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.billing.presentation.webhooks;
 
 
-import com.bcbs239.regtech.core.shared.BaseController;
+import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 

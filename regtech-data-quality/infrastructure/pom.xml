@@ -25,6 +25,8 @@
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-core</artifactId>
+			<type>pom</type>
+			<version>${project.version}</version>
 		</dependency>
 		
 		<!-- Spring Boot Starters -->

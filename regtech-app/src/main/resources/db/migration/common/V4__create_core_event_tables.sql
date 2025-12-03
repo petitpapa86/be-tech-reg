@@ -14,9 +14,9 @@ CREATE TABLE IF NOT EXISTS public.outbox_messages (
     processed BOOLEAN NOT NULL DEFAULT FALSE
 );
 
-CREATE INDEX idx_outbox_messages_processed ON public.outbox_messages(processed);
-CREATE INDEX idx_outbox_messages_created_at ON public.outbox_messages(created_at);
-CREATE INDEX idx_outbox_messages_aggregate ON public.outbox_messages(aggregate_type, aggregate_id);
+CREATE INDEX IF NOT EXISTS idx_outbox_messages_processed ON public.outbox_messages(processed);
+CREATE INDEX IF NOT EXISTS idx_outbox_messages_created_at ON public.outbox_messages(created_at);
+CREATE INDEX IF NOT EXISTS idx_outbox_messages_aggregate ON public.outbox_messages(aggregate_type, aggregate_id);
 
 -- Inbox Messages table - stores incoming events for idempotent processing
 CREATE TABLE IF NOT EXISTS public.inbox_messages (
@@ -29,9 +29,9 @@ CREATE TABLE IF NOT EXISTS public.inbox_messages (
     processed BOOLEAN NOT NULL DEFAULT FALSE
 );
 
-CREATE INDEX idx_inbox_messages_processed ON public.inbox_messages(processed);
-CREATE INDEX idx_inbox_messages_received_at ON public.inbox_messages(received_at);
-CREATE INDEX idx_inbox_messages_message_id ON public.inbox_messages(message_id);
+CREATE INDEX IF NOT EXISTS idx_inbox_messages_processed ON public.inbox_messages(processed);
+CREATE INDEX IF NOT EXISTS idx_inbox_messages_received_at ON public.inbox_messages(received_at);
+CREATE INDEX IF NOT EXISTS idx_inbox_messages_message_id ON public.inbox_messages(message_id);
 
 -- Event Processing Failures table - stores failed event processing attempts
 CREATE TABLE IF NOT EXISTS public.event_processing_failures (
@@ -48,9 +48,9 @@ CREATE TABLE IF NOT EXISTS public.event_processing_failures (
     resolved_at TIMESTAMP
 );
 
-CREATE INDEX idx_event_failures_resolved ON public.event_processing_failures(resolved);
-CREATE INDEX idx_event_failures_failed_at ON public.event_processing_failures(failed_at);
-CREATE INDEX idx_event_failures_event_type ON public.event_processing_failures(event_type);
+CREATE INDEX IF NOT EXISTS idx_event_failures_resolved ON public.event_processing_failures(resolved);
+CREATE INDEX IF NOT EXISTS idx_event_failures_failed_at ON public.event_processing_failures(failed_at);
+CREATE INDEX IF NOT EXISTS idx_event_failures_event_type ON public.event_processing_failures(event_type);
 
 -- Sagas table - stores saga orchestration state
 CREATE TABLE IF NOT EXISTS public.sagas (
@@ -64,9 +64,9 @@ CREATE TABLE IF NOT EXISTS public.sagas (
     completed_at TIMESTAMP
 );
 
-CREATE INDEX idx_sagas_status ON public.sagas(status);
-CREATE INDEX idx_sagas_saga_type ON public.sagas(saga_type);
-CREATE INDEX idx_sagas_created_at ON public.sagas(created_at);
+CREATE INDEX IF NOT EXISTS idx_sagas_status ON public.sagas(status);
+CREATE INDEX IF NOT EXISTS idx_sagas_saga_type ON public.sagas(saga_type);
+CREATE INDEX IF NOT EXISTS idx_sagas_created_at ON public.sagas(created_at);
 
 -- Comments for documentation
 COMMENT ON TABLE public.outbox_messages IS 'Stores domain events for reliable publishing using the transactional outbox pattern';

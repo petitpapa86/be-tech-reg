@@ -114,7 +114,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                 savedEntity = userRepository.save(entity);
             }
             
-            return Result.success(UserId.fromString(savedEntity.getId()));
+            return Result.success(new UserId(savedEntity.getId()));
         } catch (Exception e) {
             log.error("Failed to save user; details={}", Map.of("user", user.getId(), "error", e.getMessage()), e);
             return Result.failure(ErrorDetail.of("USER_SAVE_FAILED", ErrorType.SYSTEM_ERROR, "Failed to save user: " + e.getMessage(), "user.save.failed"));
@@ -127,7 +127,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     @Override
     public List<UserRole> userRolesFinder(UserId userId) {
         try {
-            return userRoleRepository.findByUserIdAndActiveTrue(userId.getValue())
+            return userRoleRepository.findByUserIdAndActiveTrue(userId.getUUID())
                     .stream()
                     .map(entity -> convertToDomain(entity))
                     .toList();
@@ -143,7 +143,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     @Override
     public List<UserRole> userOrgRolesFinder(UserOrgQuery query) {
         try {
-            return userRoleRepository.findByUserIdAndOrganizationIdAndActiveTrue(query.userId().getValue(), query.organizationId())
+            return userRoleRepository.findByUserIdAndOrganizationIdAndActiveTrue(query.userId().getUUID(), query.organizationId())
                     .stream()
                     .map(entity -> convertToDomain(entity))
                     .toList();
@@ -171,7 +171,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
             }
 
             return UserRole.create(
-                UserId.fromString(entity.getUserId()),
+                new UserId(entity.getUserId()),
                 roleName,
                 entity.getOrganizationId()
             );

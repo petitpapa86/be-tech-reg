@@ -58,6 +58,7 @@
 				<groupId>com.bcbs239</groupId>
 				<artifactId>regtech-core</artifactId>
 				<version>${project.version}</version>
+				<type>pom</type>
 			</dependency>
 			
 			<!-- Stripe SDK for payment processing -->

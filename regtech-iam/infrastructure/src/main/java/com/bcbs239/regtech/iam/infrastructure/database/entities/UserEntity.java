@@ -9,6 +9,7 @@ import lombok.Setter;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * JPA Entity for users table with proper domain conversion.
@@ -27,8 +28,8 @@ public class UserEntity {
 
     // Getters and setters
     @Id
-    @Column(name = "id", length = 36)
-    private String id;
+    @Column(name = "id")
+    private UUID id;
 
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
@@ -76,7 +77,7 @@ public class UserEntity {
      */
     public static UserEntity fromDomain(User user) {
         UserEntity entity = new UserEntity();
-        entity.id = user.getId().getValue();
+        entity.id = user.getId().getUUID();
         entity.email = user.getEmail().getValue();
         entity.passwordHash = user.getPassword().getHashedValue();
         entity.firstName = user.getFirstName();
@@ -109,7 +110,7 @@ public class UserEntity {
         // This is a simplified approach - in practice you might need a more sophisticated builder
 
         return User.createFromPersistence(
-            UserId.fromString(id),
+            new UserId(id),
             emailVO,
             passwordVO,
             firstName,
