@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.6</version>
+		<version>4.0.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.bcbs239</groupId>
@@ -28,18 +28,20 @@
 		<url/>
 	</scm>
 	<properties>
-		<!-- Project targets preview features in JDK 25; please use JDK 25 to build locally and enable preview features -->
+		<!-- Java version 25 -->
 		<java.version>25</java.version>
+		<maven.compiler.source>25</maven.compiler.source>
+		<maven.compiler.target>25</maven.compiler.target>
+		<maven.compiler.release>25</maven.compiler.release>
 		<project.version>0.0.1-SNAPSHOT</project.version>
 		
-		<!-- Version management for common dependencies -->
-		<testcontainers.version>1.19.3</testcontainers.version>
-		<aws.sdk.version>2.21.29</aws.sdk.version>
+		<!-- Version overrides (only what we need to override from Spring Boot 4) -->
+		<aws.sdk.version>2.29.29</aws.sdk.version>
+		<lombok.version>1.18.36</lombok.version>
+		<testcontainers.version>1.20.4</testcontainers.version>
+		
+		<!-- Other dependencies -->
 		<poi.version>5.2.4</poi.version>
-		<!-- Lombok version shared across modules -->
-		<lombok.version>1.18.42</lombok.version>
-		<!-- Flyway version override to support PostgreSQL 17.2 -->
-		<flyway.version>11.7.2</flyway.version>
 	</properties>
 	
 	<modules>
@@ -48,6 +50,8 @@
 		<module>regtech-billing</module>
 		<module>regtech-ingestion</module>
 		<module>regtech-data-quality</module>
+		<module>regtech-risk-calculation</module>
+		<module>regtech-report-generation</module>
 		<module>regtech-app</module>
 	</modules>
 	
@@ -63,13 +67,6 @@
 			</dependency>
 			
 			<!-- AWS SDK BOM -->
-						<!-- shared dependency versions -->
-						<dependency>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-							<version>${lombok.version}</version>
-							<scope>provided</scope>
-						</dependency>
 			<dependency>
 				<groupId>software.amazon.awssdk</groupId>
 				<artifactId>bom</artifactId>
@@ -77,23 +74,32 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			
+			<!-- Lombok -->
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>${lombok.version}</version>
+				<scope>provided</scope>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
-	<!-- Lombok management (move into main dependencyManagement) -->
-	<!-- Lombok version is defined by the ${lombok.version} property above -->
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<enablePreview>true</enablePreview>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<release>${java.version}</release>
 					<parameters>true</parameters>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
 						</path>
 						<path>
 							<groupId>org.springframework.boot</groupId>
@@ -112,6 +118,16 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.graalvm.buildtools</groupId>
+				<artifactId>native-maven-plugin</artifactId>
+				<version>0.10.4</version>
+				<configuration>
+					<buildArgs>
+						<buildArg>--initialize-at-build-time=org.slf4j</buildArg>
+					</buildArgs>
 				</configuration>
 			</plugin>
 		</plugins>

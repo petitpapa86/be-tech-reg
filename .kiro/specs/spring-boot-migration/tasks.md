@@ -1,6 +1,11 @@
 # Implementation Plan
 
-- [ ] 1. Update parent POM and module dependencies
+- [x] 1. Update parent POM and module dependencies
+
+
+
+
+
   - Update root pom.xml with Spring Boot 4.x and Spring Framework 7.x versions
   - Update Java version properties (baseline 17, support 21 and 25)
   - Update Kotlin version to 2.2+
@@ -19,7 +24,10 @@
   - Update GraalVM version to 25
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 15.1, 15.2, 15.3, 15.4, 15.5_
 
-- [ ] 2. Migrate Jakarta EE packages across all modules
+- [-] 2. Migrate Jakarta EE packages across all modules
+
+
+
   - Find and replace javax.inject.Inject → jakarta.inject.Inject
   - Find and replace javax.inject.Named → jakarta.inject.Named
   - Find and replace javax.annotation.PostConstruct → jakarta.annotation.PostConstruct

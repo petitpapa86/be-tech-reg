@@ -62,16 +62,21 @@ The migration will follow a **big-bang approach** with comprehensive pre-migrati
 
 **Key Dependency Updates**:
 
-- Jackson: 2.x → 3.x (tools.jackson package)
-- Flyway: → 11.7.2+
-- PostgreSQL JDBC: → Spring Boot 4 compatible version
-- AWS SDK: → Spring Boot 4 compatible version
-- Lombok: → Spring Boot 4 compatible version
-- Testcontainers: → Spring Boot 4 compatible version
-- Micrometer: → 2.x
-- JUnit: 4 → Jupiter 6 (complete removal of JUnit 4)
+Spring Boot 4.0.0 automatically manages compatible versions of most dependencies through its BOM (Bill of Materials). We should rely on these managed versions and only override when absolutely necessary:
 
-**Rationale**: Spring Boot 4 requires specific minimum versions of these dependencies. Flyway 11.7.2+ is required for Jakarta EE 11 support. All dependencies must be updated together to avoid classpath conflicts.
+**Managed by Spring Boot 4 (no explicit version needed)**:
+- Jackson: 2.x → 3.x (tools.jackson package) - Spring Boot provides compatible version
+- Flyway: → 11.7.2+ - Spring Boot provides compatible version
+- PostgreSQL JDBC: Spring Boot provides compatible version
+- AWS SDK: Spring Boot provides compatible version
+- Lombok: Spring Boot provides compatible version
+- Micrometer: → 2.x - Spring Boot provides compatible version
+- JUnit Jupiter: Spring Boot provides compatible version
+
+**May Need Version Override**:
+- Testcontainers: Only override if Spring Boot 4's version doesn't meet our needs
+
+**Rationale**: Spring Boot 4's dependency management ensures all dependencies are compatible with each other. By relying on managed versions, we reduce the risk of version conflicts and benefit from Spring Boot's tested dependency combinations. We should only override versions when we have a specific requirement that Spring Boot's managed version doesn't satisfy.
 
 ### Package Migration (Jakarta EE 11)
 
@@ -476,24 +481,25 @@ Each module's application-{module}.yml may require updates for:
 
 ### Phase 1: Dependency Updates (Requirements 1, 15)
 
-**Objective**: Update all dependencies to Spring Boot 4 compatible versions
+**Objective**: Update to Spring Boot 4 and leverage its dependency management
 
 **Actions**:
-1. Update parent POM with Spring Boot 4.x version
-2. Update Spring Framework to 7.x
-3. Update Flyway to 11.7.2+
-4. Update PostgreSQL JDBC driver
-5. Update AWS SDK
-6. Update Lombok
-7. Update Testcontainers
-8. Add Jakarta EE 11 dependencies
-9. Add Jackson 3.x dependencies
-10. Remove JUnit 4 dependencies
-11. Add JUnit Jupiter dependencies
-12. Add JSpecify dependency
-13. Update Micrometer to version 2
+1. Update parent POM with Spring Boot 4.0.0 version
+2. Remove explicit version overrides for dependencies managed by Spring Boot 4:
+   - Remove Spring Framework version (managed by Spring Boot)
+   - Remove Flyway version (managed by Spring Boot)
+   - Remove PostgreSQL JDBC version (managed by Spring Boot)
+   - Remove AWS SDK version (managed by Spring Boot)
+   - Remove Lombok version (managed by Spring Boot)
+   - Remove Micrometer version (managed by Spring Boot)
+   - Remove JUnit Jupiter version (managed by Spring Boot)
+3. Keep only necessary version overrides (e.g., Testcontainers if needed)
+4. Remove JUnit 4 dependencies completely
+5. Verify Jakarta EE 11 dependencies are provided by Spring Boot
+6. Verify Jackson 3.x dependencies are provided by Spring Boot
+7. Add JSpecify dependency (not managed by Spring Boot)
 
-**Validation**: Maven build completes dependency resolution without conflicts
+**Validation**: Maven build completes dependency resolution without conflicts; verify Spring Boot 4's managed versions are being used
 
 ### Phase 2: Package Migration (Requirements 2, 3, 5)
 
