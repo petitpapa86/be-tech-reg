@@ -38,6 +38,8 @@
 		<poi.version>5.2.4</poi.version>
 		<!-- Lombok version shared across modules -->
 		<lombok.version>1.18.42</lombok.version>
+		<!-- Flyway version override to support PostgreSQL 17.2 -->
+		<flyway.version>11.7.2</flyway.version>
 	</properties>
 	
 	<modules>
