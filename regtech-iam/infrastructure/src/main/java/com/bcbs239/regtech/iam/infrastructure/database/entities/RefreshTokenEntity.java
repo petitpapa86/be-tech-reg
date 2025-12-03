@@ -6,6 +6,7 @@ import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.UUID;
 
 /**
  * JPA Entity for refresh_tokens table

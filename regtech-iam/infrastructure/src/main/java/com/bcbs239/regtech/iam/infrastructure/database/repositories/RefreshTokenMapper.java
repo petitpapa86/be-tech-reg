@@ -24,7 +24,7 @@ public class RefreshTokenMapper {
     public RefreshTokenEntity toEntity(RefreshToken refreshToken) {
         return new RefreshTokenEntity(
             refreshToken.getId().value(),
-            UUID.fromString(refreshToken.getUserId().getValue()),
+            refreshToken.getUserId().getUUID(),
             refreshToken.getTokenHash(),
             refreshToken.getExpiresAt(),
             refreshToken.getCreatedAt(),
@@ -41,7 +41,7 @@ public class RefreshTokenMapper {
     public RefreshToken toDomain(RefreshTokenEntity entity) {
         return RefreshToken.createFromPersistence(
             new RefreshTokenId(entity.getId()),
-            UserId.fromString(entity.getUserId().toString()),
+            new UserId(entity.getUserId()),
             entity.getTokenHash(),
             entity.getExpiresAt(),
             entity.getCreatedAt(),
