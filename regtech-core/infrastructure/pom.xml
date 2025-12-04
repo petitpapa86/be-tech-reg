@@ -63,6 +63,12 @@
 			<artifactId>jackson-datatype-jsr310</artifactId>
 		</dependency>
 		
+		<!-- Jackson JDK8 for Optional support -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jdk8</artifactId>
+		</dependency>
+		
 		<!-- H2 Database for testing -->
 		<dependency>
 			<groupId>com.h2database</groupId>
