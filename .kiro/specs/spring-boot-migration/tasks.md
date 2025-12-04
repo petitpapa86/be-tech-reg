@@ -143,7 +143,12 @@
   - Review and update Hibernate properties
   - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-- [ ] 8. Update servlet container configurations
+- [x] 8. Update servlet container configurations
+
+
+
+
+
   - Update embedded Tomcat configuration for version 11.0+
   - Update embedded Jetty configuration for version 12.1+ (if used)
   - Review servlet filter configurations
