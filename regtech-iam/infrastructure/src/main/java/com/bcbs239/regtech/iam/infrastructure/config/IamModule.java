@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.iam.infrastructure.config;
 
-import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,10 +15,12 @@ import org.springframework.context.annotation.Configuration;
  *
  * The module is organized using Domain-Driven Design principles with
  * business capabilities as the primary organizational structure.
+ * 
+ * Note: Entity scanning and JPA repository configuration is handled by
+ * ModularJpaConfiguration in regtech-core-infrastructure to avoid conflicts.
  */
 @Configuration
 @ComponentScan(basePackages = "com.bcbs239.regtech.iam")
-@EntityScan(basePackages = "com.bcbs239.regtech.iam.infrastructure.database.entities")
 public class IamModule {
 
     // IAM-specific beans only
