@@ -226,6 +226,32 @@ management:
       protocol: http/protobuf
 
 # ============================================================================
+# CORS CONFIGURATION
+# ============================================================================
+# Cross-Origin Resource Sharing configuration for all modules
+# Spring Framework 7 Behavior: Pre-flight requests are not rejected when CORS config is empty
+# We provide explicit configuration to maintain security policies
+# Requirements: 12.1, 12.2, 12.3, 12.4, 12.5
+cors:
+  # Allowed origins for cross-origin requests (Requirement 12.3)
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200}
+  
+  # Allowed HTTP methods (Requirement 12.2)
+  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS,PATCH}
+  
+  # Allowed request headers (Requirement 12.4)
+  allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+  
+  # Exposed response headers (Requirement 12.4)
+  exposed-headers: ${CORS_EXPOSED_HEADERS:X-Correlation-ID,Authorization}
+  
+  # Allow credentials (cookies, authorization headers)
+  allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+  
+  # Max age for pre-flight requests in seconds (Requirement 12.2)
+  max-age: ${CORS_MAX_AGE:3600}
+
+# ============================================================================
 # SECURITY CONFIGURATION
 # ============================================================================
 # Centralized security configuration for all modules
