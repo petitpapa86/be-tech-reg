@@ -225,7 +225,10 @@
   - Test context caching behavior
   - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5_
 
-- [ ] 14. Verify regtech-core module
+- [x] 14. Verify regtech-core module
+
+
+
 
   - Start regtech-core module and verify initialization
   - Test shared infrastructure components
@@ -235,7 +238,14 @@
   - Run regtech-core integration tests
   - _Requirements: 16.1_
 
-- [ ] 15. Verify regtech-iam module
+- [x] 15. Verify regtech-iam module
+
+
+
+
+
+
+
   - Start regtech-iam module and verify initialization
   - Test user authentication flows
   - Test JWT token generation and validation
