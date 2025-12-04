@@ -76,8 +76,13 @@ public class ObservabilityConfiguration {
      * Requirement 10.3: Correlate logs with trace context
      */
     @Bean
-    public TraceContextLogger traceContextLogger(Tracer tracer) {
-        logger.info("Configuring TraceContextLogger for trace context propagation in logs");
+    public TraceContextLogger traceContextLogger(
+            @org.springframework.beans.factory.annotation.Autowired(required = false) Tracer tracer) {
+        if (tracer != null) {
+            logger.info("Configuring TraceContextLogger for trace context propagation in logs");
+        } else {
+            logger.warn("Tracer not available - trace context logging will be disabled");
+        }
         return new TraceContextLogger(tracer);
     }
     
@@ -95,7 +100,7 @@ public class ObservabilityConfiguration {
          * Gets the current trace ID for logging.
          */
         public String getCurrentTraceId() {
-            if (tracer.currentSpan() != null) {
+            if (tracer != null && tracer.currentSpan() != null) {
                 Objects.requireNonNull(tracer.currentSpan()).context();
                 return Objects.requireNonNull(tracer.currentSpan()).context().traceId();
             }
@@ -106,7 +111,7 @@ public class ObservabilityConfiguration {
          * Gets the current span ID for logging.
          */
         public String getCurrentSpanId() {
-            if (tracer.currentSpan() != null && tracer.currentSpan().context() != null) {
+            if (tracer != null && tracer.currentSpan() != null && tracer.currentSpan().context() != null) {
                 return tracer.currentSpan().context().spanId();
             }
             return "no-span";
