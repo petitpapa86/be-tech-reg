@@ -19,6 +19,14 @@ import java.util.concurrent.Executor;
 /**
  * Configuration class for Risk Calculation module
  * Provides async processing configuration, thread pool management, and scheduling support
+ * 
+ * <p>JPA 3.2 and Hibernate 7.x compatible configuration:
+ * <ul>
+ *   <li>Supports EntityManager injection with @PersistenceContext and @Inject</li>
+ *   <li>Compatible with Hibernate ORM 7.1/7.2</li>
+ *   <li>Uses Jakarta Persistence API (jakarta.persistence.*)</li>
+ * </ul>
+ * 
  * Requirements: 2.1, 2.5
  */
 @Configuration

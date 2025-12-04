@@ -59,12 +59,35 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
+        # Hibernate 7.x dialect for PostgreSQL
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_schema: public
+        
+        # JDBC settings
         jdbc:
           lob:
             non_contextual_creation: true
+          # Batch processing for better performance (Hibernate 7.x optimized)
+          batch_size: 20
+          batch_versioned_data: true
+        
+        # Query optimization (Hibernate 7.x features)
+        order_inserts: true
+        order_updates: true
+        
+        # SQL formatting (disabled for production performance)
         format_sql: false
+        use_sql_comments: false
+        
+        # Connection handling
+        connection:
+          provider_disables_autocommit: false
+        
+        # JPA 3.2 / Hibernate 7.x compatibility
+        # Uses org.springframework.orm.jpa.hibernate package for Hibernate-specific features
+        # Supports StatelessSession for transactional operations
+        # Supports PersistenceConfiguration API
+    
     show-sql: false
     open-in-view: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect

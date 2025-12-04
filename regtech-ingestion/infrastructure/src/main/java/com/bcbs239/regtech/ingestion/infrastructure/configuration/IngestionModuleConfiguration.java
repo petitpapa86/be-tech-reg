@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.ingestion.infrastructure.configuration;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -14,6 +14,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * <p>
  * This configuration class sets up the modular structure and enables
  * the necessary Spring features for the ingestion module.
+ * 
+ * <p>JPA 3.2 and Hibernate 7.x compatible configuration:
+ * <ul>
+ *   <li>Supports EntityManager injection with @PersistenceContext and @Inject</li>
+ *   <li>Compatible with Hibernate ORM 7.1/7.2</li>
+ *   <li>Uses Jakarta Persistence API (jakarta.persistence.*)</li>
+ * </ul>
  */
 @Configuration("ingestionInfrastructureConfiguration")
 //@EnableAsync
