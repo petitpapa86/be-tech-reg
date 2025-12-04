@@ -37,7 +37,7 @@
 		
 		<!-- Version overrides (only what we need to override from Spring Boot 4) -->
 		<aws.sdk.version>2.29.29</aws.sdk.version>
-		<lombok.version>1.18.36</lombok.version>
+		<lombok.version>1.18.38</lombok.version>
 		<testcontainers.version>1.20.4</testcontainers.version>
 		
 		<!-- Other dependencies -->
@@ -58,6 +58,15 @@
 	
 	<dependencyManagement>
 		<dependencies>
+			<!-- Spring Boot Dependencies BOM -->
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-dependencies</artifactId>
+				<version>4.0.0</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			
 			<!-- Testcontainers BOM -->
 			<dependency>
 				<groupId>org.testcontainers</groupId>
@@ -89,6 +98,13 @@
 				<groupId>org.jspecify</groupId>
 				<artifactId>jspecify</artifactId>
 				<version>${jspecify.version}</version>
+			</dependency>
+			
+			<!-- Spring Retry -->
+			<dependency>
+				<groupId>org.springframework.retry</groupId>
+				<artifactId>spring-retry</artifactId>
+				<version>2.0.7</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
