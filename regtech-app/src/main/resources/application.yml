@@ -169,20 +169,61 @@ logging:
 # METRICS AND MONITORING CONFIGURATION
 # ============================================================================
 # Spring Actuator configuration for health checks and metrics
-# Requirements: 5.1, 5.2, 5.3
+# Micrometer 2 and OpenTelemetry integration for Spring Boot 4
+# Requirements: 10.1, 10.2, 10.3, 10.4, 10.5
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        # Expose metrics, traces, and health endpoints
+        include: health,info,metrics,prometheus,httptrace
   
   endpoint:
     health:
       show-details: when-authorized
+      # Enable SSL certificate health indicator
+      show-components: always
   
   health:
     diskspace:
       enabled: true
+    # SSL certificate monitoring (Requirement 10.4, 10.5)
+    ssl:
+      enabled: true
+  
+  # Micrometer 2 metrics configuration (Requirement 10.1)
+  metrics:
+    enable:
+      jvm: true
+      process: true
+      system: true
+      http: true
+      logback: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active}
+  
+  # OpenTelemetry tracing configuration (Requirement 10.2, 10.3)
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0  # Sample 100% of traces in development
+    propagation:
+      # Propagate trace context across modules
+      type: w3c  # W3C Trace Context format
+  
+  # OpenTelemetry exporter configuration
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+      # Use HTTP protocol for OTLP
+      protocol: http/protobuf
+    metrics:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/metrics}
+      protocol: http/protobuf
 
 # ============================================================================
 # SECURITY CONFIGURATION
