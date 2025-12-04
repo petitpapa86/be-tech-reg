@@ -2,6 +2,8 @@ package com.bcbs239.regtech.core.domain.events.integration;
 
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 /**
@@ -20,16 +22,17 @@ public class EventHandlerExecutionFailed extends IntegrationEvent {
     private final int retryCount;
     private final int maxRetries;
 
+    @JsonCreator
     public EventHandlerExecutionFailed(
-            String failureId,
-            String eventType,
-            String userId,
-            String handlerClass,
-            String handlerMethod,
-            String errorMessage,
-            int retryCount,
-            int maxRetries,
-            String correlationId) {
+            @JsonProperty("failureId") String failureId,
+            @JsonProperty("eventType") String eventType,
+            @JsonProperty("userId") String userId,
+            @JsonProperty("handlerClass") String handlerClass,
+            @JsonProperty("handlerMethod") String handlerMethod,
+            @JsonProperty("errorMessage") String errorMessage,
+            @JsonProperty("retryCount") int retryCount,
+            @JsonProperty("maxRetries") int maxRetries,
+            @JsonProperty("correlationId") String correlationId) {
         super(correlationId, Maybe.none(), "EventHandlerExecutionFailed");
         this.failureId = failureId;
         this.eventType = eventType;

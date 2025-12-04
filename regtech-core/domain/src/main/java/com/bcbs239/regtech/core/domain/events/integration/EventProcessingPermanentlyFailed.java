@@ -2,6 +2,8 @@ package com.bcbs239.regtech.core.domain.events.integration;
 
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 /**
@@ -17,13 +19,14 @@ public class EventProcessingPermanentlyFailed extends IntegrationEvent {
     private final String eventPayload;
     private final int retryCount;
 
+    @JsonCreator
     public EventProcessingPermanentlyFailed(
-            String failureId,
-            String eventType,
-            String userId,
-            String eventPayload,
-            int retryCount,
-            String correlationId) {
+            @JsonProperty("failureId") String failureId,
+            @JsonProperty("eventType") String eventType,
+            @JsonProperty("userId") String userId,
+            @JsonProperty("eventPayload") String eventPayload,
+            @JsonProperty("retryCount") int retryCount,
+            @JsonProperty("correlationId") String correlationId) {
         super(correlationId, Maybe.none(), "EventProcessingPermanentlyFailed");
         this.failureId = failureId;
         this.eventType = eventType;

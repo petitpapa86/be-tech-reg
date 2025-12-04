@@ -2,6 +2,8 @@ package com.bcbs239.regtech.core.domain.events.integration;
 
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 /**
@@ -16,12 +18,13 @@ public class EventPublishingFailed extends IntegrationEvent {
     private final String userId;
     private final String errorMessage;
 
+    @JsonCreator
     public EventPublishingFailed(
-            String failureId,
-            String eventType,
-            String userId,
-            String errorMessage,
-            String correlationId) {
+            @JsonProperty("failureId") String failureId,
+            @JsonProperty("eventType") String eventType,
+            @JsonProperty("userId") String userId,
+            @JsonProperty("errorMessage") String errorMessage,
+            @JsonProperty("correlationId") String correlationId) {
         super(correlationId, Maybe.none(), "EventPublishingFailed");
         this.failureId = failureId;
         this.eventType = eventType;
