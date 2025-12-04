@@ -526,3 +526,131 @@ For questions or issues with database migrations:
 2. Review Flyway logs in application output
 3. Consult the design document for architecture decisions
 4. Contact the development team for complex migration scenarios
+
+
+## Recent Migrations
+
+### V22 - Update Invoices Schema (December 2025)
+
+**File:** `billing/V22__Update_invoices_schema.sql`
+
+**Purpose:** Updates the invoices table schema to match the current domain model with detailed amount breakdown.
+
+**Changes:**
+
+**Invoices table:**
+- **Removed columns:**
+  - `amount_due` (replaced with detailed breakdown)
+  - `currency` (replaced with per-amount currencies)
+  - `subscription_id` (no longer needed)
+
+- **Added columns:**
+  - `subscription_amount_value` + `subscription_amount_currency` - Subscription fee
+  - `overage_amount_value` + `overage_amount_currency` - Overage charges
+  - `total_amount_value` + `total_amount_currency` - Total amount
+  - `billing_period_start_date` + `billing_period_end_date` - Billing period
+  - `invoice_number` - Human-readable invoice number (unique)
+  - `issue_date` - Invoice issue date
+  - `sent_at` - When invoice was sent to customer
+
+**Invoice Line Items table:**
+- **Removed columns:**
+  - `amount` (replaced with unit and total amounts)
+  - `currency` (replaced with per-amount currencies)
+
+- **Added columns:**
+  - `unit_amount_value` + `unit_amount_currency` - Unit price
+  - `total_amount_value` + `total_amount_currency` - Total (unit × quantity)
+
+**Impact:** Breaking change - updates invoice schema to support detailed amount breakdown and proper billing period tracking.
+
+**Related:** See `INVOICES_SCHEMA_FIX.md` for detailed documentation and troubleshooting.
+
+### V21 - Update Subscriptions Schema (December 2025)
+
+**File:** `billing/V21__Update_subscriptions_schema.sql`
+
+**Purpose:** Updates the subscriptions table schema to match the current domain model with tier-based pricing.
+
+**Changes:**
+- Dropped and recreated subscriptions table with correct schema
+- Added `tier` column for subscription tiers (STARTER, PROFESSIONAL, ENTERPRISE)
+- Updated foreign key relationships
+- Made `billing_account_id` nullable for subscriptions created before account
+
+**Impact:** Breaking change - requires subscription data migration if any exists.
+
+**Related:** See `SUBSCRIPTIONS_SCHEMA_FIX.md` for detailed documentation.
+
+## Troubleshooting
+
+### Migration Failed: Column Already Exists
+
+If you see errors like "column already exists" or "relation already exists":
+
+1. Check if the migration was partially applied:
+   ```sql
+   SELECT * FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 10;
+   ```
+
+2. If the migration shows as failed, you may need to manually fix the schema and mark it as successful:
+   ```sql
+   -- Fix the schema manually, then:
+   UPDATE flyway_schema_history 
+   SET success = true 
+   WHERE version = 'XX' AND success = false;
+   ```
+
+### Migration Failed: Constraint Violation
+
+If you see constraint violations during migration:
+
+1. Check existing data that might violate new constraints
+2. Add data migration steps before adding constraints
+3. Use `ALTER TABLE ... DISABLE TRIGGER ALL` if needed (carefully!)
+
+### Schema Mismatch Between Database and Domain Model
+
+If you see errors like "column does not exist" or "null value violates not-null constraint":
+
+1. Check the Flyway migration history:
+   ```sql
+   SELECT version, description, installed_on, success 
+   FROM flyway_schema_history 
+   ORDER BY installed_rank;
+   ```
+
+2. Compare database schema with JPA entities:
+   ```sql
+   \d+ schema_name.table_name
+   ```
+
+3. Apply any missing migrations or create new ones to align schemas
+
+4. See module-specific fix documents (e.g., `INVOICES_SCHEMA_FIX.md`, `SUBSCRIPTIONS_SCHEMA_FIX.md`)
+
+## Best Practices
+
+1. **Always test migrations locally first** before applying to production
+2. **Use transactions** - Flyway wraps each migration in a transaction by default
+3. **Make migrations idempotent** when possible using `IF EXISTS` / `IF NOT EXISTS`
+4. **Never modify applied migrations** - create new migrations to fix issues
+5. **Document breaking changes** in migration comments and separate docs
+6. **Backup before major migrations** especially when dropping columns or tables
+7. **Keep migrations small and focused** - one logical change per migration
+8. **Test rollback procedures** even though Flyway doesn't support automatic rollback
+
+## Migration Checklist
+
+Before creating a new migration:
+
+- [ ] Determine the correct version number based on module
+- [ ] Follow naming convention: `V{version}__{description}.sql`
+- [ ] Place in correct module folder
+- [ ] Add comments explaining the purpose
+- [ ] Use `IF EXISTS` / `IF NOT EXISTS` where appropriate
+- [ ] Test locally with clean database
+- [ ] Test with existing data if applicable
+- [ ] Document breaking changes
+- [ ] Update this guide if adding new patterns
+- [ ] Create helper scripts if manual intervention needed (e.g., `apply-vXX-migration.ps1`)
