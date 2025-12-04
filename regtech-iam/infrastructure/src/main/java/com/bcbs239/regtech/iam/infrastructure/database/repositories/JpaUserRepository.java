@@ -95,6 +95,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                 
                 // Update fields from domain
                 existingEntity.setEmail(user.getEmail().getValue());
+                existingEntity.setUsername(user.getUsername());
                 existingEntity.setPasswordHash(user.getPassword().getHashedValue());
                 existingEntity.setFirstName(user.getFirstName());
                 existingEntity.setLastName(user.getLastName());

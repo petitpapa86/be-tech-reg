@@ -34,6 +34,9 @@ public class UserEntity {
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
+    @Column(name = "username", nullable = false, unique = true, length = 100)
+    private String username;
+
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
@@ -80,6 +83,8 @@ public class UserEntity {
         entity.id = user.getId().getUUID();
         entity.email = user.getEmail().getValue();
         entity.passwordHash = user.getPassword().getHashedValue();
+        // Populate username from domain
+        entity.username = user.getUsername();
         entity.firstName = user.getFirstName();
         entity.lastName = user.getLastName();
         entity.status = user.getStatus();
@@ -113,6 +118,7 @@ public class UserEntity {
             new UserId(id),
             emailVO,
             passwordVO,
+            username,
             firstName,
             lastName,
             status,
@@ -127,5 +133,5 @@ public class UserEntity {
         );
     }
 
-}
 
+}

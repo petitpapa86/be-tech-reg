@@ -31,6 +31,9 @@ public class UserRoleEntity {
     @Column(name = "role_id", length = 36)
     private String roleId;
 
+    @Column(name = "role_name", nullable = false, length = 50)
+    private String roleName;
+
     @Column(name = "organization_id", nullable = false, length = 255)
     private String organizationId;
 
@@ -72,6 +75,7 @@ public class UserRoleEntity {
         entity.id = userRole.getId();
         entity.userId = UUID.fromString(userRole.getUserId());
         // roleId will be set by the service layer
+        entity.roleName = userRole.getRoleName();
         entity.organizationId = userRole.getOrganizationId();
         entity.active = userRole.isActive();
         entity.createdAt = Instant.now();
@@ -88,6 +92,9 @@ public class UserRoleEntity {
 
     public String getRoleId() { return roleId; }
     public void setRoleId(String roleId) { this.roleId = roleId; }
+
+    public String getRoleName() { return roleName; }
+    public void setRoleName(String roleName) { this.roleName = roleName; }
 
     public String getOrganizationId() { return organizationId; }
     public void setOrganizationId(String organizationId) { this.organizationId = organizationId; }

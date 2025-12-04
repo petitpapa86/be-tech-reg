@@ -26,6 +26,7 @@ public class User extends Entity {
     private Instant updatedAt;
     private long version;
     private List<BankAssignment> bankAssignments;
+    private String username;
 
     private User() {
         this.bankAssignments = new ArrayList<>();
@@ -39,6 +40,8 @@ public class User extends Entity {
         user.id = UserId.generate().getValue();
         user.email = email;
         user.password = password;
+        // Default username derived from email
+        user.username = email.getValue();
         user.firstName = firstName;
         user.lastName = lastName;
         user.status = UserStatus.PENDING_PAYMENT; // New users need payment verification
@@ -50,6 +53,7 @@ public class User extends Entity {
 
     public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId, String paymentMethodId, String causationId) {
         User user = create(email, password, firstName, lastName);
+        // username already set in create()
         user.assignToBank(bankId, "USER"); // Default role for new users
         UserRegisteredEvent event = new UserRegisteredEvent(
                 user.id,
@@ -69,6 +73,8 @@ public class User extends Entity {
         user.id = UserId.generate().getValue();
         user.email = email;
         user.password = Password.create("TEMP_PASSWORD").getValue().get(); // Temporary password
+        // Derive username from email for OAuth-created users
+        user.username = email.getValue();
         user.firstName = firstName;
         user.lastName = lastName;
         user.status = UserStatus.ACTIVE; // OAuth users are active by default
@@ -83,7 +89,7 @@ public class User extends Entity {
      * Package-private factory method for persistence layer reconstruction
      * Used by JPA entities to recreate domain objects from database
      */
-    public static User createFromPersistence(UserId id, Email email, Password password, String firstName,
+    public static User createFromPersistence(UserId id, Email email, Password password, String username, String firstName,
                                              String lastName, UserStatus status, String googleId, String facebookId,
                                              Instant createdAt, Instant updatedAt, long version,
                                              List<BankAssignment> bankAssignments) {
@@ -91,6 +97,7 @@ public class User extends Entity {
         user.id = id.getValue();
         user.email = email;
         user.password = password;
+        user.username = username;
         user.firstName = firstName;
         user.lastName = lastName;
         user.status = status;
@@ -101,6 +108,11 @@ public class User extends Entity {
         user.version = version;
         user.bankAssignments = new ArrayList<>(bankAssignments);
         return user;
+    }
+
+    // Getter for username
+    public String getUsername() {
+        return username;
     }
 
     /**
@@ -255,4 +267,3 @@ public class User extends Entity {
 
     }
 }
-
