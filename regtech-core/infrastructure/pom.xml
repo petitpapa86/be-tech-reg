@@ -38,12 +38,12 @@
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 		
-		<!-- Spring Boot Starter AOP -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-aop</artifactId>
-		</dependency>
-		
+<!--		&lt;!&ndash; Spring Boot Starter AOP &ndash;&gt;-->
+<!--		<dependency>-->
+<!--			<groupId>org.springframework.boot</groupId>-->
+<!--			<artifactId>spring-boot-starter-aop</artifactId>-->
+<!--		</dependency>-->
+<!--		-->
 		<!-- Spring Boot Starter Web for MVC and servlet support -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

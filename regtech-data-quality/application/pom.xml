@@ -53,10 +53,10 @@
             <groupId>jakarta.transaction</groupId>
             <artifactId>jakarta.transaction-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.retry</groupId>
-            <artifactId>spring-retry</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.retry</groupId>-->
+<!--            <artifactId>spring-retry</artifactId>-->
+<!--        </dependency>-->
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-ingestion-domain</artifactId>
@@ -70,7 +70,6 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.8.1</version>
 				<configuration>
 					<annotationProcessorPaths>
 						<path>

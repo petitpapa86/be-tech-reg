@@ -7,7 +7,7 @@ import com.bcbs239.regtech.core.domain.monitoring.ModuleHealthIndicator;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.health.contributor.Health;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

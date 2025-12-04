@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.riskcalculation.infrastructure.config;
 
 import com.bcbs239.regtech.riskcalculation.infrastructure.external.CurrencyApiProperties;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;

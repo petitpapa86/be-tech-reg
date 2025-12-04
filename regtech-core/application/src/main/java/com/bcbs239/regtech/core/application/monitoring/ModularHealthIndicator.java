@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.core.application.monitoring;
 
 import com.bcbs239.regtech.core.domain.monitoring.ModuleHealthIndicator;
-import org.springframework.boot.actuate.health.Health;
-import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.health.contributor.Health;
+import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

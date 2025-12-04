@@ -6,10 +6,12 @@ import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.propagation.Propagator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.actuate.autoconfigure.observation.ObservationRegistryCustomizer;
+import org.springframework.boot.micrometer.observation.autoconfigure.ObservationRegistryCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+
+import java.util.Objects;
 
 /**
  * Configuration for observability with Micrometer 2 and OpenTelemetry.
@@ -93,8 +95,9 @@ public class ObservabilityConfiguration {
          * Gets the current trace ID for logging.
          */
         public String getCurrentTraceId() {
-            if (tracer.currentSpan() != null && tracer.currentSpan().context() != null) {
-                return tracer.currentSpan().context().traceId();
+            if (tracer.currentSpan() != null) {
+                Objects.requireNonNull(tracer.currentSpan()).context();
+                return Objects.requireNonNull(tracer.currentSpan()).context().traceId();
             }
             return "no-trace";
         }
