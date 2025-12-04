@@ -157,7 +157,12 @@
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
 
-- [ ] 9. Remove deprecated Spring Framework APIs
+- [x] 9. Remove deprecated Spring Framework APIs
+
+
+
+
+
   - Replace AntPathMatcher with PathPattern in all path matching code
   - Update security configurations using path patterns
   - Replace ListenableFuture with CompletableFuture in async methods
