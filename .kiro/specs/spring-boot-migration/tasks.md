@@ -57,8 +57,15 @@
   - Test JSON serialization/deserialization maintains format compatibility
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 4. Migrate all tests to JUnit Jupiter
-- [ ] 4.1 Update test annotations and lifecycle methods
+- [x] 4. Migrate all tests to JUnit Jupiter
+
+
+
+
+
+
+- [x] 4.1 Update test annotations and lifecycle methods
+
   - Replace @RunWith(SpringRunner.class) with @ExtendWith(SpringExtension.class)
   - Replace @Before with @BeforeEach
   - Replace @After with @AfterEach
@@ -68,27 +75,38 @@
   - Replace @Test(expected=...) with assertThrows()
   - _Requirements: 4.1, 4.2_
 
-- [ ] 4.2 Update test assertions
+
+- [x] 4.2 Update test assertions
+
   - Replace org.junit.Assert.* with org.junit.jupiter.api.Assertions.*
   - Update assertion method calls for JUnit Jupiter API
   - Consider migrating to AssertJ for fluent assertions
   - _Requirements: 4.1_
 
-- [ ] 4.3 Migrate Spring test support classes
+
+- [x] 4.3 Migrate Spring test support classes
+
   - Replace SpringClassRule and SpringMethodRule with JUnit Jupiter equivalents
   - Migrate AbstractJUnit4SpringContextTests to JUnit Jupiter base classes
   - Migrate AbstractTransactionalJUnit4SpringContextTests to JUnit Jupiter equivalents
   - Update test context configurations
   - _Requirements: 4.3, 4.4, 4.5_
 
-- [ ] 4.4 Update mock servlet objects
+
+- [x] 4.4 Update mock servlet objects
+
   - Update MockHttpServletRequest usage for Servlet 6.1
   - Update MockHttpServletResponse usage for Servlet 6.1
   - Handle null header name/value behavior changes
   - _Requirements: 8.3, 8.4, 8.5_
 
 
-- [ ] 5. Migrate to JSpecify null safety annotations
+- [x] 5. Migrate to JSpecify null safety annotations
+
+
+
+
+
   - Replace JSR 305 @Nullable with org.jspecify.annotations.Nullable
   - Replace JSR 305 @Nonnull with org.jspecify.annotations.NonNull
   - Add nullness specifications for generic type parameters
@@ -96,7 +114,12 @@
   - Add nullness specifications for varargs
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
 
-- [ ] 6. Update HTTP headers handling
+- [x] 6. Update HTTP headers handling
+
+
+
+
+
   - Identify all code using HttpHeaders as MultiValueMap
   - Update to use HttpHeaders methods directly
   - Use HttpHeaders.asMultiValueMap() where MultiValueMap is required
