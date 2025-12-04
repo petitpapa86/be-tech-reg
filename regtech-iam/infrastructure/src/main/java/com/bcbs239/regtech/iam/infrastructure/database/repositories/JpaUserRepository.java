@@ -67,7 +67,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     @Override
     public Maybe<User> userLoader(UserId userId) {
         try {
-            return userRepository.findById(userId.getValue())
+            return userRepository.findById(userId.getUUID())
                     .map(UserEntity::toDomain)
                     .map(Maybe::some)
                     .orElse(Maybe.none());
@@ -85,12 +85,12 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     public Result<UserId> userSaver(User user) {
         try {
             // Check if user exists in database to determine if this is an update
-            boolean isUpdate = userRepository.existsById(user.getId().getValue());
-            
+            boolean isUpdate = userRepository.existsById(user.getId().getUUID());
+
             UserEntity savedEntity;
             if (isUpdate) {
                 // For updates, find existing entity and update its fields
-                UserEntity existingEntity = userRepository.findById(user.getId().getValue())
+                UserEntity existingEntity = userRepository.findById(user.getId().getUUID())
                         .orElseThrow(() -> new IllegalStateException("User not found for update: " + user.getId().getValue()));
                 
                 // Update fields from domain
@@ -229,4 +229,3 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
         }
     }
 }
-

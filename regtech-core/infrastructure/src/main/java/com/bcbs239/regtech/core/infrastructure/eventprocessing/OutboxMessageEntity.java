@@ -68,5 +68,8 @@ public class OutboxMessageEntity  {
         this.updatedAt = Instant.now();
     }
 
+    public Object getEventType() {
+        return getType();
+    }
 }
 

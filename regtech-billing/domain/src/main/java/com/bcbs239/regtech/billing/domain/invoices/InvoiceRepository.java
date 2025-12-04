@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.billing.domain.repositories;
+package com.bcbs239.regtech.billing.domain.invoices;
 
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
@@ -7,24 +7,16 @@ import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 
 /**
- * Domain repository interface for Invoice aggregate operations.
- * Clean interface with direct method signatures.
+ * (Deprecated) Local invoice-related interface kept in invoices package for compatibility.
+ * The canonical repository interface lives in `com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository`.
+ * This avoids package/path mismatch compilation errors.
  */
+@Deprecated
 public interface InvoiceRepository {
-    
-    /**
-     * Find an invoice by ID
-     */
+
     Maybe<Invoice> findById(InvoiceId invoiceId);
-    
-    /**
-     * Find an invoice by Stripe invoice ID
-     */
+
     Maybe<Invoice> findByStripeInvoiceId(StripeInvoiceId stripeInvoiceId);
-    
-    /**
-     * Save an invoice
-     */
+
     Result<InvoiceId> save(Invoice invoice);
 }
-
