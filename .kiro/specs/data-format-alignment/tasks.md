@@ -108,7 +108,9 @@
   - **Property 1: Serialization Round Trip Preserves Data** (Risk Calculation variant)
   - **Validates: Requirements 4.1, 4.2, 7.4**
 
-- [-] 7. Update Risk Calculation file reading to use fromDTO
+- [x] 7. Update Risk Calculation file reading to use fromDTO
+
+
 
 
   - Update file storage service to deserialize to `BatchDataDTO`

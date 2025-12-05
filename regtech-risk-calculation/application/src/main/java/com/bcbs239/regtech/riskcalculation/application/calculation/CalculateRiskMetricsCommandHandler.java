@@ -3,6 +3,8 @@ package com.bcbs239.regtech.riskcalculation.application.calculation;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.dto.BatchDataDTO;
+import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
 import com.bcbs239.regtech.riskcalculation.application.integration.RiskCalculationEventPublisher;
 import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
@@ -14,9 +16,10 @@ import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -88,9 +91,21 @@ public class CalculateRiskMetricsCommandHandler {
             String jsonContent = downloadResult.getValue().orElse("");
             log.info("Downloaded exposure data, size: {} bytes", jsonContent.length());
 
-            // Step 2: Parse JSON and create ExposureRecording objects
-            log.info("Parsing exposure data from JSON");
-            List<ExposureRecording> exposures = parseExposuresFromJson(jsonContent);
+            // Step 2: Parse JSON and create ExposureRecording objects using BatchDataDTO
+            log.info("Deserializing batch data from JSON to BatchDataDTO");
+            List<ExposureRecording> exposures;
+            
+            try {
+                exposures = parseExposuresFromJson(jsonContent);
+            } catch (JsonProcessingException e) {
+                log.error("Failed to deserialize batch data for batch: {}", batchId, e);
+                return Result.failure(ErrorDetail.of(
+                    "DESERIALIZATION_FAILED", 
+                    ErrorType.SYSTEM_ERROR,
+                    "Failed to deserialize batch data from JSON: " + e.getMessage(), 
+                    "calculation.deserialization.failed"
+                ));
+            }
 
             if (exposures.isEmpty()) {
                 log.warn("No exposures found in JSON file for batch: {}", command.getBatchId());
@@ -98,7 +113,7 @@ public class CalculateRiskMetricsCommandHandler {
                         "No exposures found in JSON file", "calculation.no.exposures"));
             }
 
-            log.info("Parsed {} exposures from JSON", exposures.size());
+            log.info("Successfully deserialized and converted {} exposures from BatchDataDTO", exposures.size());
 
             // Step 3: Save exposures to database
             log.info("Saving {} exposures to database", exposures.size());
@@ -190,100 +205,89 @@ public class CalculateRiskMetricsCommandHandler {
     }
 
     /**
-     * Parses exposure data from JSON content.
+     * Parses exposure data from JSON content using BatchDataDTO.
      * Expected JSON structure:
      * {
-     * "bank_info": {...},
-     * "exposures": [
-     * {
-     * "exposure_id": "...",
-     * "instrument_id": "...",
-     * "instrument_type": "LOAN|BOND|DERIVATIVE",
-     * "counterparty_name": "...",
-     * "counterparty_id": "...",
-     * "counterparty_lei": "...",
-     * "exposure_amount": 123.45,
-     * "currency": "EUR",
-     * "product_type": "...",
-     * "balance_sheet_type": "ON_BALANCE|OFF_BALANCE",
-     * "country_code": "IT"
-     * }
-     * ]
+     *   "bank_info": {
+     *     "bank_name": "...",
+     *     "abi_code": "...",
+     *     "lei_code": "...",
+     *     "report_date": "2024-09-12",
+     *     "total_exposures": 8
+     *   },
+     *   "exposures": [
+     *     {
+     *       "exposure_id": "...",
+     *       "instrument_id": "...",
+     *       "instrument_type": "LOAN|BOND|DERIVATIVE",
+     *       "counterparty_name": "...",
+     *       "counterparty_id": "...",
+     *       "counterparty_lei": "...",
+     *       "exposure_amount": 123.45,
+     *       "currency": "EUR",
+     *       "product_type": "...",
+     *       "balance_sheet_type": "ON_BALANCE|OFF_BALANCE",
+     *       "country_code": "IT"
+     *     }
+     *   ],
+     *   "credit_risk_mitigation": [...]
      * }
      *
-     * @param jsonContent The JSON content containing exposure data
+     * @param jsonContent The JSON content containing batch data
      * @return List of ExposureRecording objects
+     * @throws JsonProcessingException if JSON deserialization fails
      */
-    private List<ExposureRecording> parseExposuresFromJson(String jsonContent) throws Exception {
+    private List<ExposureRecording> parseExposuresFromJson(String jsonContent) throws JsonProcessingException {
         List<ExposureRecording> exposures = new ArrayList<>();
 
-        JsonNode root = objectMapper.readTree(jsonContent);
-        JsonNode exposuresNode = root.get("exposures");
-
-        if (exposuresNode == null || !exposuresNode.isArray()) {
-            log.warn("No 'exposures' array found in JSON");
-            return exposures;
-        }
-
-        for (JsonNode exposureNode : exposuresNode) {
-            try {
-                ExposureRecording exposure = parseExposureFromNode(exposureNode);
-                if (exposure != null) {
-                    exposures.add(exposure);
-                }
-            } catch (Exception e) {
-                log.error("Failed to parse exposure from JSON node: {}", exposureNode, e);
-                // Continue parsing other exposures
+        try {
+            // Deserialize JSON to BatchDataDTO
+            BatchDataDTO batchData = objectMapper.readValue(jsonContent, BatchDataDTO.class);
+            
+            if (batchData == null) {
+                log.error("Failed to deserialize JSON to BatchDataDTO: result is null");
+                throw new JsonProcessingException("Deserialization resulted in null BatchDataDTO") {};
             }
+            
+            // Log bank information if available
+            if (batchData.bankInfo() != null) {
+                BankInfo bankInfo = BankInfo.fromDTO(batchData.bankInfo());
+                log.info("Processing batch from bank: {} (ABI: {}, LEI: {})", 
+                    bankInfo.bankName(), bankInfo.abiCode(), bankInfo.leiCode());
+            } else {
+                log.warn("No bank_info found in batch data");
+            }
+            
+            // Check if exposures list exists
+            if (batchData.exposures() == null || batchData.exposures().isEmpty()) {
+                log.warn("No exposures found in BatchDataDTO");
+                return exposures;
+            }
+            
+            log.info("Deserializing {} exposures from BatchDataDTO", batchData.exposures().size());
+            
+            // Convert each ExposureDTO to ExposureRecording using fromDTO
+            for (ExposureDTO exposureDTO : batchData.exposures()) {
+                try {
+                    ExposureRecording exposure = ExposureRecording.fromDTO(exposureDTO);
+                    exposures.add(exposure);
+                } catch (Exception e) {
+                    log.error("Failed to convert ExposureDTO to ExposureRecording [exposureId:{}]: {}", 
+                        exposureDTO.exposureId(), e.getMessage(), e);
+                    // Continue processing other exposures
+                }
+            }
+            
+            log.info("Successfully converted {} exposures from DTOs", exposures.size());
+            
+        } catch (JsonProcessingException e) {
+            log.error("Failed to deserialize JSON to BatchDataDTO: {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error parsing exposures from JSON: {}", e.getMessage(), e);
+            throw new JsonProcessingException("Unexpected error during parsing: " + e.getMessage(), e) {};
         }
 
         return exposures;
-    }
-
-    /**
-     * Parses a single exposure from a JSON node.
-     */
-    private ExposureRecording parseExposureFromNode(JsonNode exposureNode) {
-        // Parse exposure fields
-        String exposureId = exposureNode.get("exposure_id").asText();
-        String instrumentId = exposureNode.get("instrument_id").asText();
-        String instrumentTypeStr = exposureNode.get("instrument_type").asText();
-        String counterpartyName = exposureNode.get("counterparty_name").asText();
-        String counterpartyId = exposureNode.get("counterparty_id").asText();
-        String counterpartyLei = exposureNode.has("counterparty_lei") ?
-                exposureNode.get("counterparty_lei").asText() : "";
-        double exposureAmount = exposureNode.get("exposure_amount").asDouble();
-        String currency = exposureNode.get("currency").asText();
-        String productType = exposureNode.get("product_type").asText();
-        String balanceSheetTypeStr = exposureNode.get("balance_sheet_type").asText();
-        String countryCode = exposureNode.get("country_code").asText();
-
-        // Create domain objects
-        var exposureIdObj = com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId.of(exposureId);
-        var instrumentIdObj = com.bcbs239.regtech.riskcalculation.domain.exposure.InstrumentId.of(instrumentId);
-        var counterparty = com.bcbs239.regtech.riskcalculation.domain.exposure.CounterpartyRef.of(
-                counterpartyId, counterpartyName, counterpartyLei);
-        var monetaryAmount = com.bcbs239.regtech.riskcalculation.domain.exposure.MonetaryAmount.of(
-                java.math.BigDecimal.valueOf(exposureAmount), currency);
-
-        // Parse enums
-        var instrumentType = com.bcbs239.regtech.riskcalculation.domain.exposure.InstrumentType.valueOf(instrumentTypeStr);
-        var balanceSheetType = com.bcbs239.regtech.riskcalculation.domain.exposure.BalanceSheetType.valueOf(balanceSheetTypeStr);
-
-        var classification = com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureClassification.of(
-                productType,
-                instrumentType,
-                balanceSheetType,
-                countryCode
-        );
-
-        // Create ExposureRecording
-        return ExposureRecording.create(
-                exposureIdObj,
-                instrumentIdObj,
-                counterparty,
-                monetaryAmount,
-                classification
-        );
     }
 }
