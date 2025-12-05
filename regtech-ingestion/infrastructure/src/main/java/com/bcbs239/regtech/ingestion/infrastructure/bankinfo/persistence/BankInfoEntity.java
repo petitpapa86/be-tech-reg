@@ -20,7 +20,7 @@ import java.time.Instant;
 public class BankInfoEntity {
 
     @Id
-    @Column(name = "bank_id", length = 20)
+    @Column(name = "bank_id", length = 50)
     private String bankId;
     
     @Column(name = "bank_name", length = 100, nullable = false)
