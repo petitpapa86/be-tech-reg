@@ -192,7 +192,11 @@
   - Verify all exposures are parsed correctly
   - _Requirements: 7.1, 7.3_
 
-- [ ] 12. Update sample data files
+- [x] 12. Update sample data files
+
+
+
+
   - Update test data files in `data/raw/` to use new format
   - Ensure `bank_info` is at top level
   - Ensure `exposures` and `credit_risk_mitigation` are at top level

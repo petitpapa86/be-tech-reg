@@ -115,27 +115,27 @@
     "credit_risk_mitigation": [
         {
             "exposure_id": "EXP_001_2024",
-            "collateral_type": "FINANCIAL_COLLATERAL",
-            "collateral_value": 10000.00,
-            "collateral_currency": "EUR"
+            "mitigation_type": "FINANCIAL_COLLATERAL",
+            "value": 10000.00,
+            "currency": "EUR"
         },
         {
             "exposure_id": "EXP_003_2024",
-            "collateral_type": "GUARANTEE",
-            "collateral_value": 5000.00,
-            "collateral_currency": "EUR"
+            "mitigation_type": "GUARANTEE",
+            "value": 5000.00,
+            "currency": "EUR"
         },
         {
             "exposure_id": "EXP_004_2024",
-            "collateral_type": "PHYSICAL_ASSET",
-            "collateral_value": 50000.00,
-            "collateral_currency": "EUR"
+            "mitigation_type": "PHYSICAL_ASSET",
+            "value": 50000.00,
+            "currency": "EUR"
         },
         {
             "exposure_id": "EXP_008_2024",
-            "collateral_type": "FINANCIAL_COLLATERAL",
-            "collateral_value": 50000.00,
-            "collateral_currency": "EUR"
+            "mitigation_type": "FINANCIAL_COLLATERAL",
+            "value": 50000.00,
+            "currency": "EUR"
         }
     ]
 }
