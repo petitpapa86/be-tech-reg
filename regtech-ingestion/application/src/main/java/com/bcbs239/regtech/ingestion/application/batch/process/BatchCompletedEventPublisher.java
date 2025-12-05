@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.ingestion.application.batch.process;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
-import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

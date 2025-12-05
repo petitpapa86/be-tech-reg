@@ -1,10 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.domain.generation;
 
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BankId;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ComplianceStatus;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityGrade;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;

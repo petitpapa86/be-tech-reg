@@ -14,10 +14,8 @@ import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
-import com.bcbs239.regtech.riskcalculation.domain.valuation.ExposureValuation;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

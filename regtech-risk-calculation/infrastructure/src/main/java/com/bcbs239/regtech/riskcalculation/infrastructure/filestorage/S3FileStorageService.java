@@ -5,8 +5,6 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
 import com.bcbs239.regtech.riskcalculation.infrastructure.config.RiskCalculationProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +17,6 @@ import software.amazon.awssdk.services.s3.model.S3Exception;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;

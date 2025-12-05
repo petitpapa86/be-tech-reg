@@ -1,24 +1,20 @@
 package com.bcbs239.regtech.billing.domain.accounts;
 
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
-import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
 import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
-import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
-
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.util.Currency;
 import java.util.HashSet;
 import java.util.Objects;

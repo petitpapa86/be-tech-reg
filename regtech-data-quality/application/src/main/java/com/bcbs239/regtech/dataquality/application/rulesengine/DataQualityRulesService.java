@@ -3,25 +3,20 @@ package com.bcbs239.regtech.dataquality.application.rulesengine;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
-import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExemption;
 import com.bcbs239.regtech.dataquality.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExecutionLogRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExemptionRepository;
-import lombok.RequiredArgsConstructor;
+import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Bridge service that connects the validation pipeline with the Rules Engine

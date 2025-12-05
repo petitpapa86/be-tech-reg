@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.core.infrastructure.eventprocessing;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
-import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;

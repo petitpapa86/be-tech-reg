@@ -8,8 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.Instant;
-
 /**
  * DTO representing the status of a batch calculation.
  * Provides information about processing state and available results.

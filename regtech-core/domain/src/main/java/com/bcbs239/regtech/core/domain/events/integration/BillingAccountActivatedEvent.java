@@ -6,8 +6,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
-import java.time.Instant;
-
 /**
  * Integration event published when a billing account is successfully activated.
  * This event is consumed by the IAM module to update user registration status.

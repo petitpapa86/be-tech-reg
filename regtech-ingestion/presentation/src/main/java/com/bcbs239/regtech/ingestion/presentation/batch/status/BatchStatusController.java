@@ -9,7 +9,6 @@ import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusDto;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQuery;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQueryHandler;
-import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import com.bcbs239.regtech.ingestion.presentation.constants.Tags;

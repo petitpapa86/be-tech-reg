@@ -1,7 +1,8 @@
 package com.bcbs239.regtech.dataquality.rulesengine.engine;
 
-import java.util.List;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+
+import java.util.List;
 
 public class RuleExecutionResult {
     private String ruleId;

@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.migration;
 
-import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;

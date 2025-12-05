@@ -8,7 +8,8 @@ import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerResponse;
 
-import static org.springframework.web.servlet.function.RequestPredicates.*;
+import static org.springframework.web.servlet.function.RequestPredicates.POST;
+import static org.springframework.web.servlet.function.RequestPredicates.accept;
 
 /**
  * Authentication Routes Configuration

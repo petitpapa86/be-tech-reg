@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.infrastructure.eventprocessing;
 
-import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 

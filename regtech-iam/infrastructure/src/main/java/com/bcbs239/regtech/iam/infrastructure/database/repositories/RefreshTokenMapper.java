@@ -7,8 +7,6 @@ import com.bcbs239.regtech.iam.domain.users.UserId;
 import com.bcbs239.regtech.iam.infrastructure.database.entities.RefreshTokenEntity;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 /**
  * Mapper between RefreshToken domain model and RefreshTokenEntity
  * Handles conversion between domain and persistence layers

@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.riskcalculation.infrastructure.external;
 
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateUnavailableException;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -6,7 +6,6 @@ import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
 import com.bcbs239.regtech.ingestion.infrastructure.batchtracking.persistence.IngestionBatchEntity;
 import com.bcbs239.regtech.ingestion.infrastructure.batchtracking.persistence.IngestionBatchJpaRepository;
-
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.Status;
 import org.springframework.stereotype.Component;

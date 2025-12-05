@@ -5,7 +5,6 @@ import com.bcbs239.regtech.dataquality.application.reporting.QualityReportQueryH
 import com.bcbs239.regtech.dataquality.presentation.reports.QualityReportController;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityResponseHandler;
-import com.bcbs239.regtech.dataquality.presentation.web.QualitySecurityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

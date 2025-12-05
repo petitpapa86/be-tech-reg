@@ -1,13 +1,9 @@
 package com.bcbs239.regtech.iam.infrastructure.security;
 
-import com.bcbs239.regtech.core.domain.security.SecurityContext;
-import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityContextHolder;
-import com.bcbs239.regtech.iam.domain.users.JwtToken;
-import com.bcbs239.regtech.iam.domain.users.User;
-import com.bcbs239.regtech.iam.domain.users.UserId;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
+import com.bcbs239.regtech.iam.domain.users.JwtToken;
 import com.bcbs239.regtech.iam.domain.users.Password;
-import com.bcbs239.regtech.iam.domain.users.UserStatus;
+import com.bcbs239.regtech.iam.domain.users.User;
 import com.bcbs239.regtech.iam.infrastructure.config.IAMProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,7 +18,8 @@ import java.io.StringWriter;
 import java.time.Duration;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
 /**

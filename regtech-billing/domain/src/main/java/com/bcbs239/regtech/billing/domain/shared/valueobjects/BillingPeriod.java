@@ -4,7 +4,6 @@ import com.bcbs239.regtech.billing.domain.valueobjects.Money;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;

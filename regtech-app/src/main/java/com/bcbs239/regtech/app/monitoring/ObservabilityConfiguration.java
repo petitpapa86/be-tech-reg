@@ -3,7 +3,6 @@ package com.bcbs239.regtech.app.monitoring;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.aop.ObservedAspect;
 import io.micrometer.tracing.Tracer;
-import io.micrometer.tracing.propagation.Propagator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.micrometer.observation.autoconfigure.ObservationRegistryCustomizer;

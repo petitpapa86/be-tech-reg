@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.ingestion.application.batch.upload;
 
-import org.springframework.context.ApplicationEventPublisher;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -17,18 +16,18 @@ import com.bcbs239.regtech.ingestion.domain.batch.events.BatchProcessingFailedEv
 import com.bcbs239.regtech.ingestion.domain.file.ContentType;
 import com.bcbs239.regtech.ingestion.domain.file.FileName;
 import com.bcbs239.regtech.ingestion.domain.file.FileSize;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Command handler for uploading and immediately processing a file.

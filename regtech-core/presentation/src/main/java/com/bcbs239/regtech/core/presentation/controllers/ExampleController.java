@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.core.presentation.controllers;
 
+import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
-import com.bcbs239.regtech.core.domain.shared.FieldError;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

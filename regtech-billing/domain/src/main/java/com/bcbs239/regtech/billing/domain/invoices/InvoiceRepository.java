@@ -1,8 +1,5 @@
 package com.bcbs239.regtech.billing.domain.invoices;
 
-import com.bcbs239.regtech.billing.domain.invoices.Invoice;
-import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
-import com.bcbs239.regtech.billing.domain.invoices.StripeInvoiceId;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 

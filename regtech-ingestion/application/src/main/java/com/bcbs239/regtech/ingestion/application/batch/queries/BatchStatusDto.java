@@ -3,7 +3,6 @@ package com.bcbs239.regtech.ingestion.application.batch.queries;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchStatus;
 import lombok.Builder;
 import lombok.Data;
-import lombok.Getter;
 
 import java.time.Instant;
 import java.util.Map;

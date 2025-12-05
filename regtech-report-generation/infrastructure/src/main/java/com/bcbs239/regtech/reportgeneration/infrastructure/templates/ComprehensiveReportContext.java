@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.reportgeneration.infrastructure.templates;
 
-import com.bcbs239.regtech.reportgeneration.domain.generation.RecommendationSection;
 import com.bcbs239.regtech.reportgeneration.domain.generation.CalculationResults;
 import com.bcbs239.regtech.reportgeneration.domain.generation.QualityResults;
+import com.bcbs239.regtech.reportgeneration.domain.generation.RecommendationSection;
 import com.bcbs239.regtech.reportgeneration.domain.generation.ReportMetadata;
 import lombok.Builder;
 import lombok.Getter;

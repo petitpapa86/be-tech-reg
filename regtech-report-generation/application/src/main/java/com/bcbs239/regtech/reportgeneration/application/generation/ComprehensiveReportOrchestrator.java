@@ -1,20 +1,18 @@
 package com.bcbs239.regtech.reportgeneration.application.generation;
 
+import com.bcbs239.regtech.reportgeneration.application.coordination.BatchEventTracker;
 import com.bcbs239.regtech.reportgeneration.application.coordination.CalculationEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.IComprehensiveReportOrchestrator;
 import com.bcbs239.regtech.reportgeneration.application.coordination.QualityEventData;
-import com.bcbs239.regtech.reportgeneration.application.coordination.BatchEventTracker;
 import com.bcbs239.regtech.reportgeneration.domain.generation.*;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
 import com.bcbs239.regtech.reportgeneration.domain.storage.IReportStorageService;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.XbrlValidationStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;

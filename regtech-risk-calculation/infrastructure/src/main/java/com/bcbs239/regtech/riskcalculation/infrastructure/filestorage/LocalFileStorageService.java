@@ -4,8 +4,6 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**

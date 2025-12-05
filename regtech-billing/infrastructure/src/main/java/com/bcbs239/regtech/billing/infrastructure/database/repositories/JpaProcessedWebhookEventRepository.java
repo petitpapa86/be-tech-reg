@@ -2,7 +2,6 @@ package com.bcbs239.regtech.billing.infrastructure.database.repositories;
 
 import com.bcbs239.regtech.billing.domain.shared.valueobjects.ProcessedWebhookEvent;
 import com.bcbs239.regtech.billing.infrastructure.database.entities.ProcessedWebhookEventEntity;
-
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;

@@ -1,14 +1,11 @@
 package com.bcbs239.regtech.core.application;
 
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.outbox.IOutboxMessageRepository;
 import com.bcbs239.regtech.core.domain.outbox.OutboxMessage;
 import com.bcbs239.regtech.core.domain.shared.Entity;
-import com.bcbs239.regtech.core.domain.events.DomainEvent;
-import com.bcbs239.regtech.core.infrastructure.eventprocessing.OutboxMessageEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects;
 
 import org.junit.jupiter.api.Test;
+
 import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.*;

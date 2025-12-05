@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
-import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;

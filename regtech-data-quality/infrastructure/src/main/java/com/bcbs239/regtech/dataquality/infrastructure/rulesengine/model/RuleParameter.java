@@ -1,13 +1,9 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.model;
 
 import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRule;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-
 import jakarta.persistence.*;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Arrays;

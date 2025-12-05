@@ -2,7 +2,6 @@ package com.bcbs239.regtech.iam.application.authentication;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.iam.domain.authentication.IRefreshTokenRepository;
-import com.bcbs239.regtech.iam.domain.authentication.events.UserLoggedOutEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

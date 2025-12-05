@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.riskcalculation.infrastructure.external;
 
-import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateUnavailableException;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
+import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateUnavailableException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

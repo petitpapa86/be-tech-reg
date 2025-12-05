@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.core.application;
 
-import java.util.UUID;
-
 import lombok.Getter;
+
+import java.util.UUID;
 
 /**
  * Base class for application commands.

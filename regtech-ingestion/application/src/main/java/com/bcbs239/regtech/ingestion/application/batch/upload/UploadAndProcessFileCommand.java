@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.ingestion.application.batch.upload;
 
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+
 import java.io.InputStream;
 
 

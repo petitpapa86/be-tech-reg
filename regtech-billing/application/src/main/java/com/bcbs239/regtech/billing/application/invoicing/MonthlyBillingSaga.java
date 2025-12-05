@@ -21,10 +21,11 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.infrastructure.eventprocessing.CrossModuleEventBus;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaClosures;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
+import com.bcbs239.regtech.core.infrastructure.eventprocessing.CrossModuleEventBus;
+import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -33,8 +34,6 @@ import java.util.Currency;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Monthly billing saga that orchestrates the billing process for active subscriptions.

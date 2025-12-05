@@ -4,7 +4,6 @@ import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.ClassifiedExposureDTO;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.PagedResponse;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.ProtectedExposureDTO;
-import com.bcbs239.regtech.riskcalculation.presentation.exceptions.BatchNotFoundException;
 import com.bcbs239.regtech.riskcalculation.presentation.services.ExposureQueryService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

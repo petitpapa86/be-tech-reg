@@ -10,14 +10,12 @@ import com.bcbs239.regtech.dataquality.domain.report.events.*;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
-import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Instant;
-import java.util.List;
 
 /**
  * Quality Report aggregate root that manages the lifecycle of data quality validation

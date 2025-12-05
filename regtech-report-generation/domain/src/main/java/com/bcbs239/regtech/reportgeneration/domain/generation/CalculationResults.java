@@ -1,10 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.domain.generation;
 
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.AmountEur;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BankId;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportingDate;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ProcessingTimestamps;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
 import lombok.NonNull;
 
 import java.math.BigDecimal;

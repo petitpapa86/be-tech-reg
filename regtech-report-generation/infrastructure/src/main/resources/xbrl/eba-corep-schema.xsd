@@ -14,8 +14,6 @@
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
            xmlns:xbrli="http://www.xbrl.org/2003/instance"
-           xmlns:eba="http://www.eba.europa.eu/xbrl/crr"
-           xmlns:iso4217="http://www.xbrl.org/2003/iso4217"
            targetNamespace="http://www.eba.europa.eu/xbrl/crr"
            elementFormDefault="qualified"
            attributeFormDefault="unqualified">

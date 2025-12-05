@@ -1,14 +1,14 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine;
 
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
-import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluator;
 import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluationException;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;

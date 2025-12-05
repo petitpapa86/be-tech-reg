@@ -5,7 +5,6 @@ import com.bcbs239.regtech.core.domain.saga.SagaId;
 import com.bcbs239.regtech.core.domain.saga.SagaMessage;
 import lombok.Getter;
 
-
 import java.time.Instant;
 import java.util.Optional;
 

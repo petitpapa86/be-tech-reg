@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.ingestion.application.configuration;
 
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * Lightweight application-level module configuration for the Ingestion module.

@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.riskcalculation.application.monitoring;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 

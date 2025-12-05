@@ -8,15 +8,13 @@ import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
 import com.bcbs239.regtech.billing.domain.subscriptions.StripeSubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
-import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
-
+import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
 import com.bcbs239.regtech.core.application.saga.SagaManager;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.infrastructure.eventprocessing.CrossModuleEventBus;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
+import com.bcbs239.regtech.core.infrastructure.eventprocessing.CrossModuleEventBus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;

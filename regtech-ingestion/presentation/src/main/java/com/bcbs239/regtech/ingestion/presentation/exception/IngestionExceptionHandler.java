@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.ingestion.presentation.exception;
 
 
-import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;

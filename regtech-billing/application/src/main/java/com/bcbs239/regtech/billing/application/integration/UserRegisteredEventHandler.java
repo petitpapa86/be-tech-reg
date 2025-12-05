@@ -1,7 +1,9 @@
 package com.bcbs239.regtech.billing.application.integration;
 
 import com.bcbs239.regtech.billing.application.payments.PaymentVerificationSaga;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.invoices.Invoice;
 import com.bcbs239.regtech.billing.domain.invoices.InvoiceId;
 import com.bcbs239.regtech.billing.domain.payments.PaymentVerificationSagaData;
@@ -10,10 +12,8 @@ import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
 import com.bcbs239.regtech.core.application.saga.SagaManager;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
-import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
-import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -22,7 +22,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Method;
 import java.time.Instant;
 import java.util.Map;
 
@@ -118,7 +117,7 @@ public class UserRegisteredEventHandler extends com.bcbs239.regtech.core.applica
             }
 
             PaymentVerificationSagaData sagaData = PaymentVerificationSagaData.builder()
-                    .correlationId(event.getEventId().toString()) // Convert UUID to String
+                    .correlationId(event.getEventId()) // Convert UUID to String
                     .userId(event.getUserId())
                     .billingAccountId(billingAccountId.getValue())
                     .userEmail(event.getEmail())

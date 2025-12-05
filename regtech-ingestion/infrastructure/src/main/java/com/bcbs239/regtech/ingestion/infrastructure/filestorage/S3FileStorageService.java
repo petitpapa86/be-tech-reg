@@ -1,16 +1,15 @@
 package com.bcbs239.regtech.ingestion.infrastructure.filestorage;
 
-import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3FileStorageService;
+import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Reference;
+import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
 import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
-import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3FileStorageService;
-import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Reference;
 import com.bcbs239.regtech.ingestion.infrastructure.fileparsing.FileToLoanExposureParser;
-import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;

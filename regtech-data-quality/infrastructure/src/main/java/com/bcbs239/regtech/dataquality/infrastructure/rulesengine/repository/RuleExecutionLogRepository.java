@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository;
 
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLog;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.ExecutionResult;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

@@ -1,12 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.infrastructure.templates;
 
-import com.bcbs239.regtech.reportgeneration.domain.generation.RecommendationSection;
-import com.bcbs239.regtech.reportgeneration.domain.generation.CalculatedExposure;
-import com.bcbs239.regtech.reportgeneration.domain.generation.CalculationResults;
-import com.bcbs239.regtech.reportgeneration.domain.generation.HtmlGenerationException;
-import com.bcbs239.regtech.reportgeneration.domain.generation.HtmlReportGenerator;
-import com.bcbs239.regtech.reportgeneration.domain.generation.QualityResults;
-import com.bcbs239.regtech.reportgeneration.domain.generation.ReportMetadata;
+import com.bcbs239.regtech.reportgeneration.domain.generation.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -14,7 +8,10 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**

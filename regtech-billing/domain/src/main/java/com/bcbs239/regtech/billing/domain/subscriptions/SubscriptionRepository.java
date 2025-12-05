@@ -1,8 +1,6 @@
 package com.bcbs239.regtech.billing.domain.subscriptions;
 
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
-import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 

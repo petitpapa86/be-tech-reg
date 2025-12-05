@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.core.domain.specifications;
 
-import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
 
 import java.util.ArrayList;
 import java.util.List;

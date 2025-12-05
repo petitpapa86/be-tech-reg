@@ -5,7 +5,6 @@ import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
 import com.bcbs239.regtech.billing.domain.payments.PaymentService;
 import com.bcbs239.regtech.billing.domain.payments.StripeCustomerId;
-import com.bcbs239.regtech.billing.domain.repositories.InvoiceRepository;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionId;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;

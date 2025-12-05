@@ -13,11 +13,11 @@ import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
 import com.bcbs239.regtech.billing.domain.subscriptions.Subscription;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
 import com.bcbs239.regtech.billing.domain.valueobjects.Money;
-import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;

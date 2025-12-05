@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.riskcalculation.presentation.services;
 
-import com.bcbs239.regtech.riskcalculation.domain.analysis.Breakdown;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.BreakdownDTO;

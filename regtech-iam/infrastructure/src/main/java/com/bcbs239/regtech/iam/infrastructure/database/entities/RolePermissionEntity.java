@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
 import jakarta.persistence.*;
+
 import java.time.Instant;
 
 /**

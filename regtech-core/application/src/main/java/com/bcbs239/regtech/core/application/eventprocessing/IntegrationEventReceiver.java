@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.core.application.eventprocessing;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.inbox.IInboxMessageRepository;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessage;
-import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

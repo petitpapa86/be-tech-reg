@@ -1,10 +1,6 @@
 package com.bcbs239.regtech.iam.domain.authentication;
 
-import com.bcbs239.regtech.core.domain.shared.Entity;
-import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.shared.ErrorType;
-import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.*;
 import com.bcbs239.regtech.iam.domain.authentication.events.RefreshTokenCreatedEvent;
 import com.bcbs239.regtech.iam.domain.authentication.events.RefreshTokenRevokedEvent;
 import com.bcbs239.regtech.iam.domain.users.UserId;

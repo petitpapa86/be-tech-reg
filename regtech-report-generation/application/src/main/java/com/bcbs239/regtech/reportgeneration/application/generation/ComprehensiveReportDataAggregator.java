@@ -2,19 +2,9 @@ package com.bcbs239.regtech.reportgeneration.application.generation;
 
 import com.bcbs239.regtech.reportgeneration.application.coordination.CalculationEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.QualityEventData;
+import com.bcbs239.regtech.reportgeneration.domain.generation.*;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
 import com.bcbs239.regtech.reportgeneration.domain.storage.IReportStorageService;
-import com.bcbs239.regtech.reportgeneration.domain.generation.CalculatedExposure;
-import com.bcbs239.regtech.reportgeneration.domain.generation.CalculationResults;
-import com.bcbs239.regtech.reportgeneration.domain.generation.ConcentrationIndices;
-import com.bcbs239.regtech.reportgeneration.domain.generation.GeographicBreakdown;
-import com.bcbs239.regtech.reportgeneration.domain.generation.QualityResults;
-import com.bcbs239.regtech.reportgeneration.domain.generation.SectorBreakdown;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.AmountEur;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BankId;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ProcessingTimestamps;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension;
-import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportingDate;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -27,11 +17,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * Comprehensive Report Data Aggregator

@@ -4,14 +4,13 @@ import com.bcbs239.regtech.riskcalculation.domain.analysis.Breakdown;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.HHI;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.Share;
+import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
 import com.bcbs239.regtech.riskcalculation.domain.shared.enums.ConcentrationLevel;
 import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
-import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.entities.PortfolioAnalysisEntity;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -1,17 +1,7 @@
 package com.bcbs239.regtech.riskcalculation.presentation.mappers;
 
-import com.bcbs239.regtech.riskcalculation.domain.analysis.Breakdown;
-import com.bcbs239.regtech.riskcalculation.domain.analysis.HHI;
-import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
-import com.bcbs239.regtech.riskcalculation.domain.analysis.ProcessingProgress;
-import com.bcbs239.regtech.riskcalculation.domain.analysis.ProcessingState;
-import com.bcbs239.regtech.riskcalculation.domain.analysis.Share;
-import com.bcbs239.regtech.riskcalculation.presentation.dto.BreakdownDTO;
-import com.bcbs239.regtech.riskcalculation.presentation.dto.ConcentrationIndicesDTO;
-import com.bcbs239.regtech.riskcalculation.presentation.dto.PortfolioAnalysisResponseDTO;
-import com.bcbs239.regtech.riskcalculation.presentation.dto.ProcessingProgressDTO;
-import com.bcbs239.regtech.riskcalculation.presentation.dto.ProcessingStateDTO;
-import com.bcbs239.regtech.riskcalculation.presentation.dto.ProcessingTimestampsDTO;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.*;
+import com.bcbs239.regtech.riskcalculation.presentation.dto.*;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;

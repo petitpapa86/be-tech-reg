@@ -1,38 +1,33 @@
 package com.bcbs239.regtech.billing.application.payments;
 
-import com.bcbs239.regtech.core.domain.saga.AbstractSaga;
-
 import com.bcbs239.regtech.billing.application.integration.FinalizeBillingAccountCommand;
 import com.bcbs239.regtech.billing.application.invoicing.CreateStripeInvoiceCommand;
+import com.bcbs239.regtech.billing.application.payments.compensation.*;
 import com.bcbs239.regtech.billing.application.policies.createstripecustomer.CreateStripeCustomerCommand;
 import com.bcbs239.regtech.billing.application.subscriptions.CreateStripeSubscriptionCommand;
-import com.bcbs239.regtech.billing.application.payments.compensation.*;
-import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.invoices.events.StripeInvoiceCreatedEvent;
+import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
 import com.bcbs239.regtech.billing.domain.payments.PaymentVerificationSagaData;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreatedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripeCustomerCreationFailedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripePaymentFailedEvent;
 import com.bcbs239.regtech.billing.domain.payments.events.StripePaymentSucceededEvent;
-import com.bcbs239.regtech.core.domain.events.integration.BillingAccountActivatedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionCreatedEvent;
 import com.bcbs239.regtech.billing.domain.subscriptions.events.StripeSubscriptionWebhookReceivedEvent;
-import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
-import com.bcbs239.regtech.core.domain.saga.SagaStatus;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
+import com.bcbs239.regtech.core.domain.saga.AbstractSaga;
 import com.bcbs239.regtech.core.domain.saga.SagaId;
+import com.bcbs239.regtech.core.domain.saga.SagaStatus;
 import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
-import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
-import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
-import com.bcbs239.regtech.billing.domain.payments.PaymentMethodId;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
+import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.Instant;
-import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class PaymentVerificationSaga extends AbstractSaga<PaymentVerificationSagaData> {
     private final ApplicationEventPublisher eventPublisher;

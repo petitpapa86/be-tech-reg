@@ -1,13 +1,13 @@
 package com.bcbs239.regtech.core.application.inbox;
 
 import com.bcbs239.regtech.core.application.eventprocessing.CoreIntegrationEventDeserializer;
-import com.bcbs239.regtech.core.domain.events.DomainEventBus;
-import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
+import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.inbox.IInboxMessageRepository;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessage;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessageStatus;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;

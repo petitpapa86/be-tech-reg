@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.billing.domain.accounts;
 
-import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
 
 /**
  * Domain repository interface for BillingAccount aggregate operations.

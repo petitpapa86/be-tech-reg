@@ -7,9 +7,6 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerResponse;
 
-import static com.bcbs239.regtech.core.domain.shared.ErrorType.NOT_FOUND_ERROR;
-import static com.bcbs239.regtech.core.domain.shared.ErrorType.VALIDATION_ERROR;
-
 /**
  * Handler for converting application results to HTTP responses.
  * Provides consistent response formatting for quality report endpoints.

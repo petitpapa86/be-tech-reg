@@ -1,10 +1,10 @@
 package com.bcbs239.regtech.reportgeneration.infrastructure.filestorage;
 
+import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.FileSize;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.PresignedUrl;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.S3Uri;
 import com.bcbs239.regtech.reportgeneration.domain.storage.IReportStorageService;
-import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

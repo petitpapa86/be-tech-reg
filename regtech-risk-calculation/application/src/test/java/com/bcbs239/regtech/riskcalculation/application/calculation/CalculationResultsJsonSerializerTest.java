@@ -1,11 +1,15 @@
 package com.bcbs239.regtech.riskcalculation.application.calculation;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.domain.analysis.*;
-import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.Breakdown;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.HHI;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.Share;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.*;
 import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.*;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.AmountEur;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.PercentageOfTotal;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,7 +17,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;

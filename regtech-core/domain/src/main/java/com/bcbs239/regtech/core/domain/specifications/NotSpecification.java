@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.core.domain.specifications;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 
 /**
  * Specification that negates another specification using logical NOT.

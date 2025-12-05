@@ -3,7 +3,6 @@ package com.bcbs239.regtech.billing.application.integration;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccount;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
 import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
-import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BillingAccountActivatedEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;

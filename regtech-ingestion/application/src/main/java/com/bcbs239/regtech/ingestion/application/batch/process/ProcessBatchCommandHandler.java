@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.ingestion.application.batch.process;
 
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
-import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -12,7 +11,6 @@ import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
 import com.bcbs239.regtech.ingestion.domain.batch.S3Reference;
 import com.bcbs239.regtech.ingestion.domain.file.FileContent;
-import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
 import com.bcbs239.regtech.ingestion.domain.model.ParsedFileData;
 import com.bcbs239.regtech.ingestion.domain.parsing.FileParsingService;
 import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
@@ -21,7 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 

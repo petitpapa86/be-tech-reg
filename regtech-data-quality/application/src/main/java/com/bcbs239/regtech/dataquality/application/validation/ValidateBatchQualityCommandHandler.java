@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
+import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityCompletedEvent;
 import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityFailedEvent;
@@ -11,9 +11,6 @@ import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.ArrayList;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureValidationResult;
@@ -24,7 +21,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Command handler for validating batch quality using proper DDD approach.

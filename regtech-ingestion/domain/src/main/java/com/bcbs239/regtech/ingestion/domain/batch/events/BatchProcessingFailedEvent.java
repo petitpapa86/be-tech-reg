@@ -3,8 +3,6 @@ package com.bcbs239.regtech.ingestion.domain.batch.events;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import lombok.Getter;
 
-import java.time.Instant;
-
 /**
  * Domain event published when batch processing fails.
  * This event triggers the creation of an EventProcessingFailure record for retry.

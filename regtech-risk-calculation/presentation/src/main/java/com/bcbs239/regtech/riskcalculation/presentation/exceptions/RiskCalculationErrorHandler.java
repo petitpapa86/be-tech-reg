@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.presentation.exceptions;
 
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
-import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import com.bcbs239.regtech.riskcalculation.presentation.mappers.MappingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

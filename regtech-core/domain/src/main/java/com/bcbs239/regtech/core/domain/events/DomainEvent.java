@@ -2,7 +2,6 @@ package com.bcbs239.regtech.core.domain.events;
 
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
