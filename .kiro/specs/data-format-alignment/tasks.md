@@ -178,7 +178,13 @@
   - **Property 8: Integration Compatibility** (Ingestion → Risk Calculation)
   - **Validates: Requirements 7.1, 7.2, 7.3**
 
-- [ ] 11. Create integration test for Ingestion → Data Quality
+- [x] 11. Create integration test for Ingestion → Data Quality
+
+
+
+
+
+
   - Create test that calls `parsedFileData.toDTO()` to get BatchDataDTO
   - Serialize BatchDataDTO to JSON
   - Deserialize JSON using Data Quality parsing logic
