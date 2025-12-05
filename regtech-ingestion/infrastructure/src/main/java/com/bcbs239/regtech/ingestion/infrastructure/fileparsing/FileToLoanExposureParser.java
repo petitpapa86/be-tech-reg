@@ -54,7 +54,7 @@ public class FileToLoanExposureParser {
                     List<LoanExposure> results = new ArrayList<>();
                     while (jp.nextToken() != JsonToken.END_ARRAY) {
                         // Deserialize current object into DTO using ObjectMapper and map to domain
-                        LoanExposureDto dto = objectMapper.readValue(jp, LoanExposureDto.class);
+                        ExposureDto dto = objectMapper.readValue(jp, ExposureDto.class);
                         results.add(DomainMapper.toLoanExposure(dto));
                         if (results.size() >= maxRecords) {
                             log.info("Reached maxRecords limit ({}) while parsing JSON", maxRecords);
@@ -103,15 +103,18 @@ public class FileToLoanExposureParser {
     /**
      * Result holder for combined JSON parsing.
      */
-    public record JsonParsingResult(List<LoanExposure> exposures, List<CreditRiskMitigation> crms) {}
+    public record JsonParsingResult(BankInfoModel bankInfo, List<LoanExposure> exposures, List<CreditRiskMitigation> crms) {}
 
     /**
-     * Parse both loan exposures and credit risk mitigations from a JSON input stream in a single pass.
-     * This is more efficient than parsing the same stream twice (which is actually impossible since
+     * Parse bank info, loan exposures, and credit risk mitigations from a JSON input stream in a single pass.
+     * This is more efficient than parsing the same stream multiple times (which is actually impossible since
      * InputStreams can only be read once).
+     * 
+     * Supports both old format (loan_portfolio) and new format (exposures) for backward compatibility.
      */
     public JsonParsingResult parseJsonToBothArrays(InputStream is, int maxRecords) throws IOException {
         JsonFactory jf = objectMapper.getFactory();
+        BankInfoModel bankInfo = null;
         List<LoanExposure> exposures = new ArrayList<>();
         List<CreditRiskMitigation> crms = new ArrayList<>();
         
@@ -121,12 +124,41 @@ public class FileToLoanExposureParser {
                 if (jp.currentToken() == JsonToken.FIELD_NAME) {
                     String fieldName = jp.currentName();
                     
-                    // Parse loan_portfolio array
-                    if ("loan_portfolio".equals(fieldName)) {
+                    // Parse bank_info object
+                    if ("bank_info".equals(fieldName)) {
+                        jp.nextToken(); // move to START_OBJECT
+                        if (jp.currentToken() == JsonToken.START_OBJECT) {
+                            BankInfoDto dto = objectMapper.readValue(jp, BankInfoDto.class);
+                            bankInfo = DomainMapper.toBankInfoModel(dto);
+                            log.debug("Parsed bank_info: {}", bankInfo);
+                        } else {
+                            log.warn("Expected bank_info to be an object");
+                        }
+                    }
+                    // Parse exposures array (new format)
+                    else if ("exposures".equals(fieldName)) {
                         jp.nextToken(); // move to START_ARRAY
                         if (jp.currentToken() == JsonToken.START_ARRAY) {
                             while (jp.nextToken() != JsonToken.END_ARRAY) {
-                                LoanExposureDto dto = objectMapper.readValue(jp, LoanExposureDto.class);
+                                ExposureDto dto = objectMapper.readValue(jp, ExposureDto.class);
+                                exposures.add(DomainMapper.toLoanExposure(dto));
+                                if (exposures.size() >= maxRecords) {
+                                    log.info("Reached maxRecords limit ({}) while parsing exposures", maxRecords);
+                                    // Skip remaining elements in this array
+                                    jp.skipChildren();
+                                    break;
+                                }
+                            }
+                        } else {
+                            log.warn("Expected exposures to be an array");
+                        }
+                    }
+                    // Parse loan_portfolio array (old format - backward compatibility)
+                    else if ("loan_portfolio".equals(fieldName)) {
+                        jp.nextToken(); // move to START_ARRAY
+                        if (jp.currentToken() == JsonToken.START_ARRAY) {
+                            while (jp.nextToken() != JsonToken.END_ARRAY) {
+                                ExposureDto dto = objectMapper.readValue(jp, ExposureDto.class);
                                 exposures.add(DomainMapper.toLoanExposure(dto));
                                 if (exposures.size() >= maxRecords) {
                                     log.info("Reached maxRecords limit ({}) while parsing loan_portfolio", maxRecords);
@@ -161,8 +193,9 @@ public class FileToLoanExposureParser {
             }
         }
         
-        log.info("Parsed JSON file: {} loan exposures, {} credit risk mitigations", exposures.size(), crms.size());
-        return new JsonParsingResult(exposures, crms);
+        log.info("Parsed JSON file: bank_info={}, {} exposures, {} credit risk mitigations", 
+                 bankInfo != null ? bankInfo.bankName() : "null", exposures.size(), crms.size());
+        return new JsonParsingResult(bankInfo, exposures, crms);
     }
 
     /**
@@ -186,25 +219,21 @@ public class FileToLoanExposureParser {
                 Row row = sheet.getRow(r);
                 if (row == null) continue;
 
-                String loanId = formatter.formatCellValue(row.getCell(0));
-                String exposureId = formatter.formatCellValue(row.getCell(1));
-                String borrowerName = formatter.formatCellValue(row.getCell(2));
-                String borrowerId = formatter.formatCellValue(row.getCell(3));
-                String counterpartyLei = formatter.formatCellValue(row.getCell(4));
-                double loanAmount = parseDoubleSafe(formatter.formatCellValue(row.getCell(5)));
-                double gross = parseDoubleSafe(formatter.formatCellValue(row.getCell(6)));
-                double net = parseDoubleSafe(formatter.formatCellValue(row.getCell(7)));
-                String currency = formatter.formatCellValue(row.getCell(8));
-                String loanType = formatter.formatCellValue(row.getCell(9));
-                String sector = formatter.formatCellValue(row.getCell(10));
-                String exposureType = formatter.formatCellValue(row.getCell(11));
-                String borrowerCountry = formatter.formatCellValue(row.getCell(12));
-                String countryCode = formatter.formatCellValue(row.getCell(13));
+                String exposureId = formatter.formatCellValue(row.getCell(0));
+                String instrumentId = formatter.formatCellValue(row.getCell(1));
+                String instrumentType = formatter.formatCellValue(row.getCell(2));
+                String counterpartyName = formatter.formatCellValue(row.getCell(3));
+                String counterpartyId = formatter.formatCellValue(row.getCell(4));
+                String counterpartyLei = formatter.formatCellValue(row.getCell(5));
+                double exposureAmount = parseDoubleSafe(formatter.formatCellValue(row.getCell(6)));
+                String currency = formatter.formatCellValue(row.getCell(7));
+                String productType = formatter.formatCellValue(row.getCell(8));
+                String balanceSheetType = formatter.formatCellValue(row.getCell(9));
+                String countryCode = formatter.formatCellValue(row.getCell(10));
 
-                LoanExposureDto dto = new LoanExposureDto(
-                    loanId, exposureId, borrowerName, borrowerId, counterpartyLei,
-                    loanAmount, gross, net, currency, loanType, sector, exposureType,
-                    borrowerCountry, countryCode
+                ExposureDto dto = new ExposureDto(
+                    exposureId, instrumentId, instrumentType, counterpartyName, counterpartyId, 
+                    counterpartyLei, exposureAmount, currency, productType, balanceSheetType, countryCode
                 );
 
                 results.add(DomainMapper.toLoanExposure(dto));

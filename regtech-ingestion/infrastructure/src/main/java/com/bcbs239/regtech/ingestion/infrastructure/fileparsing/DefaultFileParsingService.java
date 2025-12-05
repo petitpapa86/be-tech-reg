@@ -65,7 +65,7 @@ public class DefaultFileParsingService implements FileParsingService {
         try {
             int maxRecords = decideMaxRecords();
             
-            // Parse both loan exposures and credit risk mitigations in a single pass
+            // Parse bank info, loan exposures, and credit risk mitigations in a single pass
             // This is necessary because an InputStream can only be read once
             FileToLoanExposureParser.JsonParsingResult result = 
                 parser.parseJsonToBothArrays(fileStream, maxRecords);
@@ -74,7 +74,7 @@ public class DefaultFileParsingService implements FileParsingService {
             metadata.put("sourceFileName", fileName);
             metadata.put("parsedRecordsLimit", maxRecords);
 
-            ParsedFileData data = new ParsedFileData(result.exposures(), result.crms(), metadata);
+            ParsedFileData data = new ParsedFileData(result.bankInfo(), result.exposures(), result.crms(), metadata);
             return Result.success(data);
         } catch (Exception e) {
             log.error("Failed to parse JSON file {}: {}", fileName, e.getMessage(), e);
@@ -91,7 +91,7 @@ public class DefaultFileParsingService implements FileParsingService {
             metadata.put("sourceFileName", fileName);
             metadata.put("parsedRecordsLimit", maxRecords);
 
-            ParsedFileData data = new ParsedFileData(exposures, List.of(), metadata);
+            ParsedFileData data = new ParsedFileData(null, exposures, List.of(), metadata);
             return Result.success(data);
         } catch (Exception e) {
             log.error("Failed to parse Excel file {}: {}", fileName, e.getMessage(), e);

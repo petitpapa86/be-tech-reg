@@ -43,7 +43,11 @@
   - Add `fromDTO(CreditRiskMitigationDTO)` static factory method to `CreditRiskMitigation`
   - _Requirements: 3.1, 3.3, 3.4_
 
-- [ ] 3. Update ParsedFileData with conversion methods
+- [x] 3. Update ParsedFileData with conversion methods
+
+
+
+
   - Update `ParsedFileData` record to include `BankInfo` as first field
   - Add `toDTO()` method to `ParsedFileData` returning `BatchDataDTO`
   - Add `fromDTO(BatchDataDTO)` static factory method to `ParsedFileData`
@@ -70,7 +74,7 @@
 
 - [ ]* 4.1 Write property test for JSON structure validation
   - **Property 6: Batch Data Structure Completeness**
-  - **Validates: Requirements 3.5, 7.5**
+  - **Validates: Requirements 3.5, 7.5**i
 
 - [ ] 5. Remove duplicate DTOs from Risk Calculation module
   - Delete `regtech-risk-calculation/infrastructure/src/main/java/com/bcbs239/regtech/riskcalculation/infrastructure/dto/` package

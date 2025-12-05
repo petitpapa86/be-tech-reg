@@ -2,7 +2,7 @@ package com.bcbs239.regtech.modules.ingestion.infrastructure;
 
 import com.bcbs239.regtech.ingestion.domain.model.DomainMapper;
 import com.bcbs239.regtech.ingestion.domain.model.LoanExposure;
-import com.bcbs239.regtech.ingestion.domain.model.LoanExposureDto;
+import com.bcbs239.regtech.ingestion.domain.model.ExposureDto;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
@@ -22,8 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ExcelParsingTest {
 
     @Test
-    @DisplayName("Should create Excel in memory, parse it and map rows to LoanExposureDto")
-    void shouldParseExcelToLoanExposureDtos() throws Exception {
+    @DisplayName("Should create Excel in memory, parse it and map rows to ExposureDto")
+    void shouldParseExcelToExposureDtos() throws Exception {
         // Create workbook in memory
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             XSSFSheet sheet = workbook.createSheet("loans");

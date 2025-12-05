@@ -7,18 +7,29 @@ import java.util.stream.Collectors;
 public class DomainMapper {
 
     public static BankInfoModel toBankInfoModel(BankInfoDto dto) {
-        return new BankInfoModel(dto.bankName(), dto.abiCode(), dto.leiCode(), dto.reportDate(), dto.totalLoans());
+        return new BankInfoModel(dto.bankName(), dto.abiCode(), dto.leiCode(), dto.reportDate(), dto.totalExposures());
     }
 
-    public static LoanExposure toLoanExposure(LoanExposureDto dto) {
+    public static LoanExposure toLoanExposure(ExposureDto dto) {
         return new LoanExposure(
-            dto.loanId(), dto.exposureId(), dto.borrowerName(), dto.borrowerId(), dto.counterpartyLei(),
-            dto.loanAmount(), dto.grossExposureAmount(), dto.netExposureAmount(), dto.currency(), dto.loanType(),
-            dto.sector(), dto.exposureType(), dto.borrowerCountry(), dto.countryCode()
+            dto.instrumentId(),        // loanId
+            dto.exposureId(),          // exposureId
+            dto.counterpartyName(),    // borrowerName
+            dto.counterpartyId(),      // borrowerId
+            dto.counterpartyLei(),     // counterpartyLei
+            dto.exposureAmount(),      // loanAmount
+            dto.exposureAmount(),      // grossExposureAmount
+            dto.exposureAmount(),      // netExposureAmount
+            dto.currency(),            // currency
+            dto.productType(),         // loanType
+            null,                      // sector (not in new format)
+            dto.balanceSheetType(),    // exposureType
+            null,                      // borrowerCountry (not in new format)
+            dto.countryCode()          // countryCode
         );
     }
 
-    public static List<LoanExposure> toLoanExposureList(LoanExposureDto[] dtos) {
+    public static List<LoanExposure> toLoanExposureList(ExposureDto[] dtos) {
         return Arrays.stream(dtos).map(DomainMapper::toLoanExposure).collect(Collectors.toList());
     }
 

@@ -37,8 +37,8 @@ class EnhancedLoanParsingTest {
         assertThat(loanPortfolio.size()).isEqualTo(5);
 
         // Map loan_portfolio to domain DTOs
-        LoanExposureDto[] exposures =
-            objectMapper.treeToValue(loanPortfolio, LoanExposureDto[].class);
+        ExposureDto[] exposures =
+            objectMapper.treeToValue(loanPortfolio, ExposureDto[].class);
 
         assertThat(exposures).hasSize(5);
 
