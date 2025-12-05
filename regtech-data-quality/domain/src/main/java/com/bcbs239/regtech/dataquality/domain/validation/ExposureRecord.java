@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.dataquality.domain.validation;
 
+import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -26,6 +27,36 @@ public record ExposureRecord(
     LocalDate maturityDate,
     String referenceNumber
 ) {
+    
+    /**
+     * Creates an ExposureRecord from an ExposureDTO.
+     * Following DDD: the object knows how to construct itself from external data.
+     * Maps available fields from DTO, leaving Data Quality-specific fields as null.
+     * 
+     * @param dto the ExposureDTO to convert
+     * @return a new ExposureRecord instance
+     */
+    public static ExposureRecord fromDTO(ExposureDTO dto) {
+        return ExposureRecord.builder()
+            .exposureId(dto.exposureId())
+            .counterpartyId(dto.counterpartyId())
+            .amount(dto.exposureAmount())
+            .currency(dto.currency())
+            .country(dto.countryCode())
+            .productType(dto.productType())
+            .leiCode(dto.counterpartyLei())
+            // Fields not available in ExposureDTO - set to null
+            .sector(null)
+            .counterpartyType(null)
+            .internalRating(null)
+            .riskCategory(null)
+            .riskWeight(null)
+            .reportingDate(null)
+            .valuationDate(null)
+            .maturityDate(null)
+            .referenceNumber(dto.instrumentId()) // Use instrumentId as reference
+            .build();
+    }
     
     /**
      * Creates a builder for constructing ExposureRecord instances

@@ -119,7 +119,12 @@
   - Update error handling for deserialization failures
   - _Requirements: 4.1, 4.5_
 
-- [ ] 8. Add conversion method to Data Quality ExposureRecord
+- [x] 8. Add conversion method to Data Quality ExposureRecord
+
+
+
+
+
   - Add `fromDTO(ExposureDTO)` static factory method to `ExposureRecord`
   - Map all fields from ExposureDTO to ExposureRecord
   - Handle field name variations (snake_case and camelCase)
@@ -129,7 +134,11 @@
   - **Property 1: Serialization Round Trip Preserves Data** (Data Quality variant)
   - **Validates: Requirements 5.1, 5.2, 7.4**
 
-- [ ] 9. Update Data Quality parsing logic to use BatchDataDTO
+- [x] 9. Update Data Quality parsing logic to use BatchDataDTO
+
+
+
+
   - Update `S3StorageServiceImpl.downloadAndParseStreaming` to check for "exposures" and "bank_info" fields
   - Deserialize to `BatchDataDTO` when new format detected
   - Call `ExposureRecord.fromDTO()` for each exposure in BatchDataDTO

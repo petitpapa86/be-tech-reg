@@ -3,6 +3,7 @@ package com.bcbs239.regtech.dataquality.infrastructure.integration;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.dto.BatchDataDTO;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
@@ -123,7 +124,11 @@ public class S3StorageServiceImpl implements S3StorageService {
     }
     
     /**
-     * Downloads and parses exposures from a local file URI
+     * Downloads and parses exposures from a local file URI.
+     * Supports multiple formats:
+     * 1. New format with "exposures" and "bank_info" fields (BatchDataDTO)
+     * 2. Old format with "loan_portfolio" field
+     * 3. Direct array format
      */
     private List<ExposureRecord> downloadFromLocalFile(String fileUri) throws IOException {
         // Convert file:// URI to file path
@@ -139,36 +144,64 @@ public class S3StorageServiceImpl implements S3StorageService {
         }
         
         // Parse JSON from local file
-        List<ExposureRecord> exposures = new ArrayList<>();
         try (JsonParser parser = jsonFactory.createParser(java.nio.file.Files.newInputStream(path))) {
             JsonNode rootNode = objectMapper.readTree(parser);
             
-            // Check if it's a direct array or an object with nested array
-            JsonNode arrayNode;
-            if (rootNode.isArray()) {
-                // Direct array format
-                arrayNode = rootNode;
-            } else if (rootNode.isObject() && rootNode.has("loan_portfolio")) {
-                // Nested format with loan_portfolio array
-                arrayNode = rootNode.get("loan_portfolio");
-            } else {
-                throw new IOException("Expected JSON array or object with 'loan_portfolio' field");
+            // Support new format with bank_info at top level - deserialize to BatchDataDTO
+            if (rootNode.has("exposures") && rootNode.has("bank_info")) {
+                logger.info("Detected new BatchDataDTO format with exposures and bank_info fields");
+                BatchDataDTO batchData = objectMapper.treeToValue(rootNode, BatchDataDTO.class);
+                
+                // Log bank information if available
+                if (batchData.bankInfo() != null) {
+                    logger.info("Processing batch for bank: {} (ABI: {}, LEI: {}), Report date: {}, Total exposures: {}",
+                        batchData.bankInfo().bankName(),
+                        batchData.bankInfo().abiCode(),
+                        batchData.bankInfo().leiCode(),
+                        batchData.bankInfo().reportDate(),
+                        batchData.bankInfo().totalExposures());
+                }
+                
+                // Convert ExposureDTOs to ExposureRecords
+                List<ExposureRecord> exposures = batchData.exposures().stream()
+                    .map(ExposureRecord::fromDTO)
+                    .toList();
+                
+                logger.info("Successfully parsed {} exposures from BatchDataDTO format", exposures.size());
+                return exposures;
             }
             
-            // Parse each exposure
-            for (JsonNode exposureNode : arrayNode) {
-                ExposureRecord exposure = parseExposureRecord(exposureNode);
-                exposures.add(exposure);
-                
-                // Log progress for large files
-                if (exposures.size() % 10000 == 0) {
-                    logger.debug("Parsed {} exposures so far", exposures.size());
-                }
+            // Backward compatibility: support old direct array format
+            if (rootNode.isArray()) {
+                logger.info("Detected legacy direct array format");
+                return parseExposuresFromArray(rootNode);
             }
+            
+            // Backward compatibility: support old loan_portfolio format
+            if (rootNode.has("loan_portfolio")) {
+                logger.info("Detected legacy loan_portfolio format");
+                JsonNode loanPortfolioNode = rootNode.get("loan_portfolio");
+                return parseExposuresFromArray(loanPortfolioNode);
+            }
+            
+            // Unsupported format
+            List<String> fieldNames = new ArrayList<>();
+            rootNode.fieldNames().forEachRemaining(fieldNames::add);
+            String fieldsDescription = fieldNames.isEmpty() ? 
+                "none (possibly empty object)" : 
+                String.join(", ", fieldNames);
+            
+            String errorMessage = String.format(
+                "Unsupported JSON format in file '%s'. Expected one of: " +
+                "1) New format with 'exposures' and 'bank_info' fields, " +
+                "2) Legacy format with 'loan_portfolio' field, " +
+                "3) Direct array of exposures. " +
+                "Found root node with fields: %s",
+                filePath,
+                fieldsDescription
+            );
+            throw new IOException(errorMessage);
         }
-        
-        logger.info("Successfully read {} exposures from local file", exposures.size());
-        return exposures;
     }
     
     /**
@@ -277,27 +310,92 @@ public class S3StorageServiceImpl implements S3StorageService {
 
     /**
      * Download and parse JSON using streaming to handle large files efficiently.
+     * Supports multiple formats:
+     * 1. New format with "exposures" and "bank_info" fields (BatchDataDTO)
+     * 2. Old format with "loan_portfolio" field
+     * 3. Direct array format
      */
     private List<ExposureRecord> downloadAndParseStreaming(ResponseInputStream<GetObjectResponse> inputStream) throws IOException {
-        List<ExposureRecord> exposures = new ArrayList<>();
         try (JsonParser parser = jsonFactory.createParser(inputStream)) {
-            // Expect JSON array of exposure objects
-            if (parser.nextToken() != JsonToken.START_ARRAY) {
-                throw new IOException("Expected JSON array of exposures");
+            JsonNode rootNode = objectMapper.readTree(parser);
+            
+            // Support new format with bank_info at top level - deserialize to BatchDataDTO
+            if (rootNode.has("exposures") && rootNode.has("bank_info")) {
+                logger.info("Detected new BatchDataDTO format with exposures and bank_info fields");
+                BatchDataDTO batchData = objectMapper.treeToValue(rootNode, BatchDataDTO.class);
+                
+                // Log bank information if available
+                if (batchData.bankInfo() != null) {
+                    logger.info("Processing batch for bank: {} (ABI: {}, LEI: {}), Report date: {}, Total exposures: {}",
+                        batchData.bankInfo().bankName(),
+                        batchData.bankInfo().abiCode(),
+                        batchData.bankInfo().leiCode(),
+                        batchData.bankInfo().reportDate(),
+                        batchData.bankInfo().totalExposures());
+                }
+                
+                // Convert ExposureDTOs to ExposureRecords
+                List<ExposureRecord> exposures = batchData.exposures().stream()
+                    .map(ExposureRecord::fromDTO)
+                    .toList();
+                
+                logger.info("Successfully parsed {} exposures from BatchDataDTO format", exposures.size());
+                return exposures;
             }
             
-            // Parse each exposure object
-            while (parser.nextToken() == JsonToken.START_OBJECT) {
-                JsonNode exposureNode = objectMapper.readTree(parser);
-                ExposureRecord exposure = parseExposureRecord(exposureNode);
-                exposures.add(exposure);
-                
-                // Log progress for large files
-                if (exposures.size() % 10000 == 0) {
-                    logger.debug("Parsed {} exposures so far", exposures.size());
-                }
+            // Backward compatibility: support old direct array format
+            if (rootNode.isArray()) {
+                logger.info("Detected legacy direct array format");
+                return parseExposuresFromArray(rootNode);
+            }
+            
+            // Backward compatibility: support old loan_portfolio format
+            if (rootNode.has("loan_portfolio")) {
+                logger.info("Detected legacy loan_portfolio format");
+                JsonNode loanPortfolioNode = rootNode.get("loan_portfolio");
+                return parseExposuresFromArray(loanPortfolioNode);
+            }
+            
+            // Unsupported format
+            List<String> fieldNames = new ArrayList<>();
+            rootNode.fieldNames().forEachRemaining(fieldNames::add);
+            String fieldsDescription = fieldNames.isEmpty() ? 
+                "none (possibly empty object)" : 
+                String.join(", ", fieldNames);
+            
+            String errorMessage = String.format(
+                "Unsupported JSON format. Expected one of: " +
+                "1) New format with 'exposures' and 'bank_info' fields, " +
+                "2) Legacy format with 'loan_portfolio' field, " +
+                "3) Direct array of exposures. " +
+                "Found root node with fields: %s",
+                fieldsDescription
+            );
+            throw new IOException(errorMessage);
+        }
+    }
+    
+    /**
+     * Parse exposures from a JSON array node.
+     * Used for backward compatibility with old formats.
+     */
+    private List<ExposureRecord> parseExposuresFromArray(JsonNode arrayNode) throws IOException {
+        if (!arrayNode.isArray()) {
+            throw new IOException("Expected JSON array but got: " + arrayNode.getNodeType());
+        }
+        
+        List<ExposureRecord> exposures = new ArrayList<>();
+        for (JsonNode exposureNode : arrayNode) {
+            ExposureRecord exposure = parseExposureRecord(exposureNode);
+            exposures.add(exposure);
+            
+            // Log progress for large files
+            if (exposures.size() % 10000 == 0) {
+                logger.debug("Parsed {} exposures so far", exposures.size());
             }
         }
+        
+        logger.info("Successfully parsed {} exposures from array format", exposures.size());
         return exposures;
     }
     
