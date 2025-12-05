@@ -158,7 +158,15 @@
   - Test that new "exposures" format parses
   - _Requirements: 5.3_
 
-- [ ] 10. Create integration test for Ingestion → Risk Calculation
+- [x] 10. Create integration test for Ingestion → Risk Calculation
+
+
+
+
+
+
+
+
   - Create test that calls `parsedFileData.toDTO()` to get BatchDataDTO
   - Serialize BatchDataDTO to JSON
   - Deserialize JSON back to BatchDataDTO
