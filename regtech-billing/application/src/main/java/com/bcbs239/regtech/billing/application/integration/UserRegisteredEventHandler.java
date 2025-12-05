@@ -28,7 +28,7 @@ import java.util.Map;
 
 @Component("billingUserRegisteredEventHandler")
 @RequiredArgsConstructor
-public class UserRegisteredEventHandler {
+public class UserRegisteredEventHandler extends com.bcbs239.regtech.core.application.eventprocessing.IntegrationEventHandler<BillingUserRegisteredEvent> {
     private static final Logger log = LoggerFactory.getLogger(UserRegisteredEventHandler.class);
 
     private final ApplicationContext applicationContext;
@@ -39,8 +39,12 @@ public class UserRegisteredEventHandler {
 
     @EventListener
     public void handle(BillingUserRegisteredEvent event) {
+        handleIntegrationEvent(event, this::processEvent);
+    }
+    
+    private void processEvent(BillingUserRegisteredEvent event) {
         try {
-            log.info("Received BillingUserRegisteredEvent {}", Map.of(
+            log.info("Processing BillingUserRegisteredEvent {}", Map.of(
                     "eventType", "BILLING_USER_REGISTERED_EVENT_RECEIVED",
                     "userId", event.getUserId(),
                     "email", event.getEmail()

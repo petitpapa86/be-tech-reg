@@ -19,7 +19,7 @@ import java.util.Map;
  * Updates user status to ACTIVE and activates user roles when billing account is activated.
  */
 @Component("iamBillingAccountActivatedEventHandler")
-public class BillingAccountActivatedEventHandler {
+public class BillingAccountActivatedEventHandler extends com.bcbs239.regtech.core.application.eventprocessing.IntegrationEventHandler<BillingAccountActivatedEvent> {
 
     private final UserRepository userRepository;
     private final IEventProcessingFailureRepository failureRepository;
@@ -38,12 +38,10 @@ public class BillingAccountActivatedEventHandler {
 
     @EventListener
     public void handle(BillingAccountActivatedEvent event) {
-
-        log.info("BILLING_ACCOUNT_ACTIVATED_EVENT_RECEIVED; details={}", Map.of(
-                "eventType", "BillingAccountActivatedEvent",
-                "userId", event.getUserId()
-        ));
-
+        handleIntegrationEvent(event, this::processEvent);
+    }
+    
+    private void processEvent(BillingAccountActivatedEvent event) {
         UserId userId = UserId.fromString(event.getUserId());
 
     // Find the user

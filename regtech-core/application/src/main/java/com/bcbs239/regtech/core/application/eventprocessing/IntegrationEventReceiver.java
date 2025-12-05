@@ -27,15 +27,17 @@ public class IntegrationEventReceiver {
     public void onIntegrationEvent(IntegrationEvent event) {
         // Skip saving events that are being replayed from inbox to prevent loops
         boolean isInboxReplay = CorrelationContext.isInboxReplay();
-        logger.info("📨 IntegrationEventReceiver: event={}, isInboxReplay={}", 
-                event.getClass().getSimpleName(), isInboxReplay);
+        boolean isOutboxReplay = CorrelationContext.isOutboxReplay();
+        
+        logger.info("📨 IntegrationEventReceiver: event={}, isInboxReplay={}, isOutboxReplay={}", 
+                event.getClass().getSimpleName(), isInboxReplay, isOutboxReplay);
         
         if (isInboxReplay) {
             logger.info("✅ Skipping inbox save (replay): {}", event.getClass().getSimpleName());
             return;
         }
         
-        // check for existing message to ensure idempotency could be added here
+        // Save to inbox for guaranteed delivery
         try {
             logger.info("💾 Saving to inbox: {}", event.getClass().getSimpleName());
             InboxMessage entry = InboxMessage.fromIntegrationEvent(event, mapper);
@@ -44,6 +46,15 @@ public class IntegrationEventReceiver {
         } catch (Exception ex) {
             logger.error("Failed to persist inbox message for integration event {}", event.getClass().getSimpleName(), ex);
             throw ex;
+        }
+        
+        // IMPORTANT: Stop event propagation if this is from outbox replay
+        // The event will be processed later by ProcessInboxJob to ensure exactly-once semantics
+        if (isOutboxReplay) {
+            logger.info("🛑 Stopping event propagation (outbox replay): {} - will be processed by inbox job", 
+                    event.getClass().getSimpleName());
+            // Note: We can't actually stop Spring's event propagation here,
+            // so handlers must check isOutboxReplay flag themselves
         }
     }
 }

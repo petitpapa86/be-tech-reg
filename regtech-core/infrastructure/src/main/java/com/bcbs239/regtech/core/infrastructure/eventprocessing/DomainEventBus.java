@@ -33,6 +33,7 @@ public class DomainEventBus implements com.bcbs239.regtech.core.domain.events.Do
     @Override
     public void publishFromInbox(DomainEvent event) {
     java.lang.ScopedValue.where(CorrelationContext.INBOX_REPLAY, Boolean.TRUE)
+           .where(CorrelationContext.OUTBOX_REPLAY, Boolean.FALSE) // Explicitly clear outbox replay flag
            .where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
            .where(CorrelationContext.CAUSATION_ID, event.getEventId())
            .run(() -> delegate.publishEvent(event));
