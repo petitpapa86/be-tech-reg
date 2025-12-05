@@ -44,14 +44,15 @@
   - _Requirements: 3.1, 3.3, 3.4_
 
 - [x] 3. Update ParsedFileData with conversion methods
-
-
-
-
-  - Update `ParsedFileData` record to include `BankInfo` as first field
-  - Add `toDTO()` method to `ParsedFileData` returning `BatchDataDTO`
-  - Add `fromDTO(BatchDataDTO)` static factory method to `ParsedFileData`
-  - Update all usages of `ParsedFileData` to provide `BankInfo`
+  **Status: COMPLETED**
+  
+  **Implementation Summary:**
+  - ✅ Updated `ParsedFileData` record to include `BankInfoModel` as first field
+  - ✅ Added `toDTO()` method to `ParsedFileData` returning `BatchDataDTO`
+  - ✅ Added `fromDTO(BatchDataDTO)` static factory method to `ParsedFileData`
+  - ✅ Updated `DefaultFileParsingService.parseJsonFile()` to pass `bankInfo` from parsing result
+  - ✅ Updated `DefaultFileParsingService.parseExcelFile()` to pass `null` for bankInfo (Excel doesn't have bank_info)
+  - ✅ All code compiles successfully
   - _Requirements: 3.1, 3.2_
 
 - [ ]* 3.1 Write property test for exposure mapping
@@ -66,7 +67,11 @@
   - **Property 1: Serialization Round Trip Preserves Data** (Ingestion variant)
   - **Validates: Requirements 3.2, 7.4**
 
-- [ ] 4. Update Ingestion file writing to use toDTO
+- [x] 4. Update Ingestion file writing to use toDTO
+
+
+
+
   - Update file storage service to call `parsedFileData.toDTO()` before serialization
   - Ensure JSON output matches expected structure
   - Update logging to include bank information

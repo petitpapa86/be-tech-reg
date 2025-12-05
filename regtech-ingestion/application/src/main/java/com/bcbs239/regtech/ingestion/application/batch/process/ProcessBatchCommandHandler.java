@@ -15,10 +15,12 @@ import com.bcbs239.regtech.ingestion.domain.model.ParsedFileData;
 import com.bcbs239.regtech.ingestion.domain.parsing.FileParsingService;
 import com.bcbs239.regtech.ingestion.domain.services.FileStorageService;
 import com.bcbs239.regtech.ingestion.domain.validation.FileContentValidationService;
+import com.bcbs239.regtech.ingestion.application.serialization.ParsedDataSerializer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
 
@@ -37,6 +39,7 @@ public class ProcessBatchCommandHandler {
     private final FileStorageService fileStorageService;
     private final BaseUnitOfWork unitOfWork;
     private final TemporaryFileStorageService temporaryFileStorage;
+    private final ParsedDataSerializer parsedDataSerializer;
     
     public ProcessBatchCommandHandler(
             IIngestionBatchRepository ingestionBatchRepository,
@@ -45,7 +48,8 @@ public class ProcessBatchCommandHandler {
             IBankInfoRepository bankInfoRepository,
             FileStorageService fileStorageService,
             BaseUnitOfWork unitOfWork,
-            TemporaryFileStorageService temporaryFileStorage) {
+            TemporaryFileStorageService temporaryFileStorage,
+            ParsedDataSerializer parsedDataSerializer) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.fileParsingService = fileParsingService;
         this.fileContentValidationService = fileContentValidationService;
@@ -53,6 +57,7 @@ public class ProcessBatchCommandHandler {
         this.fileStorageService = fileStorageService;
         this.unitOfWork = unitOfWork;
         this.temporaryFileStorage = temporaryFileStorage;
+        this.parsedDataSerializer = parsedDataSerializer;
     }
 
     @Transactional
@@ -178,9 +183,30 @@ public class ProcessBatchCommandHandler {
                 return attachResult;
             }
             
-            // 7. Store in S3 with enterprise features (use fresh InputStream)
+            // 7. Serialize ParsedFileData to JSON via BatchDataDTO
+            InputStream serializedStream;
+            try {
+                serializedStream = parsedDataSerializer.serializeToInputStream(parsedData);
+                log.info("Successfully serialized ParsedFileData to JSON for batch {} - bank: {}, exposures: {}",
+                    batch.getBatchId().value(),
+                    bankInfo.bankName(),
+                    validation.totalExposures());
+            } catch (Exception e) {
+                String errorMessage = "Failed to serialize parsed data to JSON: " + e.getMessage();
+                log.error("Serialization failed for batch {}: {}", batch.getBatchId().value(), errorMessage, e);
+                batch.markAsFailed(errorMessage);
+                ingestionBatchRepository.save(batch);
+                return Result.failure(ErrorDetail.of(
+                    "SERIALIZATION_ERROR",
+                    ErrorType.SYSTEM_ERROR,
+                    errorMessage,
+                    "serialization.error"
+                ));
+            }
+            
+            // 8. Store serialized JSON in S3/local storage
             Result<S3Reference> s3Result = fileStorageService.storeFile(
-                fileData.getInputStream(),
+                serializedStream,
                 batch.getFileMetadata(),
                 batch.getBatchId().value(),
                 batch.getBankId().value(),
@@ -196,30 +222,30 @@ public class ProcessBatchCommandHandler {
             
             S3Reference s3Reference = s3Result.getValue().orElseThrow();
             
-            // 8. Record S3 storage in batch
+            // 9. Record S3 storage in batch
             Result<Void> storageResult = batch.recordS3Storage(s3Reference);
             if (storageResult.isFailure()) {
                 return storageResult;
             }
             
-            // 9. Complete ingestion
+            // 10. Complete ingestion
             Result<Void> completeResult = batch.completeIngestion();
             if (completeResult.isFailure()) {
                 return completeResult;
             }
             
-            // 10. Save final batch state
+            // 11. Save final batch state
             saveResult = ingestionBatchRepository.save(batch);
             if (saveResult.isFailure()) {
                 return Result.failure(saveResult.getError().orElse(
                     ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to save completed batch", "database.error")));
             }
             
-            // 11. save events through unit of work to outbox pattern
+            // 12. save events through unit of work to outbox pattern
             unitOfWork.registerEntity(batch);
             unitOfWork.saveChanges();
             
-            // 12. Cleanup temporary file storage
+            // 13. Cleanup temporary file storage
             temporaryFileStorage.removeFile(command.tempFileKey());
             
             return Result.success(null);
