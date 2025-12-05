@@ -92,7 +92,12 @@
   - Update pom.xml to ensure Core domain dependency exists
   - _Requirements: 4.3, 4.4_
 
-- [ ] 6. Add conversion methods to Risk Calculation domain models
+- [x] 6. Add conversion methods to Risk Calculation domain models
+
+
+
+
+
   - Add `fromDTO(BankInfoDTO)` static factory method to `BankInfo` value object
   - Add `fromDTO(ExposureDTO)` static factory method to `ExposureRecording`
   - Add `fromDTO(CreditRiskMitigationDTO)` static factory method to `Mitigation`
@@ -103,7 +108,9 @@
   - **Property 1: Serialization Round Trip Preserves Data** (Risk Calculation variant)
   - **Validates: Requirements 4.1, 4.2, 7.4**
 
-- [ ] 7. Update Risk Calculation file reading to use fromDTO
+- [-] 7. Update Risk Calculation file reading to use fromDTO
+
+
   - Update file storage service to deserialize to `BatchDataDTO`
   - Call `ExposureRecording.fromDTO()` for each exposure
   - Call `BankInfo.fromDTO()` for bank information

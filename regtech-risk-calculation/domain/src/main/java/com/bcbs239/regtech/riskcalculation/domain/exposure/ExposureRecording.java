@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.domain.exposure;
 
+import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
 
 import java.time.Instant;
@@ -68,6 +69,46 @@ public record ExposureRecording(ExposureId id, InstrumentId instrumentId, Counte
                 exposureAmount,
                 classification,
                 recordedAt
+        );
+    }
+
+    /**
+     * Create from DTO (factory method).
+     * Following DDD: the object knows how to construct itself from external data.
+     * 
+     * @param dto The ExposureDTO from inter-module communication
+     * @return A new ExposureRecording with current timestamp
+     */
+    public static ExposureRecording fromDTO(ExposureDTO dto) {
+        Objects.requireNonNull(dto, "ExposureDTO cannot be null");
+        
+        // Parse instrument type enum, default to OTHER if not recognized
+        InstrumentType instrumentType;
+        try {
+            instrumentType = InstrumentType.valueOf(dto.instrumentType().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            instrumentType = InstrumentType.OTHER;
+        }
+        
+        // Parse balance sheet type enum, default to ON_BALANCE if not recognized
+        BalanceSheetType balanceSheetType;
+        try {
+            balanceSheetType = BalanceSheetType.valueOf(dto.balanceSheetType().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            balanceSheetType = BalanceSheetType.ON_BALANCE;
+        }
+        
+        return create(
+            ExposureId.of(dto.exposureId()),
+            InstrumentId.of(dto.instrumentId()),
+            CounterpartyRef.of(dto.counterpartyId(), dto.counterpartyName(), dto.counterpartyLei()),
+            MonetaryAmount.of(dto.exposureAmount(), dto.currency()),
+            ExposureClassification.of(
+                dto.productType(),
+                instrumentType,
+                balanceSheetType,
+                dto.countryCode()
+            )
         );
     }
 

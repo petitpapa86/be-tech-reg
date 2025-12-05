@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.domain.protection;
 
+import com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
@@ -86,6 +87,29 @@ public class Mitigation {
      */
     public static Mitigation reconstitute(MitigationType type, EurAmount eurValue) {
         return new Mitigation(type, eurValue);
+    }
+    
+    /**
+     * Create from DTO (factory method).
+     * Following DDD: the object knows how to construct itself from external data.
+     * 
+     * @param dto The CreditRiskMitigationDTO from inter-module communication
+     * @param rateProvider Provider for exchange rates (needed for currency conversion)
+     * @return A new Mitigation with EUR-converted value
+     */
+    public static Mitigation fromDTO(CreditRiskMitigationDTO dto, ExchangeRateProvider rateProvider) {
+        Objects.requireNonNull(dto, "CreditRiskMitigationDTO cannot be null");
+        Objects.requireNonNull(rateProvider, "Exchange rate provider cannot be null");
+        
+        // Parse mitigation type enum, default to FINANCIAL_COLLATERAL if not recognized
+        MitigationType mitigationType;
+        try {
+            mitigationType = MitigationType.valueOf(dto.mitigationType().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            mitigationType = MitigationType.FINANCIAL_COLLATERAL;
+        }
+        
+        return create(mitigationType, dto.value(), dto.currency(), rateProvider);
     }
     
     // Getters
