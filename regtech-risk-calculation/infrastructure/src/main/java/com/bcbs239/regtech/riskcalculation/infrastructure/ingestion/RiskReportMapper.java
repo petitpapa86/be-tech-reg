@@ -1,13 +1,13 @@
 package com.bcbs239.regtech.riskcalculation.infrastructure.ingestion;
 
+import com.bcbs239.regtech.core.domain.shared.dto.BatchDataDTO;
+import com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO;
+import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.*;
 import com.bcbs239.regtech.riskcalculation.domain.protection.MitigationType;
 import com.bcbs239.regtech.riskcalculation.domain.protection.RawMitigationData;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
-import com.bcbs239.regtech.riskcalculation.infrastructure.dto.CreditRiskMitigationDTO;
-import com.bcbs239.regtech.riskcalculation.infrastructure.dto.ExposureDTO;
-import com.bcbs239.regtech.riskcalculation.infrastructure.dto.RiskReportDTO;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Component
 public class RiskReportMapper {
     
-    public IngestedRiskReport toDomain(RiskReportDTO dto) {
+    public IngestedRiskReport toDomain(BatchDataDTO dto) {
         // Generate batch ID
         String batchId = generateBatchId();
         
@@ -54,7 +54,7 @@ public class RiskReportMapper {
         );
     }
     
-    private BankInfo mapBankInfo(com.bcbs239.regtech.riskcalculation.infrastructure.dto.BankInfoDTO dto) {
+    private BankInfo mapBankInfo(com.bcbs239.regtech.core.domain.shared.dto.BankInfoDTO dto) {
         return BankInfo.of(
             dto.bankName(),
             dto.abiCode(),

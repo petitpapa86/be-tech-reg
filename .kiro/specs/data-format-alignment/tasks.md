@@ -81,7 +81,12 @@
   - **Property 6: Batch Data Structure Completeness**
   - **Validates: Requirements 3.5, 7.5**i
 
-- [ ] 5. Remove duplicate DTOs from Risk Calculation module
+- [x] 5. Remove duplicate DTOs from Risk Calculation module
+
+
+
+
+
   - Delete `regtech-risk-calculation/infrastructure/src/main/java/com/bcbs239/regtech/riskcalculation/infrastructure/dto/` package
   - Update all imports to use Core module DTOs
   - Update pom.xml to ensure Core domain dependency exists
