@@ -35,6 +35,7 @@ public class BatchCompletedIntegrationAdapter {
 
     public BatchCompletedIntegrationAdapter(DomainEventBus domainEventBus) {
         this.domainEventBus = domainEventBus;
+        log.info("✅ BatchCompletedIntegrationAdapter bean created successfully!");
     }
 
     /**
@@ -48,40 +49,45 @@ public class BatchCompletedIntegrationAdapter {
      */
     @EventListener
     public void onBatchCompletedIntegrationEvent(BatchCompletedIntegrationEvent integrationEvent) {
-        log.info("🔔 BatchCompletedIntegrationAdapter invoked! details={}", Map.of(
-            "eventType", "BATCH_COMPLETED_INTEGRATION_EVENT",
-            "integrationEventId", integrationEvent.getEventId(),
-            "batchId", integrationEvent.getBatchId(),
-            "bankId", integrationEvent.getBankId(),
-            "s3Uri", integrationEvent.getS3Uri(),
-            "totalExposures", integrationEvent.getTotalExposures(),
-            "fileSizeBytes", integrationEvent.getFileSizeBytes(),
-            "completedAt", integrationEvent.getCompletedAt().toString(),
-            "correlationId", integrationEvent.getCorrelationId(),
-            "isInboxReplay", String.valueOf(com.bcbs239.regtech.core.domain.context.CorrelationContext.isInboxReplay())
-        ));
+        try {
+            log.info("🔔 BatchCompletedIntegrationAdapter invoked! details={}", Map.of(
+                "eventType", "BATCH_COMPLETED_INTEGRATION_EVENT",
+                "integrationEventId", integrationEvent.getEventId(),
+                "batchId", integrationEvent.getBatchId(),
+                "bankId", integrationEvent.getBankId(),
+                "s3Uri", integrationEvent.getS3Uri(),
+                "totalExposures", integrationEvent.getTotalExposures(),
+                "fileSizeBytes", integrationEvent.getFileSizeBytes(),
+                "completedAt", integrationEvent.getCompletedAt().toString(),
+                "correlationId", integrationEvent.getCorrelationId(),
+                "isInboxReplay", String.valueOf(com.bcbs239.regtech.core.domain.context.CorrelationContext.isInboxReplay())
+            ));
 
-        // Convert BatchCompletedIntegrationEvent to BatchIngestedEvent
-        // This allows the data-quality module to process completed batches
-        // using its existing BatchIngestedEvent handlers
-        BatchIngestedEvent batchIngestedEvent = new BatchIngestedEvent(
-            integrationEvent.getBatchId(),
-            integrationEvent.getBankId(),
-            integrationEvent.getS3Uri(),
-            integrationEvent.getTotalExposures(),
-            integrationEvent.getFileSizeBytes(),
-            integrationEvent.getCompletedAt()
-        );
+            // Convert BatchCompletedIntegrationEvent to BatchIngestedEvent
+            // This allows the data-quality module to process completed batches
+            // using its existing BatchIngestedEvent handlers
+            BatchIngestedEvent batchIngestedEvent = new BatchIngestedEvent(
+                integrationEvent.getBatchId(),
+                integrationEvent.getBankId(),
+                integrationEvent.getS3Uri(),
+                integrationEvent.getTotalExposures(),
+                integrationEvent.getFileSizeBytes(),
+                integrationEvent.getCompletedAt()
+            );
 
-        // Publish as replay so existing data-quality handlers receive it
-        // This will trigger the BatchIngestedEventListener to process the batch
-        domainEventBus.publishAsReplay(batchIngestedEvent);
-        
-        log.info("Published BatchIngestedEvent as replay for data-quality processing; details={}", Map.of(
-            "eventType", "BATCH_INGESTED_EVENT_PUBLISHED",
-            "eventId", batchIngestedEvent.getEventId(),
-            "batchId", integrationEvent.getBatchId(),
-            "bankId", integrationEvent.getBankId()
-        ));
+            // Publish as replay so existing data-quality handlers receive it
+            // This will trigger the BatchIngestedEventListener to process the batch
+            domainEventBus.publishAsReplay(batchIngestedEvent);
+            
+            log.info("Published BatchIngestedEvent as replay for data-quality processing; details={}", Map.of(
+                "eventType", "BATCH_INGESTED_EVENT_PUBLISHED",
+                "eventId", batchIngestedEvent.getEventId(),
+                "batchId", integrationEvent.getBatchId(),
+                "bankId", integrationEvent.getBankId()
+            ));
+        } catch (Exception e) {
+            log.error("❌ Error in BatchCompletedIntegrationAdapter: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 }

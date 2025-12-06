@@ -27,14 +27,14 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     private static final Logger log = LoggerFactory.getLogger(JpaUserRepository.class);
     private final SpringDataUserRepository userRepository;
     private final SpringDataUserRoleRepository userRoleRepository;
-    private final SpringDataUserBankAssignmentRepository userBankAssignmentRepository;
     private final SpringDataRoleRepository roleRepository;
 
     @Autowired
-    public JpaUserRepository(SpringDataUserRepository userRepository, SpringDataUserRoleRepository userRoleRepository, SpringDataUserBankAssignmentRepository userBankAssignmentRepository, SpringDataRoleRepository roleRepository) {
+    public JpaUserRepository(SpringDataUserRepository userRepository,
+                             SpringDataUserRoleRepository userRoleRepository,
+                             SpringDataRoleRepository roleRepository) {
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
-        this.userBankAssignmentRepository = userBankAssignmentRepository;
         this.roleRepository = roleRepository;
     }
 

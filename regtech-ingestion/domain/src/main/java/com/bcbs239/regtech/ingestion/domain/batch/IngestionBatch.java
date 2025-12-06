@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.ingestion.domain.batch;
 
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
@@ -156,7 +157,7 @@ public class IngestionBatch extends Entity {
     /**
      * Complete the ingestion process.
      */
-    public Result<Void> completeIngestion() {
+    public Result<Void> completeIngestion(String causationId) {
         // Validate specs: must have s3 and exposure count
         Result<Void> spec = BatchSpecifications.mustHaveS3Reference().and(BatchSpecifications.mustHaveExposureCount()).isSatisfiedBy(this);
         if (spec.isFailure()) return spec;
@@ -169,7 +170,10 @@ public class IngestionBatch extends Entity {
         this.completedAt = Instant.now();
         this.processingDurationMs = completedAt.toEpochMilli() - uploadedAt.toEpochMilli();
 
-        addDomainEvent(new BatchCompletedEvent(batchId, bankId, s3Reference, totalExposures, fileMetadata.fileSizeBytes(), completedAt, batchId.value()));
+        BatchCompletedEvent batchCompletedEvent = new BatchCompletedEvent(batchId, bankId, s3Reference, totalExposures, fileMetadata.fileSizeBytes(), completedAt, CorrelationContext.correlationId());
+        batchCompletedEvent.setCausationId(causationId);
+
+        addDomainEvent(batchCompletedEvent);
 
         return Result.success(null);
     }

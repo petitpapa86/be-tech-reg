@@ -229,7 +229,7 @@ public class ProcessBatchCommandHandler {
             }
             
             // 10. Complete ingestion
-            Result<Void> completeResult = batch.completeIngestion();
+            Result<Void> completeResult = batch.completeIngestion(command.getId());
             if (completeResult.isFailure()) {
                 return completeResult;
             }

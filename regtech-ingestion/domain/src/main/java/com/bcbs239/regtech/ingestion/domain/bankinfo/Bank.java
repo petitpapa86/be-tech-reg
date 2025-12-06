@@ -2,10 +2,12 @@ package com.bcbs239.regtech.ingestion.domain.bankinfo;
 
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import lombok.Getter;
 
 /**
  * Bank entity representing a financial institution.
  */
+@Getter
 public class Bank extends Entity {
 
     private final String name;
@@ -36,11 +38,4 @@ public class Bank extends Entity {
         return Result.success(new Bank(id, name.trim(), country.trim()));
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public String getCountry() {
-        return country;
-    }
 }

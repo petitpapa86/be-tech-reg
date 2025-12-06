@@ -22,6 +22,7 @@ public class JacksonConfiguration {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.registerModule(new Jdk8Module());
+        mapper.findAndRegisterModules();
         mapper.registerModule(new MaybeJacksonModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         return mapper;

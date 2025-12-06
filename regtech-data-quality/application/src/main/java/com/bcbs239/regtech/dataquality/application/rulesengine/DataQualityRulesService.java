@@ -13,6 +13,7 @@ import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExecutionLogRe
 import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -32,6 +33,9 @@ import java.util.*;
  * 
  * <p><strong>Design Pattern:</strong> Bridge Pattern - decouples abstraction (ValidationResult)
  * from implementation (Rules Engine) allowing both to vary independently.</p>
+ * 
+ * <p><strong>Note:</strong> This class is configured as a @Bean in RulesEngineConfiguration,
+ * not as a @Service, to allow conditional creation based on rules-engine.enabled property.</p>
  */
 @Slf4j
 public class DataQualityRulesService {

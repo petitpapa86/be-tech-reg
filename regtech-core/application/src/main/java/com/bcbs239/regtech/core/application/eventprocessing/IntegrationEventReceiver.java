@@ -48,13 +48,13 @@ public class IntegrationEventReceiver {
             throw ex;
         }
         
-        // IMPORTANT: Stop event propagation if this is from outbox replay
-        // The event will be processed later by ProcessInboxJob to ensure exactly-once semantics
-        if (isOutboxReplay) {
-            logger.info("🛑 Stopping event propagation (outbox replay): {} - will be processed by inbox job", 
-                    event.getClass().getSimpleName());
-            // Note: We can't actually stop Spring's event propagation here,
-            // so handlers must check isOutboxReplay flag themselves
-        }
+//        // IMPORTANT: Stop event propagation if this is from outbox replay
+//        // The event will be processed later by ProcessInboxJob to ensure exactly-once semantics
+//        if (isOutboxReplay) {
+//            logger.info("🛑 Stopping event propagation (outbox replay): {} - will be processed by inbox job",
+//                    event.getClass().getSimpleName());
+//            // Note: We can't actually stop Spring's event propagation here,
+//            // so handlers must check isOutboxReplay flag themselves
+//        }
     }
 }

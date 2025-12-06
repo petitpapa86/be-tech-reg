@@ -17,7 +17,7 @@ public abstract class DomainEvent {
 
     private final String eventId = UUID.randomUUID().toString();
     private final String correlationId;
-    private final Maybe<String> causationId;
+    private Maybe<String> causationId;
     private final Instant timestamp = Instant.now();
     protected String eventType;
 
@@ -36,5 +36,8 @@ public abstract class DomainEvent {
     }
 
     public abstract String eventType();
+    public void setCausationId(String causationId){
+        this.causationId = new Maybe.Some<>(causationId);
+    }
 }
 

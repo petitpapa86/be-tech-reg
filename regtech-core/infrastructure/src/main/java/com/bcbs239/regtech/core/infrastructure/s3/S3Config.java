@@ -18,6 +18,7 @@ import java.net.URI;
  */
 @Configuration
 @ConditionalOnProperty(name = "ingestion.s3.enabled", havingValue = "true", matchIfMissing = true)
+@org.springframework.boot.context.properties.EnableConfigurationProperties(S3Properties.class)
 public class S3Config {
 
     private final S3Properties properties;

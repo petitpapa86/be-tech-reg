@@ -56,6 +56,7 @@ public class BatchCompletedEventPublisher {
                     event.fileSizeBytes(),
                     event.completedAt()
             );
+            integrationEvent.setCausationId(event.getCorrelationId());
 
             // Publish to other bounded contexts
             integrationEventBus.publish(integrationEvent);
