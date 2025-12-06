@@ -2,6 +2,8 @@ package com.bcbs239.regtech.ingestion.domain.integrationevents;
 
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -25,13 +27,14 @@ public class BatchIngestedEvent extends IntegrationEvent {
     private final Instant completedAt;
     private final String eventVersion;
     
+    @JsonCreator
     public BatchIngestedEvent(
-            String batchId,
-            String bankId, 
-            String s3Uri,
-            int totalExposures,
-            long fileSizeBytes,
-            Instant completedAt) {
+            @JsonProperty("batchId") String batchId,
+            @JsonProperty("bankId") String bankId, 
+            @JsonProperty("s3Uri") String s3Uri,
+            @JsonProperty("totalExposures") int totalExposures,
+            @JsonProperty("fileSizeBytes") long fileSizeBytes,
+            @JsonProperty("completedAt") Instant completedAt) {
         super(batchId, Maybe.none(), "BatchIngestedEvent");
         this.batchId = batchId;
         this.bankId = bankId;

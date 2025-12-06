@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.dataquality.domain.quality;
 
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * Value object representing complete quality assessment results including
@@ -9,6 +10,7 @@ import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
  * <p>This value object includes static factory methods to calculate scores from validation results.
  * This is proper DDD - the value object knows how to create itself from domain rules.</p>
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record QualityScores(
     double completenessScore,
     double accuracyScore,
