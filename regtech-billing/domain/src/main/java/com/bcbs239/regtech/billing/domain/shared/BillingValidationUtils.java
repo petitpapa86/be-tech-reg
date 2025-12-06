@@ -1,10 +1,11 @@
-package com.bcbs239.regtech.billing.domain.shared.validation;
+package com.bcbs239.regtech.billing.infrastructure.validation;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.Currency;
@@ -15,9 +16,16 @@ import java.util.regex.Pattern;
  * Utility class for billing-specific validation operations.
  * Provides validation methods for payment amounts, currencies, Stripe data, and webhook payloads.
  */
+@Component
 public class BillingValidationUtils {
 
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper;
+    
+    static {
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
 
     // Supported currencies for billing operations
     private static final Set<String> SUPPORTED_CURRENCIES = Set.of("EUR", "USD", "GBP");
@@ -44,7 +52,7 @@ public class BillingValidationUtils {
             "customer.subscription.deleted",
             "payment_intent.succeeded",
             "payment_intent.payment_failed",
-            "customer.updated",
+            "cstomer.updated",
             "customer.deleted",
             "charge.refunded",
             "customer.created"
@@ -73,7 +81,9 @@ public class BillingValidationUtils {
 
         // Check for reasonable decimal places (max 4 for internal calculations, 2 for display)
         if (amount.scale() > 4) {
-            return Result.failure(ErrorDetail.of("PAYMENT_AMOUNT_TOO_PRECISE", ErrorType.BUSINESS_RULE_ERROR, "Payment amount cannot have more than 4 decimal places", "validation.payment.amount.too.precise"));
+            return Result.failure(ErrorDetail.of("PAYMENT_AMOUNT_TOO_PRECISE", ErrorType.BUSINESS_RULE_ERROR,
+                    "Payment amount cannot have more than 4 decimal places",
+                    "validation.payment.amount.too.precise"));
         }
 
         return Result.success(null);
@@ -297,7 +307,9 @@ public class BillingValidationUtils {
 
         String sanitized = sanitizeStringInput(correlationId);
         if (sanitized.length() < 3 || sanitized.length() > 100) {
-            return Result.failure(ErrorDetail.of("CORRELATION_ID_INVALID_LENGTH", ErrorType.BUSINESS_RULE_ERROR, "Correlation ID must be between 3 and 100 characters", "validation.correlation.id.invalid.length"));
+            return Result.failure(ErrorDetail.of("CORRELATION_ID_INVALID_LENGTH", ErrorType.BUSINESS_RULE_ERROR,
+                    "Correlation ID must be between 3 and 100 characters",
+                    "validation.correlation.id.invalid.length"));
         }
 
         return Result.success(null);
@@ -314,12 +326,12 @@ public class BillingValidationUtils {
 
         String sanitized = sanitizeStringInput(billingAccountId);
         if (sanitized.length() < 3 || sanitized.length() > 50) {
-            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_ID_INVALID_LENGTH", ErrorType.BUSINESS_RULE_ERROR, "Billing account ID must be between 3 and 50 characters", "validation.billing.account.id.invalid.length"));
+            return Result.failure(ErrorDetail.of("BILLING_ACCOUNT_ID_INVALID_LENGTH", ErrorType.BUSINESS_RULE_ERROR,
+                    "Billing account ID must be between 3 and 50 characters",
+                    "validation.billing.account.id.invalid.length"));
         }
 
         return Result.success(null);
     }
 }
-
-
 
