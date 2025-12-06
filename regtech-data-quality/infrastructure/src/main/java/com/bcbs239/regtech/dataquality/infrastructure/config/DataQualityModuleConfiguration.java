@@ -27,7 +27,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EntityScan(basePackages = {
         "com.bcbs239.regtech.dataquality.rulesengine.domain",
         "com.bcbs239.regtech.dataquality.domain",
-        "com.bcbs239.regtech.dataquality.infrastructure.reporting"
+        "com.bcbs239.regtech.dataquality.infrastructure.reporting",
+        "com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities"
 })
 @EnableJpaRepositories(basePackages = "com.bcbs239.regtech.dataquality.infrastructure")
 public class DataQualityModuleConfiguration {
