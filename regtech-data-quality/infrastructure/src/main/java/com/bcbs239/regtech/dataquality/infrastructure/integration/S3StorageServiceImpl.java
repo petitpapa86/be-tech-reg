@@ -43,6 +43,7 @@ import java.util.concurrent.Executors;
  * and storing detailed validation results with streaming support and encryption.
  */
 @Service
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "data-quality.storage.type", havingValue = "s3", matchIfMissing = false)
 public class S3StorageServiceImpl implements S3StorageService {
     
     private static final Logger logger = LoggerFactory.getLogger(S3StorageServiceImpl.class);

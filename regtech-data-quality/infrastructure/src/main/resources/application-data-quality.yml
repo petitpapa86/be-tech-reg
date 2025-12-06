@@ -22,8 +22,8 @@ data-quality:
   # Supports both S3 and local filesystem storage for quality reports
   storage:
     # Storage type: 's3' for AWS S3, 'local' for filesystem
-    # Default: s3 (recommended for production)
-    type: s3
+    # Default: local (for development), s3 (for production)
+    type: local
     
     # S3 storage configuration
     # Used when storage.type=s3
