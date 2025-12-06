@@ -40,8 +40,12 @@
 		<lombok.version>1.18.40</lombok.version>
 		<testcontainers.version>1.20.4</testcontainers.version>
 		
+		<!-- Security updates for CVEs -->
+		<commons-io.version>2.17.0</commons-io.version>
+		<commons-compress.version>1.27.1</commons-compress.version>
+		
 		<!-- Other dependencies -->
-		<poi.version>5.2.4</poi.version>
+		<poi.version>5.3.0</poi.version>
 		<jspecify.version>1.0.0</jspecify.version>
 	</properties>
 	
@@ -100,12 +104,26 @@
 				<version>${jspecify.version}</version>
 			</dependency>
 			
+			<!-- Apache Commons IO (security update) -->
+			<dependency>
+				<groupId>commons-io</groupId>
+				<artifactId>commons-io</artifactId>
+				<version>${commons-io.version}</version>
+			</dependency>
+			
+			<!-- Apache Commons Compress (security update) -->
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-compress</artifactId>
+				<version>${commons-compress.version}</version>
+			</dependency>
+			
 			<!-- Spring Retry -->
 <!--			<dependency>-->
 <!--				<groupId>org.springframework.retry</groupId>-->
 <!--				<artifactId>spring-retry</artifactId>-->
 <!--				<version>3.0.0</version>-->
-<!--			</dependency>-->
+<!--			</dependency-->
 		</dependencies>
 	</dependencyManagement>
 

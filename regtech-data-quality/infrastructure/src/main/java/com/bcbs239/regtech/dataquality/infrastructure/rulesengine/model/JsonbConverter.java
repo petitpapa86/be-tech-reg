@@ -15,7 +15,13 @@ import java.util.Map;
 @Converter
 public class JsonbConverter implements AttributeConverter<Map<String, Object>, String> {
     
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper;
+    
+    static {
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
     
     @Override
     public String convertToDatabaseColumn(Map<String, Object> attribute) {

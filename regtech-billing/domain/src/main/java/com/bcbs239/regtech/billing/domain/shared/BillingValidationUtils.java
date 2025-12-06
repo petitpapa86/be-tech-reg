@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.billing.infrastructure.validation;
+package com.bcbs239.regtech.billing.domain.shared;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;

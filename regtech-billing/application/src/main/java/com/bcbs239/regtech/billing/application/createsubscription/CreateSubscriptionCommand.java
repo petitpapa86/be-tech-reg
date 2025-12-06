@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.application.createsubscription;
 
-import com.bcbs239.regtech.billing.domain.shared.validation.BillingValidationUtils;
+import com.bcbs239.regtech.billing.domain.shared.BillingValidationUtils;
 import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;

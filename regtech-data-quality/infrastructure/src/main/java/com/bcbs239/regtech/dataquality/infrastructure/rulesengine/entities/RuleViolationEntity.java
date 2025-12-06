@@ -1,26 +1,23 @@
-package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.model;
+package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities;
 
+import com.bcbs239.regtech.dataquality.rulesengine.domain.ResolutionStatus;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.Severity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.Map;
 
-/**
- * Rule Violation entity representing detected violations of business rules.
- * 
- * <p>Violations are created when rule execution detects non-compliance.
- * They track resolution status and maintain an audit trail.</p>
- */
 @Entity
-@Table(name = "rule_violations")
+@Table(name = "rule_violations", schema = "dataquality")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RuleViolation {
-    
+public class RuleViolationEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "violation_id")
@@ -53,7 +50,7 @@ public class RuleViolation {
     private Instant detectedAt = Instant.now();
     
     @Column(name = "violation_details", columnDefinition = "JSONB")
-    @Convert(converter = JsonbConverter.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     private Map<String, Object> violationDetails;
     
     @Enumerated(EnumType.STRING)
@@ -70,12 +67,6 @@ public class RuleViolation {
     @Column(name = "resolution_notes", columnDefinition = "TEXT")
     private String resolutionNotes;
     
-    /**
-     * Marks the violation as resolved.
-     * 
-     * @param resolvedBy The user who resolved the violation
-     * @param notes Resolution notes
-     */
     public void resolve(String resolvedBy, String notes) {
         this.resolutionStatus = ResolutionStatus.RESOLVED;
         this.resolvedAt = Instant.now();
@@ -83,12 +74,6 @@ public class RuleViolation {
         this.resolutionNotes = notes;
     }
     
-    /**
-     * Marks the violation as waived.
-     * 
-     * @param waivedBy The user who waived the violation
-     * @param reason Waiver reason
-     */
     public void waive(String waivedBy, String reason) {
         this.resolutionStatus = ResolutionStatus.WAIVED;
         this.resolvedAt = Instant.now();
@@ -96,13 +81,7 @@ public class RuleViolation {
         this.resolutionNotes = reason;
     }
     
-    /**
-     * Checks if the violation is still open.
-     * 
-     * @return true if the violation is open or in progress
-     */
     public boolean isOpen() {
-        return resolutionStatus == ResolutionStatus.OPEN || 
-               resolutionStatus == ResolutionStatus.IN_PROGRESS;
+        return resolutionStatus == ResolutionStatus.OPEN || resolutionStatus == ResolutionStatus.IN_PROGRESS;
     }
 }

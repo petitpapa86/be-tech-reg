@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.core.infrastructure.persistence;
 
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -26,5 +27,10 @@ public class JacksonConfiguration {
         mapper.registerModule(new MaybeJacksonModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         return mapper;
+    }
+
+    @Bean
+    public JsonFactory jsonFactory() {
+        return new JsonFactory();
     }
 }

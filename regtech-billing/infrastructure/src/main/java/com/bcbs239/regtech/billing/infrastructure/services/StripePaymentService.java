@@ -25,12 +25,13 @@ import java.util.Currency;
 public class StripePaymentService implements PaymentService {
     
     private final StripeService stripeService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
-    public StripePaymentService(StripeService stripeService) {
+    public StripePaymentService(StripeService stripeService, ObjectMapper objectMapper) {
         this.stripeService = stripeService;
+        this.objectMapper = objectMapper;
     }
-    
+
     @Override
     public Result<CustomerCreationResult> createCustomer(CustomerCreationRequest request) {
         try {

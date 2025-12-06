@@ -1,85 +1,114 @@
 package com.bcbs239.regtech.dataquality.rulesengine.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-
 import java.time.Instant;
 import java.util.Map;
 
-@Entity
-@Table(name = "rule_violations", schema = "dataquality")
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class RuleViolation {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "violation_id")
-    private Long violationId;
-    
-    @Column(name = "rule_id", nullable = false, length = 100)
-    private String ruleId;
-    
-    @Column(name = "execution_id", nullable = false)
-    private Long executionId;
-    
-    @Column(name = "entity_type", nullable = false, length = 50)
-    private String entityType;
-    
-    @Column(name = "entity_id", nullable = false, length = 100)
-    private String entityId;
-    
-    @Column(name = "violation_type", nullable = false, length = 100)
-    private String violationType;
-    
-    @Column(name = "violation_description", nullable = false, columnDefinition = "TEXT")
-    private String violationDescription;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private Severity severity;
-    
-    @Column(name = "detected_at", nullable = false)
-    @Builder.Default
-    private Instant detectedAt = Instant.now();
-    
-    @Column(name = "violation_details", columnDefinition = "JSONB")
-    @JdbcTypeCode(SqlTypes.JSON)
-    private Map<String, Object> violationDetails;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(name = "resolution_status", length = 20)
-    @Builder.Default
-    private ResolutionStatus resolutionStatus = ResolutionStatus.OPEN;
-    
-    @Column(name = "resolved_at")
-    private Instant resolvedAt;
-    
-    @Column(name = "resolved_by", length = 100)
-    private String resolvedBy;
-    
-    @Column(name = "resolution_notes", columnDefinition = "TEXT")
-    private String resolutionNotes;
-    
-    public void resolve(String resolvedBy, String notes) {
-        this.resolutionStatus = ResolutionStatus.RESOLVED;
-        this.resolvedAt = Instant.now();
-        this.resolvedBy = resolvedBy;
-        this.resolutionNotes = notes;
+/**
+ * Domain model representing a rule violation (not a JPA entity).
+ * This is a pure domain object used by the rules engine.
+ */
+public record RuleViolation(
+    String ruleId,
+    Long executionId,
+    String entityType,
+    String entityId,
+    String violationType,
+    String violationDescription,
+    Severity severity,
+    Instant detectedAt,
+    Map<String, Object> violationDetails,
+    ResolutionStatus resolutionStatus
+) {
+    public RuleViolation {
+        if (ruleId == null) throw new IllegalArgumentException("ruleId cannot be null");
+        if (entityType == null) throw new IllegalArgumentException("entityType cannot be null");
+        if (entityId == null) throw new IllegalArgumentException("entityId cannot be null");
+        if (violationType == null) throw new IllegalArgumentException("violationType cannot be null");
+        if (violationDescription == null) throw new IllegalArgumentException("violationDescription cannot be null");
+        if (severity == null) throw new IllegalArgumentException("severity cannot be null");
+        if (detectedAt == null) detectedAt = Instant.now();
+        if (resolutionStatus == null) resolutionStatus = ResolutionStatus.OPEN;
     }
     
-    public void waive(String waivedBy, String reason) {
-        this.resolutionStatus = ResolutionStatus.WAIVED;
-        this.resolvedAt = Instant.now();
-        this.resolvedBy = waivedBy;
-        this.resolutionNotes = reason;
+    public static Builder builder() {
+        return new Builder();
     }
     
-    public boolean isOpen() {
-        return resolutionStatus == ResolutionStatus.OPEN || resolutionStatus == ResolutionStatus.IN_PROGRESS;
+    public static class Builder {
+        private String ruleId;
+        private Long executionId;
+        private String entityType;
+        private String entityId;
+        private String violationType;
+        private String violationDescription;
+        private Severity severity;
+        private Instant detectedAt = Instant.now();
+        private Map<String, Object> violationDetails;
+        private ResolutionStatus resolutionStatus = ResolutionStatus.OPEN;
+        
+        public Builder ruleId(String ruleId) {
+            this.ruleId = ruleId;
+            return this;
+        }
+        
+        public Builder executionId(Long executionId) {
+            this.executionId = executionId;
+            return this;
+        }
+        
+        public Builder entityType(String entityType) {
+            this.entityType = entityType;
+            return this;
+        }
+        
+        public Builder entityId(String entityId) {
+            this.entityId = entityId;
+            return this;
+        }
+        
+        public Builder violationType(String violationType) {
+            this.violationType = violationType;
+            return this;
+        }
+        
+        public Builder violationDescription(String violationDescription) {
+            this.violationDescription = violationDescription;
+            return this;
+        }
+        
+        public Builder severity(Severity severity) {
+            this.severity = severity;
+            return this;
+        }
+        
+        public Builder detectedAt(Instant detectedAt) {
+            this.detectedAt = detectedAt;
+            return this;
+        }
+        
+        public Builder violationDetails(Map<String, Object> violationDetails) {
+            this.violationDetails = violationDetails;
+            return this;
+        }
+        
+        public Builder resolutionStatus(ResolutionStatus resolutionStatus) {
+            this.resolutionStatus = resolutionStatus;
+            return this;
+        }
+        
+        public RuleViolation build() {
+            return new RuleViolation(
+                ruleId,
+                executionId,
+                entityType,
+                entityId,
+                violationType,
+                violationDescription,
+                severity,
+                detectedAt,
+                violationDetails,
+                resolutionStatus
+            );
+        }
     }
 }

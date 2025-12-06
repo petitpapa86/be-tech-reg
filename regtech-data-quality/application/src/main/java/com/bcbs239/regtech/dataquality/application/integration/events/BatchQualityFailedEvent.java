@@ -3,6 +3,8 @@ package com.bcbs239.regtech.dataquality.application.integration.events;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -23,12 +25,13 @@ public class BatchQualityFailedEvent extends com.bcbs239.regtech.core.domain.eve
     private final Map<String, Object> processingMetadata;
     private final Instant timestamp;
 
+    @JsonCreator
     public BatchQualityFailedEvent(
-            BatchId batchId,
-            BankId bankId,
-            String errorMessage,
-            Map<String, Object> errorDetails,
-            Map<String, Object> processingMetadata
+            @JsonProperty("batchId") BatchId batchId,
+            @JsonProperty("bankId") BankId bankId,
+            @JsonProperty("errorMessage") String errorMessage,
+            @JsonProperty("errorDetails") Map<String, Object> errorDetails,
+            @JsonProperty("processingMetadata") Map<String, Object> processingMetadata
     ) {
         super(batchId.value(), Maybe.none(), EVENT_TYPE);
         this.batchId = batchId;

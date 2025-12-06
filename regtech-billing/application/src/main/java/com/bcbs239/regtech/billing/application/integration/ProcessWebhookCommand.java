@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.billing.application.integration;
 
-import com.bcbs239.regtech.billing.domain.shared.validation.BillingValidationUtils;
+import com.bcbs239.regtech.billing.domain.shared.BillingValidationUtils;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;

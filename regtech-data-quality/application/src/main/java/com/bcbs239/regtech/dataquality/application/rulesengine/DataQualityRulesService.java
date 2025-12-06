@@ -3,15 +3,12 @@ package com.bcbs239.regtech.dataquality.application.rulesengine;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
+
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
-import com.bcbs239.regtech.dataquality.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExecutionLogRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExemptionRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -38,13 +35,14 @@ import java.util.*;
  * not as a @Service, to allow conditional creation based on rules-engine.enabled property.</p>
  */
 @Slf4j
+@Service
 public class DataQualityRulesService {
     
     private final RulesEngine rulesEngine;
-    private final BusinessRuleRepository ruleRepository;
-    private final RuleViolationRepository violationRepository;
-    private final RuleExecutionLogRepository executionLogRepository;
-    private final RuleExemptionRepository exemptionRepository;
+    private final IBusinessRuleRepository ruleRepository;
+    private final IRuleViolationRepository violationRepository;
+    private final IRuleExecutionLogRepository executionLogRepository;
+    private final IRuleExemptionRepository exemptionRepository;
     
     // Configuration thresholds - using default values that can be overridden
     private final int warnThresholdMs;
@@ -59,10 +57,10 @@ public class DataQualityRulesService {
      */
     public DataQualityRulesService(
             RulesEngine rulesEngine,
-            BusinessRuleRepository ruleRepository,
-            RuleViolationRepository violationRepository,
-            RuleExecutionLogRepository executionLogRepository,
-            RuleExemptionRepository exemptionRepository) {
+            IBusinessRuleRepository ruleRepository,
+            IRuleViolationRepository violationRepository,
+            IRuleExecutionLogRepository executionLogRepository,
+            IRuleExemptionRepository exemptionRepository) {
         this(rulesEngine, ruleRepository, violationRepository, executionLogRepository, 
              exemptionRepository, 100, 5000, true, true, true);
     }
@@ -84,10 +82,10 @@ public class DataQualityRulesService {
      */
     public DataQualityRulesService(
             RulesEngine rulesEngine,
-            BusinessRuleRepository ruleRepository,
-            RuleViolationRepository violationRepository,
-            RuleExecutionLogRepository executionLogRepository,
-            RuleExemptionRepository exemptionRepository,
+            IBusinessRuleRepository ruleRepository,
+            IRuleViolationRepository violationRepository,
+            IRuleExecutionLogRepository executionLogRepository,
+            IRuleExemptionRepository exemptionRepository,
             int warnThresholdMs,
             int maxExecutionTimeMs,
             boolean logExecutions,
@@ -130,7 +128,7 @@ public class DataQualityRulesService {
         long validationStartTime = System.currentTimeMillis();
         
         // Get all active rules (all enabled rules, not just DATA_QUALITY type)
-        List<BusinessRule> rules = ruleRepository.findByEnabledTrue();
+        List<BusinessRuleDto> rules = ruleRepository.findByEnabledTrue();
         
         if (rules.isEmpty()) {
             log.debug("No configurable rules found, skipping validation for exposure {}", 
@@ -158,9 +156,9 @@ public class DataQualityRulesService {
         String slowestRuleId = null;
         
         // Execute each rule
-        for (BusinessRule rule : rules) {
+        for (BusinessRuleDto rule : rules) {
             if (!rule.isApplicableOn(LocalDate.now())) {
-                log.debug("Rule {} not applicable on current date, skipping", rule.getRuleId());
+                log.debug("Rule {} not applicable on current date, skipping", rule.ruleId());
                 rulesSkipped++;
                 continue;
             }
@@ -170,7 +168,7 @@ public class DataQualityRulesService {
             String errorMessage = null;
             
             try {
-                result = rulesEngine.executeRule(rule.getRuleId(), context);
+                result = rulesEngine.executeRule(rule.ruleId(), context);
                 rulesExecuted++;
                 
                 long ruleExecutionTime = System.currentTimeMillis() - ruleStartTime;
@@ -179,19 +177,19 @@ public class DataQualityRulesService {
                 // Track slowest rule
                 if (ruleExecutionTime > slowestRuleTime) {
                     slowestRuleTime = ruleExecutionTime;
-                    slowestRuleId = rule.getRuleId();
+                    slowestRuleId = rule.ruleId();
                 }
                 
                 // Requirement 6.5: Emit warnings for slow rule execution
                 if (ruleExecutionTime > warnThresholdMs) {
                     log.warn("Slow rule execution detected: rule={}, exposureId={}, executionTime={}ms, threshold={}ms", 
-                        rule.getRuleId(), exposure.exposureId(), ruleExecutionTime, warnThresholdMs);
+                        rule.ruleId(), exposure.exposureId(), ruleExecutionTime, warnThresholdMs);
                 }
                 
                 // Requirement 6.1: Log individual rule execution
                 if (logExecutions) {
                     log.debug("Rule {} executed for exposure {} in {}ms - result: {}", 
-                        rule.getRuleId(), exposure.exposureId(), ruleExecutionTime, 
+                        rule.ruleId(), exposure.exposureId(), ruleExecutionTime, 
                         result.isSuccess() ? "SUCCESS" : "FAILURE");
                 }
                 
@@ -201,14 +199,14 @@ public class DataQualityRulesService {
                     String entityId = (String) context.get("entity_id");
                     
                     boolean hasActiveExemption = checkExemption(
-                        rule.getRuleId(), 
+                        rule.ruleId(), 
                         entityType, 
                         entityId
                     );
                     
                     if (hasActiveExemption) {
                         log.debug("Active exemption found for rule {} and entity {}/{}. Skipping violation reporting.", 
-                            rule.getRuleId(), entityType, entityId);
+                            rule.ruleId(), entityType, entityId);
                         // Don't report violations for exempted entities
                         continue;
                     }
@@ -220,7 +218,7 @@ public class DataQualityRulesService {
                     // Requirement 6.2: Log violation details with exposure ID
                     if (logViolations) {
                         log.info("Rule {} violated for exposure {}: {} violation(s) detected", 
-                            rule.getRuleId(), exposure.exposureId(), violationCount);
+                            rule.ruleId(), exposure.exposureId(), violationCount);
                     }
                     
                     // Convert rule violations to ValidationErrors
@@ -231,11 +229,11 @@ public class DataQualityRulesService {
                         // Requirement 6.2: Log detailed violation information
                         if (logViolations) {
                             log.debug("Violation details: ruleCode={}, exposureId={}, severity={}, type={}, description={}", 
-                                rule.getRuleCode(), 
+                                rule.ruleCode(),
                                 exposure.exposureId(), 
-                                violation.getSeverity(), 
-                                violation.getViolationType(), 
-                                violation.getViolationDescription());
+                                violation.severity(),
+                                violation.violationType(),
+                                violation.violationDescription());
                         }
                         
                         // Convert to ValidationError
@@ -249,12 +247,12 @@ public class DataQualityRulesService {
                 
                 // Requirement 6.3: Log errors with rule code and context
                 log.error("Error executing rule {} for exposure {}: {} - Context: entityType={}, ruleType={}, severity={}", 
-                    rule.getRuleId(), 
+                    rule.ruleId(), 
                     exposure.exposureId(), 
                     e.getMessage(), 
                     context.get("entity_type"),
-                    rule.getRuleType(),
-                    rule.getSeverity(),
+                    rule.ruleType(),
+                    rule.severity(),
                     e);
                 
                 errorMessage = e.getMessage();
@@ -262,7 +260,7 @@ public class DataQualityRulesService {
                 long executionTime = System.currentTimeMillis() - ruleStartTime;
                 
                 // Persist execution log
-                RuleExecutionLog executionLog = createExecutionLog(
+                RuleExecutionLogDto executionLog = createExecutionLog(
                     rule, 
                     exposure, 
                     result, 
@@ -347,8 +345,8 @@ public class DataQualityRulesService {
         
         return ruleRepository.findByRuleCode(ruleCode)
             .flatMap(rule -> {
-                return rule.getParameters().stream()
-                    .filter(p -> p.getParameterName().equals(parameterName))
+                return rule.parameters().stream()
+                    .filter(p -> p.parameterName().equals(parameterName))
                     .findFirst()
                     .map(p -> p.getTypedValue(type));
             });
@@ -377,11 +375,11 @@ public class DataQualityRulesService {
     public Optional<List<String>> getConfigurableList(String ruleCode, String listName) {
         return ruleRepository.findByRuleCode(ruleCode)
             .flatMap(rule -> {
-                return rule.getParameters().stream()
-                    .filter(p -> p.getParameterName().equals(listName))
-                    .filter(p -> p.getParameterType() == ParameterType.LIST)
+                return rule.parameters().stream()
+                    .filter(p -> p.parameterName().equals(listName))
+                    .filter(p -> p.parameterType() == ParameterType.LIST)
                     .findFirst()
-                    .map(p -> Arrays.asList(p.getParameterValue().split(",")));
+                    .map(p -> Arrays.asList(p.parameterValue().split(",")));
             });
     }
     
@@ -393,7 +391,7 @@ public class DataQualityRulesService {
      */
     public boolean hasActiveRule(String ruleCode) {
         return ruleRepository.findByRuleCode(ruleCode)
-            .map(BusinessRule::isActive)
+            .map(BusinessRuleDto::isActive)
             .orElse(false);
     }
     
@@ -454,17 +452,17 @@ public class DataQualityRulesService {
      * @param rule The business rule that was violated
      * @return ValidationError for use in validation pipeline
      */
-    private ValidationError convertToValidationError(RuleViolation violation, BusinessRule rule) {
-        QualityDimension dimension = mapToQualityDimension(rule.getRuleType());
-        ValidationError.ErrorSeverity severity = mapToValidationSeverity(violation.getSeverity());
-        String fieldName = extractFieldFromDetails(violation.getViolationDetails());
+    private ValidationError convertToValidationError(RuleViolation violation, BusinessRuleDto rule) {
+        QualityDimension dimension = mapToQualityDimension(rule.ruleType());
+        ValidationError.ErrorSeverity severity = mapToValidationSeverity(violation.severity());
+        String fieldName = extractFieldFromDetails(violation.violationDetails());
         
         return new ValidationError(
-            violation.getViolationType(),
-            violation.getViolationDescription(),
+            violation.violationType(),
+            violation.violationDescription(),
             fieldName,
             dimension,
-            violation.getEntityId(),
+            violation.entityId(),
             severity
         );
     }
@@ -497,6 +495,13 @@ public class DataQualityRulesService {
     }
     
     /**
+     * Gets the rule type from the business rule DTO.
+     */
+    private RuleType getRuleType(BusinessRuleDto rule) {
+        return rule.ruleType();
+    }
+    
+    /**
      * Maps Rules Engine Severity to ValidationError ErrorSeverity.
      * 
      * @param severity The severity from the rule violation
@@ -517,17 +522,17 @@ public class DataQualityRulesService {
     }
     
     /**
-     * Creates a RuleExecutionLog entry for persistence.
+     * Creates a RuleExecutionLogDto entry for persistence.
      * 
      * @param rule The business rule that was executed
      * @param exposure The exposure record that was validated
      * @param result The execution result (may be null if exception occurred)
      * @param executionTimeMs The execution time in milliseconds
      * @param errorMessage The error message if execution failed
-     * @return RuleExecutionLog ready for persistence
+     * @return RuleExecutionLogDto ready for persistence
      */
-    private RuleExecutionLog createExecutionLog(
-            BusinessRule rule,
+    private RuleExecutionLogDto createExecutionLog(
+            BusinessRuleDto rule,
             ExposureRecord exposure,
             RuleExecutionResult result,
             long executionTimeMs,
@@ -547,8 +552,8 @@ public class DataQualityRulesService {
             executionResult = ExecutionResult.SUCCESS;
         }
         
-        return RuleExecutionLog.builder()
-            .ruleId(rule.getRuleId())
+        return RuleExecutionLogDto.builder()
+            .ruleId(rule.ruleId())
             .executionTimestamp(Instant.now())
             .entityType("EXPOSURE")
             .entityId(exposure.exposureId())
@@ -606,7 +611,7 @@ public class DataQualityRulesService {
             LocalDate currentDate = LocalDate.now();
             
             // Find active exemptions for this rule and entity
-            List<RuleExemption> activeExemptions = exemptionRepository.findActiveExemptions(
+            List<RuleExemptionDto> activeExemptions = exemptionRepository.findActiveExemptions(
                 ruleId, 
                 entityType, 
                 entityId, 
@@ -615,18 +620,18 @@ public class DataQualityRulesService {
             
             if (!activeExemptions.isEmpty()) {
                 // Log exemption details for audit trail
-                for (RuleExemption exemption : activeExemptions) {
+                for (RuleExemptionDto exemption : activeExemptions) {
                     log.info("Active exemption found: exemptionId={}, ruleId={}, entityType={}, entityId={}, " +
                             "exemptionType={}, effectiveDate={}, expirationDate={}, approvedBy={}, reason={}", 
-                        exemption.getExemptionId(),
+                        exemption.exemptionId(),
                         ruleId,
                         entityType,
                         entityId,
-                        exemption.getExemptionType(),
-                        exemption.getEffectiveDate(),
-                        exemption.getExpirationDate(),
-                        exemption.getApprovedBy(),
-                        exemption.getExemptionReason()
+                        exemption.exemptionType(),
+                        exemption.effectiveDate(),
+                        exemption.expirationDate(),
+                        exemption.approvedBy(),
+                        exemption.exemptionReason()
                     );
                 }
                 return true;

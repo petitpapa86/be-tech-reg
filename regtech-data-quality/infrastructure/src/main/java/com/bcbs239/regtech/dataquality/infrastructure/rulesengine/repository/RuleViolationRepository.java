@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository;
 
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.ResolutionStatus;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.Severity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,12 +12,10 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Repository interface for RuleViolation entity operations.
- * Extends both JpaRepository for Spring Data operations and the domain repository interface.
+ * Repository interface for RuleViolationEntity operations.
  */
 @Repository
-public interface RuleViolationRepository extends JpaRepository<RuleViolation, Long>, 
-        com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository {
+public interface RuleViolationRepository extends JpaRepository<RuleViolationEntity, Long> {
     
     /**
      * Finds all violations for a specific rule.
@@ -25,7 +23,7 @@ public interface RuleViolationRepository extends JpaRepository<RuleViolation, Lo
      * @param ruleId The rule ID
      * @return List of violations
      */
-    List<RuleViolation> findByRuleIdOrderByDetectedAtDesc(String ruleId);
+    List<RuleViolationEntity> findByRuleIdOrderByDetectedAtDesc(String ruleId);
     
     /**
      * Finds all violations for a specific entity.
@@ -34,7 +32,7 @@ public interface RuleViolationRepository extends JpaRepository<RuleViolation, Lo
      * @param entityId The entity ID
      * @return List of violations
      */
-    List<RuleViolation> findByEntityTypeAndEntityIdOrderByDetectedAtDesc(
+    List<RuleViolationEntity> findByEntityTypeAndEntityIdOrderByDetectedAtDesc(
         String entityType, String entityId);
     
     /**
@@ -42,7 +40,7 @@ public interface RuleViolationRepository extends JpaRepository<RuleViolation, Lo
      * 
      * @return List of open violations
      */
-    List<RuleViolation> findByResolutionStatusOrderByDetectedAtDesc(ResolutionStatus status);
+    List<RuleViolationEntity> findByResolutionStatusOrderByDetectedAtDesc(ResolutionStatus status);
     
     /**
      * Finds violations by severity.
@@ -50,7 +48,7 @@ public interface RuleViolationRepository extends JpaRepository<RuleViolation, Lo
      * @param severity The severity level
      * @return List of violations
      */
-    List<RuleViolation> findBySeverityOrderByDetectedAtDesc(Severity severity);
+    List<RuleViolationEntity> findBySeverityOrderByDetectedAtDesc(Severity severity);
     
     /**
      * Finds open violations for a specific rule.
@@ -58,10 +56,10 @@ public interface RuleViolationRepository extends JpaRepository<RuleViolation, Lo
      * @param ruleId The rule ID
      * @return List of open violations
      */
-    @Query("SELECT v FROM RuleViolation v WHERE v.ruleId = :ruleId " +
+    @Query("SELECT v FROM RuleViolationEntity v WHERE v.ruleId = :ruleId " +
            "AND v.resolutionStatus IN ('OPEN', 'IN_PROGRESS') " +
            "ORDER BY v.detectedAt DESC")
-    List<RuleViolation> findOpenViolationsByRule(@Param("ruleId") String ruleId);
+    List<RuleViolationEntity> findOpenViolationsByRule(@Param("ruleId") String ruleId);
     
     /**
      * Counts open violations by severity.
@@ -69,7 +67,7 @@ public interface RuleViolationRepository extends JpaRepository<RuleViolation, Lo
      * @param severity The severity level
      * @return Number of open violations
      */
-    @Query("SELECT COUNT(v) FROM RuleViolation v WHERE v.severity = :severity " +
+    @Query("SELECT COUNT(v) FROM RuleViolationEntity v WHERE v.severity = :severity " +
            "AND v.resolutionStatus IN ('OPEN', 'IN_PROGRESS')")
     long countOpenViolationsBySeverity(@Param("severity") Severity severity);
     
@@ -80,6 +78,6 @@ public interface RuleViolationRepository extends JpaRepository<RuleViolation, Lo
      * @param endTime End of time range
      * @return List of violations
      */
-    List<RuleViolation> findByDetectedAtBetweenOrderByDetectedAtDesc(
+    List<RuleViolationEntity> findByDetectedAtBetweenOrderByDetectedAtDesc(
         Instant startTime, Instant endTime);
 }

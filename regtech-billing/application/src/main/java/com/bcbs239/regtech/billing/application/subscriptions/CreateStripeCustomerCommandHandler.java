@@ -40,7 +40,13 @@ public class CreateStripeCustomerCommandHandler {
     private final SagaManager sagaManager;
     private final ISagaRepository sagaRepository;
     private final BillingAccountRepository billingAccountRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+    
+    {
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+    }
 
     @SuppressWarnings("unused")
     public CreateStripeCustomerCommandHandler(

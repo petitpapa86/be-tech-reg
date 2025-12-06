@@ -1,5 +1,9 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine;
 
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExecutionLogEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleParameterEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository;
@@ -60,10 +64,10 @@ public class DefaultRulesEngine implements RulesEngine {
      * Cached rule wrapper that includes the rule and its load timestamp.
      */
     private static class CachedRule {
-        final BusinessRule rule;
+        final BusinessRuleEntity rule;
         final Instant loadedAt;
         
-        CachedRule(BusinessRule rule, Instant loadedAt) {
+        CachedRule(BusinessRuleEntity rule, Instant loadedAt) {
             this.rule = rule;
             this.loadedAt = loadedAt;
         }
@@ -104,7 +108,7 @@ public class DefaultRulesEngine implements RulesEngine {
         
         try {
             // Load the rule (from cache if enabled and valid, otherwise from database)
-            BusinessRule rule = loadRule(ruleId);
+            BusinessRuleEntity rule = loadRule(ruleId);
             
             // Check if rule is active
             if (!rule.isActive()) {
@@ -132,16 +136,19 @@ public class DefaultRulesEngine implements RulesEngine {
                 return RuleExecutionResult.success(ruleId);
             } else {
                 // Rule failed - log execution first to get execution ID
-                RuleExecutionLog execLog = logExecution(rule, context, ExecutionResult.FAILURE, 
+                RuleExecutionLogEntity execLog = logExecution(rule, context, ExecutionResult.FAILURE,
                     1, executionTime, null);
                 
                 // Create violation with execution ID
-                RuleViolation violation = createViolation(rule, context);
+                RuleViolationEntity violation = createViolation(rule, context);
                 violation.setExecutionId(execLog.getExecutionId());
-                List<RuleViolation> violations = List.of(violation);
                 
-                // Save violation (cast to avoid ambiguity)
-                ((com.bcbs239.regtech.dataquality.rulesengine.repository.RuleViolationRepository) violationRepository).save(violation);
+                // Save violation
+                violationRepository.save(violation);
+                
+                // Convert to domain violation for result
+                RuleViolation domainViolation = toDomainViolation(violation);
+                List<RuleViolation> violations = List.of(domainViolation);
                 
                 return RuleExecutionResult.failure(ruleId, violations);
             }
@@ -151,7 +158,7 @@ public class DefaultRulesEngine implements RulesEngine {
             log.error("Expression evaluation failed for rule {}: {}", ruleId, e.getMessage());
             
             // Log error
-            BusinessRule rule = ruleRepository.findById(ruleId).orElse(null);
+            BusinessRuleEntity rule = ruleRepository.findById(ruleId).orElse(null);
             if (rule != null) {
                 logExecution(rule, context, ExecutionResult.ERROR, 0, executionTime, e.getMessage());
             }
@@ -163,7 +170,7 @@ public class DefaultRulesEngine implements RulesEngine {
             log.error("Unexpected error executing rule {}: {}", ruleId, e.getMessage(), e);
             
             // Log error
-            BusinessRule rule = ruleRepository.findById(ruleId).orElse(null);
+            BusinessRuleEntity rule = ruleRepository.findById(ruleId).orElse(null);
             if (rule != null) {
                 logExecution(rule, context, ExecutionResult.ERROR, 0, executionTime, e.getMessage());
             }
@@ -193,10 +200,10 @@ public class DefaultRulesEngine implements RulesEngine {
     public List<RuleExecutionResult> executeRulesByType(String ruleType, RuleContext context) {
         try {
             RuleType type = RuleType.valueOf(ruleType.toUpperCase());
-            List<BusinessRule> rules = ruleRepository.findActiveRulesByType(type, LocalDate.now());
+            List<BusinessRuleEntity> rules = ruleRepository.findActiveRulesByType(type, LocalDate.now());
             
             List<String> ruleIds = rules.stream()
-                .map(BusinessRule::getRuleId)
+                .map(BusinessRuleEntity::getRuleId)
                 .collect(Collectors.toList());
             
             return executeRules(ruleIds, context);
@@ -209,10 +216,10 @@ public class DefaultRulesEngine implements RulesEngine {
     
     @Override
     public List<RuleExecutionResult> executeRulesByCategory(String category, RuleContext context) {
-        List<BusinessRule> rules = ruleRepository.findActiveRulesByCategory(category, LocalDate.now());
+        List<BusinessRuleEntity> rules = ruleRepository.findActiveRulesByCategory(category, LocalDate.now());
         
         List<String> ruleIds = rules.stream()
-            .map(BusinessRule::getRuleId)
+            .map(BusinessRuleEntity::getRuleId)
             .collect(Collectors.toList());
         
         return executeRules(ruleIds, context);
@@ -225,7 +232,7 @@ public class DefaultRulesEngine implements RulesEngine {
     /**
      * Evaluates a rule's business logic expression.
      */
-    private boolean evaluateRule(BusinessRule rule, RuleContext context) {
+    private boolean evaluateRule(BusinessRuleEntity rule, RuleContext context) {
         String expression = rule.getBusinessLogic();
         return expressionEvaluator.evaluateBoolean(expression, context);
     }
@@ -233,8 +240,8 @@ public class DefaultRulesEngine implements RulesEngine {
     /**
      * Enriches the context with rule parameters.
      */
-    private void enrichContextWithParameters(BusinessRule rule, RuleContext context) {
-        for (RuleParameter param : rule.getParameters()) {
+    private void enrichContextWithParameters(BusinessRuleEntity rule, RuleContext context) {
+        for (RuleParameterEntity param : rule.getParameters()) {
             Object value = convertParameterValue(param);
             context.put(param.getParameterName(), value);
         }
@@ -243,7 +250,7 @@ public class DefaultRulesEngine implements RulesEngine {
     /**
      * Converts a parameter value to its appropriate type based on dataType.
      */
-    private Object convertParameterValue(RuleParameter param) {
+    private Object convertParameterValue(RuleParameterEntity param) {
         String value = param.getParameterValue();
         if (value == null) {
             return null;
@@ -255,28 +262,21 @@ public class DefaultRulesEngine implements RulesEngine {
         }
         
         try {
-            switch (dataType.toUpperCase()) {
-                case "DECIMAL":
-                case "NUMERIC":
-                    return new java.math.BigDecimal(value);
-                case "INTEGER":
-                case "INT":
-                    return Integer.valueOf(value);
-                case "LONG":
-                    return Long.valueOf(value);
-                case "DOUBLE":
-                    return Double.valueOf(value);
-                case "BOOLEAN":
-                    return Boolean.valueOf(value);
-                case "STRING":
-                default:
+            return switch (dataType.toUpperCase()) {
+                case "DECIMAL", "NUMERIC" -> new java.math.BigDecimal(value);
+                case "INTEGER", "INT" -> Integer.valueOf(value);
+                case "LONG" -> Long.valueOf(value);
+                case "DOUBLE" -> Double.valueOf(value);
+                case "BOOLEAN" -> Boolean.valueOf(value);
+                default -> {
                     // For LIST type, return as comma-separated string
                     // SpEL can handle splitting if needed
                     if (param.getParameterType() == ParameterType.LIST) {
-                        return param.getListValue();
+                        yield param.getListValue();
                     }
-                    return value;
-            }
+                    yield value;
+                }
+            };
         } catch (NumberFormatException e) {
             log.warn("Failed to convert parameter {} value '{}' to type {}, using string value", 
                 param.getParameterName(), value, dataType);
@@ -287,7 +287,7 @@ public class DefaultRulesEngine implements RulesEngine {
     /**
      * Checks if there's an active exemption for the rule and entity.
      */
-    private boolean hasActiveExemption(BusinessRule rule, RuleContext context) {
+    private boolean hasActiveExemption(BusinessRuleEntity rule, RuleContext context) {
         String entityType = context.get("entity_type", String.class);
         String entityId = context.get("entity_id", String.class);
         
@@ -302,7 +302,7 @@ public class DefaultRulesEngine implements RulesEngine {
     /**
      * Creates a violation from a failed rule execution.
      */
-    private RuleViolation createViolation(BusinessRule rule, RuleContext context) {
+    private RuleViolationEntity createViolation(BusinessRuleEntity rule, RuleContext context) {
         String entityType = context.get("entity_type", String.class);
         String entityId = context.get("entity_id", String.class);
         
@@ -317,7 +317,7 @@ public class DefaultRulesEngine implements RulesEngine {
         details.put("context", context.getAllData());
         details.put("rule_logic", rule.getBusinessLogic());
         
-        return RuleViolation.builder()
+        return RuleViolationEntity.builder()
             .ruleId(rule.getRuleId())
             .entityType(entityType)
             .entityId(entityId)
@@ -329,15 +329,33 @@ public class DefaultRulesEngine implements RulesEngine {
     }
     
     /**
+     * Converts entity violation to domain violation.
+     */
+    private RuleViolation toDomainViolation(RuleViolationEntity entity) {
+        return RuleViolation.builder()
+            .ruleId(entity.getRuleId())
+            .executionId(entity.getExecutionId())
+            .entityType(entity.getEntityType())
+            .entityId(entity.getEntityId())
+            .violationType(entity.getViolationType())
+            .violationDescription(entity.getViolationDescription())
+            .severity(entity.getSeverity())
+            .violationDetails(entity.getViolationDetails())
+            .detectedAt(entity.getDetectedAt())
+            .resolutionStatus(entity.getResolutionStatus())
+            .build();
+    }
+    
+    /**
      * Logs a rule execution.
      */
-    private RuleExecutionLog logExecution(BusinessRule rule, RuleContext context, 
+    private RuleExecutionLogEntity logExecution(BusinessRuleEntity rule, RuleContext context, 
                                          ExecutionResult result, int violationCount, 
                                          long executionTime, String errorMessage) {
         String entityType = context.get("entity_type", String.class);
         String entityId = context.get("entity_id", String.class);
         
-        RuleExecutionLog ruleExecLog = RuleExecutionLog.builder()
+        RuleExecutionLogEntity ruleExecLog = RuleExecutionLogEntity.builder()
             .ruleId(rule.getRuleId())
             .entityType(entityType)
             .entityId(entityId)
@@ -348,14 +366,13 @@ public class DefaultRulesEngine implements RulesEngine {
             .errorMessage(errorMessage)
             .build();
         
-        // Cast to avoid ambiguity
-        return ((com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExecutionLogRepository) executionLogRepository).save(ruleExecLog);
+        return executionLogRepository.save(ruleExecLog);
     }
     
     /**
      * Logs and returns a skipped result.
      */
-    private RuleExecutionResult logAndReturnSkipped(BusinessRule rule, RuleContext context, long startTime) {
+    private RuleExecutionResult logAndReturnSkipped(BusinessRuleEntity rule, RuleContext context, long startTime) {
         long executionTime = System.currentTimeMillis() - startTime;
         logExecution(rule, context, ExecutionResult.SKIPPED, 0, executionTime, "Rule skipped");
         return RuleExecutionResult.success(rule.getRuleId(), "Rule skipped (inactive or exempted)");
@@ -388,7 +405,7 @@ public class DefaultRulesEngine implements RulesEngine {
      * @return The business rule
      * @throws IllegalArgumentException if rule not found
      */
-    private BusinessRule loadRule(String ruleId) {
+    private BusinessRuleEntity loadRule(String ruleId) {
         if (!cacheEnabled) {
             // Caching disabled - always load from database
             log.trace("Cache disabled, loading rule {} from database", ruleId);
@@ -413,7 +430,7 @@ public class DefaultRulesEngine implements RulesEngine {
         
         // Not in cache - load from database and cache it
         log.debug("Rule {} not in cache, loading from database", ruleId);
-        BusinessRule rule = ruleRepository.findById(ruleId)
+        BusinessRuleEntity rule = ruleRepository.findById(ruleId)
             .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
         
         // Add to cache
@@ -463,11 +480,11 @@ public class DefaultRulesEngine implements RulesEngine {
             ruleCache.clear();
             
             // Load all active rules from database
-            List<BusinessRule> activeRules = ruleRepository.findByEnabledTrue();
+            List<BusinessRuleEntity> activeRules = ruleRepository.findByEnabledTrue();
             
             // Populate cache with fresh rules
             Instant loadTime = Instant.now();
-            for (BusinessRule rule : activeRules) {
+            for (BusinessRuleEntity rule : activeRules) {
                 ruleCache.put(rule.getRuleId(), new CachedRule(rule, loadTime));
             }
             

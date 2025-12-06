@@ -2,14 +2,19 @@ package com.bcbs239.regtech.dataquality.infrastructure.config;
 
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExemptionRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
 import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluator;
-import com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExemptionRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Configuration for the Rules Engine feature with caching support.
@@ -80,6 +85,84 @@ public class RulesEngineConfiguration {
     }
     
     /**
+     * Creates adapter implementations for domain repository interfaces.
+     */
+    @Bean
+    public IBusinessRuleRepository businessRuleRepositoryAdapter(
+            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository infraRepo) {
+        return new IBusinessRuleRepository() {
+            @Override
+            public List<BusinessRuleDto> findByEnabledTrue() {
+                return infraRepo.findByEnabledTrue().stream()
+                    .map(this::toDto)
+                    .toList();
+            }
+            
+            @Override
+            public Optional<BusinessRuleDto> findByRuleCode(String ruleCode) {
+                return infraRepo.findByRuleCode(ruleCode).map(this::toDto);
+            }
+            
+            @Override
+            public List<BusinessRuleDto> findByRuleTypeAndEnabledTrueOrderByExecutionOrder(RuleType ruleType) {
+                return infraRepo.findByRuleTypeAndEnabledTrueOrderByExecutionOrder(ruleType).stream()
+                    .map(this::toDto)
+                    .toList();
+            }
+            
+            @Override
+            public List<BusinessRuleDto> findByRuleCategoryAndEnabledTrue(String category) {
+                return infraRepo.findByRuleCategoryAndEnabledTrue(category).stream()
+                    .map(this::toDto)
+                    .toList();
+            }
+            
+            @Override
+            public List<BusinessRuleDto> findActiveRules(LocalDate date) {
+                return infraRepo.findActiveRules(date).stream()
+                    .map(this::toDto)
+                    .toList();
+            }
+            
+            private BusinessRuleDto toDto(com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity entity) {
+                return new BusinessRuleDto(
+                    entity.getRuleId(),
+                    entity.getRegulationId(),
+                    entity.getTemplateId(),
+                    entity.getRuleName(),
+                    entity.getRuleCode(),
+                    entity.getDescription(),
+                    entity.getRuleType(),
+                    entity.getRuleCategory(),
+                    entity.getSeverity(),
+                    entity.getBusinessLogic(),
+                    entity.getExecutionOrder(),
+                    entity.getEffectiveDate(),
+                    entity.getExpirationDate(),
+                    entity.getEnabled(),
+                    entity.getParameters().stream()
+                        .map(p -> new RuleParameterDto(
+                            p.getParameterId(),
+                            p.getParameterName(),
+                            p.getParameterValue(),
+                            p.getParameterType(),
+                            p.getDataType(),
+                            p.getUnit(),
+                            p.getMinValue(),
+                            p.getMaxValue(),
+                            p.getDescription(),
+                            p.getIsConfigurable()
+                        ))
+                        .toList(),
+                    entity.getCreatedAt(),
+                    entity.getUpdatedAt(),
+                    entity.getCreatedBy()
+                );
+            }
+        };
+    }
+    
+    /**
      * Creates the DataQualityRulesService bean with logging configuration.
      * 
      * <p>The logging settings are injected from DataQualityProperties:</p>
@@ -92,7 +175,7 @@ public class RulesEngineConfiguration {
      * </ul>
      * 
      * @param rulesEngine The rules engine
-     * @param ruleRepository Repository for business rules
+     * @param ruleRepositoryAdapter Adapter for business rules repository
      * @param violationRepository Repository for violations
      * @param executionLogRepository Repository for execution logs
      * @param exemptionRepository Repository for exemptions
@@ -102,7 +185,7 @@ public class RulesEngineConfiguration {
     @Bean
     public DataQualityRulesService dataQualityRulesService(
             RulesEngine rulesEngine,
-            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository ruleRepository,
+            IBusinessRuleRepository ruleRepositoryAdapter,
             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository violationRepository,
             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository executionLogRepository,
             RuleExemptionRepository exemptionRepository,
@@ -120,12 +203,33 @@ public class RulesEngineConfiguration {
         log.info("  - Warn threshold: {}ms", performance.getWarnThresholdMs());
         log.info("  - Max execution time: {}ms", performance.getMaxExecutionTimeMs());
         
+        // Create stub implementations for other repositories (they're not used yet)
+        IRuleViolationRepository violationRepoAdapter = new IRuleViolationRepository() {
+            @Override
+            public void save(RuleViolation violation) {
+                // Stub - not used by DataQualityRulesService yet
+            }
+        };
+        IRuleExecutionLogRepository executionLogRepoAdapter = new IRuleExecutionLogRepository() {
+            @Override
+            public void save(RuleExecutionLogDto executionLog) {
+                // Stub - not used by DataQualityRulesService yet
+            }
+        };
+        IRuleExemptionRepository exemptionRepoAdapter = new IRuleExemptionRepository() {
+            @Override
+            public List<RuleExemptionDto> findActiveExemptions(String ruleId, String entityType, String entityId, LocalDate currentDate) {
+                // Stub - not used by DataQualityRulesService yet
+                return List.of();
+            }
+        };
+        
         return new DataQualityRulesService(
             rulesEngine,
-            ruleRepository,
-            violationRepository,
-            executionLogRepository,
-            exemptionRepository,
+            ruleRepositoryAdapter,
+            violationRepoAdapter,
+            executionLogRepoAdapter,
+            exemptionRepoAdapter,
             performance.getWarnThresholdMs(),
             performance.getMaxExecutionTimeMs(),
             logging.isLogExecutions(),

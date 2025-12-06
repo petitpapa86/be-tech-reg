@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.billing.infrastructure.validation;
 
+import com.bcbs239.regtech.billing.domain.shared.BillingValidationUtils;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;

@@ -1,5 +1,7 @@
-package com.bcbs239.regtech.dataquality.rulesengine.domain;
+package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities;
 
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.Severity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Business Rule domain entity (moved from infrastructure model)
+ * Business Rule JPA entity (infrastructure layer)
  */
 @Entity
 @Table(name = "business_rules", schema = "dataquality")
@@ -18,7 +20,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class BusinessRule {
+public class BusinessRuleEntity {
     @Id
     @Column(name = "rule_id", length = 100)
     private String ruleId;
@@ -71,11 +73,11 @@ public class BusinessRule {
 
     @OneToMany(mappedBy = "rule", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<RuleParameter> parameters = new ArrayList<>();
+    private List<RuleParameterEntity> parameters = new ArrayList<>();
 
     @OneToMany(mappedBy = "rule", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<RuleExemption> exemptions = new ArrayList<>();
+    private List<RuleExemptionEntity> exemptions = new ArrayList<>();
 
     @Column(name = "created_at")
     private Instant createdAt;
@@ -94,17 +96,17 @@ public class BusinessRule {
         return enabled && isApplicableOn(LocalDate.now());
     }
 
-    public void addParameter(RuleParameter parameter) {
+    public void addParameter(RuleParameterEntity parameter) {
         parameters.add(parameter);
         parameter.setRule(this);
     }
 
-    public void removeParameter(RuleParameter parameter) {
+    public void removeParameter(RuleParameterEntity parameter) {
         parameters.remove(parameter);
         parameter.setRule(null);
     }
 
-    public void addExemption(RuleExemption exemption) {
+    public void addExemption(RuleExemptionEntity exemption) {
         exemptions.add(exemption);
         exemption.setRule(this);
     }

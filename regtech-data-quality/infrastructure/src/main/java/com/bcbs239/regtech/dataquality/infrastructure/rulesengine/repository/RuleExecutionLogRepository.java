@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository;
 
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExecutionLogEntity;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.ExecutionResult;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,12 +11,10 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Repository interface for RuleExecutionLog entity operations.
- * Extends both JpaRepository for Spring Data operations and the domain repository interface.
+ * Repository interface for RuleExecutionLogEntity operations.
  */
 @Repository
-public interface RuleExecutionLogRepository extends JpaRepository<RuleExecutionLog, Long>,
-        com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExecutionLogRepository {
+public interface RuleExecutionLogRepository extends JpaRepository<RuleExecutionLogEntity, Long> {
     
     /**
      * Finds all execution logs for a specific rule.
@@ -24,7 +22,7 @@ public interface RuleExecutionLogRepository extends JpaRepository<RuleExecutionL
      * @param ruleId The rule ID
      * @return List of execution logs
      */
-    List<RuleExecutionLog> findByRuleIdOrderByExecutionTimestampDesc(String ruleId);
+    List<RuleExecutionLogEntity> findByRuleIdOrderByExecutionTimestampDesc(String ruleId);
     
     /**
      * Finds all execution logs for a specific entity.
@@ -33,7 +31,7 @@ public interface RuleExecutionLogRepository extends JpaRepository<RuleExecutionL
      * @param entityId The entity ID
      * @return List of execution logs
      */
-    List<RuleExecutionLog> findByEntityTypeAndEntityIdOrderByExecutionTimestampDesc(
+    List<RuleExecutionLogEntity> findByEntityTypeAndEntityIdOrderByExecutionTimestampDesc(
         String entityType, String entityId);
     
     /**
@@ -43,7 +41,7 @@ public interface RuleExecutionLogRepository extends JpaRepository<RuleExecutionL
      * @param endTime End of time range
      * @return List of execution logs
      */
-    List<RuleExecutionLog> findByExecutionTimestampBetweenOrderByExecutionTimestampDesc(
+    List<RuleExecutionLogEntity> findByExecutionTimestampBetweenOrderByExecutionTimestampDesc(
         Instant startTime, Instant endTime);
     
     /**
@@ -52,7 +50,7 @@ public interface RuleExecutionLogRepository extends JpaRepository<RuleExecutionL
      * @param result The execution result
      * @return List of execution logs
      */
-    List<RuleExecutionLog> findByExecutionResultOrderByExecutionTimestampDesc(ExecutionResult result);
+    List<RuleExecutionLogEntity> findByExecutionResultOrderByExecutionTimestampDesc(ExecutionResult result);
     
     /**
      * Finds recent execution logs for a rule.
@@ -61,9 +59,9 @@ public interface RuleExecutionLogRepository extends JpaRepository<RuleExecutionL
      * @param limit Maximum number of results
      * @return List of recent execution logs
      */
-    @Query(value = "SELECT e FROM RuleExecutionLog e WHERE e.ruleId = :ruleId " +
+    @Query(value = "SELECT e FROM RuleExecutionLogEntity e WHERE e.ruleId = :ruleId " +
                    "ORDER BY e.executionTimestamp DESC LIMIT :limit")
-    List<RuleExecutionLog> findRecentExecutions(@Param("ruleId") String ruleId, @Param("limit") int limit);
+    List<RuleExecutionLogEntity> findRecentExecutions(@Param("ruleId") String ruleId, @Param("limit") int limit);
     
     /**
      * Counts executions with violations for a rule.
@@ -71,6 +69,6 @@ public interface RuleExecutionLogRepository extends JpaRepository<RuleExecutionL
      * @param ruleId The rule ID
      * @return Number of executions with violations
      */
-    @Query("SELECT COUNT(e) FROM RuleExecutionLog e WHERE e.ruleId = :ruleId AND e.violationCount > 0")
+    @Query("SELECT COUNT(e) FROM RuleExecutionLogEntity e WHERE e.ruleId = :ruleId AND e.violationCount > 0")
     long countExecutionsWithViolations(@Param("ruleId") String ruleId);
 }

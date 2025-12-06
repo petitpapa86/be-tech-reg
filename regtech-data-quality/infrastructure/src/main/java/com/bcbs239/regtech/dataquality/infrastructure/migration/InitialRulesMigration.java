@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.migration;
 
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleParameterEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import lombok.RequiredArgsConstructor;
@@ -82,7 +84,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("→ Migrating Completeness rules...");
         
         // Rule 1: Exposure ID Required
-        BusinessRule exposureIdRule = BusinessRule.builder()
+        BusinessRuleEntity exposureIdRule = BusinessRuleEntity.builder()
             .ruleId("DQ_COMPLETENESS_EXPOSURE_ID")
             .regulationId(REGULATION_ID)
             .ruleName("Exposure ID Required")
@@ -100,7 +102,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", exposureIdRule.getRuleCode());
         
         // Rule 2: Amount Required
-        BusinessRule amountRule = BusinessRule.builder()
+        BusinessRuleEntity amountRule = BusinessRuleEntity.builder()
             .ruleId("DQ_COMPLETENESS_AMOUNT")
             .regulationId(REGULATION_ID)
             .ruleName("Amount Required")
@@ -118,7 +120,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", amountRule.getRuleCode());
         
         // Rule 3: Currency Required
-        BusinessRule currencyRule = BusinessRule.builder()
+        BusinessRuleEntity currencyRule = BusinessRuleEntity.builder()
             .ruleId("DQ_COMPLETENESS_CURRENCY")
             .regulationId(REGULATION_ID)
             .ruleName("Currency Required")
@@ -136,7 +138,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", currencyRule.getRuleCode());
         
         // Rule 4: Country Required
-        BusinessRule countryRule = BusinessRule.builder()
+        BusinessRuleEntity countryRule = BusinessRuleEntity.builder()
             .ruleId("DQ_COMPLETENESS_COUNTRY")
             .regulationId(REGULATION_ID)
             .ruleName("Country Required")
@@ -154,7 +156,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", countryRule.getRuleCode());
         
         // Rule 5: Sector Required
-        BusinessRule sectorRule = BusinessRule.builder()
+        BusinessRuleEntity sectorRule = BusinessRuleEntity.builder()
             .ruleId("DQ_COMPLETENESS_SECTOR")
             .regulationId(REGULATION_ID)
             .ruleName("Sector Required")
@@ -172,7 +174,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", sectorRule.getRuleCode());
         
         // Rule 6: LEI for Corporates
-        BusinessRule leiForCorporatesRule = BusinessRule.builder()
+        BusinessRuleEntity leiForCorporatesRule = BusinessRuleEntity.builder()
             .ruleId("DQ_COMPLETENESS_LEI_CORPORATES")
             .regulationId(REGULATION_ID)
             .ruleName("LEI Required for Corporate Exposures")
@@ -190,7 +192,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", leiForCorporatesRule.getRuleCode());
         
         // Rule 7: Maturity for Term Exposures
-        BusinessRule maturityForTermRule = BusinessRule.builder()
+        BusinessRuleEntity maturityForTermRule = BusinessRuleEntity.builder()
             .ruleId("DQ_COMPLETENESS_MATURITY_TERM")
             .regulationId(REGULATION_ID)
             .ruleName("Maturity Date Required for Term Exposures")
@@ -208,7 +210,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", maturityForTermRule.getRuleCode());
         
         // Rule 8: Internal Rating Required
-        BusinessRule internalRatingRule = BusinessRule.builder()
+        BusinessRuleEntity internalRatingRule = BusinessRuleEntity.builder()
             .ruleId("DQ_COMPLETENESS_INTERNAL_RATING")
             .regulationId(REGULATION_ID)
             .ruleName("Internal Rating Required")
@@ -235,7 +237,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("→ Migrating Accuracy rules...");
         
         // Rule 1: Positive Amount
-        BusinessRule positiveAmountRule = BusinessRule.builder()
+        BusinessRuleEntity positiveAmountRule = BusinessRuleEntity.builder()
             .ruleId("DQ_ACCURACY_POSITIVE_AMOUNT")
             .regulationId(REGULATION_ID)
             .ruleName("Positive Amount")
@@ -253,7 +255,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", positiveAmountRule.getRuleCode());
         
         // Rule 2: Valid Currency Codes
-        BusinessRule validCurrenciesRule = BusinessRule.builder()
+        BusinessRuleEntity validCurrenciesRule = BusinessRuleEntity.builder()
             .ruleId("DQ_ACCURACY_VALID_CURRENCY")
             .regulationId(REGULATION_ID)
             .ruleName("Valid Currency Codes")
@@ -268,7 +270,7 @@ public class InitialRulesMigration implements CommandLineRunner {
             .enabled(true)
             .build();
         
-        RuleParameter currencyListParam = RuleParameter.builder()
+        RuleParameterEntity currencyListParam = RuleParameterEntity.builder()
             .rule(validCurrenciesRule)
             .parameterName("validCurrencies")
             .parameterValue("USD,EUR,GBP,JPY,CHF,CAD,AUD,SEK,NOK,DKK,PLN,CZK,HUF,BGN,RON,HRK,RSD,BAM,MKD,ALL,CNY,HKD,SGD,KRW,INR,THB,MYR,IDR,PHP,VND,BRL,MXN,ARS,CLP,COP,PEN,UYU,ZAR,EGP,MAD,TND,NGN,GHS,KES,UGX,TZS,ZMW,BWP,MUR,SCR")
@@ -283,7 +285,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", validCurrenciesRule.getRuleCode());
         
         // Rule 3: Valid Country Codes
-        BusinessRule validCountriesRule = BusinessRule.builder()
+        BusinessRuleEntity validCountriesRule = BusinessRuleEntity.builder()
             .ruleId("DQ_ACCURACY_VALID_COUNTRY")
             .regulationId(REGULATION_ID)
             .ruleName("Valid Country Codes")
@@ -298,7 +300,7 @@ public class InitialRulesMigration implements CommandLineRunner {
             .enabled(true)
             .build();
         
-        RuleParameter countryListParam = RuleParameter.builder()
+        RuleParameterEntity countryListParam = RuleParameterEntity.builder()
             .rule(validCountriesRule)
             .parameterName("validCountries")
             .parameterValue("US,GB,DE,FR,IT,ES,NL,BE,AT,CH,SE,NO,DK,FI,IE,PT,GR,PL,CZ,HU,SK,SI,EE,LV,LT,BG,RO,HR,CY,MT,LU,JP,CN,HK,SG,KR,IN,TH,MY,ID,PH,VN,AU,NZ,CA,MX,BR,AR,CL,CO,PE,UY,ZA,EG,MA,TN,NG,GH,KE,UG,TZ,ZM,BW,MU,SC,RU,UA,BY,MD,GE,AM,AZ,KZ,UZ,KG,TJ,TM,MN,TR,IL,SA,AE,QA,KW,BH,OM,JO,LB,SY,IQ,IR,AF,PK,BD,LK,NP,BT,MM,LA,KH,BN,TL,FJ,PG,SB,VU,NC,PF")
@@ -313,7 +315,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", validCountriesRule.getRuleCode());
         
         // Rule 4: Valid LEI Format
-        BusinessRule validLeiFormatRule = BusinessRule.builder()
+        BusinessRuleEntity validLeiFormatRule = BusinessRuleEntity.builder()
             .ruleId("DQ_ACCURACY_VALID_LEI_FORMAT")
             .regulationId(REGULATION_ID)
             .ruleName("Valid LEI Format")
@@ -331,7 +333,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", validLeiFormatRule.getRuleCode());
         
         // Rule 5: Reasonable Amount
-        BusinessRule reasonableAmountRule = BusinessRule.builder()
+        BusinessRuleEntity reasonableAmountRule = BusinessRuleEntity.builder()
             .ruleId("DQ_ACCURACY_REASONABLE_AMOUNT")
             .regulationId(REGULATION_ID)
             .ruleName("Reasonable Amount")
@@ -346,7 +348,7 @@ public class InitialRulesMigration implements CommandLineRunner {
             .enabled(true)
             .build();
         
-        RuleParameter maxAmountParam = RuleParameter.builder()
+        RuleParameterEntity maxAmountParam = RuleParameterEntity.builder()
             .rule(reasonableAmountRule)
             .parameterName("maxReasonableAmount")
             .parameterValue("10000000000")
@@ -371,7 +373,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("→ Migrating Timeliness rules...");
         
         // Rule 1: Reporting Period
-        BusinessRule reportingPeriodRule = BusinessRule.builder()
+        BusinessRuleEntity reportingPeriodRule = BusinessRuleEntity.builder()
             .ruleId("DQ_TIMELINESS_REPORTING_PERIOD")
             .regulationId(REGULATION_ID)
             .ruleName("Reporting Period")
@@ -386,7 +388,7 @@ public class InitialRulesMigration implements CommandLineRunner {
             .enabled(true)
             .build();
         
-        RuleParameter maxAgeParam = RuleParameter.builder()
+        RuleParameterEntity maxAgeParam = RuleParameterEntity.builder()
             .rule(reportingPeriodRule)
             .parameterName("maxReportingAgeDays")
             .parameterValue("90")
@@ -404,7 +406,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", reportingPeriodRule.getRuleCode());
         
         // Rule 2: No Future Date
-        BusinessRule noFutureDateRule = BusinessRule.builder()
+        BusinessRuleEntity noFutureDateRule = BusinessRuleEntity.builder()
             .ruleId("DQ_TIMELINESS_NO_FUTURE_DATE")
             .regulationId(REGULATION_ID)
             .ruleName("No Future Date")
@@ -422,7 +424,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", noFutureDateRule.getRuleCode());
         
         // Rule 3: Recent Valuation
-        BusinessRule recentValuationRule = BusinessRule.builder()
+        BusinessRuleEntity recentValuationRule = BusinessRuleEntity.builder()
             .ruleId("DQ_TIMELINESS_RECENT_VALUATION")
             .regulationId(REGULATION_ID)
             .ruleName("Recent Valuation")
@@ -450,7 +452,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         
         // Rule 1: Currency-Country Consistency
         // Note: This is a simplified version. Full implementation would require complex mapping logic
-        BusinessRule currencyCountryRule = BusinessRule.builder()
+        BusinessRuleEntity currencyCountryRule = BusinessRuleEntity.builder()
             .ruleId("DQ_CONSISTENCY_CURRENCY_COUNTRY")
             .regulationId(REGULATION_ID)
             .ruleName("Currency-Country Consistency")
@@ -468,7 +470,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {} (disabled, requires custom implementation)", currencyCountryRule.getRuleCode());
         
         // Rule 2: Sector-Counterparty Type Consistency
-        BusinessRule sectorCounterpartyRule = BusinessRule.builder()
+        BusinessRuleEntity sectorCounterpartyRule = BusinessRuleEntity.builder()
             .ruleId("DQ_CONSISTENCY_SECTOR_COUNTERPARTY")
             .regulationId(REGULATION_ID)
             .ruleName("Sector-Counterparty Type Consistency")
@@ -486,7 +488,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {} (disabled, requires custom implementation)", sectorCounterpartyRule.getRuleCode());
         
         // Rule 3: Rating-Risk Category Consistency
-        BusinessRule ratingRiskRule = BusinessRule.builder()
+        BusinessRuleEntity ratingRiskRule = BusinessRuleEntity.builder()
             .ruleId("DQ_CONSISTENCY_RATING_RISK")
             .regulationId(REGULATION_ID)
             .ruleName("Rating-Risk Category Consistency")
@@ -514,7 +516,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("→ Migrating Uniqueness rules...");
         
         // Rule 1: Unique Exposure IDs
-        BusinessRule uniqueExposureIdsRule = BusinessRule.builder()
+        BusinessRuleEntity uniqueExposureIdsRule = BusinessRuleEntity.builder()
             .ruleId("DQ_UNIQUENESS_EXPOSURE_IDS")
             .regulationId(REGULATION_ID)
             .ruleName("Unique Exposure IDs")
@@ -532,7 +534,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {} (disabled, requires batch-level implementation)", uniqueExposureIdsRule.getRuleCode());
         
         // Rule 2: Unique Counterparty-Exposure Pairs
-        BusinessRule uniqueCounterpartyExposureRule = BusinessRule.builder()
+        BusinessRuleEntity uniqueCounterpartyExposureRule = BusinessRuleEntity.builder()
             .ruleId("DQ_UNIQUENESS_COUNTERPARTY_EXPOSURE")
             .regulationId(REGULATION_ID)
             .ruleName("Unique Counterparty-Exposure Pairs")
@@ -559,7 +561,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("→ Migrating Validity rules...");
         
         // Rule 1: Valid Sector
-        BusinessRule validSectorRule = BusinessRule.builder()
+        BusinessRuleEntity validSectorRule = BusinessRuleEntity.builder()
             .ruleId("DQ_VALIDITY_VALID_SECTOR")
             .regulationId(REGULATION_ID)
             .ruleName("Valid Sector")
@@ -574,7 +576,7 @@ public class InitialRulesMigration implements CommandLineRunner {
             .enabled(true)
             .build();
         
-        RuleParameter validSectorsParam = RuleParameter.builder()
+        RuleParameterEntity validSectorsParam = RuleParameterEntity.builder()
             .rule(validSectorRule)
             .parameterName("validSectors")
             .parameterValue("BANKING,CORPORATE_MANUFACTURING,CORPORATE_SERVICES,CORPORATE_RETAIL,CORPORATE_TECHNOLOGY,SOVEREIGN,RETAIL,SME,REAL_ESTATE,INSURANCE,CORPORATE")
@@ -589,7 +591,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", validSectorRule.getRuleCode());
         
         // Rule 2: Risk Weight Range
-        BusinessRule riskWeightRangeRule = BusinessRule.builder()
+        BusinessRuleEntity riskWeightRangeRule = BusinessRuleEntity.builder()
             .ruleId("DQ_VALIDITY_RISK_WEIGHT_RANGE")
             .regulationId(REGULATION_ID)
             .ruleName("Risk Weight Range")
@@ -607,7 +609,7 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Created rule: {}", riskWeightRangeRule.getRuleCode());
         
         // Rule 3: Maturity After Reporting
-        BusinessRule maturityAfterReportingRule = BusinessRule.builder()
+        BusinessRuleEntity maturityAfterReportingRule = BusinessRuleEntity.builder()
             .ruleId("DQ_VALIDITY_MATURITY_AFTER_REPORTING")
             .regulationId(REGULATION_ID)
             .ruleName("Maturity After Reporting")
@@ -627,3 +629,4 @@ public class InitialRulesMigration implements CommandLineRunner {
         log.info("  ✓ Validity rules migration completed (3 rules)");
     }
 }
+

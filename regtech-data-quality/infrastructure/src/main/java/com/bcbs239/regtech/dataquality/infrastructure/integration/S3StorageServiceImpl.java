@@ -70,13 +70,14 @@ public class S3StorageServiceImpl implements S3StorageService {
     
     @Value("${data-quality.storage.local.base-path:${user.dir}/data/quality}")
     private String localBasePath;
-    
-    public S3StorageServiceImpl(CoreS3Service coreS3Service) {
+
+    public S3StorageServiceImpl(CoreS3Service coreS3Service, ObjectMapper objectMapper, JsonFactory jsonFactory) {
         this.coreS3Service = coreS3Service;
-        this.objectMapper = new ObjectMapper();
-        this.jsonFactory = new JsonFactory();
+        this.objectMapper = objectMapper;
+        this.jsonFactory = jsonFactory;
     }
-    
+
+
     @PostConstruct
     public void init() {
         this.executorService = Executors.newFixedThreadPool(maxConcurrentUploads);

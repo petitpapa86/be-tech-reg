@@ -1,5 +1,7 @@
-package com.bcbs239.regtech.dataquality.rulesengine.domain;
+package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities;
 
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.model.JsonbConverter;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.ExemptionType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,7 +16,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RuleExemption {
+public class RuleExemptionEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "exemption_id")
@@ -22,7 +24,7 @@ public class RuleExemption {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rule_id", nullable = false)
-    private BusinessRule rule;
+    private BusinessRuleEntity rule;
     
     @Column(name = "entity_type", nullable = false, length = 50)
     private String entityType;

@@ -1,5 +1,6 @@
-package com.bcbs239.regtech.dataquality.rulesengine.domain;
+package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities;
 
+import com.bcbs239.regtech.dataquality.rulesengine.domain.ParameterType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RuleParameter {
+public class RuleParameterEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "parameter_id")
@@ -23,7 +24,7 @@ public class RuleParameter {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rule_id", nullable = false)
-    private BusinessRule rule;
+    private BusinessRuleEntity rule;
     
     @Column(name = "parameter_name", nullable = false, length = 100)
     private String parameterName;

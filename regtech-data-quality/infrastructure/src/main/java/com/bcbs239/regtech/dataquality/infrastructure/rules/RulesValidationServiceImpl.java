@@ -4,8 +4,8 @@ import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.rules.IRulesValidationService;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRule;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.ParameterType;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
@@ -59,7 +59,7 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
     public List<ValidationError> validateConfigurableRules(ExposureRecord exposure) {
         
         // Get all active data quality rules
-        List<BusinessRule> rules = ruleRepository
+        List<BusinessRuleEntity> rules = ruleRepository
             .findByRuleTypeAndEnabledTrueOrderByExecutionOrder(RuleType.DATA_QUALITY);
         
         if (rules.isEmpty()) {
@@ -73,7 +73,7 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
         List<ValidationError> errors = new ArrayList<>();
         
         // Execute each rule
-        for (BusinessRule rule : rules) {
+        for (BusinessRuleEntity rule : rules) {
             if (!rule.isApplicableOn(LocalDate.now())) {
                 continue;
             }
@@ -97,7 +97,7 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
     @Override
     public List<ValidationError> validateThresholdRules(ExposureRecord exposure) {
         
-        List<BusinessRule> thresholdRules = ruleRepository
+        List<BusinessRuleEntity> thresholdRules = ruleRepository
             .findByRuleCategoryAndEnabledTrue("THRESHOLDS");
         
         if (thresholdRules.isEmpty()) {
@@ -107,7 +107,7 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
         RuleContext context = createContextFromExposure(exposure);
         List<ValidationError> errors = new ArrayList<>();
         
-        for (BusinessRule rule : thresholdRules) {
+        for (BusinessRuleEntity rule : thresholdRules) {
             try {
                 RuleExecutionResult result = rulesEngine.executeRule(rule.getRuleId(), context);
                 
@@ -153,7 +153,7 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
     @Override
     public boolean hasActiveRule(String ruleCode) {
         return ruleRepository.findByRuleCode(ruleCode)
-            .map(BusinessRule::isActive)
+            .map(BusinessRuleEntity::isActive)
             .orElse(false);
     }
     
@@ -202,19 +202,19 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
      */
     private List<ValidationError> convertViolationsToErrors(
             List<com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation> violations,
-            BusinessRule rule) {
+            BusinessRuleEntity rule) {
         
         return violations.stream()
             .map(violation -> {
                 QualityDimension dimension = mapRuleToDimension(rule);
                 
                 return new ValidationError(
-                    violation.getViolationType(),
-                    violation.getViolationDescription(),
-                    extractFieldFromDetails(violation.getViolationDetails()),
+                    violation.violationType(),
+                    violation.violationDescription(),
+                    extractFieldFromDetails(violation.violationDetails()),
                     dimension,
-                    violation.getEntityId(),
-                    mapSeverity(violation.getSeverity())
+                    violation.entityId(),
+                    mapSeverity(violation.severity())
                 );
             })
             .collect(Collectors.toList());
@@ -223,7 +223,7 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
     /**
      * Maps rule category to quality dimension.
      */
-    private QualityDimension mapRuleToDimension(BusinessRule rule) {
+    private QualityDimension mapRuleToDimension(BusinessRuleEntity rule) {
         // Map rule category to quality dimension
         if (rule.getRuleCategory() == null) {
             return QualityDimension.ACCURACY;

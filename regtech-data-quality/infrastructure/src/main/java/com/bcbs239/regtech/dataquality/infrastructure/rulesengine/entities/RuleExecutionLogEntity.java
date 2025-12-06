@@ -1,5 +1,6 @@
-package com.bcbs239.regtech.dataquality.rulesengine.domain;
+package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities;
 
+import com.bcbs239.regtech.dataquality.rulesengine.domain.ExecutionResult;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -15,7 +16,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RuleExecutionLog {
+public class RuleExecutionLogEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "execution_id")

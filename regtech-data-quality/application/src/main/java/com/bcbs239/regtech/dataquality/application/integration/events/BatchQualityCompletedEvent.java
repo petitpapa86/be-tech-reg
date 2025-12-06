@@ -5,6 +5,8 @@ import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -27,13 +29,14 @@ public class BatchQualityCompletedEvent extends com.bcbs239.regtech.core.domain.
     private final Map<String, Object> processingMetadata;
     private final Instant timestamp;
 
+    @JsonCreator
     public BatchQualityCompletedEvent(
-            BatchId batchId,
-            BankId bankId,
-            QualityScores qualityScores,
-            S3Reference s3Reference,
-            Map<String, Object> validationSummary,
-            Map<String, Object> processingMetadata
+            @JsonProperty("batchId") BatchId batchId,
+            @JsonProperty("bankId") BankId bankId,
+            @JsonProperty("qualityScores") QualityScores qualityScores,
+            @JsonProperty("s3Reference") S3Reference s3Reference,
+            @JsonProperty("validationSummary") Map<String, Object> validationSummary,
+            @JsonProperty("processingMetadata") Map<String, Object> processingMetadata
     ) {
         super(batchId.value(), Maybe.none(), EVENT_TYPE);
         this.batchId = batchId;

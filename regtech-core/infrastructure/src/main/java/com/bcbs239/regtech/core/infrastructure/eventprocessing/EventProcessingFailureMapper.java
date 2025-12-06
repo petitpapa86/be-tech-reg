@@ -15,7 +15,12 @@ import java.util.Map;
 @Component
 public class EventProcessingFailureMapper {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private final ObjectMapper MAPPER;
+
+    public EventProcessingFailureMapper(ObjectMapper mapper) {
+        MAPPER = mapper;
+    }
+
 
     /**
      * Convert domain EventProcessingFailure to JPA entity.
