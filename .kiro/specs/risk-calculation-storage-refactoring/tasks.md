@@ -112,7 +112,12 @@
   - **Property 6: Event URI Inclusion**
   - **Validates: Requirements 4.1**
 
-- [ ] 7. Deprecate ExposureRepository database persistence methods
+- [x] 7. Deprecate ExposureRepository database persistence methods
+
+
+
+
+
   - Mark save() and saveAll() methods as @Deprecated in ExposureRepository
   - Add loadFromJson(String jsonContent) method to ExposureRepository
   - Update JpaExposureRepository to implement loadFromJson()
