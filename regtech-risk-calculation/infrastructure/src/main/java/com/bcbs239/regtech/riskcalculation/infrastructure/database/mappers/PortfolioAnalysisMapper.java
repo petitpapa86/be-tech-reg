@@ -173,13 +173,15 @@ public class PortfolioAnalysisMapper {
             ConcentrationLevel.valueOf(entity.getSectorConcentrationLevel())
         );
         
-        // Note: We cannot use the PortfolioAnalysis.analyze() factory method here
-        // because we're reconstituting from persistence, not analyzing fresh data.
-        // We need to use reflection or a reconstitute factory method.
-        // For now, we'll throw an exception indicating this needs to be implemented.
-        throw new UnsupportedOperationException(
-            "PortfolioAnalysis reconstitution from entity not yet implemented. " +
-            "Domain model needs a reconstitute factory method."
+        // Reconstitute the domain model from persisted data
+        return PortfolioAnalysis.reconstitute(
+            entity.getBatchId(),
+            EurAmount.of(entity.getTotalPortfolioEur()),
+            geoBreakdown,
+            sectorBreakdown,
+            geoHHI,
+            sectorHHI,
+            entity.getAnalyzedAt()
         );
     }
 }

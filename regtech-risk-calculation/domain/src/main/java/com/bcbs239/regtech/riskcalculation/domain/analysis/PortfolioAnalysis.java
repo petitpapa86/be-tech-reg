@@ -119,6 +119,39 @@ public class PortfolioAnalysis {
         );
     }
     
+    /**
+     * Factory method to reconstitute a PortfolioAnalysis from persisted data.
+     * Used by infrastructure layer when loading from database.
+     * 
+     * @param batchId the batch identifier
+     * @param totalPortfolio total portfolio amount
+     * @param geographicBreakdown geographic breakdown
+     * @param sectorBreakdown sector breakdown
+     * @param geographicHHI geographic HHI
+     * @param sectorHHI sector HHI
+     * @param analyzedAt timestamp when analysis was performed
+     * @return reconstituted PortfolioAnalysis
+     */
+    public static PortfolioAnalysis reconstitute(
+        String batchId,
+        EurAmount totalPortfolio,
+        Breakdown geographicBreakdown,
+        Breakdown sectorBreakdown,
+        HHI geographicHHI,
+        HHI sectorHHI,
+        Instant analyzedAt
+    ) {
+        return new PortfolioAnalysis(
+            batchId,
+            totalPortfolio,
+            geographicBreakdown,
+            sectorBreakdown,
+            geographicHHI,
+            sectorHHI,
+            analyzedAt
+        );
+    }
+    
     // NEW: State management methods
     
     /**
