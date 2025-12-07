@@ -23,7 +23,12 @@
   - Update JpaBatchRepository implementation
   - _Requirements: 2.1, 2.5_
 
-- [ ] 3. Implement CalculationResultsJsonSerializer
+- [x] 3. Implement CalculationResultsJsonSerializer
+
+
+
+
+
   - Create CalculationResultsJsonSerializer class in application layer
   - Implement serialize(RiskCalculationResult) method returning JSON string
   - Include format_version field in JSON output

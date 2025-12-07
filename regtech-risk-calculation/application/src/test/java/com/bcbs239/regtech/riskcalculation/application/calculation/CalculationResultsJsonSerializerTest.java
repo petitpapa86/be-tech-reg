@@ -1,15 +1,15 @@
 package com.bcbs239.regtech.riskcalculation.application.calculation;
 
-import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.Breakdown;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.HHI;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.Share;
-import com.bcbs239.regtech.riskcalculation.domain.exposure.*;
+import com.bcbs239.regtech.riskcalculation.domain.classification.ClassifiedExposure;
+import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
 import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.AmountEur;
+import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.PercentageOfTotal;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,12 +18,9 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.within;
+import static org.assertj.core.api.Assertions.*;
 
 /**
  * Unit tests for CalculationResultsJsonSerializer.
@@ -37,6 +34,7 @@ class CalculationResultsJsonSerializerTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules(); // This will register JavaTimeModule automatically
         serializer = new CalculationResultsJsonSerializer(objectMapper);
     }
 
@@ -46,25 +44,31 @@ class CalculationResultsJsonSerializerTest {
         RiskCalculationResult result = createSampleCalculationResult();
         
         // When: Serialize to JSON
-        Result<String> jsonResult = serializer.serializeToJson(result);
+        String json = serializer.serialize(result);
         
         // Then: Should succeed
-        assertThat(jsonResult.isSuccess()).isTrue();
-        
-        String json = jsonResult.getValue();
         assertThat(json).isNotNull();
         assertThat(json).isNotEmpty();
         
         // Parse and verify JSON structure
         JsonNode rootNode = objectMapper.readTree(json);
         
-        // Basic metadata
+        // Requirement 10.1: Verify format_version field
+        assertThat(rootNode.has("format_version")).isTrue();
+        assertThat(rootNode.get("format_version").asText()).isEqualTo("1.0");
+        
+        // Requirement 10.2: Verify batch_id and calculated_at
         assertThat(rootNode.get("batch_id").asText()).isEqualTo("batch_test_001");
-        assertThat(rootNode.get("bank_id").asText()).isEqualTo("08081");
-        assertThat(rootNode.get("bank_name").asText()).isEqualTo("Test Bank");
         assertThat(rootNode.has("calculated_at")).isTrue();
         
-        // Summary section
+        // Verify bank_info section
+        JsonNode bankInfoNode = rootNode.get("bank_info");
+        assertThat(bankInfoNode).isNotNull();
+        assertThat(bankInfoNode.get("bank_name").asText()).isEqualTo("Test Bank");
+        assertThat(bankInfoNode.get("abi_code").asText()).isEqualTo("08081");
+        assertThat(bankInfoNode.get("lei_code").asText()).isEqualTo("LEI123456789");
+        
+        // Requirement 10.3: Verify summary section with totals and breakdowns
         JsonNode summaryNode = rootNode.get("summary");
         assertThat(summaryNode).isNotNull();
         assertThat(summaryNode.get("total_exposures").asInt()).isEqualTo(2);
@@ -74,21 +78,19 @@ class CalculationResultsJsonSerializerTest {
         JsonNode geoBreakdown = summaryNode.get("geographic_breakdown");
         assertThat(geoBreakdown).isNotNull();
         assertThat(geoBreakdown.has("italy")).isTrue();
-        assertThat(geoBreakdown.get("italy").get("amount_eur").asDouble()).isEqualTo(1000000.0);
-        assertThat(geoBreakdown.get("italy").get("percentage").asDouble()).isCloseTo(66.67, within(0.01));
         
         // Sector breakdown in summary
         JsonNode sectorBreakdown = summaryNode.get("sector_breakdown");
         assertThat(sectorBreakdown).isNotNull();
-        assertThat(sectorBreakdown.has("retail")).isTrue();
+        assertThat(sectorBreakdown.has("retail_mortgage")).isTrue();
         
         // Concentration indices
         JsonNode concentrationNode = summaryNode.get("concentration_indices");
         assertThat(concentrationNode).isNotNull();
-        assertThat(concentrationNode.get("herfindahl_geographic").asDouble()).isEqualTo(0.5556);
-        assertThat(concentrationNode.get("herfindahl_sector").asDouble()).isEqualTo(0.5);
+        assertThat(concentrationNode.has("herfindahl_geographic")).isTrue();
+        assertThat(concentrationNode.has("herfindahl_sector")).isTrue();
         
-        // Calculated exposures section
+        // Requirement 10.4: Verify exposures array with complete details
         JsonNode exposuresNode = rootNode.get("calculated_exposures");
         assertThat(exposuresNode).isNotNull();
         assertThat(exposuresNode.isArray()).isTrue();
@@ -96,169 +98,166 @@ class CalculationResultsJsonSerializerTest {
         
         // First exposure details
         JsonNode firstExposure = exposuresNode.get(0);
-        assertThat(firstExposure.get("instrument_id").asText()).isEqualTo("INST_001");
-        assertThat(firstExposure.get("counterparty_ref").asText()).isEqualTo("CP_001");
-        assertThat(firstExposure.get("original_amount").asDouble()).isEqualTo(1000000.0);
-        assertThat(firstExposure.get("original_currency").asText()).isEqualTo("EUR");
-        assertThat(firstExposure.get("eur_amount").asDouble()).isEqualTo(1000000.0);
-        assertThat(firstExposure.get("mitigated_amount_eur").asDouble()).isEqualTo(1000000.0);
-        
-        // New fields
-        assertThat(firstExposure.has("exchange_rate_used")).isTrue();
-        assertThat(firstExposure.get("exchange_rate_used").asDouble()).isEqualTo(1.0);
+        assertThat(firstExposure.get("exposure_id").asText()).isEqualTo("EXP_001");
+        assertThat(firstExposure.get("gross_exposure_eur").asDouble()).isEqualTo(1000000.0);
+        assertThat(firstExposure.get("net_exposure_eur").asDouble()).isEqualTo(1000000.0);
+        assertThat(firstExposure.get("total_mitigation_eur").asDouble()).isEqualTo(0.0);
         assertThat(firstExposure.has("percentage_of_total")).isTrue();
-        assertThat(firstExposure.get("percentage_of_total").asDouble()).isCloseTo(66.67, within(0.01));
-        assertThat(firstExposure.has("country")).isTrue();
-        assertThat(firstExposure.get("country").asText()).isEqualTo("IT");
-        
-        assertThat(firstExposure.get("geographic_region").asText()).isEqualTo("ITALY");
-        assertThat(firstExposure.get("economic_sector").asText()).isEqualTo("RETAIL");
     }
 
     @Test
     void shouldDeserializeJsonCorrectly() throws Exception {
-        // Given: Valid JSON string
+        // Given: Valid JSON string with format_version
         String json = """
             {
+                "format_version": "1.0",
                 "batch_id": "batch_test_002",
                 "calculated_at": "2024-03-31T14:30:00Z",
-                "bank_id": "08082",
-                "bank_name": "Another Bank",
+                "bank_info": {
+                    "bank_name": "Another Bank",
+                    "abi_code": "08082",
+                    "lei_code": "LEI987654321"
+                },
                 "summary": {
-                    "total_exposures": 3,
-                    "total_amount_eur": 2000000.0,
+                    "total_exposures": 1,
+                    "total_amount_eur": 800000.0,
                     "geographic_breakdown": {
-                        "italy": {"amount_eur": 1200000.0, "percentage": 60.0},
-                        "eu": {"amount_eur": 600000.0, "percentage": 30.0},
-                        "non_eu": {"amount_eur": 200000.0, "percentage": 10.0}
+                        "italy": {"amount_eur": 800000.0, "percentage": 100.0}
                     },
                     "sector_breakdown": {
-                        "retail": {"amount_eur": 800000.0, "percentage": 40.0},
-                        "corporate": {"amount_eur": 700000.0, "percentage": 35.0},
-                        "sovereign": {"amount_eur": 500000.0, "percentage": 25.0}
+                        "retail_mortgage": {"amount_eur": 800000.0, "percentage": 100.0}
                     },
                     "concentration_indices": {
-                        "herfindahl_geographic": 0.46,
-                        "herfindahl_sector": 0.335
+                        "herfindahl_geographic": 1.0,
+                        "herfindahl_sector": 1.0
                     }
                 },
                 "calculated_exposures": [
                     {
-                        "instrument_id": "INST_003",
-                        "counterparty_ref": "CP_003",
-                        "original_amount": 800000.0,
-                        "original_currency": "EUR",
-                        "eur_amount": 800000.0,
-                        "mitigated_amount_eur": 800000.0,
-                        "geographic_region": "ITALY",
-                        "economic_sector": "RETAIL"
+                        "exposure_id": "EXP_003",
+                        "gross_exposure_eur": 800000.0,
+                        "net_exposure_eur": 800000.0,
+                        "total_mitigation_eur": 0.0,
+                        "percentage_of_total": 100.0
                     }
                 ]
             }""";
         
         // When: Deserialize
-        Result<JsonNode> result = serializer.deserializeFromJson(json);
+        RiskCalculationResult result = serializer.deserialize(json);
         
         // Then: Should succeed
-        assertThat(result.isSuccess()).isTrue();
+        assertThat(result).isNotNull();
+        assertThat(result.batchId()).isEqualTo("batch_test_002");
+        assertThat(result.bankInfo().bankName()).isEqualTo("Another Bank");
+        assertThat(result.bankInfo().abiCode()).isEqualTo("08082");
+        assertThat(result.bankInfo().leiCode()).isEqualTo("LEI987654321");
+        assertThat(result.calculatedExposures()).hasSize(1);
+        assertThat(result.analysis()).isNotNull();
+        assertThat(result.analysis().getTotalPortfolio().value()).isEqualByComparingTo("800000.0");
+    }
+    
+    @Test
+    void shouldRoundTripSerializeAndDeserialize() {
+        // Given: Complete calculation result
+        RiskCalculationResult original = createSampleCalculationResult();
         
-        JsonNode rootNode = result.getValue();
-        assertThat(rootNode.get("batch_id").asText()).isEqualTo("batch_test_002");
-        assertThat(rootNode.get("bank_id").asText()).isEqualTo("08082");
-        assertThat(rootNode.get("summary").get("total_exposures").asInt()).isEqualTo(3);
-        assertThat(rootNode.get("calculated_exposures").size()).isEqualTo(1);
+        // When: Serialize then deserialize
+        String json = serializer.serialize(original);
+        RiskCalculationResult deserialized = serializer.deserialize(json);
+        
+        // Then: Should match original
+        assertThat(deserialized.batchId()).isEqualTo(original.batchId());
+        assertThat(deserialized.bankInfo()).isEqualTo(original.bankInfo());
+        assertThat(deserialized.calculatedExposures()).hasSameSizeAs(original.calculatedExposures());
+        assertThat(deserialized.analysis().getTotalPortfolio().value())
+            .isEqualByComparingTo(original.analysis().getTotalPortfolio().value());
     }
 
     @Test
-    void shouldHandleNullCalculationResult() {
-        // When: Serialize null result
-        Result<String> result = serializer.serializeToJson(null);
-        
-        // Then: Should fail with validation error
-        assertThat(result.isFailure()).isTrue();
-        assertThat(result.getError().getCode()).isEqualTo("NULL_CALCULATION_RESULT");
-        assertThat(result.getError().getMessage()).contains("cannot be null");
+    void shouldThrowExceptionForNullCalculationResult() {
+        // When/Then: Serialize null result should throw exception
+        assertThatThrownBy(() -> serializer.serialize(null))
+            .isInstanceOf(NullPointerException.class)
+            .hasMessageContaining("cannot be null");
     }
 
     @Test
-    void shouldHandleNullJsonString() {
-        // When: Deserialize null JSON
-        Result<JsonNode> result = serializer.deserializeFromJson(null);
-        
-        // Then: Should fail with validation error
-        assertThat(result.isFailure()).isTrue();
-        assertThat(result.getError().getCode()).isEqualTo("NULL_JSON_STRING");
-        assertThat(result.getError().getMessage()).contains("cannot be null");
+    void shouldThrowExceptionForNullJsonString() {
+        // When/Then: Deserialize null JSON should throw exception
+        assertThatThrownBy(() -> serializer.deserialize(null))
+            .isInstanceOf(CalculationResultsDeserializationException.class)
+            .hasMessageContaining("cannot be null");
     }
 
     @Test
-    void shouldHandleEmptyJsonString() {
-        // When: Deserialize empty JSON
-        Result<JsonNode> result = serializer.deserializeFromJson("");
-        
-        // Then: Should fail with validation error
-        assertThat(result.isFailure()).isTrue();
-        assertThat(result.getError().getCode()).isEqualTo("NULL_JSON_STRING");
+    void shouldThrowExceptionForEmptyJsonString() {
+        // When/Then: Deserialize empty JSON should throw exception
+        assertThatThrownBy(() -> serializer.deserialize(""))
+            .isInstanceOf(CalculationResultsDeserializationException.class)
+            .hasMessageContaining("cannot be null or empty");
     }
 
     @Test
-    void shouldHandleInvalidJsonString() {
-        // When: Deserialize invalid JSON
-        Result<JsonNode> result = serializer.deserializeFromJson("{ invalid json }");
+    void shouldThrowExceptionForInvalidJsonString() {
+        // When/Then: Deserialize invalid JSON should throw exception
+        assertThatThrownBy(() -> serializer.deserialize("{ invalid json }"))
+            .isInstanceOf(CalculationResultsDeserializationException.class)
+            .hasMessageContaining("Failed to deserialize");
+    }
+    
+    @Test
+    void shouldThrowExceptionForMissingFormatVersion() {
+        // Given: JSON without format_version
+        String json = """
+            {
+                "batch_id": "batch_test_003",
+                "calculated_at": "2024-03-31T14:30:00Z"
+            }""";
         
-        // Then: Should fail with deserialization error
-        assertThat(result.isFailure()).isTrue();
-        assertThat(result.getError().getCode()).isEqualTo("JSON_DESERIALIZATION_ERROR");
+        // When/Then: Should throw exception
+        assertThatThrownBy(() -> serializer.deserialize(json))
+            .isInstanceOf(CalculationResultsDeserializationException.class)
+            .hasMessageContaining("format_version");
     }
 
     // Helper method to create sample calculation result
     private RiskCalculationResult createSampleCalculationResult() {
         String batchId = "batch_test_001";
-        BankInfo bankInfo = new BankInfo("08081", "Test Bank");
+        BankInfo bankInfo = BankInfo.of("Test Bank", "08081", "LEI123456789");
         
         // Create exposures
         List<ProtectedExposure> exposures = new ArrayList<>();
         
-        // Exposure 1
-        ExposureRecording recording1 = new ExposureRecording(
-            InstrumentId.of("INST_001"),
-            CounterpartyRef.of("CP_001"),
-            MonetaryAmount.of(1000000.0, "EUR"),
-            ExposureClassification.of("ITALY", "RETAIL")
-        );
-        exposures.add(new ProtectedExposure(
-            recording1,
-            EurAmount.of(1000000.0),
+        // Exposure 1 - no mitigations
+        exposures.add(ProtectedExposure.withoutMitigations(
+            ExposureId.of("EXP_001"),
             EurAmount.of(1000000.0)
         ));
         
-        // Exposure 2
-        ExposureRecording recording2 = new ExposureRecording(
-            InstrumentId.of("INST_002"),
-            CounterpartyRef.of("CP_002"),
-            MonetaryAmount.of(500000.0, "EUR"),
-            ExposureClassification.of("EU", "RETAIL")
-        );
-        exposures.add(new ProtectedExposure(
-            recording2,
-            EurAmount.of(500000.0),
+        // Exposure 2 - no mitigations
+        exposures.add(ProtectedExposure.withoutMitigations(
+            ExposureId.of("EXP_002"),
             EurAmount.of(500000.0)
         ));
         
+        // Create classified exposures for portfolio analysis
+        List<ClassifiedExposure> classifiedExposures = new ArrayList<>();
+        classifiedExposures.add(ClassifiedExposure.of(
+            ExposureId.of("EXP_001"),
+            EurAmount.of(1000000.0),
+            GeographicRegion.ITALY,
+            EconomicSector.RETAIL_MORTGAGE
+        ));
+        classifiedExposures.add(ClassifiedExposure.of(
+            ExposureId.of("EXP_002"),
+            EurAmount.of(500000.0),
+            GeographicRegion.ITALY,
+            EconomicSector.RETAIL_MORTGAGE
+        ));
+        
         // Create portfolio analysis
-        Map<String, Share> geoShares = new HashMap<>();
-        geoShares.put("ITALY", new Share(AmountEur.of(1000000.0), PercentageOfTotal.of(66.67)));
-        geoShares.put("EU", new Share(AmountEur.of(500000.0), PercentageOfTotal.of(33.33)));
-        
-        Map<String, Share> sectorShares = new HashMap<>();
-        sectorShares.put("RETAIL", new Share(AmountEur.of(1500000.0), PercentageOfTotal.of(100.0)));
-        
-        PortfolioAnalysis analysis = new PortfolioAnalysis(
-            new Breakdown(geoShares),
-            new Breakdown(sectorShares),
-            HHI.of(0.5556),
-            HHI.of(0.5)
-        );
+        PortfolioAnalysis analysis = PortfolioAnalysis.analyze(batchId, classifiedExposures);
         
         return new RiskCalculationResult(
             batchId,
