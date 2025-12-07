@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -53,6 +54,7 @@ public class CalculateRiskMetricsCommandHandler {
 
     private final ExposureRepository exposureRepository;
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
+    private final com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository batchRepository;
     private final IFileStorageService fileStorageService;
     private final ExchangeRateProvider exchangeRateProvider;
     private final RiskCalculationEventPublisher eventPublisher;
@@ -115,12 +117,42 @@ public class CalculateRiskMetricsCommandHandler {
 
             log.info("Successfully deserialized and converted {} exposures from BatchDataDTO", exposures.size());
 
-            // Step 3: Save exposures to database
+            // Step 3: Create batch record (required before saving exposures due to FK constraint)
+            log.info("Creating batch record for batch: {}", command.getBatchId());
+            try {
+                BatchDataDTO batchData = objectMapper.readValue(jsonContent, BatchDataDTO.class);
+                BankInfo bankInfo = batchData.bankInfo() != null 
+                    ? BankInfo.fromDTO(batchData.bankInfo())
+                    : BankInfo.of("Unknown", "00000", "UNKNOWN");
+                
+                LocalDate reportDate = batchData.bankInfo() != null 
+                    ? batchData.bankInfo().reportDate() 
+                    : java.time.LocalDate.now();
+                
+                batchRepository.createBatch(
+                    command.getBatchId(),
+                    bankInfo,
+                    reportDate,
+                    exposures.size(),
+                    java.time.Instant.now()
+                );
+                log.info("Successfully created batch record for batch: {}", command.getBatchId());
+            } catch (Exception e) {
+                log.error("Failed to create batch record for batch: {}", command.getBatchId(), e);
+                return Result.failure(ErrorDetail.of(
+                    "BATCH_CREATION_FAILED", 
+                    ErrorType.SYSTEM_ERROR,
+                    "Failed to create batch record: " + e.getMessage(), 
+                    "calculation.batch.creation.failed"
+                ));
+            }
+
+            // Step 4: Save exposures to database
             log.info("Saving {} exposures to database", exposures.size());
             exposureRepository.saveAll(exposures, command.getBatchId());
             log.info("Successfully saved {} exposures to database", exposures.size());
 
-            // Step 4 & 5: Convert to EUR and classify exposures
+            // Step 5 & 6: Convert to EUR and classify exposures
             ExposureClassifier classifier = new ExposureClassifier();
             List<ClassifiedExposure> classifiedExposures = exposures.stream()
                     .map(exposure -> {
@@ -159,7 +191,7 @@ public class CalculateRiskMetricsCommandHandler {
 
             log.info("Classified {} exposures", classifiedExposures.size());
 
-            // Step 6 & 7: Analyze portfolio (calculates concentration indices and breakdowns)
+            // Step 7 & 8: Analyze portfolio (calculates concentration indices and breakdowns)
             PortfolioAnalysis analysis = PortfolioAnalysis.analyze(
                     command.getBatchId(),
                     classifiedExposures
@@ -168,13 +200,16 @@ public class CalculateRiskMetricsCommandHandler {
             log.info("Portfolio analysis completed - Geographic HHI: {}, Sector HHI: {}",
                     analysis.getGeographicHHI().value(), analysis.getSectorHHI().value());
 
-            // Step 8: Persist results
+            // Step 9: Persist results
             portfolioAnalysisRepository.save(analysis);
+
+            // Step 10: Mark batch as completed
+            batchRepository.markAsProcessed(command.getBatchId(), java.time.Instant.now());
 
             log.info("Risk metrics calculation completed successfully for batch: {}",
                     batchId);
 
-            // Step 9: Publish success event
+            // Step 11: Publish success event
             eventPublisher.publishBatchCalculationCompleted(
                     batchId,
                     command.getBankId(),
@@ -188,6 +223,13 @@ public class CalculateRiskMetricsCommandHandler {
 
         } catch (Exception e) {
             log.error("Risk metrics calculation failed for batch: {}", batchId, e);
+
+            // Mark batch as failed
+            try {
+                batchRepository.updateStatus(batchId, "FAILED");
+            } catch (Exception ex) {
+                log.error("Failed to update batch status to FAILED for batch: {}", batchId, ex);
+            }
 
             // Record batch failure with error message
             performanceMetrics.recordBatchFailure(batchId, e.getMessage());

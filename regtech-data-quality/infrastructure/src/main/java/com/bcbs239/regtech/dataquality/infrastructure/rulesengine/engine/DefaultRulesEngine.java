@@ -313,8 +313,9 @@ public class DefaultRulesEngine implements RulesEngine {
             entityId = context.get("exposure_id", String.class);
         }
         
+        // Use sanitized context to avoid JSONB serialization issues
         Map<String, Object> details = new HashMap<>();
-        details.put("context", context.getAllData());
+        details.put("context", sanitizeContextForLogging(context));
         details.put("rule_logic", rule.getBusinessLogic());
         
         return RuleViolationEntity.builder()
@@ -355,6 +356,9 @@ public class DefaultRulesEngine implements RulesEngine {
         String entityType = context.get("entity_type", String.class);
         String entityId = context.get("entity_id", String.class);
         
+        // Create a sanitized context with only essential data to avoid JSONB serialization issues
+        Map<String, Object> sanitizedContext = sanitizeContextForLogging(context);
+        
         RuleExecutionLogEntity ruleExecLog = RuleExecutionLogEntity.builder()
             .ruleId(rule.getRuleId())
             .entityType(entityType)
@@ -362,11 +366,51 @@ public class DefaultRulesEngine implements RulesEngine {
             .executionResult(result)
             .violationCount(violationCount)
             .executionTimeMs(executionTime)
-            .contextData(context.getAllData())
+            .contextData(sanitizedContext)
             .errorMessage(errorMessage)
             .build();
         
-        return executionLogRepository.save(ruleExecLog);
+        try {
+            return executionLogRepository.save(ruleExecLog);
+        } catch (Exception e) {
+            log.error("Failed to save rule execution log for rule {}: {}", rule.getRuleId(), e.getMessage());
+            // Try again with minimal context
+            ruleExecLog.setContextData(Map.of(
+                "entity_type", entityType != null ? entityType : "UNKNOWN",
+                "entity_id", entityId != null ? entityId : "UNKNOWN"
+            ));
+            try {
+                return executionLogRepository.save(ruleExecLog);
+            } catch (Exception e2) {
+                log.error("Failed to save rule execution log even with minimal context: {}", e2.getMessage());
+                throw new RuntimeException("Unable to log rule execution", e2);
+            }
+        }
+    }
+    
+    /**
+     * Sanitizes context data for logging by keeping only essential fields.
+     * This prevents JSONB serialization issues with large or complex objects.
+     */
+    private Map<String, Object> sanitizeContextForLogging(RuleContext context) {
+        Map<String, Object> sanitized = new HashMap<>();
+        
+        // Include only essential fields that are safe to serialize
+        String[] essentialFields = {
+            "entity_type", "entity_id", "exposure_id", "counterparty_id",
+            "amount", "currency", "country", "product_type", "lei_code",
+            "reference_number", "is_corporate_exposure", "is_term_exposure"
+        };
+        
+        for (String field : essentialFields) {
+            Object value = context.get(field);
+            if (value != null) {
+                // Convert to string to ensure JSON serialization works
+                sanitized.put(field, value.toString());
+            }
+        }
+        
+        return sanitized;
     }
     
     /**
