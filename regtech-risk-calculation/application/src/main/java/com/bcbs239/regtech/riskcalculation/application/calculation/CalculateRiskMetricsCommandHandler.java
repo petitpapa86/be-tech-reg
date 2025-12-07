@@ -7,6 +7,7 @@ import com.bcbs239.regtech.core.domain.shared.dto.BatchDataDTO;
 import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
 import com.bcbs239.regtech.riskcalculation.application.integration.RiskCalculationEventPublisher;
 import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
+import com.bcbs239.regtech.riskcalculation.application.storage.ICalculationResultsStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.classification.ClassifiedExposure;
 import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
@@ -14,9 +15,13 @@ import com.bcbs239.regtech.riskcalculation.domain.classification.ExposureClassif
 import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRecording;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
+import com.bcbs239.regtech.riskcalculation.domain.protection.Mitigation;
+import com.bcbs239.regtech.riskcalculation.domain.protection.MitigationType;
+import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,22 +35,29 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * Command handler for calculating risk metrics.
- * Orchestrates the risk calculation workflow using the new domain-driven architecture.
+ * Orchestrates the risk calculation workflow using the file-first architecture.
  * <p>
  * Workflow:
  * 1. Download exposure data from S3/local filesystem
  * 2. Parse JSON and create ExposureRecording objects
- * 3. Save exposures to database
+ * 3. Create batch record
  * 4. Convert to EUR using exchange rates
  * 5. Classify exposures by region and sector
- * 6. Calculate concentration indices (HHI)
- * 7. Generate portfolio analysis
- * 8. Persist results
- * 9. Publish completion event
+ * 6. Apply mitigations to create ProtectedExposure objects
+ * 7. Calculate concentration indices (HHI)
+ * 8. Generate portfolio analysis
+ * 9. Store complete results to JSON file
+ * 10. Update batch metadata with results URI
+ * 11. Persist optional portfolio summary
+ * 12. Publish completion event
+ * 
+ * Requirements: 1.3, 1.5, 2.3, 2.4, 2.5
  */
 @Component
 @RequiredArgsConstructor
@@ -56,6 +68,7 @@ public class CalculateRiskMetricsCommandHandler {
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
     private final com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository batchRepository;
     private final IFileStorageService fileStorageService;
+    private final ICalculationResultsStorageService calculationResultsStorageService;
     private final ExchangeRateProvider exchangeRateProvider;
     private final RiskCalculationEventPublisher eventPublisher;
     private final ObjectMapper objectMapper;
@@ -147,14 +160,16 @@ public class CalculateRiskMetricsCommandHandler {
                 ));
             }
 
-            // Step 4: Save exposures to database
-            log.info("Saving {} exposures to database", exposures.size());
-            exposureRepository.saveAll(exposures, command.getBatchId());
-            log.info("Successfully saved {} exposures to database", exposures.size());
-
-            // Step 5 & 6: Convert to EUR and classify exposures
+            // Step 4: Convert to EUR, classify exposures, and apply mitigations
+            log.info("Converting {} exposures to EUR and applying mitigations", exposures.size());
             ExposureClassifier classifier = new ExposureClassifier();
-            List<ClassifiedExposure> classifiedExposures = exposures.stream()
+            
+            // Parse mitigations from JSON (map of exposureId -> list of mitigations)
+            java.util.Map<String, List<com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO>> mitigationsByExposure = parseMitigationsFromJson(jsonContent);
+            log.info("Parsed mitigations for {} exposures from JSON", mitigationsByExposure.size());
+            
+            // Create ProtectedExposure objects with mitigations applied
+            List<ProtectedExposure> protectedExposures = exposures.stream()
                     .map(exposure -> {
                         // Convert to EUR using exchange rate provider
                         EurAmount eurAmount;
@@ -172,6 +187,51 @@ public class CalculateRiskMetricsCommandHandler {
                             eurAmount = EurAmount.zero();
                         }
 
+                        // Find mitigations for this exposure
+                        List<Mitigation> exposureMitigations = new ArrayList<>();
+                        List<com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO> exposureMitigationDTOs = 
+                                mitigationsByExposure.getOrDefault(exposure.id().value(), List.of());
+                        
+                        for (com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO mitigationDTO : exposureMitigationDTOs) {
+                            try {
+                                // Convert mitigation to EUR
+                                EurAmount mitigationEur;
+                                if ("EUR".equals(mitigationDTO.currency())) {
+                                    mitigationEur = EurAmount.of(mitigationDTO.value());
+                                } else {
+                                    var rate = exchangeRateProvider.getRate(mitigationDTO.currency(), "EUR");
+                                    BigDecimal eurValue = mitigationDTO.value().multiply(rate.rate());
+                                    mitigationEur = EurAmount.of(eurValue);
+                                }
+                                
+                                // Parse mitigation type
+                                MitigationType mitigationType = MitigationType.valueOf(mitigationDTO.mitigationType());
+                                exposureMitigations.add(Mitigation.reconstitute(mitigationType, mitigationEur));
+                            } catch (Exception e) {
+                                log.warn("Failed to convert mitigation to EUR for exposure {}, skipping", exposure.id(), e);
+                            }
+                        }
+
+                        // Create ProtectedExposure with mitigations
+                        return ProtectedExposure.calculate(
+                                ExposureId.of(exposure.id().value()),
+                                eurAmount,
+                                exposureMitigations
+                        );
+                    })
+                    .collect(Collectors.toList());
+
+            log.info("Created {} protected exposures with mitigations applied", protectedExposures.size());
+
+            // Step 5: Classify exposures for portfolio analysis
+            List<ClassifiedExposure> classifiedExposures = exposures.stream()
+                    .map(exposure -> {
+                        // Find corresponding protected exposure to get EUR amount
+                        ProtectedExposure protectedExposure = protectedExposures.stream()
+                                .filter(pe -> pe.getExposureId().value().equals(exposure.id().value()))
+                                .findFirst()
+                                .orElseThrow(() -> new IllegalStateException("Protected exposure not found"));
+
                         // Classify by region and sector
                         GeographicRegion region = classifier.classifyRegion(
                                 exposure.classification().countryCode()
@@ -182,7 +242,7 @@ public class CalculateRiskMetricsCommandHandler {
 
                         return ClassifiedExposure.of(
                                 exposure.id(),
-                                eurAmount,
+                                protectedExposure.getNetExposure(),
                                 region,
                                 sector
                         );
@@ -191,7 +251,7 @@ public class CalculateRiskMetricsCommandHandler {
 
             log.info("Classified {} exposures", classifiedExposures.size());
 
-            // Step 7 & 8: Analyze portfolio (calculates concentration indices and breakdowns)
+            // Step 6: Analyze portfolio (calculates concentration indices and breakdowns)
             PortfolioAnalysis analysis = PortfolioAnalysis.analyze(
                     command.getBatchId(),
                     classifiedExposures
@@ -200,11 +260,55 @@ public class CalculateRiskMetricsCommandHandler {
             log.info("Portfolio analysis completed - Geographic HHI: {}, Sector HHI: {}",
                     analysis.getGeographicHHI().value(), analysis.getSectorHHI().value());
 
-            // Step 9: Persist results
-            portfolioAnalysisRepository.save(analysis);
+            // Step 7: Build RiskCalculationResult
+            BatchDataDTO batchData = objectMapper.readValue(jsonContent, BatchDataDTO.class);
+            BankInfo bankInfo = batchData.bankInfo() != null 
+                ? BankInfo.fromDTO(batchData.bankInfo())
+                : BankInfo.of("Unknown", "00000", "UNKNOWN");
+            
+            RiskCalculationResult calculationResult = new RiskCalculationResult(
+                    command.getBatchId(),
+                    bankInfo,
+                    protectedExposures,
+                    analysis,
+                    java.time.Instant.now()
+            );
 
-            // Step 10: Mark batch as completed
-            batchRepository.markAsProcessed(command.getBatchId(), java.time.Instant.now());
+            // Step 8: Store calculation results to JSON file
+            log.info("Storing calculation results to file storage for batch: {}", batchId);
+            Result<String> storageResult = calculationResultsStorageService.storeCalculationResults(calculationResult);
+            
+            if (storageResult.isFailure()) {
+                ErrorDetail error = storageResult.getError().orElse(
+                        ErrorDetail.of("STORAGE_FAILED", ErrorType.SYSTEM_ERROR,
+                                "Failed to store calculation results", "calculation.storage.failed")
+                );
+                log.error("Failed to store calculation results for batch: {}", batchId);
+                
+                // Mark batch as failed
+                batchRepository.updateStatus(batchId, "FAILED");
+                
+                // Publish failure event
+                eventPublisher.publishBatchCalculationFailed(
+                        batchId,
+                        command.getBankId(),
+                        "Failed to store calculation results: " + error.getMessage()
+                );
+                
+                return Result.failure(error);
+            }
+
+            String resultsUri = storageResult.getValue().orElseThrow();
+            log.info("Successfully stored calculation results at: {}", resultsUri);
+
+            // Step 9: Update batch metadata with results URI and mark as completed
+            // Requirement 2.5: Update batch status to COMPLETED and store calculation_results_uri
+            batchRepository.markAsCompleted(command.getBatchId(), resultsUri, java.time.Instant.now());
+            log.info("Marked batch as completed with results URI: {}", resultsUri);
+
+            // Step 10: Persist optional portfolio analysis summary
+            portfolioAnalysisRepository.save(analysis);
+            log.info("Persisted portfolio analysis summary");
 
             log.info("Risk metrics calculation completed successfully for batch: {}",
                     batchId);
@@ -213,11 +317,11 @@ public class CalculateRiskMetricsCommandHandler {
             eventPublisher.publishBatchCalculationCompleted(
                     batchId,
                     command.getBankId(),
-                    classifiedExposures.size()
+                    protectedExposures.size()
             );
 
             // Record batch success with exposure count
-            performanceMetrics.recordBatchSuccess(batchId, classifiedExposures.size());
+            performanceMetrics.recordBatchSuccess(batchId, protectedExposures.size());
 
             return Result.success();
 
@@ -331,5 +435,43 @@ public class CalculateRiskMetricsCommandHandler {
         }
 
         return exposures;
+    }
+
+    /**
+     * Parses mitigation data from JSON content using BatchDataDTO.
+     * Returns a map of exposureId -> list of mitigations for that exposure.
+     * 
+     * @param jsonContent The JSON content containing batch data
+     * @return Map of exposure ID to list of mitigation DTOs
+     * @throws JsonProcessingException if JSON deserialization fails
+     */
+    private Map<String, List<com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO>> parseMitigationsFromJson(String jsonContent) throws JsonProcessingException {
+        try {
+            // Deserialize JSON to BatchDataDTO
+            BatchDataDTO batchData = objectMapper.readValue(jsonContent, BatchDataDTO.class);
+            
+            if (batchData == null || batchData.creditRiskMitigation() == null) {
+                log.info("No credit risk mitigation data found in batch");
+                return Map.of();
+            }
+            
+            log.info("Deserializing {} mitigations from BatchDataDTO", batchData.creditRiskMitigation().size());
+            
+            // Group mitigations by exposure ID
+            Map<String, List<com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO>> mitigationsByExposure = 
+                    batchData.creditRiskMitigation().stream()
+                            .collect(Collectors.groupingBy(com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO::exposureId));
+            
+            log.info("Successfully grouped mitigations for {} exposures", mitigationsByExposure.size());
+            
+            return mitigationsByExposure;
+            
+        } catch (JsonProcessingException e) {
+            log.error("Failed to deserialize JSON to BatchDataDTO for mitigations: {}", e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error parsing mitigations from JSON: {}", e.getMessage(), e);
+            throw new JsonProcessingException("Unexpected error during mitigation parsing: " + e.getMessage(), e) {};
+        }
     }
 }

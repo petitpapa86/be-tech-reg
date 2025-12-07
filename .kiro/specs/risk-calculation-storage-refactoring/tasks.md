@@ -53,6 +53,7 @@
 
 
 
+
   - Create ICalculationResultsStorageService interface in domain layer
   - Add storeCalculationResults(RiskCalculationResult) method returning Result<String>
   - Add retrieveCalculationResults(String batchId) method returning Result<RiskCalculationResult>
@@ -71,7 +72,12 @@
   - **Property 10: Historical Data Retrieval**
   - **Validates: Requirements 8.3**
 
-- [ ] 5. Update CalculateRiskMetricsCommandHandler to use file storage
+- [x] 5. Update CalculateRiskMetricsCommandHandler to use file storage
+
+
+
+
+
   - Inject ICalculationResultsStorageService
   - After calculation completes, call storeCalculationResults()
   - Store returned URI in batch metadata via BatchRepository
