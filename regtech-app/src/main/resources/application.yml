@@ -41,6 +41,7 @@ spring:
       - iam
       - billing
       - ingestion
+      - risk-calculation
       - report-generation
   
   mvc:

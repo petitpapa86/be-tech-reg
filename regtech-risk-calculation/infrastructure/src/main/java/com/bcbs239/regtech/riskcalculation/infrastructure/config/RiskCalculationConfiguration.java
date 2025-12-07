@@ -34,6 +34,10 @@ import java.util.concurrent.Executor;
 @EnableConfigurationProperties({RiskCalculationProperties.class, CurrencyApiProperties.class})
 @EntityScan(basePackages = "com.bcbs239.regtech.riskcalculation.infrastructure.database.entities")
 @EnableJpaRepositories(basePackages = "com.bcbs239.regtech.riskcalculation.infrastructure.database.repositories")
+@org.springframework.context.annotation.ComponentScan(basePackages = {
+    "com.bcbs239.regtech.riskcalculation.application",
+    "com.bcbs239.regtech.riskcalculation.infrastructure"
+})
 public class RiskCalculationConfiguration {
 
     private final CurrencyApiProperties currencyApiProperties;

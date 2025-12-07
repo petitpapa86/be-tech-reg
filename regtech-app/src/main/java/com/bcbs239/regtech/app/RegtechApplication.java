@@ -48,7 +48,9 @@ import org.springframework.scheduling.annotation.EnableAsync;
         "com.bcbs239.regtech.iam",
         "com.bcbs239.regtech.billing",
         "com.bcbs239.regtech.ingestion.infrastructure.configuration",
-        "com.bcbs239.regtech.dataquality"
+        "com.bcbs239.regtech.dataquality",
+        "com.bcbs239.regtech.riskcalculation",
+        "com.bcbs239.regtech.reportgeneration"
         // Ensure module presentation packages are scanned so functional RouterFunction beans are registered
 }, excludeFilters = {
 })
