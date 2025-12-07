@@ -124,7 +124,12 @@
   - Add deprecation warnings in method documentation
   - _Requirements: 5.1, 5.5_
 
-- [ ] 8. Deprecate MitigationRepository database persistence methods
+- [x] 8. Deprecate MitigationRepository database persistence methods
+
+
+
+
+
   - Mark save() and saveAll() methods as @Deprecated in MitigationRepository
   - Add loadFromJson(String jsonContent) method to MitigationRepository
   - Update JpaMitigationRepository to implement loadFromJson()
