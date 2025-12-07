@@ -135,8 +135,13 @@
   - Update JpaMitigationRepository to implement loadFromJson()
   - Add deprecation warnings in method documentation
   - _Requirements: 5.2, 5.5_
+ther 
+- [x] 9. Update ExposureQueryService to use JSON file retrieval
 
-- [ ] 9. Update ExposureQueryService to use JSON file retrieval
+
+
+
+
   - Inject ICalculationResultsStorageService
   - Update findByBatchId() to retrieve JSON file and parse exposures
   - Ensure no database queries to exposures table
@@ -150,7 +155,11 @@
   - **Property 13: Detailed Query File-Based**
   - **Validates: Requirements 9.3**
 
-- [ ] 10. Verify status queries use database only
+- [x] 10. Verify status queries use database only
+
+
+
+
   - Review BatchStatusQueryService implementation
   - Ensure no file I/O operations during status queries
   - Verify queries use only database metadata

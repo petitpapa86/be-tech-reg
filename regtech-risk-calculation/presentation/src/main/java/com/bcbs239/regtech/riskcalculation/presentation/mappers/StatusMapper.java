@@ -23,13 +23,11 @@ public class StatusMapper {
     }
     
     /**
-     * Converts a PortfolioAnalysis to BatchStatusResponseDTO.
+     * Converts a PortfolioAnalysis to BatchStatusResponseDTO using only database metadata.
      * 
      * @param batchId the batch identifier
      * @param portfolioAnalysis the portfolio analysis (may be null if not yet created)
-     * @param hasClassifiedExposures whether classified exposures exist
-     * @param hasProtectedExposures whether protected exposures exist
-     * @param totalExposures total number of exposures
+     * @param hasResults whether calculation results are available (based on completion status)
      * @param errorMessage error message if processing failed
      * @return the batch status DTO
      * @throws MappingException if batchId is null
@@ -37,9 +35,7 @@ public class StatusMapper {
     public BatchStatusResponseDTO toBatchStatusDTO(
         String batchId,
         PortfolioAnalysis portfolioAnalysis,
-        boolean hasClassifiedExposures,
-        boolean hasProtectedExposures,
-        Integer totalExposures,
+        boolean hasResults,
         String errorMessage
     ) {
         if (batchId == null || batchId.trim().isEmpty()) {
@@ -66,14 +62,42 @@ public class StatusMapper {
                 .processingTimestamps(timestampsDTO)
                 .hasPortfolioAnalysis(portfolioAnalysis != null && 
                     portfolioAnalysis.getState() == ProcessingState.COMPLETED)
-                .hasClassifiedExposures(hasClassifiedExposures)
-                .hasProtectedExposures(hasProtectedExposures)
-                .totalExposures(totalExposures)
+                .hasClassifiedExposures(hasResults)  // Results available when calculation completes
+                .hasProtectedExposures(hasResults)   // Results available when calculation completes
+                .totalExposures(portfolioAnalysis != null ? portfolioAnalysis.getTotalExposures() : null)
                 .errorMessage(errorMessage)
                 .build();
         } catch (Exception e) {
             throw new MappingException("Failed to map batch status to DTO: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * Converts a PortfolioAnalysis to BatchStatusResponseDTO using only database metadata.
+     * Deprecated method signature for backward compatibility.
+     * 
+     * @param batchId the batch identifier
+     * @param portfolioAnalysis the portfolio analysis (may be null if not yet created)
+     * @param hasClassifiedExposures whether classified exposures exist
+     * @param hasProtectedExposures whether protected exposures exist
+     * @param totalExposures total number of exposures
+     * @param errorMessage error message if processing failed
+     * @return the batch status DTO
+     * @throws MappingException if batchId is null
+     * @deprecated Use {@link #toBatchStatusDTO(String, PortfolioAnalysis, boolean, String)} instead
+     */
+    @Deprecated
+    public BatchStatusResponseDTO toBatchStatusDTO(
+        String batchId,
+        PortfolioAnalysis portfolioAnalysis,
+        boolean hasClassifiedExposures,
+        boolean hasProtectedExposures,
+        Integer totalExposures,
+        String errorMessage
+    ) {
+        // Delegate to new method - assume results available if exposures exist
+        boolean hasResults = hasClassifiedExposures || hasProtectedExposures;
+        return toBatchStatusDTO(batchId, portfolioAnalysis, hasResults, errorMessage);
     }
     
     /**

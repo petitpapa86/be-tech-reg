@@ -2,8 +2,7 @@ package com.bcbs239.regtech.riskcalculation.presentation.services;
 
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.ProcessingState;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.MitigationRepository;
+import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.BatchStatusResponseDTO;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.ProcessingProgressDTO;
@@ -19,59 +18,60 @@ import java.util.Optional;
  * Query service for retrieving batch status and progress information.
  * Provides read-only access to batch processing state and progress.
  * 
- * Requirements: 2.1, 2.3, 2.4
+ * This service uses ONLY database metadata for status queries (no file I/O).
+ * Detailed exposure data is accessed through separate services that use JSON files.
+ * 
+ * Requirements: 2.1, 9.1
  */
 @Service
 @Transactional(readOnly = true)
 public class BatchStatusQueryService {
     
+    private final BatchRepository batchRepository;
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
-    private final ExposureRepository exposureRepository;
-    private final MitigationRepository mitigationRepository;
     private final StatusMapper statusMapper;
     private final PortfolioAnalysisMapper portfolioAnalysisMapper;
     
     public BatchStatusQueryService(
+        BatchRepository batchRepository,
         PortfolioAnalysisRepository portfolioAnalysisRepository,
-        ExposureRepository exposureRepository,
-        MitigationRepository mitigationRepository,
         StatusMapper statusMapper,
         PortfolioAnalysisMapper portfolioAnalysisMapper
     ) {
+        this.batchRepository = batchRepository;
         this.portfolioAnalysisRepository = portfolioAnalysisRepository;
-        this.exposureRepository = exposureRepository;
-        this.mitigationRepository = mitigationRepository;
         this.statusMapper = statusMapper;
         this.portfolioAnalysisMapper = portfolioAnalysisMapper;
     }
     
     /**
-     * Retrieves the status of a batch including available results.
+     * Retrieves the status of a batch using only database metadata.
+     * Does NOT access JSON files - uses only batch metadata and portfolio analysis tables.
+     * 
+     * Requirement 9.1: Status queries use database only (no file access)
      * 
      * @param batchId the batch identifier
      * @return Optional containing the batch status DTO if found
      */
     public Optional<BatchStatusResponseDTO> getBatchStatus(String batchId) {
+        // Check if batch exists using database metadata only
+        if (!batchRepository.exists(batchId)) {
+            return Optional.empty();
+        }
+        
+        // Get portfolio analysis if available (database query only)
         Optional<PortfolioAnalysis> analysisOpt = portfolioAnalysisRepository.findByBatchId(batchId);
         
         if (analysisOpt.isEmpty()) {
-            // No analysis exists yet - check if exposures exist
-            int exposureCount = exposureRepository.findByBatchId(batchId).size();
-            if (exposureCount == 0) {
-                // Batch doesn't exist
-                return Optional.empty();
-            }
-            
             // Batch exists but analysis not started
             return Optional.of(statusMapper.toPendingBatchStatusDTO(batchId));
         }
         
         PortfolioAnalysis analysis = analysisOpt.get();
         
-        // Check for available results
-        boolean hasClassifiedExposures = !exposureRepository.findByBatchId(batchId).isEmpty();
-        boolean hasProtectedExposures = !mitigationRepository.findByBatchId(batchId).isEmpty();
-        int totalExposures = exposureRepository.findByBatchId(batchId).size();
+        // Determine if results are available based on completion status
+        // Results are available when calculation completes successfully
+        boolean hasResults = analysis.getState() == ProcessingState.COMPLETED;
         
         String errorMessage = null;
         if (analysis.getState() == ProcessingState.FAILED) {
@@ -81,9 +81,7 @@ public class BatchStatusQueryService {
         return Optional.of(statusMapper.toBatchStatusDTO(
             batchId,
             analysis,
-            hasClassifiedExposures,
-            hasProtectedExposures,
-            totalExposures,
+            hasResults,
             errorMessage
         ));
     }
@@ -101,15 +99,14 @@ public class BatchStatusQueryService {
     }
     
     /**
-     * Checks if a batch exists in the system.
+     * Checks if a batch exists in the system using only database metadata.
      * 
      * @param batchId the batch identifier
      * @return true if the batch exists, false otherwise
      */
     public boolean batchExists(String batchId) {
-        // A batch exists if it has either a portfolio analysis or exposures
-        return portfolioAnalysisRepository.findByBatchId(batchId).isPresent() ||
-               !exposureRepository.findByBatchId(batchId).isEmpty();
+        // Use batch repository for existence check - database only, no file I/O
+        return batchRepository.exists(batchId);
     }
     
     /**
