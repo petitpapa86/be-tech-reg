@@ -3,13 +3,9 @@ package com.bcbs239.regtech.riskcalculation.infrastructure.filestorage;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.application.calculation.CalculationResultsDeserializationException;
-import com.bcbs239.regtech.riskcalculation.application.calculation.CalculationResultsJsonSerializer;
-import com.bcbs239.regtech.riskcalculation.application.calculation.CalculationResultsSerializationException;
-import com.bcbs239.regtech.riskcalculation.application.calculation.RiskCalculationResult;
-import com.bcbs239.regtech.riskcalculation.application.storage.ICalculationResultsStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
+import com.bcbs239.regtech.riskcalculation.domain.storage.ICalculationResultsStorageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +18,7 @@ import java.util.Optional;
 
 /**
  * Implementation of calculation results storage service.
- * Orchestrates JSON serialization, file storage, and URI management.
+ * Orchestrates file storage and URI management for calculation results.
  * 
  * Requirements: 1.3, 1.4, 4.3, 8.3
  */
@@ -31,7 +27,6 @@ import java.util.Optional;
 @Slf4j
 public class CalculationResultsStorageServiceImpl implements ICalculationResultsStorageService {
     
-    private final CalculationResultsJsonSerializer jsonSerializer;
     private final IFileStorageService fileStorageService;
     private final BatchRepository batchRepository;
     private final ObjectMapper objectMapper;
@@ -44,32 +39,17 @@ public class CalculationResultsStorageServiceImpl implements ICalculationResults
      * Requirement 1.3: Use File_Storage_Service to store the JSON file
      * Requirement 1.4: Return Calculation_Results_URI (S3 URI or filesystem path)
      * 
-     * @param result The risk calculation result to store
+     * @param jsonContent The serialized JSON content to store
+     * @param batchId The batch identifier for file naming
      * @return Result containing the storage URI or error
      */
     @Override
-    public Result<String> storeCalculationResults(RiskCalculationResult result) {
-        String batchId = result.batchId();
-        
+    public Result<String> storeCalculationResults(String jsonContent, String batchId) {
         try {
             log.info("Storing calculation results [batchId:{}]", batchId);
             
             // Generate file name: risk_calc_{batchId}_{timestamp}.json
-            String fileName = generateFileName(batchId, result.ingestedAt());
-            
-            // Serialize to JSON
-            String jsonContent;
-            try {
-                jsonContent = jsonSerializer.serialize(result);
-            } catch (CalculationResultsSerializationException e) {
-                log.error("Failed to serialize calculation results [batchId:{}]", batchId, e);
-                return Result.failure(ErrorDetail.of(
-                    "SERIALIZATION_ERROR",
-                    ErrorType.SYSTEM_ERROR,
-                    "Failed to serialize calculation results: " + e.getMessage(),
-                    "calculation.results.serialization.error"
-                ));
-            }
+            String fileName = generateFileName(batchId, Instant.now());
             
             // Store file using file storage service
             Result<String> storageResult = fileStorageService.storeFile(fileName, jsonContent);
@@ -99,18 +79,18 @@ public class CalculationResultsStorageServiceImpl implements ICalculationResults
     }
     
     /**
-     * Retrieves calculation results by batch ID.
+     * Retrieves calculation results JSON by batch ID.
      * 
      * Requirement 4.3: Download and return complete calculation results
      * Requirement 8.3: Retrieve JSON files by batch_id for historical data access
      * 
      * @param batchId The batch identifier
-     * @return Result containing the deserialized calculation result or error
+     * @return Result containing the JSON content or error
      */
     @Override
-    public Result<RiskCalculationResult> retrieveCalculationResults(String batchId) {
+    public Result<String> retrieveCalculationResultsJson(String batchId) {
         try {
-            log.info("Retrieving calculation results [batchId:{}]", batchId);
+            log.info("Retrieving calculation results JSON [batchId:{}]", batchId);
             
             // Look up storage URI from database
             Optional<String> uriOptional = batchRepository.getCalculationResultsUri(batchId);
@@ -119,7 +99,7 @@ public class CalculationResultsStorageServiceImpl implements ICalculationResults
                 log.error("No calculation results URI found for batch [batchId:{}]", batchId);
                 return Result.failure(ErrorDetail.of(
                     "URI_NOT_FOUND",
-                    ErrorType.NOT_FOUND,
+                    ErrorType.NOT_FOUND_ERROR,
                     "No calculation results URI found for batch: " + batchId,
                     "calculation.results.uri.not.found"
                 ));
@@ -133,28 +113,12 @@ public class CalculationResultsStorageServiceImpl implements ICalculationResults
             if (downloadResult.isFailure()) {
                 log.error("Failed to download calculation results file [batchId:{},uri:{}]", 
                     batchId, storageUri);
-                return Result.failure(downloadResult.errors());
+                return downloadResult;
             }
             
-            String jsonContent = downloadResult.value();
+            log.info("Successfully retrieved calculation results JSON [batchId:{}]", batchId);
             
-            // Deserialize JSON to RiskCalculationResult
-            try {
-                RiskCalculationResult result = jsonSerializer.deserialize(jsonContent);
-                
-                log.info("Successfully retrieved calculation results [batchId:{}]", batchId);
-                
-                return Result.success(result);
-                
-            } catch (CalculationResultsDeserializationException e) {
-                log.error("Failed to deserialize calculation results [batchId:{}]", batchId, e);
-                return Result.failure(ErrorDetail.of(
-                    "DESERIALIZATION_ERROR",
-                    ErrorType.SYSTEM_ERROR,
-                    "Failed to deserialize calculation results: " + e.getMessage(),
-                    "calculation.results.deserialization.error"
-                ));
-            }
+            return downloadResult;
             
         } catch (Exception e) {
             log.error("Unexpected error retrieving calculation results [batchId:{}]", batchId, e);
@@ -188,7 +152,7 @@ public class CalculationResultsStorageServiceImpl implements ICalculationResults
                 log.error("No calculation results URI found for batch [batchId:{}]", batchId);
                 return Result.failure(ErrorDetail.of(
                     "URI_NOT_FOUND",
-                    ErrorType.NOT_FOUND,
+                    ErrorType.NOT_FOUND_ERROR,
                     "No calculation results URI found for batch: " + batchId,
                     "calculation.results.uri.not.found"
                 ));

@@ -92,21 +92,53 @@ public class CalculateRiskMetricsCommandHandler {
 
         try {
             // Step 1: Download exposure data from S3/local filesystem
+            // Requirement 7.3: Handle FileNotFoundException on download failures
             log.info("Downloading exposure data from: {}", command.getS3Uri());
-            Result<String> downloadResult = fileStorageService.retrieveFile(command.getS3Uri());
+            String jsonContent;
+            
+            try {
+                Result<String> downloadResult = fileStorageService.retrieveFile(command.getS3Uri());
 
-            if (downloadResult.isFailure()) {
-                ErrorDetail error = downloadResult.getError().orElse(
-                        ErrorDetail.of("FILE_DOWNLOAD_FAILED", ErrorType.SYSTEM_ERROR,
-                                "Failed to download exposure data", "calculation.file.download.failed")
+                if (downloadResult.isFailure()) {
+                    ErrorDetail error = downloadResult.getError().orElse(
+                            ErrorDetail.of("FILE_DOWNLOAD_FAILED", ErrorType.SYSTEM_ERROR,
+                                    "Failed to download exposure data", "calculation.file.download.failed")
+                    );
+                    
+                    // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
+                    eventPublisher.publishBatchCalculationFailed(
+                            batchId,
+                            command.getBankId(),
+                            "File download failed: " + error.getMessage()
+                    );
+                    
+                    return Result.failure(error);
+                }
+
+                jsonContent = downloadResult.getValue().orElse("");
+                log.info("Downloaded exposure data, size: {} bytes", jsonContent.length());
+                
+            } catch (com.bcbs239.regtech.riskcalculation.domain.storage.FileNotFoundException e) {
+                // Requirement 7.3: Handle FileNotFoundException on download failures
+                log.error("File not found for batch: {}, URI: {}", batchId, command.getS3Uri(), e);
+                
+                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
+                eventPublisher.publishBatchCalculationFailed(
+                        batchId,
+                        command.getBankId(),
+                        "File not found: " + e.getMessage()
                 );
-                return Result.failure(error);
+                
+                return Result.failure(ErrorDetail.of(
+                        "FILE_NOT_FOUND",
+                        ErrorType.SYSTEM_ERROR,
+                        "Exposure data file not found: " + e.getMessage(),
+                        "calculation.file.not.found"
+                ));
             }
 
-            String jsonContent = downloadResult.getValue().orElse("");
-            log.info("Downloaded exposure data, size: {} bytes", jsonContent.length());
-
             // Step 2: Parse JSON and create ExposureRecording objects using BatchDataDTO
+            // Requirement 7.4: Handle CalculationResultsDeserializationException
             log.info("Deserializing batch data from JSON to BatchDataDTO");
             List<ExposureRecording> exposures;
             
@@ -114,10 +146,35 @@ public class CalculateRiskMetricsCommandHandler {
                 exposures = parseExposuresFromJson(jsonContent);
             } catch (JsonProcessingException e) {
                 log.error("Failed to deserialize batch data for batch: {}", batchId, e);
+                
+                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
+                eventPublisher.publishBatchCalculationFailed(
+                        batchId,
+                        command.getBankId(),
+                        "Deserialization failed: " + e.getMessage()
+                );
+                
                 return Result.failure(ErrorDetail.of(
                     "DESERIALIZATION_FAILED", 
                     ErrorType.SYSTEM_ERROR,
                     "Failed to deserialize batch data from JSON: " + e.getMessage(), 
+                    "calculation.deserialization.failed"
+                ));
+            } catch (CalculationResultsDeserializationException e) {
+                // Requirement 7.4: Handle CalculationResultsDeserializationException
+                log.error("Deserialization exception for batch: {}", batchId, e);
+                
+                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
+                eventPublisher.publishBatchCalculationFailed(
+                        batchId,
+                        command.getBankId(),
+                        "Deserialization failed: " + e.getMessage()
+                );
+                
+                return Result.failure(ErrorDetail.of(
+                    "DESERIALIZATION_FAILED", 
+                    ErrorType.SYSTEM_ERROR,
+                    "Failed to deserialize calculation results: " + e.getMessage(), 
                     "calculation.deserialization.failed"
                 ));
             }
@@ -275,31 +332,78 @@ public class CalculateRiskMetricsCommandHandler {
             );
 
             // Step 8: Store calculation results to JSON file
+            // Requirement 7.1, 7.2, 7.5: Handle serialization and storage errors
             log.info("Storing calculation results to file storage for batch: {}", batchId);
-            Result<String> storageResult = calculationResultsStorageService.storeCalculationResults(calculationResult);
+            String resultsUri;
             
-            if (storageResult.isFailure()) {
-                ErrorDetail error = storageResult.getError().orElse(
-                        ErrorDetail.of("STORAGE_FAILED", ErrorType.SYSTEM_ERROR,
-                                "Failed to store calculation results", "calculation.storage.failed")
-                );
-                log.error("Failed to store calculation results for batch: {}", batchId);
+            try {
+                Result<String> storageResult = calculationResultsStorageService.storeCalculationResults(calculationResult);
+                
+                if (storageResult.isFailure()) {
+                    ErrorDetail error = storageResult.getError().orElse(
+                            ErrorDetail.of("STORAGE_FAILED", ErrorType.SYSTEM_ERROR,
+                                    "Failed to store calculation results", "calculation.storage.failed")
+                    );
+                    log.error("Failed to store calculation results for batch: {}", batchId);
+                    
+                    // Mark batch as failed
+                    batchRepository.updateStatus(batchId, "FAILED");
+                    
+                    // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
+                    eventPublisher.publishBatchCalculationFailed(
+                            batchId,
+                            command.getBankId(),
+                            "Failed to store calculation results: " + error.getMessage()
+                    );
+                    
+                    return Result.failure(error);
+                }
+
+                resultsUri = storageResult.getValue().orElseThrow();
+                log.info("Successfully stored calculation results at: {}", resultsUri);
+                
+            } catch (CalculationResultsSerializationException e) {
+                // Requirement 7.1: Handle CalculationResultsSerializationException
+                log.error("Serialization failed for batch: {}", batchId, e);
                 
                 // Mark batch as failed
                 batchRepository.updateStatus(batchId, "FAILED");
                 
-                // Publish failure event
+                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
                 eventPublisher.publishBatchCalculationFailed(
                         batchId,
                         command.getBankId(),
-                        "Failed to store calculation results: " + error.getMessage()
+                        "Serialization failed: " + e.getMessage()
                 );
                 
-                return Result.failure(error);
+                return Result.failure(ErrorDetail.of(
+                        "SERIALIZATION_FAILED",
+                        ErrorType.SYSTEM_ERROR,
+                        "Failed to serialize calculation results: " + e.getMessage(),
+                        "calculation.serialization.failed"
+                ));
+                
+            } catch (com.bcbs239.regtech.riskcalculation.domain.storage.FileStorageException e) {
+                // Requirement 7.2: Handle FileStorageException on upload failures
+                log.error("File storage failed for batch: {}", batchId, e);
+                
+                // Mark batch as failed
+                batchRepository.updateStatus(batchId, "FAILED");
+                
+                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
+                eventPublisher.publishBatchCalculationFailed(
+                        batchId,
+                        command.getBankId(),
+                        "File storage failed: " + e.getMessage()
+                );
+                
+                return Result.failure(ErrorDetail.of(
+                        "FILE_STORAGE_FAILED",
+                        ErrorType.SYSTEM_ERROR,
+                        "Failed to store file: " + e.getMessage(),
+                        "calculation.file.storage.failed"
+                ));
             }
-
-            String resultsUri = storageResult.getValue().orElseThrow();
-            log.info("Successfully stored calculation results at: {}", resultsUri);
 
             // Step 9: Update batch metadata with results URI and mark as completed
             // Requirement 2.5: Update batch status to COMPLETED and store calculation_results_uri
