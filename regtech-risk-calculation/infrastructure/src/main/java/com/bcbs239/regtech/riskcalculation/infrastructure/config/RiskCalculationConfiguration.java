@@ -1,6 +1,11 @@
 package com.bcbs239.regtech.riskcalculation.infrastructure.config;
 
+import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
+import com.bcbs239.regtech.riskcalculation.infrastructure.external.CurrencyApiExchangeRateProvider;
 import com.bcbs239.regtech.riskcalculation.infrastructure.external.CurrencyApiProperties;
+import com.bcbs239.regtech.riskcalculation.infrastructure.external.MockExchangeRateProvider;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.Bean;
@@ -38,12 +43,33 @@ import java.util.concurrent.Executor;
     "com.bcbs239.regtech.riskcalculation.application",
     "com.bcbs239.regtech.riskcalculation.infrastructure"
 })
+@Slf4j
 public class RiskCalculationConfiguration {
 
     private final CurrencyApiProperties currencyApiProperties;
+    private final RiskCalculationProperties riskCalculationProperties;
 
-    public RiskCalculationConfiguration(CurrencyApiProperties currencyApiProperties) {
+    public RiskCalculationConfiguration(
+            CurrencyApiProperties currencyApiProperties,
+            RiskCalculationProperties riskCalculationProperties) {
         this.currencyApiProperties = currencyApiProperties;
+        this.riskCalculationProperties = riskCalculationProperties;
+    }
+
+    /**
+     * Exchange rate provider bean - conditionally creates mock or real provider
+     * based on configuration
+     * Requirement 2.1: Configure exchange rate provider
+     */
+    @Bean
+    public ExchangeRateProvider exchangeRateProvider(HttpClient httpClient, ObjectMapper objectMapper) {
+        if (riskCalculationProperties.getCurrency().getProvider().isMockEnabled()) {
+            log.info("Using MockExchangeRateProvider for development");
+            return new MockExchangeRateProvider();
+        } else {
+            log.info("Using CurrencyApiExchangeRateProvider for production");
+            return new CurrencyApiExchangeRateProvider(currencyApiProperties, httpClient, objectMapper);
+        }
     }
 
     /**

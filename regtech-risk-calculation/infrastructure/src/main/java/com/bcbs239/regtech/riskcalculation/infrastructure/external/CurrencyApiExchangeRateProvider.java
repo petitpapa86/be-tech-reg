@@ -34,7 +34,6 @@ import java.util.Map;
  * 
  * Requirements: 2.1, 2.5
  */
-@Component
 @RequiredArgsConstructor
 @Slf4j
 public class CurrencyApiExchangeRateProvider implements ExchangeRateProvider {
