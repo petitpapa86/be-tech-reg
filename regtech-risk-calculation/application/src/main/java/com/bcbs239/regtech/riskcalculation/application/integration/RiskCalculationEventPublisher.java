@@ -42,24 +42,26 @@ public class RiskCalculationEventPublisher {
      * @param batchId The batch ID
      * @param bankId The bank ID
      * @param totalExposures Total number of exposures
+     * @param calculationResultsUri The URI where calculation results are stored
      */
-    public void publishBatchCalculationCompleted(String batchId, String bankId, int totalExposures) {
-        log.info("Publishing BatchCalculationCompletedEvent for batch: {}", batchId);
+    public void publishBatchCalculationCompleted(String batchId, String bankId, int totalExposures, String calculationResultsUri) {
+        log.info("Publishing BatchCalculationCompletedEvent for batch: {} with results URI: {}", batchId, calculationResultsUri);
         
         try {
-            // Create domain event
+            // Create domain event with calculation results URI
+            // Requirement 4.1: Include calculation_results_uri in event
             BatchCalculationCompletedEvent domainEvent = new BatchCalculationCompletedEvent(
                 batchId,
                 bankId,
                 totalExposures,
                 0.0, // Total amount will be calculated from analysis
-                "" // Result file URI will be set later
+                calculationResultsUri
             );
             
             // Publish the domain event
             eventPublisher.publishEvent(domainEvent);
             
-            log.info("Successfully published BatchCalculationCompletedEvent for batch: {}", batchId);
+            log.info("Successfully published BatchCalculationCompletedEvent for batch: {} with URI: {}", batchId, calculationResultsUri);
             
         } catch (Exception e) {
             log.error("Failed to publish BatchCalculationCompletedEvent for batch: {}", batchId, e);
@@ -81,6 +83,7 @@ public class RiskCalculationEventPublisher {
         try {
             // Create integration event with essential data only
             // Detailed results are available in S3/filesystem via resultFileUri
+            // Requirement 4.1: Include calculation_results_uri in event
             BatchCalculationCompletedIntegrationEvent integrationEvent = 
                 new BatchCalculationCompletedIntegrationEvent(
                     domainEvent.getBatchId(),

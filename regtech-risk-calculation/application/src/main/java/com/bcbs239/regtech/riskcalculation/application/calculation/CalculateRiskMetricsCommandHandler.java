@@ -313,11 +313,13 @@ public class CalculateRiskMetricsCommandHandler {
             log.info("Risk metrics calculation completed successfully for batch: {}",
                     batchId);
 
-            // Step 11: Publish success event
+            // Step 11: Publish success event with calculation results URI
+            // Requirement 4.1: Include calculation_results_uri in BatchCalculationCompletedEvent
             eventPublisher.publishBatchCalculationCompleted(
                     batchId,
                     command.getBankId(),
-                    protectedExposures.size()
+                    protectedExposures.size(),
+                    resultsUri
             );
 
             // Record batch success with exposure count

@@ -98,7 +98,12 @@
   - **Property 4: Database Mitigation Exclusion**
   - **Validates: Requirements 2.4**
 
-- [ ] 6. Update BatchCalculationCompletedEvent to include URI
+- [x] 6. Update BatchCalculationCompletedEvent to include URI
+
+
+
+
+
   - Add calculationResultsUri field to BatchCalculationCompletedEvent
   - Update RiskCalculationEventPublisher to include URI in event
   - _Requirements: 4.1_
