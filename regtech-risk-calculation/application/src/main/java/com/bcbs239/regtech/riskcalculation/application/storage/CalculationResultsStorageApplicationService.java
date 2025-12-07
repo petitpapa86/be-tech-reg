@@ -18,7 +18,10 @@ import org.springframework.stereotype.Service;
  * 1. Serialization of RiskCalculationResult to JSON (application concern)
  * 2. Storage of JSON to files (domain concern via domain service)
  * 
- * Requirements: 1.3, 1.4, 4.3, 8.3
+ * The domain storage service enforces immutability by preventing overwrites
+ * of existing calculation results.
+ * 
+ * Requirements: 1.3, 1.4, 4.3, 8.1, 8.3, 8.4
  */
 @Service
 @RequiredArgsConstructor
@@ -31,12 +34,18 @@ public class CalculationResultsStorageApplicationService implements ICalculation
     /**
      * Stores complete calculation results to file storage.
      * Serializes the result to JSON and stores it using the domain storage service.
+     * The domain service enforces immutability and will throw an exception if
+     * results already exist for the batch.
      * 
      * Requirement 1.3: Use File_Storage_Service to store the JSON file
      * Requirement 1.4: Return Calculation_Results_URI (S3 URI or filesystem path)
+     * Requirement 8.1: Ensure JSON files are immutable (write-once)
+     * Requirement 8.4: Do not modify or overwrite existing JSON files
      * 
      * @param result The risk calculation result to store
      * @return Result containing the storage URI or error
+     * @throws com.bcbs239.regtech.riskcalculation.domain.storage.CalculationResultsImmutabilityException 
+     *         if results already exist for this batch
      */
     @Override
     public Result<String> storeCalculationResults(RiskCalculationResult result) {

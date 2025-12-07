@@ -201,7 +201,11 @@ ther
   - **Property 15: Error Event Publishing**
   - **Validates: Requirements 7.5**
 
-- [ ] 13. Implement JSON file immutability checks
+- [x] 13. Implement JSON file immutability checks
+
+
+
+
   - Update ICalculationResultsStorageService to prevent overwrites
   - Check if file exists before storing
   - Throw exception or create versioned file if batch_id already has results
@@ -212,6 +216,8 @@ ther
   - **Validates: Requirements 8.1, 8.4**
 
 - [ ] 14. Update integration tests for file-first architecture
+
+
   - Update IngestionToRiskCalculationIntegrationTest to verify JSON file creation
   - Verify batch metadata includes calculation_results_uri
   - Verify exposures and mitigations tables remain empty

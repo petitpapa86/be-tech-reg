@@ -333,6 +333,7 @@ public class CalculateRiskMetricsCommandHandler {
 
             // Step 8: Store calculation results to JSON file
             // Requirement 7.1, 7.2, 7.5: Handle serialization and storage errors
+            // Requirement 8.1, 8.4: Enforce immutability by preventing overwrites
             log.info("Storing calculation results to file storage for batch: {}", batchId);
             String resultsUri;
             
@@ -361,6 +362,28 @@ public class CalculateRiskMetricsCommandHandler {
 
                 resultsUri = storageResult.getValue().orElseThrow();
                 log.info("Successfully stored calculation results at: {}", resultsUri);
+                
+            } catch (com.bcbs239.regtech.riskcalculation.domain.storage.CalculationResultsImmutabilityException e) {
+                // Requirement 8.1, 8.4: Handle immutability violations
+                log.error("Immutability violation: Calculation results already exist for batch: {} at URI: {}", 
+                        batchId, e.getExistingUri(), e);
+                
+                // Mark batch as failed
+                batchRepository.updateStatus(batchId, "FAILED");
+                
+                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
+                eventPublisher.publishBatchCalculationFailed(
+                        batchId,
+                        command.getBankId(),
+                        "Immutability violation: Results already exist at " + e.getExistingUri()
+                );
+                
+                return Result.failure(ErrorDetail.of(
+                        "IMMUTABILITY_VIOLATION",
+                        ErrorType.BUSINESS_RULE_ERROR,
+                        "Calculation results already exist for this batch. JSON files are immutable and cannot be overwritten.",
+                        "calculation.immutability.violation"
+                ));
                 
             } catch (CalculationResultsSerializationException e) {
                 // Requirement 7.1: Handle CalculationResultsSerializationException

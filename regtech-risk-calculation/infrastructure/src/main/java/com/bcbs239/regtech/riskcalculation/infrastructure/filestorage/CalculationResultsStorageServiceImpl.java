@@ -5,6 +5,7 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
+import com.bcbs239.regtech.riskcalculation.domain.storage.CalculationResultsImmutabilityException;
 import com.bcbs239.regtech.riskcalculation.domain.storage.ICalculationResultsStorageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,8 +20,9 @@ import java.util.Optional;
 /**
  * Implementation of calculation results storage service.
  * Orchestrates file storage and URI management for calculation results.
+ * Enforces immutability by preventing overwrites of existing calculation results.
  * 
- * Requirements: 1.3, 1.4, 4.3, 8.3
+ * Requirements: 1.3, 1.4, 4.3, 8.1, 8.3, 8.4
  */
 @Service
 @RequiredArgsConstructor
@@ -35,18 +37,39 @@ public class CalculationResultsStorageServiceImpl implements ICalculationResults
     
     /**
      * Stores complete calculation results to file storage.
+     * Enforces immutability by checking if results already exist for the batch.
      * 
      * Requirement 1.3: Use File_Storage_Service to store the JSON file
      * Requirement 1.4: Return Calculation_Results_URI (S3 URI or filesystem path)
+     * Requirement 8.1: Ensure JSON files are immutable (write-once)
+     * Requirement 8.4: Do not modify or overwrite existing JSON files
      * 
      * @param jsonContent The serialized JSON content to store
      * @param batchId The batch identifier for file naming
      * @return Result containing the storage URI or error
+     * @throws CalculationResultsImmutabilityException if results already exist for this batch
      */
     @Override
     public Result<String> storeCalculationResults(String jsonContent, String batchId) {
         try {
             log.info("Storing calculation results [batchId:{}]", batchId);
+            
+            // Check if calculation results already exist for this batch (immutability check)
+            Optional<String> existingUri = batchRepository.getCalculationResultsUri(batchId);
+            
+            if (existingUri.isPresent()) {
+                String uri = existingUri.get();
+                log.error("Immutability violation: Calculation results already exist [batchId:{},existingUri:{}]", 
+                    batchId, uri);
+                
+                throw new CalculationResultsImmutabilityException(
+                    String.format("Calculation results already exist for batch %s. " +
+                        "JSON files are immutable and cannot be overwritten. Existing URI: %s", 
+                        batchId, uri),
+                    batchId,
+                    uri
+                );
+            }
             
             // Generate file name: risk_calc_{batchId}_{timestamp}.json
             String fileName = generateFileName(batchId, Instant.now());
@@ -67,6 +90,9 @@ public class CalculationResultsStorageServiceImpl implements ICalculationResults
             
             return Result.success(storageUri);
             
+        } catch (CalculationResultsImmutabilityException e) {
+            // Re-throw immutability exceptions
+            throw e;
         } catch (Exception e) {
             log.error("Unexpected error storing calculation results [batchId:{}]", batchId, e);
             return Result.failure(ErrorDetail.of(
