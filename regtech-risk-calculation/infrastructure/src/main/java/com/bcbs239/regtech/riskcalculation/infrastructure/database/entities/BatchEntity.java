@@ -51,6 +51,9 @@ public class BatchEntity {
     @Column(name = "processed_at")
     private Instant processedAt;
     
+    @Column(name = "calculation_results_uri", length = 500)
+    private String calculationResultsUri;
+    
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
     

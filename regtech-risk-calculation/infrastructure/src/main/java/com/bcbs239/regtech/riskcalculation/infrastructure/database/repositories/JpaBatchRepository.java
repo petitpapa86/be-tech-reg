@@ -62,4 +62,31 @@ public class JpaBatchRepository implements BatchRepository {
             springDataRepository.save(entity);
         });
     }
+    
+    @Override
+    @Transactional
+    public void updateCalculationResultsUri(String batchId, String uri) {
+        springDataRepository.findById(batchId).ifPresent(entity -> {
+            entity.setCalculationResultsUri(uri);
+            springDataRepository.save(entity);
+        });
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<String> getCalculationResultsUri(String batchId) {
+        return springDataRepository.findById(batchId)
+            .map(BatchEntity::getCalculationResultsUri);
+    }
+    
+    @Override
+    @Transactional
+    public void markAsCompleted(String batchId, String resultsUri, Instant processedAt) {
+        springDataRepository.findById(batchId).ifPresent(entity -> {
+            entity.setStatus("COMPLETED");
+            entity.setProcessedAt(processedAt);
+            entity.setCalculationResultsUri(resultsUri);
+            springDataRepository.save(entity);
+        });
+    }
 }

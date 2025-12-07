@@ -46,4 +46,30 @@ public interface BatchRepository {
      * @param processedAt when processing completed
      */
     void markAsProcessed(String batchId, Instant processedAt);
+    
+    /**
+     * Updates the calculation results URI for a batch.
+     * 
+     * @param batchId the batch identifier
+     * @param uri the calculation results URI (S3 URI or filesystem path)
+     */
+    void updateCalculationResultsUri(String batchId, String uri);
+    
+    /**
+     * Retrieves the calculation results URI for a batch.
+     * 
+     * @param batchId the batch identifier
+     * @return Optional containing the URI if present, empty otherwise
+     */
+    java.util.Optional<String> getCalculationResultsUri(String batchId);
+    
+    /**
+     * Marks batch as completed with results URI.
+     * Updates status to COMPLETED, sets processed timestamp, and stores results URI.
+     * 
+     * @param batchId the batch identifier
+     * @param resultsUri the calculation results URI
+     * @param processedAt when processing completed
+     */
+    void markAsCompleted(String batchId, String resultsUri, Instant processedAt);
 }
