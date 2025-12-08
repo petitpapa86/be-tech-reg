@@ -230,7 +230,12 @@ ther
   - Test end-to-end flow with file storage
   - _Requirements: 1.5, 2.3, 2.4, 2.5_
 
-- [ ] 15. Add database migration documentation
+- [x] 15. Add database migration documentation
+
+
+
+
+
   - Document the migration strategy for existing batches
   - Explain how to handle mixed state (some batches in DB, some in files)
   - Document table deprecation timeline
