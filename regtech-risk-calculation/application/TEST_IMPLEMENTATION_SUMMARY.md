@@ -11,6 +11,13 @@ Comprehensive test suite for `CalculateRiskMetricsCommandHandler` using real inp
 - **Source**: Copied from `data/raw/batch_20251208_202457_232ee8cf-0ad7-46ef-a75c-dc18fdcd294a.json`
 - **Content**: Real batch data with 8 exposures and 4 credit risk mitigations
 
+**Why test resources instead of data/ directory?**
+- ✅ Production `data/` directory won't exist in CI/CD pipelines or production environments
+- ✅ Tests are self-contained and don't depend on external files
+- ✅ Test data is versioned with the code
+- ✅ Tests remain portable across all environments (dev, CI, staging, prod)
+- ✅ No risk of accidentally using production data in tests
+
 ### Test Class
 - **Location**: `regtech-risk-calculation/application/src/test/java/com/bcbs239/regtech/riskcalculation/application/calculation/CalculateRiskMetricsCommandHandlerTest.java`
 
