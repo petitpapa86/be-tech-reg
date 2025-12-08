@@ -1,21 +1,49 @@
 package com.bcbs239.regtech.riskcalculation.presentation.analysis;
 
+import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
+import com.bcbs239.regtech.riskcalculation.presentation.common.Tags;
+import org.springframework.stereotype.Component;
+import org.springframework.web.servlet.function.RouterFunction;
+import org.springframework.web.servlet.function.ServerResponse;
+
+import static org.springframework.web.servlet.function.RequestPredicates.GET;
+import static org.springframework.web.servlet.function.RouterFunctions.route;
+
 /**
- * NOTE: This class is no longer needed as PortfolioAnalysisController uses @RestController
- * with @GetMapping annotations, which automatically handles routing through Spring MVC.
- * 
- * The controller is already configured with:
- * - @RequestMapping("/api/v1/risk-calculation/portfolio-analysis")
- * - Individual @GetMapping annotations for each endpoint
- * 
- * Security and permissions should be configured through Spring Security configuration
- * rather than functional routing.
- * 
- * This file is kept for reference but can be deleted.
+ * Router configuration for portfolio analysis endpoints.
+ * Defines URL mappings, permissions, and documentation tags.
  * 
  * Requirements: 6.1, 6.2, 6.3
  */
-@Deprecated
+@Component
 public class PortfolioAnalysisRoutes {
-    // This class is deprecated - routing is handled by @RestController annotations
+    
+    private final PortfolioAnalysisController controller;
+    
+    public PortfolioAnalysisRoutes(PortfolioAnalysisController controller) {
+        this.controller = controller;
+    }
+    
+    /**
+     * Maps the portfolio analysis endpoints.
+     * Requires appropriate permissions for accessing portfolio analysis data.
+     */
+    public RouterFunction<ServerResponse> createRoutes() {
+        return RouterAttributes.withAttributes(
+            route(GET("/api/v1/risk-calculation/portfolio-analysis/{batchId}"), controller::getPortfolioAnalysis),
+            new String[]{"risk-calculation:portfolio:view"},
+            new String[]{Tags.RISK_CALCULATION, Tags.PORTFOLIO_ANALYSIS},
+            "Get complete portfolio analysis for a batch"
+        ).and(RouterAttributes.withAttributes(
+            route(GET("/api/v1/risk-calculation/portfolio-analysis/{batchId}/concentrations"), controller::getConcentrationIndices),
+            new String[]{"risk-calculation:portfolio:view"},
+            new String[]{Tags.RISK_CALCULATION, Tags.PORTFOLIO_ANALYSIS},
+            "Get concentration indices for a batch"
+        )).and(RouterAttributes.withAttributes(
+            route(GET("/api/v1/risk-calculation/portfolio-analysis/{batchId}/breakdowns"), controller::getBreakdownsByType),
+            new String[]{"risk-calculation:portfolio:view"},
+            new String[]{Tags.RISK_CALCULATION, Tags.PORTFOLIO_ANALYSIS},
+            "Get breakdowns for a batch with optional type filter"
+        ));
+    }
 }

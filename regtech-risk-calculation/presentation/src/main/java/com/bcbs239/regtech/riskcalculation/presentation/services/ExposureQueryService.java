@@ -245,7 +245,9 @@ public class ExposureQueryService {
         Result<RiskCalculationResult> result = storageService.retrieveCalculationResults(batchId);
         
         if (result.isFailure()) {
-            String errorMessage = result.getError();
+            String errorMessage = result.getError()
+                .map(error -> error.getMessage())
+                .orElse("Unknown error");
             log.error("Failed to retrieve calculation results for batch {}: {}", batchId, errorMessage);
             
             // Determine appropriate exception based on error message
@@ -253,11 +255,18 @@ public class ExposureQueryService {
                 throw new BatchNotFoundException(batchId);
             } else {
                 throw new CalculationNotCompletedException(
+                    batchId,
+                    com.bcbs239.regtech.riskcalculation.domain.analysis.ProcessingState.FAILED,
                     String.format("Calculation results not available for batch %s: %s", batchId, errorMessage)
                 );
             }
         }
         
-        return result.getValue();
+        return result.getValue()
+            .orElseThrow(() -> new CalculationNotCompletedException(
+                batchId,
+                com.bcbs239.regtech.riskcalculation.domain.analysis.ProcessingState.FAILED,
+                "Calculation results not available for batch " + batchId
+            ));
     }
 }

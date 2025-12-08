@@ -64,7 +64,8 @@ public class StatusMapper {
                     portfolioAnalysis.getState() == ProcessingState.COMPLETED)
                 .hasClassifiedExposures(hasResults)  // Results available when calculation completes
                 .hasProtectedExposures(hasResults)   // Results available when calculation completes
-                .totalExposures(portfolioAnalysis != null ? portfolioAnalysis.getTotalExposures() : null)
+                .totalExposures(portfolioAnalysis != null && portfolioAnalysis.getProgress() != null ? 
+                    portfolioAnalysis.getProgress().totalExposures() : null)
                 .errorMessage(errorMessage)
                 .build();
         } catch (Exception e) {

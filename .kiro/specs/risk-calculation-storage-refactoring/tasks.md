@@ -215,7 +215,13 @@ ther
   - **Property 9: JSON File Immutability**
   - **Validates: Requirements 8.1, 8.4**
 
-- [ ] 14. Update integration tests for file-first architecture
+- [x] 14. Update integration tests for file-first architecture
+
+
+
+
+
+
 
 
   - Update IngestionToRiskCalculationIntegrationTest to verify JSON file creation
