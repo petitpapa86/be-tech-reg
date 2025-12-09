@@ -1,75 +1,47 @@
 package com.bcbs239.regtech.riskcalculation.domain.persistence;
 
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.Batch;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchStatus;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 
-import java.time.Instant;
-import java.time.LocalDate;
+import java.util.List;
 
 /**
- * Repository interface for batch metadata persistence.
- * Defines operations for creating and managing batch records.
+ * Repository interface for Batch aggregate persistence.
+ * Following DDD principles, this repository works with the Batch aggregate root
+ * rather than exposing low-level persistence operations.
+ * 
+ * Requirements: 7.1, 7.2
  */
 public interface BatchRepository {
     
     /**
-     * Creates a new batch record.
+     * Saves a batch aggregate.
+     * The aggregate's state will be persisted, including any changes made through
+     * business methods like completeCalculation() or failCalculation().
      * 
-     * @param batchId the batch identifier
-     * @param bankInfo bank information
-     * @param reportDate the report date
-     * @param totalExposures total number of exposures
-     * @param ingestedAt when the batch was ingested
+     * @param batch the batch aggregate to save
+     * @return Result indicating success or failure
      */
-    void createBatch(String batchId, BankInfo bankInfo, LocalDate reportDate, 
-                     int totalExposures, Instant ingestedAt);
+    Result<Void> save(Batch batch);
     
     /**
-     * Checks if a batch exists.
+     * Finds a batch by its identifier.
+     * Returns Maybe.empty() if the batch doesn't exist.
      * 
      * @param batchId the batch identifier
-     * @return true if batch exists, false otherwise
+     * @return Maybe containing the batch if found, empty otherwise
      */
-    boolean exists(String batchId);
+    Maybe<Batch> findById(BatchId batchId);
     
     /**
-     * Updates batch status.
+     * Finds all batches with a specific status.
+     * Useful for querying batches that are PROCESSING, COMPLETED, or FAILED.
      * 
-     * @param batchId the batch identifier
-     * @param status the new status
+     * @param status the batch status to filter by
+     * @return List of batches with the specified status
      */
-    void updateStatus(String batchId, String status);
-    
-    /**
-     * Marks batch as processed.
-     * 
-     * @param batchId the batch identifier
-     * @param processedAt when processing completed
-     */
-    void markAsProcessed(String batchId, Instant processedAt);
-    
-    /**
-     * Updates the calculation results URI for a batch.
-     * 
-     * @param batchId the batch identifier
-     * @param uri the calculation results URI (S3 URI or filesystem path)
-     */
-    void updateCalculationResultsUri(String batchId, String uri);
-    
-    /**
-     * Retrieves the calculation results URI for a batch.
-     * 
-     * @param batchId the batch identifier
-     * @return Optional containing the URI if present, empty otherwise
-     */
-    java.util.Optional<String> getCalculationResultsUri(String batchId);
-    
-    /**
-     * Marks batch as completed with results URI.
-     * Updates status to COMPLETED, sets processed timestamp, and stores results URI.
-     * 
-     * @param batchId the batch identifier
-     * @param resultsUri the calculation results URI
-     * @param processedAt when processing completed
-     */
-    void markAsCompleted(String batchId, String resultsUri, Instant processedAt);
+    List<Batch> findByStatus(BatchStatus status);
 }

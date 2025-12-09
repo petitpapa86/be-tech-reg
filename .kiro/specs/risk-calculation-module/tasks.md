@@ -360,3 +360,84 @@
 
 - [ ] 13. Final checkpoint - Complete implementation
   - Ensure all tests pass, ask the user if questions arise.
+
+- [x] 14. Complete DDD Aggregate Refactoring (Steps 5-10)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+- [x] 14.1 Update BatchRepository interface
+
+  - Update domain/persistence/BatchRepository.java to work with Batch aggregate
+  - Add save(Batch batch) method
+  - Add findById(BatchId batchId) method returning Maybe<Batch>
+  - Add findByStatus(BatchStatus status) method
+  - _Requirements: 7.1, 7.2_
+
+- [x] 14.2 Refactor CalculateRiskMetricsCommandHandler
+
+
+  - Add BaseUnitOfWork dependency to application/calculation/CalculateRiskMetricsCommandHandler
+  - Remove RiskCalculationEventPublisher dependency
+  - Use Batch.create() factory method instead of direct repository calls
+  - Call batch.completeCalculation() or batch.failCalculation() for state transitions
+  - Register aggregate with unitOfWork.registerEntity(batch)
+  - Call unitOfWork.saveChanges() to persist events to outbox
+  - Simplify error handling using Result pattern
+  - _Requirements: 6.1, 7.1, 8.1_
+
+
+
+
+
+
+- [x] 14.3 Remove or deprecate RiskCalculationEventPublisher
+  - Delete or deprecate application/integration/RiskCalculationEventPublisher
+  - Events now flow through outbox pattern instead of direct publishing
+
+
+
+  - _Requirements: 8.1_
+
+- [x] 14.4 Add populateEntity method to Batch aggregate
+
+
+  - Add populateEntity(BatchEntity entity) method to domain/calculation/Batch
+  - Implement "Tell, don't ask" principle - aggregate controls its persistence representation
+  - _Requirements: 7.1, 7.2_
+
+- [x] 14.5 Update JpaBatchRepository implementation
+
+  - Update infrastructure/database/repositories/JpaBatchRepository to use new interface
+  - Use aggregate's populateEntity method for persistence
+  - Implement reconstitution from BatchEntity to Batch aggregate
+  - Remove separate mapper class (aggregate handles its own persistence)
+
+  - _Requirements: 7.1, 7.2_
+
+
+
+
+- [x] 14.6 Update CalculateRiskMetricsCommandHandler tests
+
+
+  - Update application/calculation/CalculateRiskMetricsCommandHandlerTest
+  - Mock BaseUnitOfWork instead of RiskCalculationEventPublisher
+  - Verify unitOfWork.registerEntity() is called
+  - Verify unitOfWork.saveChanges() is called
+  - Verify aggregate methods (create, completeCalculation, failCalculation) are called
+  - Test domain event raising through aggregate behavior
+  - _Requirements: 6.1, 7.1, 8.1_

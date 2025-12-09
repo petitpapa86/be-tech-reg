@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.riskcalculation.domain.analysis;
 
+import com.bcbs239.regtech.core.domain.shared.Entity;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.events.PortfolioAnalysisCompletedEvent;
 import com.bcbs239.regtech.riskcalculation.domain.classification.ClassifiedExposure;
 import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
 import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
@@ -22,9 +24,11 @@ import java.util.stream.Collectors;
  * - Sector breakdown with HHI
  * 
  * This is the output of the portfolio analysis process
+ * 
+ * Extends Entity to support domain event raising for proper DDD implementation.
  */
 @Getter
-public class PortfolioAnalysis {
+public class PortfolioAnalysis extends Entity {
     
     private final String batchId;
     private final EurAmount totalPortfolio;
@@ -108,15 +112,27 @@ public class PortfolioAnalysis {
         Breakdown sectorBreakdown = Breakdown.from(sectorAmounts, total);
         HHI sectorHHI = HHI.calculate(sectorBreakdown);
         
-        return new PortfolioAnalysis(
+        Instant analyzedAt = Instant.now();
+        PortfolioAnalysis analysis = new PortfolioAnalysis(
             batchId,
             totalPortfolio,
             geoBreakdown,
             sectorBreakdown,
             geoHHI,
             sectorHHI,
-            Instant.now()
+            analyzedAt
         );
+        
+        // Raise domain event
+        analysis.addDomainEvent(new PortfolioAnalysisCompletedEvent(
+            batchId,
+            totalPortfolio.value(),
+            geoHHI.value(),
+            sectorHHI.value(),
+            analyzedAt
+        ));
+        
+        return analysis;
     }
     
     /**

@@ -1,63 +1,54 @@
 package com.bcbs239.regtech.riskcalculation.application.calculation;
 
+import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.domain.shared.dto.BatchDataDTO;
-import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
-import com.bcbs239.regtech.riskcalculation.application.integration.RiskCalculationEventPublisher;
+import com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO;
 import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
 import com.bcbs239.regtech.riskcalculation.application.storage.ICalculationResultsStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.Batch;
 import com.bcbs239.regtech.riskcalculation.domain.classification.ClassifiedExposure;
-import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
 import com.bcbs239.regtech.riskcalculation.domain.classification.ExposureClassifier;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRecording;
+import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.domain.protection.Mitigation;
-import com.bcbs239.regtech.riskcalculation.domain.protection.MitigationType;
 import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
+import com.bcbs239.regtech.riskcalculation.domain.services.BatchDataParsingService;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
-import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
-import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.bcbs239.regtech.riskcalculation.domain.valuation.ExposureValuation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
  * Command handler for calculating risk metrics.
- * Orchestrates the risk calculation workflow using the file-first architecture.
- * <p>
- * Workflow:
- * 1. Download exposure data from S3/local filesystem
- * 2. Parse JSON and create ExposureRecording objects
- * 3. Create batch record
- * 4. Convert to EUR using exchange rates
- * 5. Classify exposures by region and sector
- * 6. Apply mitigations to create ProtectedExposure objects
- * 7. Calculate concentration indices (HHI)
- * 8. Generate portfolio analysis
- * 9. Store complete results to JSON file
- * 10. Update batch metadata with results URI
- * 11. Persist optional portfolio summary
- * 12. Publish completion event
  * 
- * Requirements: 1.3, 1.5, 2.3, 2.4, 2.5
+ * Acts as an orchestrator that uses domain objects directly, following the 
+ * "Tell, Don't Ask" principle. Domain objects know what they can do.
+ * 
+ * Workflow:
+ * 1. Download and parse batch data
+ * 2. Create Batch aggregate 
+ * 3. Use ExposureRecording.fromDTO() to convert exposures
+ * 4. Use ProtectedExposure.calculate() to apply mitigations
+ * 5. Use ExposureClassifier to classify exposures
+ * 6. Use ClassifiedExposure.of() to create classified exposures
+ * 7. Use PortfolioAnalysis.analyze() to analyze portfolio
+ * 8. Store results and complete batch
+ * 
+ * Requirements: 6.1, 7.1, 8.1
  */
 @Component
 @RequiredArgsConstructor
@@ -66,541 +57,168 @@ public class CalculateRiskMetricsCommandHandler {
 
     private final ExposureRepository exposureRepository;
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
-    private final com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository batchRepository;
+    private final BatchRepository batchRepository;
     private final IFileStorageService fileStorageService;
     private final ICalculationResultsStorageService calculationResultsStorageService;
-    private final ExchangeRateProvider exchangeRateProvider;
-    private final RiskCalculationEventPublisher eventPublisher;
-    private final ObjectMapper objectMapper;
+    private final BaseUnitOfWork unitOfWork;
     private final PerformanceMetrics performanceMetrics;
+    private final BatchDataParsingService batchDataParsingService;
+    private final ExchangeRateProvider exchangeRateProvider;
+    private final ExposureClassifier exposureClassifier;
 
-    /**
-     * Handles the risk metrics calculation command.
-     *
-     * @param command The calculation command
-     * @return Result indicating success or failure
-     */
     @Transactional
     public Result<Void> handle(CalculateRiskMetricsCommand command) {
         String batchId = command.getBatchId();
-
-        // Record batch start
         performanceMetrics.recordBatchStart(batchId);
 
-        log.info("Starting risk metrics calculation for batch: {} from bank: {}",
-                batchId, command.getBankId());
+        log.info("Starting risk calculation for batch: {} from bank: {}", batchId, command.getBankId());
 
+        Batch batch = null;
+        
         try {
-            // Step 1: Download exposure data from S3/local filesystem
-            // Requirement 7.3: Handle FileNotFoundException on download failures
-            log.info("Downloading exposure data from: {}", command.getS3Uri());
-            String jsonContent;
+            // Download and parse batch data
+            Result<String> downloadResult = fileStorageService.retrieveFile(command.getS3Uri());
+            if (downloadResult.isFailure()) {
+                return handleDownloadFailure(batchId, downloadResult);
+            }
             
-            try {
-                Result<String> downloadResult = fileStorageService.retrieveFile(command.getS3Uri());
+            BatchDataParsingService.ParsedBatchData parsedData = 
+                batchDataParsingService.parseBatchData(downloadResult.getValue().orElse(""));
+            BankInfo bankInfo = parsedData.bankInfo();
 
-                if (downloadResult.isFailure()) {
-                    ErrorDetail error = downloadResult.getError().orElse(
-                            ErrorDetail.of("FILE_DOWNLOAD_FAILED", ErrorType.SYSTEM_ERROR,
-                                    "Failed to download exposure data", "calculation.file.download.failed")
-                    );
-                    
-                    // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
-                    eventPublisher.publishBatchCalculationFailed(
-                            batchId,
-                            command.getBankId(),
-                            "File download failed: " + error.getMessage()
-                    );
-                    
-                    return Result.failure(error);
-                }
-
-                jsonContent = downloadResult.getValue().orElse("");
-                log.info("Downloaded exposure data, size: {} bytes", jsonContent.length());
-                
-            } catch (com.bcbs239.regtech.riskcalculation.domain.storage.FileNotFoundException e) {
-                // Requirement 7.3: Handle FileNotFoundException on download failures
-                log.error("File not found for batch: {}, URI: {}", batchId, command.getS3Uri(), e);
-                
-                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
-                eventPublisher.publishBatchCalculationFailed(
-                        batchId,
-                        command.getBankId(),
-                        "File not found: " + e.getMessage()
-                );
-                
-                return Result.failure(ErrorDetail.of(
-                        "FILE_NOT_FOUND",
-                        ErrorType.SYSTEM_ERROR,
-                        "Exposure data file not found: " + e.getMessage(),
-                        "calculation.file.not.found"
-                ));
+            // Create and save Batch aggregate
+            batch = Batch.create(batchId, bankInfo, parsedData.batchData().exposures().size(), command.getS3Uri());
+            Result<Void> batchSaveResult = batchRepository.save(batch);
+            if (batchSaveResult.isFailure()) {
+                return handleBatchSaveFailure(batchId, batchSaveResult);
             }
 
-            // Step 2: Parse JSON and create ExposureRecording objects using BatchDataDTO
-            // Requirement 7.4: Handle CalculationResultsDeserializationException
-            log.info("Deserializing batch data from JSON to BatchDataDTO");
-            List<ExposureRecording> exposures;
+            // Convert exposures using domain objects directly
+            List<ExposureRecording> exposures = parsedData.batchData().exposures().stream()
+                .map(ExposureRecording::fromDTO)
+                .collect(Collectors.toList());
+
+            // Group mitigations by exposure ID
+            Map<String, List<CreditRiskMitigationDTO>> mitigationsByExposure = 
+                parsedData.batchData().creditRiskMitigation().stream()
+                    .collect(Collectors.groupingBy(CreditRiskMitigationDTO::exposureId));
+
+            // Process exposures: convert to EUR, apply mitigations, classify
+            List<ProtectedExposure> protectedExposures = new ArrayList<>();
+            List<ClassifiedExposure> classifiedExposures = new ArrayList<>();
             
-            try {
-                exposures = parseExposuresFromJson(jsonContent);
-            } catch (JsonProcessingException e) {
-                log.error("Failed to deserialize batch data for batch: {}", batchId, e);
+            for (ExposureRecording exposure : exposures) {
+                // Convert to EUR using domain object
+                ExposureValuation eurValuation = ExposureValuation.convert(
+                    exposure.id(), exposure.exposureAmount(), exchangeRateProvider);
                 
-                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
-                eventPublisher.publishBatchCalculationFailed(
-                        batchId,
-                        command.getBankId(),
-                        "Deserialization failed: " + e.getMessage()
-                );
-                
-                return Result.failure(ErrorDetail.of(
-                    "DESERIALIZATION_FAILED", 
-                    ErrorType.SYSTEM_ERROR,
-                    "Failed to deserialize batch data from JSON: " + e.getMessage(), 
-                    "calculation.deserialization.failed"
-                ));
-            } catch (CalculationResultsDeserializationException e) {
-                // Requirement 7.4: Handle CalculationResultsDeserializationException
-                log.error("Deserialization exception for batch: {}", batchId, e);
-                
-                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
-                eventPublisher.publishBatchCalculationFailed(
-                        batchId,
-                        command.getBankId(),
-                        "Deserialization failed: " + e.getMessage()
-                );
-                
-                return Result.failure(ErrorDetail.of(
-                    "DESERIALIZATION_FAILED", 
-                    ErrorType.SYSTEM_ERROR,
-                    "Failed to deserialize calculation results: " + e.getMessage(), 
-                    "calculation.deserialization.failed"
-                ));
-            }
-
-            if (exposures.isEmpty()) {
-                log.warn("No exposures found in JSON file for batch: {}", command.getBatchId());
-                return Result.failure(ErrorDetail.of("NO_EXPOSURES", ErrorType.BUSINESS_RULE_ERROR,
-                        "No exposures found in JSON file", "calculation.no.exposures"));
-            }
-
-            log.info("Successfully deserialized and converted {} exposures from BatchDataDTO", exposures.size());
-
-            // Step 3: Create batch record (required before saving exposures due to FK constraint)
-            log.info("Creating batch record for batch: {}", command.getBatchId());
-            try {
-                BatchDataDTO batchData = objectMapper.readValue(jsonContent, BatchDataDTO.class);
-                BankInfo bankInfo = batchData.bankInfo() != null 
-                    ? BankInfo.fromDTO(batchData.bankInfo())
-                    : BankInfo.of("Unknown", "00000", "UNKNOWN");
-                
-                LocalDate reportDate = batchData.bankInfo() != null 
-                    ? batchData.bankInfo().reportDate() 
-                    : java.time.LocalDate.now();
-                
-                batchRepository.createBatch(
-                    command.getBatchId(),
-                    bankInfo,
-                    reportDate,
-                    exposures.size(),
-                    java.time.Instant.now()
-                );
-                log.info("Successfully created batch record for batch: {}", command.getBatchId());
-            } catch (Exception e) {
-                log.error("Failed to create batch record for batch: {}", command.getBatchId(), e);
-                return Result.failure(ErrorDetail.of(
-                    "BATCH_CREATION_FAILED", 
-                    ErrorType.SYSTEM_ERROR,
-                    "Failed to create batch record: " + e.getMessage(), 
-                    "calculation.batch.creation.failed"
-                ));
-            }
-
-            // Step 4: Convert to EUR, classify exposures, and apply mitigations
-            log.info("Converting {} exposures to EUR and applying mitigations", exposures.size());
-            ExposureClassifier classifier = new ExposureClassifier();
-            
-            // Parse mitigations from JSON (map of exposureId -> list of mitigations)
-            java.util.Map<String, List<com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO>> mitigationsByExposure = parseMitigationsFromJson(jsonContent);
-            log.info("Parsed mitigations for {} exposures from JSON", mitigationsByExposure.size());
-            
-            // Create ProtectedExposure objects with mitigations applied
-            List<ProtectedExposure> protectedExposures = exposures.stream()
-                    .map(exposure -> {
-                        // Convert to EUR using exchange rate provider
-                        EurAmount eurAmount;
-                        try {
-                            String currency = exposure.exposureAmount().currencyCode();
-                            if ("EUR".equals(currency)) {
-                                eurAmount = EurAmount.of(exposure.exposureAmount().amount());
-                            } else {
-                                var rate = exchangeRateProvider.getRate(currency, "EUR");
-                                BigDecimal eurValue = exposure.exposureAmount().amount().multiply(rate.rate());
-                                eurAmount = EurAmount.of(eurValue);
-                            }
-                        } catch (Exception e) {
-                            log.warn("Failed to convert exposure {} to EUR, using zero", exposure.id());
-                            eurAmount = EurAmount.zero();
-                        }
-
-                        // Find mitigations for this exposure
-                        List<Mitigation> exposureMitigations = new ArrayList<>();
-                        List<com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO> exposureMitigationDTOs = 
-                                mitigationsByExposure.getOrDefault(exposure.id().value(), List.of());
-                        
-                        for (com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO mitigationDTO : exposureMitigationDTOs) {
-                            try {
-                                // Convert mitigation to EUR
-                                EurAmount mitigationEur;
-                                if ("EUR".equals(mitigationDTO.currency())) {
-                                    mitigationEur = EurAmount.of(mitigationDTO.value());
-                                } else {
-                                    var rate = exchangeRateProvider.getRate(mitigationDTO.currency(), "EUR");
-                                    BigDecimal eurValue = mitigationDTO.value().multiply(rate.rate());
-                                    mitigationEur = EurAmount.of(eurValue);
-                                }
-                                
-                                // Parse mitigation type
-                                MitigationType mitigationType = MitigationType.valueOf(mitigationDTO.mitigationType());
-                                exposureMitigations.add(Mitigation.reconstitute(mitigationType, mitigationEur));
-                            } catch (Exception e) {
-                                log.warn("Failed to convert mitigation to EUR for exposure {}, skipping", exposure.id(), e);
-                            }
-                        }
-
-                        // Create ProtectedExposure with mitigations
-                        return ProtectedExposure.calculate(
-                                ExposureId.of(exposure.id().value()),
-                                eurAmount,
-                                exposureMitigations
-                        );
-                    })
+                // Get and convert mitigations using domain objects
+                List<Mitigation> mitigations = mitigationsByExposure
+                    .getOrDefault(exposure.id().value(), List.of())
+                    .stream()
+                    .map(dto -> Mitigation.fromDTO(dto, exchangeRateProvider))
                     .collect(Collectors.toList());
+                
+                // Calculate protected exposure using domain object
+                ProtectedExposure protectedExposure = ProtectedExposure.calculate(
+                    exposure.id(), eurValuation.getConverted(), mitigations);
+                protectedExposures.add(protectedExposure);
+                
+                // Classify exposure using domain objects
+                var region = exposureClassifier.classifyRegion(exposure.classification().countryCode());
+                var sector = exposureClassifier.classifySector(exposure.classification().productType());
+                
+                ClassifiedExposure classifiedExposure = ClassifiedExposure.of(
+                    exposure.id(), protectedExposure.getNetExposure(), region, sector);
+                classifiedExposures.add(classifiedExposure);
+            }
 
-            log.info("Created {} protected exposures with mitigations applied", protectedExposures.size());
+            // Analyze portfolio using domain object
+            PortfolioAnalysis analysis = PortfolioAnalysis.analyze(batchId, classifiedExposures);
 
-            // Step 5: Classify exposures for portfolio analysis
-            List<ClassifiedExposure> classifiedExposures = exposures.stream()
-                    .map(exposure -> {
-                        // Find corresponding protected exposure to get EUR amount
-                        ProtectedExposure protectedExposure = protectedExposures.stream()
-                                .filter(pe -> pe.getExposureId().value().equals(exposure.id().value()))
-                                .findFirst()
-                                .orElseThrow(() -> new IllegalStateException("Protected exposure not found"));
-
-                        // Classify by region and sector
-                        GeographicRegion region = classifier.classifyRegion(
-                                exposure.classification().countryCode()
-                        );
-                        EconomicSector sector = classifier.classifySector(
-                                exposure.classification().productType()
-                        );
-
-                        return ClassifiedExposure.of(
-                                exposure.id(),
-                                protectedExposure.getNetExposure(),
-                                region,
-                                sector
-                        );
-                    })
-                    .collect(Collectors.toList());
-
-            log.info("Classified {} exposures", classifiedExposures.size());
-
-            // Step 6: Analyze portfolio (calculates concentration indices and breakdowns)
-            PortfolioAnalysis analysis = PortfolioAnalysis.analyze(
-                    command.getBatchId(),
-                    classifiedExposures
-            );
-
-            log.info("Portfolio analysis completed - Geographic HHI: {}, Sector HHI: {}",
-                    analysis.getGeographicHHI().value(), analysis.getSectorHHI().value());
-
-            // Step 7: Build RiskCalculationResult
-            BatchDataDTO batchData = objectMapper.readValue(jsonContent, BatchDataDTO.class);
-            BankInfo bankInfo = batchData.bankInfo() != null 
-                ? BankInfo.fromDTO(batchData.bankInfo())
-                : BankInfo.of("Unknown", "00000", "UNKNOWN");
-            
+            // Store results
             RiskCalculationResult calculationResult = new RiskCalculationResult(
-                    command.getBatchId(),
-                    bankInfo,
-                    protectedExposures,
-                    analysis,
-                    java.time.Instant.now()
-            );
+                batchId, bankInfo, protectedExposures, analysis, java.time.Instant.now());
 
-            // Step 8: Store calculation results to JSON file
-            // Requirement 7.1, 7.2, 7.5: Handle serialization and storage errors
-            // Requirement 8.1, 8.4: Enforce immutability by preventing overwrites
-            log.info("Storing calculation results to file storage for batch: {}", batchId);
-            String resultsUri;
-            
-            try {
-                Result<String> storageResult = calculationResultsStorageService.storeCalculationResults(calculationResult);
-                
-                if (storageResult.isFailure()) {
-                    ErrorDetail error = storageResult.getError().orElse(
-                            ErrorDetail.of("STORAGE_FAILED", ErrorType.SYSTEM_ERROR,
-                                    "Failed to store calculation results", "calculation.storage.failed")
-                    );
-                    log.error("Failed to store calculation results for batch: {}", batchId);
-                    
-                    // Mark batch as failed
-                    batchRepository.updateStatus(batchId, "FAILED");
-                    
-                    // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
-                    eventPublisher.publishBatchCalculationFailed(
-                            batchId,
-                            command.getBankId(),
-                            "Failed to store calculation results: " + error.getMessage()
-                    );
-                    
-                    return Result.failure(error);
-                }
-
-                resultsUri = storageResult.getValue().orElseThrow();
-                log.info("Successfully stored calculation results at: {}", resultsUri);
-                
-            } catch (com.bcbs239.regtech.riskcalculation.domain.storage.CalculationResultsImmutabilityException e) {
-                // Requirement 8.1, 8.4: Handle immutability violations
-                log.error("Immutability violation: Calculation results already exist for batch: {} at URI: {}", 
-                        batchId, e.getExistingUri(), e);
-                
-                // Mark batch as failed
-                batchRepository.updateStatus(batchId, "FAILED");
-                
-                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
-                eventPublisher.publishBatchCalculationFailed(
-                        batchId,
-                        command.getBankId(),
-                        "Immutability violation: Results already exist at " + e.getExistingUri()
-                );
-                
-                return Result.failure(ErrorDetail.of(
-                        "IMMUTABILITY_VIOLATION",
-                        ErrorType.BUSINESS_RULE_ERROR,
-                        "Calculation results already exist for this batch. JSON files are immutable and cannot be overwritten.",
-                        "calculation.immutability.violation"
-                ));
-                
-            } catch (CalculationResultsSerializationException e) {
-                // Requirement 7.1: Handle CalculationResultsSerializationException
-                log.error("Serialization failed for batch: {}", batchId, e);
-                
-                // Mark batch as failed
-                batchRepository.updateStatus(batchId, "FAILED");
-                
-                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
-                eventPublisher.publishBatchCalculationFailed(
-                        batchId,
-                        command.getBankId(),
-                        "Serialization failed: " + e.getMessage()
-                );
-                
-                return Result.failure(ErrorDetail.of(
-                        "SERIALIZATION_FAILED",
-                        ErrorType.SYSTEM_ERROR,
-                        "Failed to serialize calculation results: " + e.getMessage(),
-                        "calculation.serialization.failed"
-                ));
-                
-            } catch (com.bcbs239.regtech.riskcalculation.domain.storage.FileStorageException e) {
-                // Requirement 7.2: Handle FileStorageException on upload failures
-                log.error("File storage failed for batch: {}", batchId, e);
-                
-                // Mark batch as failed
-                batchRepository.updateStatus(batchId, "FAILED");
-                
-                // Requirement 7.5: Publish BatchCalculationFailedEvent on storage errors
-                eventPublisher.publishBatchCalculationFailed(
-                        batchId,
-                        command.getBankId(),
-                        "File storage failed: " + e.getMessage()
-                );
-                
-                return Result.failure(ErrorDetail.of(
-                        "FILE_STORAGE_FAILED",
-                        ErrorType.SYSTEM_ERROR,
-                        "Failed to store file: " + e.getMessage(),
-                        "calculation.file.storage.failed"
-                ));
+            Result<String> storageResult = calculationResultsStorageService.storeCalculationResults(calculationResult);
+            if (storageResult.isFailure()) {
+                return handleStorageFailure(batch, analysis, storageResult);
             }
 
-            // Step 9: Update batch metadata with results URI and mark as completed
-            // Requirement 2.5: Update batch status to COMPLETED and store calculation_results_uri
-            batchRepository.markAsCompleted(command.getBatchId(), resultsUri, java.time.Instant.now());
-            log.info("Marked batch as completed with results URI: {}", resultsUri);
-
-            // Step 10: Persist optional portfolio analysis summary
+            // Complete batch
+            batch.completeCalculation(storageResult.getValue().orElseThrow(), protectedExposures.size());
+            batchRepository.save(batch);
             portfolioAnalysisRepository.save(analysis);
-            log.info("Persisted portfolio analysis summary");
 
-            log.info("Risk metrics calculation completed successfully for batch: {}",
-                    batchId);
-
-            // Step 11: Publish success event with calculation results URI
-            // Requirement 4.1: Include calculation_results_uri in BatchCalculationCompletedEvent
-            eventPublisher.publishBatchCalculationCompleted(
-                    batchId,
-                    command.getBankId(),
-                    protectedExposures.size(),
-                    resultsUri
-            );
-
-            // Record batch success with exposure count
+            // Save events
+            unitOfWork.registerEntity(batch);
+            unitOfWork.registerEntity(analysis);
+            unitOfWork.saveChanges();
+            
             performanceMetrics.recordBatchSuccess(batchId, protectedExposures.size());
+            log.info("Risk calculation completed for batch: {}", batchId);
 
             return Result.success();
 
-        } catch (Exception e) {
-            log.error("Risk metrics calculation failed for batch: {}", batchId, e);
-
-            // Mark batch as failed
-            try {
-                batchRepository.updateStatus(batchId, "FAILED");
-            } catch (Exception ex) {
-                log.error("Failed to update batch status to FAILED for batch: {}", batchId, ex);
-            }
-
-            // Record batch failure with error message
+        } catch (BatchDataParsingService.BatchDataParsingException e) {
             performanceMetrics.recordBatchFailure(batchId, e.getMessage());
-
-            // Publish failure event
-            eventPublisher.publishBatchCalculationFailed(
-                    batchId,
-                    command.getBankId(),
-                    e.getMessage()
-            );
-
-            return Result.failure(ErrorDetail.of("CALCULATION_FAILED", ErrorType.SYSTEM_ERROR,
-                    "Risk calculation failed: " + e.getMessage(), "calculation.failed"));
+            return Result.failure(ErrorDetail.of("BATCH_PARSING_FAILED", ErrorType.BUSINESS_RULE_ERROR,
+                "Failed to parse batch data: " + e.getMessage(), "calculation.parsing.failed"));
+        } catch (Exception e) {
+            return handleUnexpectedFailure(batch, batchId, e);
         }
     }
 
-    /**
-     * Parses exposure data from JSON content using BatchDataDTO.
-     * Expected JSON structure:
-     * {
-     *   "bank_info": {
-     *     "bank_name": "...",
-     *     "abi_code": "...",
-     *     "lei_code": "...",
-     *     "report_date": "2024-09-12",
-     *     "total_exposures": 8
-     *   },
-     *   "exposures": [
-     *     {
-     *       "exposure_id": "...",
-     *       "instrument_id": "...",
-     *       "instrument_type": "LOAN|BOND|DERIVATIVE",
-     *       "counterparty_name": "...",
-     *       "counterparty_id": "...",
-     *       "counterparty_lei": "...",
-     *       "exposure_amount": 123.45,
-     *       "currency": "EUR",
-     *       "product_type": "...",
-     *       "balance_sheet_type": "ON_BALANCE|OFF_BALANCE",
-     *       "country_code": "IT"
-     *     }
-     *   ],
-     *   "credit_risk_mitigation": [...]
-     * }
-     *
-     * @param jsonContent The JSON content containing batch data
-     * @return List of ExposureRecording objects
-     * @throws JsonProcessingException if JSON deserialization fails
-     */
-    private List<ExposureRecording> parseExposuresFromJson(String jsonContent) throws JsonProcessingException {
-        List<ExposureRecording> exposures = new ArrayList<>();
+    // Helper methods for error handling
 
-        try {
-            // Deserialize JSON to BatchDataDTO
-            BatchDataDTO batchData = objectMapper.readValue(jsonContent, BatchDataDTO.class);
-            
-            if (batchData == null) {
-                log.error("Failed to deserialize JSON to BatchDataDTO: result is null");
-                throw new JsonProcessingException("Deserialization resulted in null BatchDataDTO") {};
-            }
-            
-            // Log bank information if available
-            if (batchData.bankInfo() != null) {
-                BankInfo bankInfo = BankInfo.fromDTO(batchData.bankInfo());
-                log.info("Processing batch from bank: {} (ABI: {}, LEI: {})", 
-                    bankInfo.bankName(), bankInfo.abiCode(), bankInfo.leiCode());
-            } else {
-                log.warn("No bank_info found in batch data");
-            }
-            
-            // Check if exposures list exists
-            if (batchData.exposures() == null || batchData.exposures().isEmpty()) {
-                log.warn("No exposures found in BatchDataDTO");
-                return exposures;
-            }
-            
-            log.info("Deserializing {} exposures from BatchDataDTO", batchData.exposures().size());
-            
-            // Convert each ExposureDTO to ExposureRecording using fromDTO
-            for (ExposureDTO exposureDTO : batchData.exposures()) {
-                try {
-                    ExposureRecording exposure = ExposureRecording.fromDTO(exposureDTO);
-                    exposures.add(exposure);
-                } catch (Exception e) {
-                    log.error("Failed to convert ExposureDTO to ExposureRecording [exposureId:{}]: {}", 
-                        exposureDTO.exposureId(), e.getMessage(), e);
-                    // Continue processing other exposures
-                }
-            }
-            
-            log.info("Successfully converted {} exposures from DTOs", exposures.size());
-            
-        } catch (JsonProcessingException e) {
-            log.error("Failed to deserialize JSON to BatchDataDTO: {}", e.getMessage(), e);
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error parsing exposures from JSON: {}", e.getMessage(), e);
-            throw new JsonProcessingException("Unexpected error during parsing: " + e.getMessage(), e) {};
-        }
-
-        return exposures;
+    private Result<Void> handleDownloadFailure(String batchId, Result<String> downloadResult) {
+        ErrorDetail error = downloadResult.getError().orElse(
+            ErrorDetail.of("FILE_DOWNLOAD_FAILED", ErrorType.SYSTEM_ERROR,
+                "Failed to download exposure data", "calculation.file.download.failed")
+        );
+        log.error("File download failed for batch: {}", batchId);
+        performanceMetrics.recordBatchFailure(batchId, error.getMessage());
+        return Result.failure(error);
     }
 
-    /**
-     * Parses mitigation data from JSON content using BatchDataDTO.
-     * Returns a map of exposureId -> list of mitigations for that exposure.
-     * 
-     * @param jsonContent The JSON content containing batch data
-     * @return Map of exposure ID to list of mitigation DTOs
-     * @throws JsonProcessingException if JSON deserialization fails
-     */
-    private Map<String, List<com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO>> parseMitigationsFromJson(String jsonContent) throws JsonProcessingException {
-        try {
-            // Deserialize JSON to BatchDataDTO
-            BatchDataDTO batchData = objectMapper.readValue(jsonContent, BatchDataDTO.class);
-            
-            if (batchData == null || batchData.creditRiskMitigation() == null) {
-                log.info("No credit risk mitigation data found in batch");
-                return Map.of();
+    private Result<Void> handleBatchSaveFailure(String batchId, Result<Void> batchSaveResult) {
+        log.error("Failed to save batch aggregate: {}", batchId);
+        performanceMetrics.recordBatchFailure(batchId, "Batch save failed");
+        return batchSaveResult;
+    }
+
+    private Result<Void> handleStorageFailure(Batch batch, PortfolioAnalysis analysis, Result<String> storageResult) {
+        ErrorDetail error = storageResult.getError().orElse(
+            ErrorDetail.of("STORAGE_FAILED", ErrorType.SYSTEM_ERROR,
+                "Failed to store calculation results", "calculation.storage.failed")
+        );
+        log.error("Failed to store calculation results for batch: {}", batch.getId().value());
+        
+        batch.failCalculation("Failed to store calculation results: " + error.getMessage());
+        batchRepository.save(batch);
+        
+        unitOfWork.registerEntity(batch);
+        unitOfWork.registerEntity(analysis);
+        unitOfWork.saveChanges();
+        
+        performanceMetrics.recordBatchFailure(batch.getId().value(), error.getMessage());
+        return Result.failure(error);
+    }
+
+    private Result<Void> handleUnexpectedFailure(Batch batch, String batchId, Exception e) {
+        if (batch != null) {
+            try {
+                batch.failCalculation("Calculation failed: " + e.getMessage());
+                batchRepository.save(batch);
+                unitOfWork.registerEntity(batch);
+                unitOfWork.saveChanges();
+            } catch (Exception ex) {
+                log.error("Failed to mark batch as failed: {}", batchId, ex);
             }
-            
-            log.info("Deserializing {} mitigations from BatchDataDTO", batchData.creditRiskMitigation().size());
-            
-            // Group mitigations by exposure ID
-            Map<String, List<com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO>> mitigationsByExposure = 
-                    batchData.creditRiskMitigation().stream()
-                            .collect(Collectors.groupingBy(com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO::exposureId));
-            
-            log.info("Successfully grouped mitigations for {} exposures", mitigationsByExposure.size());
-            
-            return mitigationsByExposure;
-            
-        } catch (JsonProcessingException e) {
-            log.error("Failed to deserialize JSON to BatchDataDTO for mitigations: {}", e.getMessage(), e);
-            throw e;
-        } catch (Exception e) {
-            log.error("Unexpected error parsing mitigations from JSON: {}", e.getMessage(), e);
-            throw new JsonProcessingException("Unexpected error during mitigation parsing: " + e.getMessage(), e) {};
         }
+
+        performanceMetrics.recordBatchFailure(batchId, e.getMessage());
+        return Result.failure(ErrorDetail.of("CALCULATION_FAILED", ErrorType.SYSTEM_ERROR,
+            "Risk calculation failed: " + e.getMessage(), "calculation.failed"));
     }
 }

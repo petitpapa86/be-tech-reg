@@ -19,8 +19,20 @@ import java.time.Instant;
 
 /**
  * Service for publishing risk calculation integration events.
- * Handles event content validation, structured logging, and reliable publishing
- * using transactional event listeners.
+ * 
+ * @deprecated This class is deprecated as part of the DDD aggregate refactoring.
+ * Events are now raised by domain aggregates (Batch, PortfolioAnalysis) and
+ * persisted to the outbox table through the BaseUnitOfWork pattern.
+ * The OutboxProcessor handles asynchronous event publishing.
+ * 
+ * This class remains for backward compatibility with existing event listeners
+ * that transform domain events to integration events.
+ * 
+ * Migration path:
+ * - Domain aggregates raise events through Entity.addDomainEvent()
+ * - CommandHandlers register aggregates with BaseUnitOfWork
+ * - BaseUnitOfWork.saveChanges() persists events to outbox
+ * - OutboxProcessor publishes events asynchronously
  * 
  * Features:
  * - Event content validation before publishing
@@ -28,6 +40,7 @@ import java.time.Instant;
  * - Transactional event listeners for reliable publishing
  * - Error handling and retry support
  */
+@Deprecated(since = "2.0", forRemoval = true)
 @Service
 @RequiredArgsConstructor
 @Slf4j

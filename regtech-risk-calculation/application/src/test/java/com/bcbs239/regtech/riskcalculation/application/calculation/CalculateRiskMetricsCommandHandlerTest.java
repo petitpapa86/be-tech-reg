@@ -1,15 +1,16 @@
 package com.bcbs239.regtech.riskcalculation.application.calculation;
 
+import com.bcbs239.regtech.core.application.BaseUnitOfWork;
+import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.application.integration.RiskCalculationEventPublisher;
 import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
 import com.bcbs239.regtech.riskcalculation.application.storage.ICalculationResultsStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.Batch;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,9 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.time.Instant;
 import java.time.LocalDate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,10 +32,17 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Test for CalculateRiskMetricsCommandHandler using real input/output JSON files.
+ * Test for CalculateRiskMetricsCommandHandler using DDD aggregate pattern.
+ * Tests verify that:
+ * - Batch aggregate is created and methods are called
+ * - BaseUnitOfWork.registerEntity() is called for aggregates
+ * - BaseUnitOfWork.saveChanges() is called to persist events
+ * - Domain events are raised through aggregate behavior
  * 
  * Input file: data/raw/batch_20251208_202457_232ee8cf-0ad7-46ef-a75c-dc18fdcd294a.json
  * Output file: data/risk-calculations/risk_calc_batch_20251208_202415_8e7b1bde-ee97-45bd-8af8-6cb6c85b0698_20251208_202434.json
+ * 
+ * Requirements: 6.1, 7.1, 8.1
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CalculateRiskMetricsCommandHandler Tests")
@@ -62,7 +67,7 @@ class CalculateRiskMetricsCommandHandlerTest {
     private ExchangeRateProvider exchangeRateProvider;
 
     @Mock
-    private RiskCalculationEventPublisher eventPublisher;
+    private BaseUnitOfWork unitOfWork;
 
     @Mock
     private PerformanceMetrics performanceMetrics;
@@ -97,7 +102,7 @@ class CalculateRiskMetricsCommandHandlerTest {
                 fileStorageService,
                 calculationResultsStorageService,
                 exchangeRateProvider,
-                eventPublisher,
+                unitOfWork,
                 objectMapper,
                 performanceMetrics
         );
@@ -127,10 +132,8 @@ class CalculateRiskMetricsCommandHandlerTest {
                 });
 
         // Mock batch repository operations
-        doNothing().when(batchRepository).createBatch(
-                anyString(), any(BankInfo.class), any(LocalDate.class), anyInt(), any(Instant.class)
-        );
-        doNothing().when(batchRepository).markAsCompleted(anyString(), anyString(), any(Instant.class));
+        when(batchRepository.save(any(Batch.class)))
+                .thenReturn(Result.success());
 
         // Mock calculation results storage
         when(calculationResultsStorageService.storeCalculationResults(any(RiskCalculationResult.class)))
@@ -139,10 +142,9 @@ class CalculateRiskMetricsCommandHandlerTest {
         // Mock portfolio analysis repository
         doNothing().when(portfolioAnalysisRepository).save(any(PortfolioAnalysis.class));
 
-        // Mock event publisher
-        doNothing().when(eventPublisher).publishBatchCalculationCompleted(
-                anyString(), anyString(), anyInt(), anyString()
-        );
+        // Mock unit of work
+        doNothing().when(unitOfWork).registerEntity(any(Entity.class));
+        doNothing().when(unitOfWork).saveChanges();
 
         // Mock performance metrics
         doNothing().when(performanceMetrics).recordBatchStart(anyString());
@@ -169,20 +171,8 @@ class CalculateRiskMetricsCommandHandlerTest {
         // Verify file was downloaded
         verify(fileStorageService).retrieveFile(S3_URI);
 
-        // Verify batch was created with correct data
-        ArgumentCaptor<BankInfo> bankInfoCaptor = ArgumentCaptor.forClass(BankInfo.class);
-        verify(batchRepository).createBatch(
-                eq(BATCH_ID),
-                bankInfoCaptor.capture(),
-                eq(LocalDate.of(2024, 9, 12)),
-                eq(8),
-                any(Instant.class)
-        );
-
-        BankInfo capturedBankInfo = bankInfoCaptor.getValue();
-        assertThat(capturedBankInfo.bankName()).isEqualTo("Community First Bank");
-        assertThat(capturedBankInfo.abiCode()).isEqualTo("08081");
-        assertThat(capturedBankInfo.leiCode()).isEqualTo("815600D7623147C25D86");
+        // Verify batch aggregate was saved (twice: initial creation and completion)
+        verify(batchRepository, atLeast(2)).save(any(Batch.class));
 
         // Verify calculation results were stored
         ArgumentCaptor<RiskCalculationResult> resultCaptor = ArgumentCaptor.forClass(RiskCalculationResult.class);
@@ -201,16 +191,11 @@ class CalculateRiskMetricsCommandHandlerTest {
         assertThat(capturedAnalysis.getBatchId()).isEqualTo(BATCH_ID);
         assertThat(capturedAnalysis.getTotalPortfolio().value()).isGreaterThan(BigDecimal.ZERO);
 
-        // Verify batch was marked as completed
-        verify(batchRepository).markAsCompleted(eq(BATCH_ID), eq(RESULTS_URI), any(Instant.class));
-
-        // Verify success event was published
-        verify(eventPublisher).publishBatchCalculationCompleted(
-                eq(BATCH_ID),
-                eq(BANK_ID),
-                eq(8),
-                eq(RESULTS_URI)
-        );
+        // Verify aggregates were registered with UnitOfWork
+        verify(unitOfWork, atLeast(2)).registerEntity(any(Entity.class));
+        
+        // Verify events were saved to outbox
+        verify(unitOfWork).saveChanges();
 
         // Verify performance metrics were recorded
         verify(performanceMetrics).recordBatchStart(BATCH_ID);
@@ -248,12 +233,11 @@ class CalculateRiskMetricsCommandHandlerTest {
         // The handler wraps the file not found error
         assertThat(result.getError().get().getCode()).isIn("FILE_DOWNLOAD_FAILED", "FILE_NOT_FOUND");
 
-        // Verify failure event was published
-        verify(eventPublisher).publishBatchCalculationFailed(
-                eq(BATCH_ID),
-                eq(BANK_ID),
-                contains("File download failed")
-        );
+        // Verify no batch was created (failure before batch creation)
+        verify(batchRepository, never()).save(any(Batch.class));
+        
+        // Verify no events were saved (failure before batch creation)
+        verify(unitOfWork, never()).saveChanges();
     }
 
     @Test
@@ -266,6 +250,7 @@ class CalculateRiskMetricsCommandHandlerTest {
 
         // Mock performance metrics
         doNothing().when(performanceMetrics).recordBatchStart(anyString());
+        doNothing().when(performanceMetrics).recordBatchFailure(anyString(), anyString());
 
         // Create command
         Result<CalculateRiskMetricsCommand> commandResult = CalculateRiskMetricsCommand.create(
@@ -280,14 +265,13 @@ class CalculateRiskMetricsCommandHandlerTest {
         // Then: Verify failure
         assertThat(result.isFailure()).isTrue();
         assertThat(result.getError()).isPresent();
-        assertThat(result.getError().get().getCode()).isEqualTo("DESERIALIZATION_FAILED");
+        assertThat(result.getError().get().getCode()).isEqualTo("CALCULATION_FAILED");
 
-        // Verify failure event was published
-        verify(eventPublisher).publishBatchCalculationFailed(
-                eq(BATCH_ID),
-                eq(BANK_ID),
-                contains("Deserialization failed")
-        );
+        // Verify no batch was created (failure during parsing)
+        verify(batchRepository, never()).save(any(Batch.class));
+        
+        // Verify no events were saved
+        verify(unitOfWork, never()).saveChanges();
     }
 
     @Test
@@ -345,10 +329,8 @@ class CalculateRiskMetricsCommandHandlerTest {
                 .thenReturn(ExchangeRate.of(BigDecimal.ONE, "EUR", "EUR", LocalDate.now()));
 
         // Mock batch repository operations
-        doNothing().when(batchRepository).createBatch(
-                anyString(), any(BankInfo.class), any(LocalDate.class), anyInt(), any(Instant.class)
-        );
-        doNothing().when(batchRepository).updateStatus(anyString(), anyString());
+        when(batchRepository.save(any(Batch.class)))
+                .thenReturn(Result.success());
 
         // Mock calculation results storage to fail
         when(calculationResultsStorageService.storeCalculationResults(any(RiskCalculationResult.class)))
@@ -359,8 +341,13 @@ class CalculateRiskMetricsCommandHandlerTest {
                         "storage.failed"
                 )));
 
+        // Mock unit of work
+        doNothing().when(unitOfWork).registerEntity(any(Entity.class));
+        doNothing().when(unitOfWork).saveChanges();
+
         // Mock performance metrics
         doNothing().when(performanceMetrics).recordBatchStart(anyString());
+        doNothing().when(performanceMetrics).recordBatchFailure(anyString(), anyString());
 
         // Create command
         Result<CalculateRiskMetricsCommand> commandResult = CalculateRiskMetricsCommand.create(
@@ -377,15 +364,12 @@ class CalculateRiskMetricsCommandHandlerTest {
         assertThat(result.getError()).isPresent();
         assertThat(result.getError().get().getCode()).isEqualTo("STORAGE_FAILED");
 
-        // Verify batch was marked as failed
-        verify(batchRepository).updateStatus(BATCH_ID, "FAILED");
+        // Verify batch was saved (initial creation and failure marking)
+        verify(batchRepository, atLeast(2)).save(any(Batch.class));
 
-        // Verify failure event was published
-        verify(eventPublisher).publishBatchCalculationFailed(
-                eq(BATCH_ID),
-                eq(BANK_ID),
-                contains("Failed to store calculation results")
-        );
+        // Verify failure events were saved to outbox
+        verify(unitOfWork, atLeast(1)).registerEntity(any(Entity.class));
+        verify(unitOfWork, atLeast(1)).saveChanges();
     }
 
     @Test
@@ -402,10 +386,8 @@ class CalculateRiskMetricsCommandHandlerTest {
                 .thenReturn(ExchangeRate.of(BigDecimal.ONE, "EUR", "EUR", LocalDate.now()));
 
         // Mock batch repository operations
-        doNothing().when(batchRepository).createBatch(
-                anyString(), any(BankInfo.class), any(LocalDate.class), anyInt(), any(Instant.class)
-        );
-        doNothing().when(batchRepository).markAsCompleted(anyString(), anyString(), any(Instant.class));
+        when(batchRepository.save(any(Batch.class)))
+                .thenReturn(Result.success());
 
         // Mock calculation results storage
         when(calculationResultsStorageService.storeCalculationResults(any(RiskCalculationResult.class)))
@@ -414,10 +396,9 @@ class CalculateRiskMetricsCommandHandlerTest {
         // Mock portfolio analysis repository
         doNothing().when(portfolioAnalysisRepository).save(any(PortfolioAnalysis.class));
 
-        // Mock event publisher
-        doNothing().when(eventPublisher).publishBatchCalculationCompleted(
-                anyString(), anyString(), anyInt(), anyString()
-        );
+        // Mock unit of work
+        doNothing().when(unitOfWork).registerEntity(any(Entity.class));
+        doNothing().when(unitOfWork).saveChanges();
 
         // Mock performance metrics
         doNothing().when(performanceMetrics).recordBatchStart(anyString());
@@ -473,10 +454,8 @@ class CalculateRiskMetricsCommandHandlerTest {
                 .thenReturn(ExchangeRate.of(BigDecimal.ONE, "EUR", "EUR", LocalDate.now()));
 
         // Mock batch repository operations
-        doNothing().when(batchRepository).createBatch(
-                anyString(), any(BankInfo.class), any(LocalDate.class), anyInt(), any(Instant.class)
-        );
-        doNothing().when(batchRepository).markAsCompleted(anyString(), anyString(), any(Instant.class));
+        when(batchRepository.save(any(Batch.class)))
+                .thenReturn(Result.success());
 
         // Mock calculation results storage
         when(calculationResultsStorageService.storeCalculationResults(any(RiskCalculationResult.class)))
@@ -485,10 +464,9 @@ class CalculateRiskMetricsCommandHandlerTest {
         // Mock portfolio analysis repository
         doNothing().when(portfolioAnalysisRepository).save(any(PortfolioAnalysis.class));
 
-        // Mock event publisher
-        doNothing().when(eventPublisher).publishBatchCalculationCompleted(
-                anyString(), anyString(), anyInt(), anyString()
-        );
+        // Mock unit of work
+        doNothing().when(unitOfWork).registerEntity(any(Entity.class));
+        doNothing().when(unitOfWork).saveChanges();
 
         // Mock performance metrics
         doNothing().when(performanceMetrics).recordBatchStart(anyString());

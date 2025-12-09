@@ -2,24 +2,28 @@ package com.bcbs239.regtech.riskcalculation.domain.calculation.events;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 
+import java.time.Instant;
+
 /**
  * Domain event indicating that a batch calculation has failed.
+ * Raised by the Batch aggregate when calculation fails.
  */
 public class BatchCalculationFailedEvent extends DomainEvent {
     private final String batchId;
     private final String bankId;
-    private final String errorCode;
-    private final String errorMessage;
-    private final String failureReason;
+    private final String reason;
+    private final Instant failedAt;
 
-    public BatchCalculationFailedEvent(String batchId, String bankId, String errorCode, 
-                                      String errorMessage, String failureReason) {
+    public BatchCalculationFailedEvent(
+            String batchId,
+            String bankId,
+            String reason,
+            Instant failedAt) {
         super(batchId, "BatchCalculationFailed");
         this.batchId = batchId;
         this.bankId = bankId;
-        this.errorCode = errorCode;
-        this.errorMessage = errorMessage;
-        this.failureReason = failureReason;
+        this.reason = reason;
+        this.failedAt = failedAt;
     }
 
     @Override
@@ -35,16 +39,12 @@ public class BatchCalculationFailedEvent extends DomainEvent {
         return bankId;
     }
 
-    public String getErrorCode() {
-        return errorCode;
+    public String getReason() {
+        return reason;
     }
 
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public String getFailureReason() {
-        return failureReason;
+    public Instant getFailedAt() {
+        return failedAt;
     }
 
     @Override
@@ -52,9 +52,8 @@ public class BatchCalculationFailedEvent extends DomainEvent {
         return "BatchCalculationFailedEvent{" +
                 "batchId='" + batchId + '\'' +
                 ", bankId='" + bankId + '\'' +
-                ", errorCode='" + errorCode + '\'' +
-                ", errorMessage='" + errorMessage + '\'' +
-                ", failureReason='" + failureReason + '\'' +
+                ", reason='" + reason + '\'' +
+                ", failedAt=" + failedAt +
                 ", timestamp=" + getTimestamp() +
                 '}';
     }
