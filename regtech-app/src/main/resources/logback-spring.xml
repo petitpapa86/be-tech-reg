@@ -181,4 +181,43 @@
     <!-- Async processing loggers -->
     <logger name="org.springframework.scheduling" level="INFO"/>
     <logger name="org.springframework.aop" level="WARN"/>
+
+    <!-- Security Audit Logger - dedicated logger for security audit events -->
+    <!-- This logger writes to a separate file for compliance and security monitoring -->
+    <appender name="SECURITY_AUDIT_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/security-audit.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/security-audit-%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp>
+                    <fieldName>timestamp</fieldName>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+                <logLevel>
+                    <fieldName>severity</fieldName>
+                </logLevel>
+                <loggerName>
+                    <fieldName>logger</fieldName>
+                </loggerName>
+                <message/>
+                <stackTrace>
+                    <fieldName>exception</fieldName>
+                </stackTrace>
+                <mdc/>
+                <threadName>
+                    <fieldName>thread</fieldName>
+                </threadName>
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- Security Audit Logger configuration -->
+    <logger name="SECURITY_AUDIT" level="INFO" additivity="false">
+        <appender-ref ref="SECURITY_AUDIT_FILE"/>
+        <appender-ref ref="CONSOLE"/>
+    </logger>
 </configuration>

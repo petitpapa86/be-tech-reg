@@ -1,0 +1,177 @@
+# ============================================================================
+# Prometheus Configuration (Hetzner Deployment)
+# ============================================================================
+# Metrics collection and storage
+# Requirements: 2.1, 6.1
+# ============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    deployment: 'hetzner'
+    environment: 'production'
+    cluster: 'bcbs239-platform'
+
+# Alertmanager configuration (optional)
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  # - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          component: 'prometheus'
+
+  # OpenTelemetry Collector metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']
+        labels:
+          component: 'otel-collector'
+      - targets: ['otel-collector:8889']
+        labels:
+          component: 'otel-collector-exporter'
+
+  # Tempo metrics
+  - job_name: 'tempo'
+    static_configs:
+      - targets: ['tempo:3200']
+        labels:
+          component: 'tempo'
+
+  # Loki metrics
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+        labels:
+          component: 'loki'
+
+  # Grafana metrics
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          component: 'grafana'
+
+  # Application metrics (Spring Boot Actuator)
+  - job_name: 'bcbs239-application'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'bcbs239-platform'
+          module: 'regtech-app'
+    # For Hetzner deployment, replace host.docker.internal with actual host IP
+    # - targets: ['10.0.1.100:8080']
+
+  # IAM module metrics
+  - job_name: 'bcbs239-iam'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'bcbs239-platform'
+          module: 'iam'
+
+  # Billing module metrics
+  - job_name: 'bcbs239-billing'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'bcbs239-platform'
+          module: 'billing'
+
+  # Ingestion module metrics
+  - job_name: 'bcbs239-ingestion'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'bcbs239-platform'
+          module: 'ingestion'
+
+  # Data Quality module metrics
+  - job_name: 'bcbs239-data-quality'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'bcbs239-platform'
+          module: 'data-quality'
+
+  # Risk Calculation module metrics
+  - job_name: 'bcbs239-risk-calculation'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'bcbs239-platform'
+          module: 'risk-calculation'
+
+  # Report Generation module metrics
+  - job_name: 'bcbs239-report-generation'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'bcbs239-platform'
+          module: 'report-generation'
+
+# Storage configuration
+storage:
+  tsdb:
+    path: /prometheus
+    retention:
+      time: 90d
+      size: 50GB
+
+# ============================================================================
+# CONFIGURATION NOTES
+# ============================================================================
+# 1. Data retention:
+#    - Metrics: 90 days
+#    - Maximum size: 50GB
+#    - Adjust based on available storage
+#
+# 2. Scrape intervals:
+#    - Global: 15 seconds
+#    - Adjust per job for different frequencies
+#    - Lower intervals = more data, higher load
+#
+# 3. Application targets:
+#    - Development: Use host.docker.internal:8080
+#    - Production: Replace with actual application host IP
+#    - Hetzner: Use internal network IP (e.g., 10.0.1.100)
+#
+# 4. Module-specific scraping:
+#    - Each module has its own job for better organization
+#    - All modules expose metrics at /actuator/prometheus
+#    - Labels help identify metrics by module
+#
+# 5. Alerting:
+#    - Uncomment alertmanager configuration to enable alerts
+#    - Add alert rules in alerts/*.yml files
+#    - Configure notification channels in Alertmanager
+#
+# 6. Performance:
+#    - scrape_interval: Balance between freshness and load
+#    - evaluation_interval: How often to evaluate rules
+#    - Increase for high-cardinality metrics
+#
+# 7. Backup strategy:
+#    - Backup /prometheus directory to Hetzner Object Storage
+#    - Recommended: Weekly backups with 90-day retention
+#    - Consider using remote write for long-term storage
+# ============================================================================

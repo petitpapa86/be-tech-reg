@@ -76,25 +76,59 @@ The observability system consists of several key components:
 - `BusinessObservationHandler`: Adds business-specific context to observations
 - `TraceContextManager`: Simple interface for querying current trace context (business logic only)
 
-**Configuration-Based Setup**:
+**Configuration-Based Setup (Hetzner Deployment)**:
 ```yaml
 management:
   opentelemetry:
     resource-attributes:
       service.name: bcbs239-platform
+      service.version: ${app.version}
       deployment.environment: ${spring.profiles.active}
-      cloud.provider: gcp
-      cloud.platform: gcp_compute_engine
-      cloud.region: ${GCP_REGION}
+      deployment.provider: hetzner
+      deployment.region: ${HETZNER_DATACENTER:fsn1}  # Falkenstein datacenter
+      deployment.zone: ${HETZNER_ZONE:fsn1-dc14}
   tracing:
+    enabled: true
     sampling:
       probability: ${TRACE_SAMPLING_RATE:0.1}
     export:
       otlp:
-        endpoint: https://cloudtrace.googleapis.com/v2/projects/${GCP_PROJECT_ID}/traces
+        endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://otel-collector:4318/v1/traces}
+        timeout: 10s
+        compression: gzip
+  metrics:
+    export:
+      otlp:
+        enabled: true
+        endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://otel-collector:4318/v1/metrics}
+        timeout: 10s
   observations:
     annotations:
       enabled: true
+
+# Actuator endpoints for Hetzner deployment
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+
+# Security for production Hetzner deployment
+  security:
+    enabled: true
+  endpoint:
+    health:
+      roles: ACTUATOR
+    metrics:
+      roles: ACTUATOR
 ```
 
 **Advanced Sampling Strategy**:
@@ -162,8 +196,69 @@ Spring Boot 4 automatically captures exceptions in observed methods:
 - Exception details are added to the span
 - Span status is set to ERROR
 - Stack traces are included in span events
+- Business error codes can be added via custom observation handlers
 
-For custom error context:
+**Example of automatic error capture:**
+```java
+@Service
+public class RiskCalculationService {
+    
+    @Observed(name = "risk.calculation")
+    public RiskResult calculateRisk(String portfolioId) {
+        if (portfolioId == null) {
+            // This exception is automatically captured in the trace:
+            // - Span status set to ERROR
+            // - Exception type and message recorded
+            // - Stack trace added as span event
+            throw new ValidationException("Portfolio ID is required");
+        }
+        return performCalculation(portfolioId);
+    }
+}
+```
+
+**Enhanced Error Handling for Business Exceptions:**
+```java
+@Component
+public class BusinessErrorObservationHandler implements ObservationHandler<ObservationContext> {
+    
+    @Override
+    public void onError(ObservationContext context) {
+        Throwable error = context.getError();
+        
+        // Add business error context
+        if (error instanceof BusinessException) {
+            BusinessException ex = (BusinessException) error;
+            context.addLowCardinalityKeyValue("error.business.code", ex.getErrorCode());
+            context.addLowCardinalityKeyValue("error.business.category", ex.getCategory());
+            context.addHighCardinalityKeyValue("error.business.details", ex.getMessage());
+        }
+        
+        // Add validation error context
+        if (error instanceof ValidationException) {
+            ValidationException ex = (ValidationException) error;
+            context.addLowCardinalityKeyValue("error.type", "validation");
+            context.addLowCardinalityKeyValue("error.field", ex.getFieldName());
+            context.addHighCardinalityKeyValue("error.value", ex.getInvalidValue());
+        }
+        
+        // Add domain-specific error context
+        if (error instanceof RiskCalculationException) {
+            RiskCalculationException ex = (RiskCalculationException) error;
+            context.addLowCardinalityKeyValue("business.domain", "risk-calculation");
+            context.addLowCardinalityKeyValue("business.operation", ex.getOperation());
+            context.addHighCardinalityKeyValue("business.portfolio.id", ex.getPortfolioId());
+        }
+    }
+    
+    @Override
+    public boolean supportsContext(ObservationContext context) {
+        return true;
+    }
+}
+```
+
+**Custom business error context:**
 ```java
 @Component
 public class BusinessObservationHandler implements ObservationHandler<ObservationContext> {
@@ -174,6 +269,37 @@ public class BusinessObservationHandler implements ObservationHandler<Observatio
             context.addLowCardinalityKeyValue("error.business.code", ex.getErrorCode());
             context.addHighCardinalityKeyValue("error.business.details", ex.getMessage());
         }
+        if (context.getError() instanceof ValidationException) {
+            ValidationException ex = (ValidationException) context.getError();
+            context.addLowCardinalityKeyValue("error.type", "validation");
+            context.addLowCardinalityKeyValue("error.field", ex.getFieldName());
+        }
+    }
+}
+```
+
+**Domain exception handling:**
+```java
+@Component
+public class DomainExceptionHandler implements ObservationHandler<ObservationContext> {
+    @Override
+    public void onError(ObservationContext context) {
+        Throwable error = context.getError();
+        
+        // Add business context for domain exceptions
+        if (error instanceof RiskCalculationException) {
+            RiskCalculationException ex = (RiskCalculationException) error;
+            context.addLowCardinalityKeyValue("business.domain", "risk-calculation");
+            context.addLowCardinalityKeyValue("business.operation", ex.getOperation());
+            context.addHighCardinalityKeyValue("business.portfolio.id", ex.getPortfolioId());
+        }
+        
+        if (error instanceof DataQualityException) {
+            DataQualityException ex = (DataQualityException) error;
+            context.addLowCardinalityKeyValue("business.domain", "data-quality");
+            context.addLowCardinalityKeyValue("business.rule.id", ex.getRuleId());
+            context.addHighCardinalityKeyValue("business.batch.id", ex.getBatchId());
+        }
     }
 }
 ```
@@ -181,6 +307,7 @@ public class BusinessObservationHandler implements ObservationHandler<Observatio
 **Async Operations Configuration**:
 ```java
 @Configuration
+@EnableAsync
 public class AsyncObservabilityConfiguration {
     
     @Bean
@@ -188,11 +315,63 @@ public class AsyncObservabilityConfiguration {
         return ContextPropagatingTaskDecorator.forContextSnapshot(registry);
     }
     
-    @Bean
+    @Bean("asyncExecutor")
     public Executor asyncExecutor(TaskDecorator taskDecorator) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setTaskDecorator(taskDecorator);
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(20);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("async-obs-");
+        executor.setTaskDecorator(taskDecorator);  // Critical for trace propagation
+        executor.initialize();
         return executor;
+    }
+    
+    @Bean("batchProcessingExecutor")
+    public Executor batchProcessingExecutor(TaskDecorator taskDecorator) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("batch-obs-");
+        executor.setTaskDecorator(taskDecorator);
+        executor.initialize();
+        return executor;
+    }
+}
+```
+
+**Usage with @Async:**
+```java
+@Service
+public class BatchProcessingService {
+    
+    @Async("batchProcessingExecutor")
+    @Observed(name = "batch.processing", contextualName = "process-async")
+    public CompletableFuture<BatchResult> processAsync(String batchId) {
+        // Trace context automatically propagated to this thread
+        // Business context available via current trace
+        return CompletableFuture.completedFuture(processBatch(batchId));
+    }
+}
+```
+
+**Manual CompletableFuture with trace context:**
+```java
+@Service
+public class RiskCalculationService {
+    
+    private final Executor asyncExecutor;
+    private final ObservationRegistry observationRegistry;
+    
+    @Observed(name = "risk.calculation.parallel")
+    public CompletableFuture<List<RiskResult>> calculateParallel(List<String> portfolioIds) {
+        return CompletableFuture.supplyAsync(() -> {
+            // Process portfolios in parallel with trace context
+            return portfolioIds.parallelStream()
+                .map(this::calculateRisk)
+                .collect(Collectors.toList());
+        }, asyncExecutor);
     }
 }
 ```
@@ -366,55 +545,48 @@ public enum HealthState {
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
 
-### Property Test Mapping
+### Property Test Mapping (Original Numbers Preserved)
 
-**Original → Updated Property Numbers:**
-- Property 1: Business context in traces (KEPT - business requirement)
-- Property 2: Async trace context propagation (NEW - Spring Boot 4 specific)  
-- Property 3-8: Basic infrastructure properties (REMOVED - handled by Spring Boot 4)
-- Property 9: Business metrics accuracy (KEPT - was Property 3 in original design)
-- Property 4: Annotation-based metrics consistency (NEW - Spring Boot 4 specific)
-- Properties 15-33: Health, alerting, security, SLA properties (KEPT - business requirements)
+**CRITICAL**: Property numbers are preserved from original design to maintain traceability across documents. Properties handled by Spring Boot 4 are marked as "Handled by Spring Boot 4" but retain their original numbers.
 
-### Distributed Tracing Properties (Simplified for Spring Boot 4)
+**Property Status for Spring Boot 4:**
+- Properties 1-2: Trace ID propagation, export reliability → **Handled by Spring Boot 4** (original numbers preserved)
+- Property 3: Business context in traces → **KEPT** (business requirement)
+- Properties 4-6: Basic metrics collection → **Handled by Spring Boot 4** (original numbers preserved)
+- Properties 7-8: Log structure consistency → **Handled by Spring Boot 4** (original numbers preserved)
+- Property 9: Business metrics accuracy → **KEPT** (business requirement)
+- Properties 10-14: Infrastructure concerns → **Handled by Spring Boot 4** (original numbers preserved)
+- Properties 15-33: Health, alerting, security, SLA → **KEPT** (business requirements)
 
-**Property 1: Business context in traces** (Updated - infrastructure handled by Spring Boot 4)
+### Distributed Tracing Properties
+
+**Property 3: Business context in traces** (Updated - infrastructure handled by Spring Boot 4)
 *For any* business operation annotated with @Observed, the trace should include relevant business context attributes like batch IDs, user IDs, and operation outcomes
 **Validates: Requirements 1.1, 1.2**
 
-**Property 2: Error capture completeness** (Kept - business requirement)
+**Property 12: Error capture completeness** (Kept - business requirement)
 *For any* error condition that occurs during traced operations, the error details should be captured within the trace context with sufficient information for debugging
 **Validates: Requirements 1.4**
 
-**Note**: Properties for trace ID propagation and export reliability are now handled automatically by Spring Boot 4's OpenTelemetry auto-configuration and don't require custom testing.
+### Metrics Collection Properties
 
-### Metrics Collection Properties (Simplified for Spring Boot 4)
-
-**Property 3: Business metrics accuracy** (Kept - business requirement)
+**Property 9: Business metrics accuracy** (Kept - business requirement)
 *For any* business operation completion, the system should record domain-specific metrics with correct values and appropriate business context
 **Validates: Requirements 2.5**
 
-**Property 4: Annotation-based metrics consistency** (New - Spring Boot 4 specific)
-*For any* method annotated with @Observed, @Timed, or @Counted, the system should automatically generate corresponding metrics with correct names, tags, and values
-**Validates: Requirements 2.1, 2.3**
-
-**Note**: Properties for request metrics, database metrics, and resource metrics are now handled automatically by Spring Boot 4's Micrometer auto-configuration and don't require custom testing.
+**Note**: Properties 1-2, 4-8, 10-11 for request metrics, database metrics, and resource metrics are now handled automatically by Spring Boot 4's Micrometer auto-configuration and don't require custom testing.
 
 ### Structured Logging Properties (Simplified for Spring Boot 4)
 
-**Property 5: Trace context in logs** (Updated - automatic with Spring Boot 4)
-*For any* log entry created during a traced operation, it should automatically include traceId and spanId from the current trace context
-**Validates: Requirements 3.1, 3.3**
-
-**Property 6: Business event logging consistency** (Kept - business requirement)
-*For any* business event logged, the system should include relevant business context and maintain consistent structure across all modules
-**Validates: Requirements 3.2, 3.4**
-
-**Property 7: Security audit logging completeness** (Kept - compliance requirement)
+**Property 13: Security audit logging completeness** (Kept - compliance requirement)
 *For any* security-relevant event, the system should log complete audit information including user context, action details, and outcomes
 **Validates: Requirements 3.5, 7.1, 7.2, 7.3**
 
-**Note**: Basic log structure consistency is now handled automatically by Spring Boot 4's Micrometer Tracing integration.
+**Property 14: Business event logging consistency** (Kept - business requirement)
+*For any* business event logged, the system should include relevant business context and maintain consistent structure across all modules
+**Validates: Requirements 3.2, 3.4**
+
+**Note**: Properties 5-8 for basic log structure consistency and trace context in logs are now handled automatically by Spring Boot 4's Micrometer Tracing integration.
 
 ### Health Monitoring Properties
 
@@ -564,7 +736,7 @@ Property-based tests will use **jqwik** (Java QuickCheck implementation) to veri
 **Example Property Test Structure**:
 ```java
 @Property
-@Label("Feature: observability-enhancement, Property 3: Business metrics accuracy")
+@Label("Feature: observability-enhancement, Property 9: Business metrics accuracy")
 void businessMetricsAccuracy(@ForAll @BusinessScenario BusinessEvent event) {
     // Generate random business events
     // Verify custom business metrics are recorded correctly

@@ -1,0 +1,378 @@
+# ============================================================================
+# Business Observability Configuration
+# ============================================================================
+# Configuration for business-specific observability features
+# Requirements: 4.1, 5.1
+# ============================================================================
+
+spring:
+  config:
+    activate:
+      on-profile: observability
+
+# ============================================================================
+# BUSINESS OBSERVATION HANDLER CONFIGURATION
+# ============================================================================
+# Configuration for BusinessObservationHandler
+observability:
+  business:
+    # Enable business context in traces
+    context:
+      enabled: true
+      # Add batch IDs to traces
+      include-batch-id: true
+      # Add user IDs to traces
+      include-user-id: true
+      # Add operation outcomes to traces
+      include-outcome: true
+    
+    # Service layer detection
+    service-layer:
+      enabled: true
+      patterns:
+        presentation: ".*\\.presentation\\..*"
+        application: ".*\\.application\\..*"
+        infrastructure: ".*\\.infrastructure\\..*"
+        domain: ".*\\.domain\\..*"
+    
+    # Business domain detection
+    business-domain:
+      enabled: true
+      patterns:
+        iam: ".*\\.iam\\..*"
+        billing: ".*\\.billing\\..*"
+        ingestion: ".*\\.ingestion\\..*"
+        data-quality: ".*\\.dataquality\\..*"
+        risk-calculation: ".*\\.riskcalculation\\..*"
+        report-generation: ".*\\.reportgeneration\\..*"
+    
+    # Operation type detection
+    operation-type:
+      enabled: true
+      patterns:
+        create: "create.*|add.*|insert.*"
+        read: "get.*|find.*|query.*|search.*"
+        update: "update.*|modify.*|change.*"
+        delete: "delete.*|remove.*"
+        process: "process.*|execute.*|run.*"
+        validate: "validate.*|check.*|verify.*"
+
+# ============================================================================
+# CUSTOM HEALTH INDICATORS CONFIGURATION
+# ============================================================================
+# Configuration for custom health indicators
+management:
+  health:
+    # Database health indicator
+    database:
+      enabled: true
+      response-time-threshold: 1000  # milliseconds
+      connection-validation-timeout: 5000  # milliseconds
+    
+    # External service health indicators
+    external-services:
+      enabled: true
+      currency-api:
+        enabled: true
+        url: ${CURRENCY_API_URL:https://api.exchangerate-api.com}
+        timeout: 5000  # milliseconds
+      file-storage:
+        enabled: true
+        type: ${FILE_STORAGE_TYPE:local}  # local or s3
+        s3:
+          bucket: ${S3_BUCKET_NAME:}
+          region: ${S3_REGION:}
+    
+    # Business process health indicators
+    business-processes:
+      enabled: true
+      batch-processing:
+        enabled: true
+        max-processing-time: 300000  # 5 minutes in milliseconds
+      risk-calculation:
+        enabled: true
+        max-calculation-time: 600000  # 10 minutes in milliseconds
+      report-generation:
+        enabled: true
+        max-generation-time: 180000  # 3 minutes in milliseconds
+
+# ============================================================================
+# ALERTING THRESHOLDS CONFIGURATION
+# ============================================================================
+# Configuration for AlertingService thresholds
+alerting:
+  thresholds:
+    # Error rate thresholds (Requirements 5.1)
+    error-rate:
+      warning: 0.05  # 5% error rate
+      critical: 0.10  # 10% error rate
+      evaluation-window: 300  # 5 minutes in seconds
+    
+    # Response time thresholds (Requirements 5.2)
+    response-time:
+      warning: 1000  # 1 second in milliseconds
+      critical: 3000  # 3 seconds in milliseconds
+      percentile: 95  # P95 response time
+    
+    # Resource utilization thresholds (Requirements 5.4)
+    resource-utilization:
+      cpu:
+        warning: 70  # 70% CPU usage
+        critical: 90  # 90% CPU usage
+      memory:
+        warning: 80  # 80% memory usage
+        critical: 95  # 95% memory usage
+      disk:
+        warning: 80  # 80% disk usage
+        critical: 90  # 90% disk usage
+    
+    # Business process thresholds (Requirements 5.5)
+    business-processes:
+      batch-processing:
+        max-failures: 3  # Maximum consecutive failures
+        max-processing-time: 300000  # 5 minutes in milliseconds
+      risk-calculation:
+        max-failures: 2  # Maximum consecutive failures
+        max-calculation-time: 600000  # 10 minutes in milliseconds
+      data-quality:
+        min-quality-score: 0.7  # Minimum acceptable quality score (70%)
+        max-violations: 100  # Maximum rule violations per batch
+  
+  # Alert cooldown periods (prevent alert fatigue)
+  cooldown:
+    error-rate: 900  # 15 minutes in seconds
+    response-time: 600  # 10 minutes in seconds
+    resource-utilization: 1800  # 30 minutes in seconds
+    business-process: 3600  # 1 hour in seconds
+
+# ============================================================================
+# NOTIFICATION CHANNELS CONFIGURATION
+# ============================================================================
+# Configuration for NotificationService channels
+notifications:
+  # Email notifications
+  email:
+    enabled: ${OBSERVABILITY_EMAIL_ENABLED:false}
+    from: ${OBSERVABILITY_EMAIL_FROM:alerts@bcbs239.com}
+    to: ${OBSERVABILITY_EMAIL_TO:}
+    smtp:
+      host: ${SMTP_HOST:smtp.gmail.com}
+      port: ${SMTP_PORT:587}
+      username: ${SMTP_USERNAME:}
+      password: ${SMTP_PASSWORD:}
+      auth: true
+      starttls: true
+  
+  # Slack notifications
+  slack:
+    enabled: ${OBSERVABILITY_SLACK_ENABLED:false}
+    webhook-url: ${OBSERVABILITY_SLACK_WEBHOOK_URL:}
+    channel: ${OBSERVABILITY_SLACK_CHANNEL:#alerts}
+    username: BCBS239 Alerts
+    icon-emoji: ":warning:"
+  
+  # Webhook notifications
+  webhook:
+    enabled: ${OBSERVABILITY_WEBHOOK_ENABLED:false}
+    url: ${OBSERVABILITY_WEBHOOK_URL:}
+    method: POST
+    headers:
+      Content-Type: application/json
+      Authorization: Bearer ${OBSERVABILITY_WEBHOOK_TOKEN:}
+    timeout: 5000  # milliseconds
+    retry:
+      enabled: true
+      max-attempts: 3
+      backoff-multiplier: 2
+
+# ============================================================================
+# BUSINESS-SPECIFIC SAMPLING RULES
+# ============================================================================
+# Advanced sampling configuration for business operations
+management:
+  tracing:
+    sampling:
+      # Default sampling rate (10% for production)
+      probability: ${TRACE_SAMPLING_RATE:0.1}
+      
+      # Business-specific sampling rules
+      # These override the default probability for specific operations
+      rules:
+        # Always sample risk calculations (100%)
+        - pattern: ".*riskcalculation.*"
+          probability: 1.0
+          priority: 1
+        
+        # Sample 50% of report generation operations
+        - pattern: ".*reportgeneration.*"
+          probability: 0.5
+          priority: 2
+        
+        # Sample 30% of data quality operations
+        - pattern: ".*dataquality.*"
+          probability: 0.3
+          priority: 3
+        
+        # Sample 20% of ingestion operations
+        - pattern: ".*ingestion.*"
+          probability: 0.2
+          priority: 4
+        
+        # Sample 10% of IAM operations (default)
+        - pattern: ".*iam.*"
+          probability: 0.1
+          priority: 5
+        
+        # Sample 10% of billing operations (default)
+        - pattern: ".*billing.*"
+          probability: 0.1
+          priority: 6
+
+# ============================================================================
+# ENVIRONMENT-SPECIFIC PROFILES
+# ============================================================================
+
+---
+# Development profile
+spring:
+  config:
+    activate:
+      on-profile: development
+
+# Development observability settings
+management:
+  tracing:
+    sampling:
+      probability: 1.0  # 100% sampling in development
+      rules:
+        - pattern: ".*"
+          probability: 1.0
+          priority: 1
+
+alerting:
+  thresholds:
+    error-rate:
+      warning: 0.10  # More lenient in development
+      critical: 0.20
+    response-time:
+      warning: 2000  # More lenient in development
+      critical: 5000
+
+notifications:
+  email:
+    enabled: false  # Disable email in development
+  slack:
+    enabled: false  # Disable Slack in development
+  webhook:
+    enabled: false  # Disable webhook in development
+
+---
+# Production profile
+spring:
+  config:
+    activate:
+      on-profile: production
+
+# Production observability settings
+management:
+  tracing:
+    sampling:
+      probability: 0.1  # 10% sampling in production
+      rules:
+        # Always sample errors and slow operations
+        - pattern: ".*error.*|.*exception.*"
+          probability: 1.0
+          priority: 0
+        - pattern: ".*slow.*|.*timeout.*"
+          probability: 1.0
+          priority: 0
+
+alerting:
+  thresholds:
+    error-rate:
+      warning: 0.05  # Strict in production
+      critical: 0.10
+    response-time:
+      warning: 1000  # Strict in production
+      critical: 3000
+
+notifications:
+  email:
+    enabled: true  # Enable email in production
+  slack:
+    enabled: true  # Enable Slack in production
+  webhook:
+    enabled: true  # Enable webhook in production
+
+---
+# Hetzner profile
+spring:
+  config:
+    activate:
+      on-profile: hetzner
+
+# Hetzner-specific observability settings
+management:
+  opentelemetry:
+    resource-attributes:
+      deployment.provider: hetzner
+      deployment.region: ${HETZNER_DATACENTER:fsn1}
+      deployment.zone: ${HETZNER_ZONE:fsn1-dc14}
+  
+  tracing:
+    export:
+      otlp:
+        endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://otel-collector:4318/v1/traces}
+  
+  metrics:
+    export:
+      otlp:
+        endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://otel-collector:4318/v1/metrics}
+
+# Hetzner-specific alerting (use internal IPs)
+alerting:
+  thresholds:
+    # Same as production
+    error-rate:
+      warning: 0.05
+      critical: 0.10
+    response-time:
+      warning: 1000
+      critical: 3000
+
+# ============================================================================
+# CONFIGURATION NOTES
+# ============================================================================
+# 1. Business Context:
+#    - Automatically adds batch IDs, user IDs, and outcomes to traces
+#    - Detects service layer, business domain, and operation type
+#    - Enriches traces with business-specific attributes
+#
+# 2. Health Indicators:
+#    - Database: Monitors connection pool and query performance
+#    - External Services: Checks currency API and file storage
+#    - Business Processes: Monitors batch processing, risk calculation, reports
+#
+# 3. Alerting Thresholds:
+#    - Error Rate: 5% warning, 10% critical
+#    - Response Time: 1s warning, 3s critical (P95)
+#    - Resource Utilization: 70-90% CPU, 80-95% memory, 80-90% disk
+#    - Business Processes: Max failures and processing times
+#
+# 4. Notification Channels:
+#    - Email: SMTP configuration for email alerts
+#    - Slack: Webhook URL for Slack notifications
+#    - Webhook: Generic webhook for custom integrations
+#
+# 5. Sampling Rules:
+#    - Risk Calculation: 100% (always sample)
+#    - Report Generation: 50%
+#    - Data Quality: 30%
+#    - Ingestion: 20%
+#    - IAM/Billing: 10% (default)
+#
+# 6. Environment Profiles:
+#    - Development: 100% sampling, lenient thresholds, no notifications
+#    - Production: 10% sampling, strict thresholds, all notifications
+#    - Hetzner: Production settings with Hetzner-specific configuration
+# ============================================================================

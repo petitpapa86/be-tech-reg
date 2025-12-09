@@ -13,8 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
@@ -102,11 +100,7 @@ public class RiskCalculationEventPublisher {
                     domainEvent.getBatchId(),
                     domainEvent.getBankId(),
                     domainEvent.getCalculationResultsUri(),
-                    domainEvent.getProcessedExposures(),
-                    BigDecimal.ZERO, // Total amount - will be calculated from analysis
-                    Instant.now(),
-                    BigDecimal.ZERO, // Geographic HHI - will be populated from analysis
-                    BigDecimal.ZERO  // Sector HHI - will be populated from analysis
+                    Instant.now()
                 );
             
             // Log structured event data for monitoring

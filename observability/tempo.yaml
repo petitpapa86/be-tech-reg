@@ -1,0 +1,93 @@
+# ============================================================================
+# Grafana Tempo Configuration (Hetzner Deployment)
+# ============================================================================
+# Distributed tracing backend for storing and querying traces
+# Requirements: 1.5, 6.1
+# ============================================================================
+
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  max_block_duration: 5m
+  max_block_bytes: 1_000_000
+  complete_block_timeout: 15m
+
+compactor:
+  compaction:
+    block_retention: 168h  # 7 days retention
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /var/tempo/traces
+    wal:
+      path: /var/tempo/wal
+    pool:
+      max_workers: 100
+      queue_depth: 10000
+
+querier:
+  frontend_worker:
+    frontend_address: localhost:9095
+
+query_frontend:
+  search:
+    max_duration: 0s  # No limit on search duration
+
+metrics_generator:
+  registry:
+    external_labels:
+      source: tempo
+      deployment: hetzner
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://prometheus:9090/api/v1/write
+        send_exemplars: true
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors: [service-graphs, span-metrics]
+
+# ============================================================================
+# CONFIGURATION NOTES
+# ============================================================================
+# 1. Data retention:
+#    - Traces: 7 days (168 hours)
+#    - Adjust block_retention for longer/shorter retention
+#
+# 2. Storage:
+#    - Backend: local filesystem (suitable for single-node)
+#    - For production: Consider S3-compatible storage (Hetzner Object Storage)
+#    - WAL: Write-ahead log for durability
+#
+# 3. Performance:
+#    - max_block_duration: Controls block size (5 minutes)
+#    - max_workers: Parallel processing (100 workers)
+#    - queue_depth: Buffer size (10000 traces)
+#
+# 4. Metrics generation:
+#    - service-graphs: Generates service dependency graphs
+#    - span-metrics: Generates RED metrics (Rate, Errors, Duration)
+#    - Sends to Prometheus for visualization
+#
+# 5. Scaling:
+#    - Single-node configuration (suitable for small/medium deployments)
+#    - For high-volume: Use distributed mode with multiple ingesters
+#
+# 6. Backup strategy:
+#    - Backup /var/tempo directory to Hetzner Object Storage
+#    - Recommended: Daily backups with 7-day retention
+# ============================================================================

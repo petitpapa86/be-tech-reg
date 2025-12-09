@@ -9,6 +9,7 @@ import org.springframework.boot.micrometer.observation.autoconfigure.Observation
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Objects;
 
@@ -83,6 +84,16 @@ public class ObservabilityConfiguration {
             logger.warn("Tracer not available - trace context logging will be disabled");
         }
         return new TraceContextLogger(tracer);
+    }
+    
+    /**
+     * Configures RestTemplate for notification service HTTP calls.
+     * Used by NotificationService for Slack and webhook notifications.
+     */
+    @Bean
+    public RestTemplate restTemplate() {
+        logger.info("Configuring RestTemplate for notification service");
+        return new RestTemplate();
     }
     
     /**
