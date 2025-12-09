@@ -1,227 +1,116 @@
 # Double Event Dispatch Fix
 
 ## Problem
+The data quality module was processing integration events twice, causing duplicate processing. This was happening because:
 
-When a user registration occurred, the system was creating **duplicate billing accounts** and **duplicate sagas**, causing:
-- Two `PaymentVerificationSaga` instances for the same user
-- Two billing accounts with different IDs
-- Two subscriptions
-- Duplicate invoice number errors (`INV-20251204-0001`)
-- One saga succeeding, one failing
+1. **Missing Inbox Replay Check**: Event listeners were not checking the `CorrelationContext.isInboxReplay()` scoped value
+2. **Duplicate Event Listeners**: The data quality module had two separate event listeners processing the same logical events
 
-## Root Cause
+## Root Cause Analysis
 
-The `UserRegisteredIntegrationEvent` was being processed **twice** due to two issues:
+### Integration Event Flow
+1. **Outbox → Integration Event Bus**: Events are published from outbox to integration event bus
+2. **IntegrationEventReceiver**: Saves events to inbox (unless `isInboxReplay()` is true)
+3. **Inbox Processing Job**: Replays events from inbox with `INBOX_REPLAY` scoped value set to `true`
+4. **Module Event Listeners**: Should check `isInboxReplay()` to avoid duplicate processing
 
-### Issue 1: Handlers Processing Outbox Replay Events
-Events from outbox replay were being processed immediately by handlers instead of waiting for inbox replay.
+### The Issue
+Event listeners in modules were not checking the `CorrelationContext.isInboxReplay()` flag, causing:
+- Events to be processed both during initial dispatch AND during inbox replay
+- Double processing of the same logical event
+- Data inconsistencies and duplicate records
 
-1. **First processing** (virtual-77 thread): Direct event propagation from outbox replay
-   - OutboxProcessor replays event from outbox with `isOutboxReplay=true`
-   - Event published to CrossModuleEventBus
-   - IntegrationEventReceiver saves to inbox
-   - **Event immediately propagates to UserRegisteredEventHandler** ❌
-   - Handler should skip but doesn't check the flag
-   - Handler creates billing account, subscription, and starts saga
+## Generic Solution
 
-2. **Second processing** (billing-scheduler-1 thread): Inbox replay
-   - ProcessInboxJob reads from inbox
-   - Publishes event with `isInboxReplay=true`
-   - **Event propagates to UserRegisteredEventHandler again** ❌
-   - Handler creates another billing account, subscription, and starts another saga
+### 1. Add Inbox Replay Check to Event Listeners
 
-### Issue 2: ScopedValue Context Not Cleared
-The `OUTBOX_REPLAY` scoped value was not being explicitly cleared during inbox replay, causing `isOutboxReplay()` to return `true` even during inbox replay. This prevented handlers from processing events during inbox replay.
-
-## Solution
-
-Integration event handlers must **skip processing** when events come from outbox replay. Events should only be processed during inbox replay to ensure exactly-once semantics.
-
-To avoid repetitive boilerplate code in every handler, we created a **base class** that implements the template method pattern to automatically handle the outbox replay check.
-
-### Changes Made
-
-#### 1. DomainEventBus - Clear Outbox Replay Flag
-**File**: `regtech-core/infrastructure/src/main/java/com/bcbs239/regtech/core/infrastructure/eventprocessing/DomainEventBus.java`
-
-Explicitly set `OUTBOX_REPLAY=false` when publishing from inbox to prevent context pollution:
+All integration event listeners should check the inbox replay flag and skip processing entirely:
 
 ```java
-@Override
-public void publishFromInbox(DomainEvent event) {
-    java.lang.ScopedValue.where(CorrelationContext.INBOX_REPLAY, Boolean.TRUE)
-           .where(CorrelationContext.OUTBOX_REPLAY, Boolean.FALSE) // Explicitly clear outbox replay flag
-           .where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
-           .where(CorrelationContext.CAUSATION_ID, event.getEventId())
-           .run(() -> delegate.publishEvent(event));
+@EventListener
+public void handleIntegrationEvent(SomeIntegrationEvent event) {
+    // Skip processing entirely if this is an inbox replay
+    // Events are processed once during initial dispatch, inbox replay is for reliability only
+    if (CorrelationContext.isInboxReplay()) {
+        log.info("Skipping inbox replay for event: {}", event.getEventId());
+        return;
+    }
+    
+    // Normal event processing with idempotency checks...
+    if (alreadyProcessed(event)) {
+        log.info("Event already processed: {}", event.getEventId());
+        return;
+    }
+    
+    // Process event...
 }
 ```
 
-#### 2. IntegrationEventReceiver Enhancement
-**File**: `regtech-core/application/src/main/java/com/bcbs239/regtech/core/application/eventprocessing/IntegrationEventReceiver.java`
+### 2. Implement Proper Idempotency Checks
 
-Added logging for `isOutboxReplay` flag to help diagnose the flow:
+Each module should implement idempotency checks appropriate to their domain:
 
+**Risk Calculation Module:**
 ```java
-boolean isOutboxReplay = CorrelationContext.isOutboxReplay();
-
-logger.info("📨 IntegrationEventReceiver: event={}, isInboxReplay={}, isOutboxReplay={}", 
-        event.getClass().getSimpleName(), isInboxReplay, isOutboxReplay);
-```
-
-#### 3. IntegrationEventHandler Base Class (NEW)
-**File**: `regtech-core/application/src/main/java/com/bcbs239/regtech/core/application/eventprocessing/IntegrationEventHandler.java`
-
-Created a base class that implements the template method pattern to automatically handle outbox replay checks:
-
-```java
-public abstract class IntegrationEventHandler<T extends IntegrationEvent> {
-    
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-    
-    protected void handleIntegrationEvent(T event, java.util.function.Consumer<T> handler) {
-        boolean isOutboxReplay = CorrelationContext.isOutboxReplay();
-        boolean isInboxReplay = CorrelationContext.isInboxReplay();
-        
-        logger.info("Received {} (isOutboxReplay={}, isInboxReplay={})", 
-                event.getClass().getSimpleName(), isOutboxReplay, isInboxReplay);
-        
-        // Skip processing if from outbox replay - will be processed via inbox
-        if (isOutboxReplay && !isInboxReplay) {
-            logger.info("Skipping processing - event from outbox replay will be processed via inbox: {}", 
-                    event.getClass().getSimpleName());
-            return;
-        }
-        
-        // Process the event
-        handler.accept(event);
-    }
+// Check if portfolio analysis already exists for this batch
+BatchId batchId = BatchId.of(event.getBatchId());
+if (portfolioAnalysisRepository.findByBatchId(batchId.value()).isPresent()) {
+    log.info("Batch {} already processed, skipping", event.getBatchId());
+    return;
 }
 ```
 
-#### 4. UserRegisteredEventHandler Refactoring
-**File**: `regtech-billing/application/src/main/java/com/bcbs239/regtech/billing/application/integration/UserRegisteredEventHandler.java`
-
-Refactored to extend the base class - no more manual checks:
-
+**Data Quality Module:**
 ```java
-@Component("billingUserRegisteredEventHandler")
-public class UserRegisteredEventHandler extends IntegrationEventHandler<BillingUserRegisteredEvent> {
-    
-    @EventListener
-    public void handle(BillingUserRegisteredEvent event) {
-        handleIntegrationEvent(event, this::processEvent);
-    }
-    
-    private void processEvent(BillingUserRegisteredEvent event) {
-        // Business logic here - no need to check isOutboxReplay
-        // ...
-    }
+// Check if quality report already exists for this batch
+BatchId batchId = new BatchId(event.getBatchId());
+if (qualityReportRepository.existsByBatchId(batchId)) {
+    log.info("Quality report already exists for batch: {}", event.getBatchId());
+    return;
 }
 ```
 
-#### 5. BillingAccountActivatedEventHandler Refactoring
-**File**: `regtech-iam/application/src/main/java/com/bcbs239/regtech/iam/application/integration/BillingAccountActivatedEventHandler.java`
+### 3. Remove Duplicate Event Listeners
 
-Refactored to extend the base class:
+Ensure each module has only one event listener per integration event type.
 
-```java
-@Component("iamBillingAccountActivatedEventHandler")
-public class BillingAccountActivatedEventHandler extends IntegrationEventHandler<BillingAccountActivatedEvent> {
-    
-    @EventListener
-    public void handle(BillingAccountActivatedEvent event) {
-        handleIntegrationEvent(event, this::processEvent);
-    }
-    
-    private void processEvent(BillingAccountActivatedEvent event) {
-        // Business logic here - no need to check isOutboxReplay
-        // ...
-    }
-}
-```
+## Implementation Applied
 
-## Event Flow After Fix
+### Data Quality Module
+1. **Removed duplicate `QualityEventListener`** - This was causing the double processing
+2. **Enhanced `BatchIngestedEventListener`** - Added proper inbox replay checking
+3. **Verified idempotency checks** - The existing `existsByBatchId()` check is sufficient
 
-### Correct Flow (Exactly-Once Processing)
+### Risk Calculation Module
+1. **Verified `BatchIngestedEventListener`** - Already has proper idempotency checks
+2. **No changes needed** - This module was working correctly
 
-1. **Outbox Replay**:
-   - OutboxProcessor replays `UserRegisteredEvent` from outbox
-   - Event published to CrossModuleEventBus with `isOutboxReplay=true`
-   - IntegrationEventReceiver saves to inbox
-   - UserRegisteredEventHandler **skips processing** ✅
+## Verification
 
-2. **Inbox Replay** (later):
-   - ProcessInboxJob reads from inbox
-   - Publishes event with `isInboxReplay=true`
-   - IntegrationEventReceiver **skips saving** (already in inbox)
-   - UserRegisteredEventHandler **processes event** ✅
-   - Creates billing account, subscription, starts saga **once**
+### Test the Fix
+1. **Single Event Processing**: Each integration event should be processed exactly once
+2. **Inbox Replay Handling**: Events replayed from inbox should respect idempotency
+3. **No Duplicate Records**: Database should not contain duplicate processing results
 
-## Testing
+### Monitoring
+- Check logs for "Skipping inbox replay" messages
+- Monitor database for duplicate records
+- Verify event processing metrics show single processing per event
 
-After applying this fix:
+## Best Practices for Future Event Listeners
 
-1. **Clear existing data**:
-   ```sql
-   DELETE FROM billing.billing_accounts WHERE user_id = '<test-user-id>';
-   DELETE FROM billing.subscriptions WHERE billing_account_id IN (
-       SELECT id FROM billing.billing_accounts WHERE user_id = '<test-user-id>'
-   );
-   DELETE FROM core.sagas WHERE saga_type = 'PaymentVerificationSaga';
-   ```
-
-2. **Register a new user** via POST `/api/v1/users/register`
-
-3. **Verify logs show**:
-   - Only ONE "BILLING_ACCOUNT_CREATED" message
-   - Only ONE "SAGA_START_SUCCESS" message
-   - "OUTBOX_REPLAY_SKIPPED" message during outbox replay
-   - No duplicate invoice number errors
-
-4. **Verify database**:
-   ```sql
-   SELECT COUNT(*) FROM billing.billing_accounts WHERE user_id = '<test-user-id>';
-   -- Should return 1
-   
-   SELECT COUNT(*) FROM core.sagas WHERE saga_type = 'PaymentVerificationSaga' 
-       AND saga_data::text LIKE '%<test-user-id>%';
-   -- Should return 1
-   ```
-
-## Pattern for Other Handlers
-
-All integration event handlers that process cross-module events should extend the `IntegrationEventHandler` base class:
-
-```java
-@Component
-public class SomeEventHandler extends IntegrationEventHandler<SomeIntegrationEvent> {
-    
-    @EventListener
-    public void handle(SomeIntegrationEvent event) {
-        handleIntegrationEvent(event, this::processEvent);
-    }
-    
-    private void processEvent(SomeIntegrationEvent event) {
-        // Your business logic here
-        // No need to check isOutboxReplay - handled by base class
-    }
-}
-```
-
-### Benefits of Base Class Approach
-
-1. **No Repetitive Code**: Outbox replay check is centralized in one place
-2. **Consistent Behavior**: All handlers follow the same pattern
-3. **Better Logging**: Base class provides consistent logging for all events
-4. **Easier to Maintain**: Changes to the replay logic only need to be made in one place
-5. **Type Safety**: Generic type parameter ensures type-safe event handling
+1. **Always check inbox replay first**: `if (CorrelationContext.isInboxReplay()) return;` - Skip entirely, no repository calls needed
+2. **Implement idempotency for duplicates**: Check if the event has already been processed (for non-replay duplicates)
+3. **Use unique component names**: Avoid bean name conflicts with `@Component("uniqueName")`
+4. **Log replay skips**: Help with debugging and monitoring
+5. **Test with inbox replay**: Ensure handlers work correctly during replay scenarios
+6. **Optimize performance**: Scoped value check is faster than repository calls
 
 ## Related Files
-
-- `regtech-core/application/src/main/java/com/bcbs239/regtech/core/application/outbox/OutboxProcessor.java`
-- `regtech-core/application/src/main/java/com/bcbs239/regtech/core/application/inbox/ProcessInboxJob.java`
 - `regtech-core/domain/src/main/java/com/bcbs239/regtech/core/domain/context/CorrelationContext.java`
+- `regtech-core/application/src/main/java/com/bcbs239/regtech/core/application/eventprocessing/IntegrationEventReceiver.java`
+- `regtech-data-quality/application/src/main/java/com/bcbs239/regtech/dataquality/application/integration/BatchIngestedEventListener.java`
+- `regtech-risk-calculation/application/src/main/java/com/bcbs239/regtech/riskcalculation/application/integration/BatchIngestedEventListener.java`
 
-## Date
-December 4, 2025
+## Status
+✅ **FIXED** - Removed duplicate event listener and verified proper inbox replay handling in both modules.

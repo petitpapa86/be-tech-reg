@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.application.integration;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -47,10 +48,17 @@ public class BatchIngestedEventListener {
     @EventListener
     @Async("riskCalculationTaskExecutor")
     public void handleBatchIngestedEvent(BatchIngestedEvent event) {
-        log.info("Received BatchIngestedEvent for batch: {} from bank: {}",
-            event.getBatchId(), event.getBankId());
+        log.info("Received BatchIngestedEvent for batch: {} from bank: {}, isInboxReplay: {}",
+            event.getBatchId(), event.getBankId(), CorrelationContext.isInboxReplay());
 
         try {
+            // Skip processing entirely if this is an inbox replay
+            // Events are processed once during initial dispatch, inbox replay is for reliability only
+            if (CorrelationContext.isInboxReplay()) {
+                log.info("Batch {} inbox replay skipped", event.getBatchId());
+                return;
+            }
+
             // Step 1: Validate event
             if (!isValidEvent(event)) {
                 log.warn("Invalid BatchIngestedEvent received, skipping processing: {}", event);

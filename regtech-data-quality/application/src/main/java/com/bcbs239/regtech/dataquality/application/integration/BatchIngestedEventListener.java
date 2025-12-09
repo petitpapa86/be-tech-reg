@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.dataquality.application.integration;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -83,10 +84,21 @@ public class BatchIngestedEventListener {
                 "batchId", event.getBatchId(),
                 "bankId", event.getBankId(),
                 "s3Uri", event.getS3Uri(),
-                "totalExposures", String.valueOf(event.getTotalExposures())
+                "totalExposures", String.valueOf(event.getTotalExposures()),
+                "isInboxReplay", String.valueOf(CorrelationContext.isInboxReplay())
         ));
 
         try {
+            // Skip processing entirely if this is an inbox replay
+            // Events are processed once during initial dispatch, inbox replay is for reliability only
+            if (CorrelationContext.isInboxReplay()) {
+                log.info("batch_ingested_event_inbox_replay_skip; details={}", Map.of(
+                        "batchId", event.getBatchId(),
+                        "reason", "inbox_replay_skipped"
+                ));
+                return;
+            }
+
             // Event filtering
             if (!shouldProcessEvent(event)) {
                 totalEventsFiltered.incrementAndGet();

@@ -1,6 +1,9 @@
 package com.bcbs239.regtech.riskcalculation.domain.calculation.events;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 
 import java.time.Instant;
 
@@ -8,6 +11,7 @@ import java.time.Instant;
  * Domain event indicating that a batch calculation has been completed successfully.
  * Raised by the Batch aggregate when calculation completes.
  */
+@Getter
 public class BatchCalculationCompletedEvent extends DomainEvent {
     private final String batchId;
     private final String bankId;
@@ -32,26 +36,6 @@ public class BatchCalculationCompletedEvent extends DomainEvent {
     @Override
     public String eventType() {
         return "BatchCalculationCompleted";
-    }
-
-    public String getBatchId() {
-        return batchId;
-    }
-
-    public String getBankId() {
-        return bankId;
-    }
-
-    public int getProcessedExposures() {
-        return processedExposures;
-    }
-
-    public String getCalculationResultsUri() {
-        return calculationResultsUri;
-    }
-
-    public Instant getCompletedAt() {
-        return completedAt;
     }
 
     @Override
