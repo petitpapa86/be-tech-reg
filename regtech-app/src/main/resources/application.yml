@@ -1,42 +1,283 @@
+# ============================================================================
+# RegTech Application - Root Configuration
+# ============================================================================
+# This file contains SHARED infrastructure configuration that applies across
+# all modules. Module-specific configuration should be placed in:
+#   - regtech-{module}/infrastructure/src/main/resources/application-{module}.yml
+#
+# Shared Configuration Includes:
+#   - Spring application settings
+#   - Database configuration (datasource, JPA, Flyway)
+#   - Logging configuration
+#   - Metrics and monitoring (Spring Actuator)
+#   - Security configuration (JWT, OAuth2, public paths)
+#   - Event processing (inbox/outbox)
+#
+# Module-Specific Configuration (in separate files):
+#   - Module business logic settings
+#   - Module-specific storage configuration
+#   - Module-specific processing parameters
+#   - Module-specific integrations
+#   - Module-specific performance tuning
+#
+# Requirements: 1.1, 1.4, 8.1
+# ============================================================================
+
+# ============================================================================
+# SPRING APPLICATION SETTINGS & DATABASE CONFIGURATION
+# ============================================================================
+# Shared configuration for all modules
+# Requirements: 3.1, 3.4, 3.5
 spring:
   application:
     name: regtech
+  
+  main:
+    allow-bean-definition-overriding: true
+  
   profiles:
     active: development
+    include:
+      - iam
+      - billing
+      - ingestion
+      - risk-calculation
+      - report-generation
+  
+  mvc:
+    favicon:
+      enabled: false
+  
+  # Database configuration
   datasource:
-    url: jdbc:h2:mem:regtech;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;INIT=CREATE SCHEMA IF NOT EXISTS billing\;CREATE SCHEMA IF NOT EXISTS iam
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:postgresql://localhost:5432/regtech
+    driver-class-name: org.postgresql.Driver
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:dracons86}
+  
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+        # Hibernate 7.x dialect for PostgreSQL
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
+        
+        # JDBC settings
+        jdbc:
+          lob:
+            non_contextual_creation: true
+          # Batch processing for better performance (Hibernate 7.x optimized)
+          batch_size: 20
+          batch_versioned_data: true
+        
+        # Query optimization (Hibernate 7.x features)
+        order_inserts: true
+        order_updates: true
+        
+        # SQL formatting (disabled for production performance)
+        format_sql: false
+        use_sql_comments: false
+        
+        # Connection handling
+        connection:
+          provider_disables_autocommit: false
+        
+        # JPA 3.2 / Hibernate 7.x compatibility
+        # Uses org.springframework.orm.jpa.hibernate package for Hibernate-specific features
+        # Supports StatelessSession for transactional operations
+        # Supports PersistenceConfiguration API
+    
     show-sql: false
+    open-in-view: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  
+  sql:
+    init:
+      mode: never  # Disable schema.sql execution - Flyway manages all migrations
+  
+  # Flyway migration configuration (Requirement 3.2)
+  # Loads migrations from all module directories
   flyway:
-    enabled: false
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    enabled: true  # Re-enable Flyway to run the UUID conversion migrations
+    baseline-on-migrate: true  # For existing databases with tables already created
+    baseline-version: 0
+    out-of-order: true  # Allow out-of-order migrations
+    validate-on-migrate: false  # Temporarily disable validation to clean up schema history
+    ignore-migration-patterns: "V1__Create_Inbox_Tables"  # Skip problematic migration that creates existing tables
+    locations:
+      - classpath:db/migration
+      - classpath:db/migration/common
+      - classpath:db/migration/iam
+      - classpath:db/migration/billing
+      - classpath:db/migration/ingestion
+      - classpath:db/migration/reportgeneration
+    schemas:
+      - public
+      - regtech
+      - iam
+      - billing
+      - ingestion
+      - dataquality
+      - reportgeneration
+  
   docker:
     compose:
       enabled: false
 
-# IAM Module Configuration
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
+# Shared logging configuration for all modules
+# Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
+logging:
+  # Logback configuration file for structured logging
+  config: classpath:logback-spring.xml
+  
+  # Log levels per module
+  level:
+    # Core framework
+    com.bcbs239.regtech: INFO
+    
+    # Event processing components
+    com.bcbs239.regtech.core.events: INFO
+    com.bcbs239.regtech.core.inbox: INFO
+    com.bcbs239.regtech.core.outbox: INFO
+    
+    # Bounded contexts (modules)
+    com.bcbs239.regtech.iam: INFO
+    com.bcbs239.regtech.billing: INFO
+    com.bcbs239.regtech.modules.ingestion: INFO
+    com.bcbs239.regtech.dataquality: INFO
+    com.bcbs239.regtech.riskcalculation: INFO
+    com.bcbs239.regtech.reportgeneration: INFO
+    
+    # Spring framework
+    org.springframework.security: WARN
+    org.springframework: WARN
+    org.springframework.scheduling: INFO
+    
+    # Database
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  
+  # Console logging pattern
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# ============================================================================
+# METRICS AND MONITORING CONFIGURATION
+# ============================================================================
+# Spring Actuator configuration for health checks and metrics
+# Micrometer 2 and OpenTelemetry integration for Spring Boot 4
+# Requirements: 10.1, 10.2, 10.3, 10.4, 10.5
+management:
+  endpoints:
+    web:
+      exposure:
+        # Expose metrics, traces, and health endpoints
+        include: health,info,metrics,prometheus,httptrace
+  
+  endpoint:
+    health:
+      show-details: when-authorized
+      # Enable SSL certificate health indicator
+      show-components: always
+  
+  health:
+    diskspace:
+      enabled: true
+    # SSL certificate monitoring (Requirement 10.4, 10.5)
+    ssl:
+      enabled: true
+  
+  # Micrometer 2 metrics configuration (Requirement 10.1)
+  metrics:
+    enable:
+      jvm: true
+      process: true
+      system: true
+      http: true
+      logback: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active}
+  
+  # OpenTelemetry tracing configuration (Requirement 10.2, 10.3)
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0  # Sample 100% of traces in development
+    propagation:
+      # Propagate trace context across modules
+      type: w3c  # W3C Trace Context format
+  
+  # OpenTelemetry exporter configuration
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+      # Use HTTP protocol for OTLP
+      protocol: http/protobuf
+    metrics:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/metrics}
+      protocol: http/protobuf
+
+# ============================================================================
+# CORS CONFIGURATION
+# ============================================================================
+# Cross-Origin Resource Sharing configuration for all modules
+# Spring Framework 7 Behavior: Pre-flight requests are not rejected when CORS config is empty
+# We provide explicit configuration to maintain security policies
+# Requirements: 12.1, 12.2, 12.3, 12.4, 12.5
+cors:
+  # Allowed origins for cross-origin requests (Requirement 12.3)
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200}
+  
+  # Allowed HTTP methods (Requirement 12.2)
+  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS,PATCH}
+  
+  # Allowed request headers (Requirement 12.4)
+  allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+  
+  # Exposed response headers (Requirement 12.4)
+  exposed-headers: ${CORS_EXPOSED_HEADERS:X-Correlation-ID,Authorization}
+  
+  # Allow credentials (cookies, authorization headers)
+  allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+  
+  # Max age for pre-flight requests in seconds (Requirement 12.2)
+  max-age: ${CORS_MAX_AGE:3600}
+
+# ============================================================================
+# SECURITY CONFIGURATION
+# ============================================================================
+# Centralized security configuration for all modules
+# Requirements: 11.1, 11.2, 11.5
 iam:
   security:
+    # JWT configuration
     jwt:
-      secret: mySecretKey123456789012345678901234567890123456789012345678901234567890
-      expiration: 86400 # 24 hours in seconds
+      # HS512 requires a key of at least 512 bits (64 bytes)
+      # This default is 128 characters (base64-safe) for development only
+      # In production, use a secure random key via JWT_SECRET environment variable
+      secret: ${JWT_SECRET:mySecretKey123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890}
+      expiration: 86400  # 24 hours in seconds (deprecated, use access-token-expiration-minutes)
+      access-token-expiration-minutes: 180  # 3 hours (Requirement 5.1)
+      refresh-token-expiration-days: 7  # 7 days (Requirement 5.2)
+    
+    # Password policy
     password:
       min-length: 12
       require-uppercase: true
       require-lowercase: true
       require-digits: true
       require-special-chars: true
+    
+    # OAuth2 providers
     oauth2:
       google:
         client-id: ${GOOGLE_CLIENT_ID:}
@@ -44,11 +285,43 @@ iam:
       facebook:
         client-id: ${FACEBOOK_CLIENT_ID:}
         client-secret: ${FACEBOOK_CLIENT_SECRET:}
-
+    
+    # Public paths (no authentication required)
+    # Requirements: 11.2, 11.5
+    # These paths are accessible without a JWT token
+    public-paths:
+      # Public API endpoints
+      - /api/public/**
+      
+      # Authentication endpoints (must be public for login/registration)
+      - /api/auth/login
+      - /api/auth/register
+      - /api/auth/forgot-password
+      - /api/v1/users/register
+      - /api/v1/auth/login
+      - /api/v1/auth/refresh
+      - /api/v1/auth/select-bank
+      
+      # Health check endpoints (public for monitoring)
+      - /api/health
+      - /actuator/health
+      - /api/v1/ingestion/health
+      - /api/v1/data-quality/health
+      - /api/v1/data-quality/health/**
+      - /api/v1/risk-calculation/health
+      - /api/v1/risk-calculation/health/**
+      - /api/v1/report-generation/health
+      - /api/v1/report-generation/health/**
+      
+      # API documentation endpoints (public for developers)
+      - /swagger-ui/**
+      - /v3/api-docs/**
+  
+  # Authorization settings
   authorization:
     cache:
       enabled: true
-      ttl: 300 # 5 minutes
+      ttl: 300  # 5 minutes
     multi-tenant:
       enabled: true
       default-organization: "default-org"
@@ -56,120 +329,207 @@ iam:
       strict-mode: true
       audit-enabled: true
 
-# Billing Module Configuration
-billing:
-  stripe:
-    apiKey: pk_test_51SHmgAF6vJewYjaQfxe0EYHZUA8pFRxRu6qR9O3aB9Dv51kch6GFFiyXhcS3vHriDawpdoroYezTNgmMtT81fLnW00FVA3VlLg
-    webhookSecret: whsec_dummy_secret_for_development
-
-  tiers:
-    starter:
-      monthlyPrice: 299.99
-      currency: USD
-      exposureLimit: 10000
-
-  dunning:
-    reminderIntervals:
-      step1: 7
-      step2: 14
-      step3: 21
-    finalActionDelay: 30
-
-  invoices:
-    dueDays: 30
-    currency: USD
-
-  billingCycle:
-    timezone: America/New_York
-    billingDay: 1
-
+# ============================================================================
+# EVENT PROCESSING CONFIGURATION
+# ============================================================================
+# Shared event processing configuration (inbox/outbox pattern)
+regtech:
+  # Outbox pattern configuration
   outbox:
     enabled: true
-    processingInterval: 30000
-    retryInterval: 60000
-    maxRetries: 3
-    cleanupInterval: 86400000
-    cleanupRetentionDays: 30
+    processing-interval: 30000  # 30 seconds
+    retry-interval: 60000  # 1 minute
+    max-retries: 3
+    cleanup-interval: 86400000  # 24 hours
+    cleanup-retention-days: 30
+  
+  # Inbox pattern configuration
+  inbox:
+    enabled: true
+    processing-interval: 10000  # 10 seconds
+    batch-size: 20
+    parallel-processing-enabled: false
+  
+  # Event retry configuration
+  event:
+    retry:
+      interval: 60000  # Check every 60 seconds
+      batch-size: 10   # Process 10 events per batch
+      max-retries: 5   # Maximum retry attempts
+      enabled: true    # Enable/disable retry processing
+  
+  # Bank registry service configuration
+  bank-registry:
+    base-url: ${BANK_REGISTRY_URL:http://localhost:8081}
+    timeout: 30000  # 30 seconds
+    retry-attempts: 3
 
-  scheduling:
-    monthlyBilling:
-      enabled: true
-      cron: "0 0 1 * *"
-      timezone: America/New_York
-    dunningProcess:
-      enabled: true
-      cron: "0 0 2 * *"
-      timezone: America/New_York
-      threadPoolSize: 5
+# Inbox processing configuration (bound to InboxOptions)
+inbox:
+  poll-interval: 5s  # Poll interval as a Spring Duration
+  batch-size: 10
+  parallel-processing-enabled: false
 
-  notifications:
-    email:
-      enabled: true
-      templates:
-        payment_reminder: "payment-reminder.html"
-        payment_failed: "payment-failed.html"
-        subscription_cancelled: "subscription-cancelled.html"
-    sms:
-      enabled: false
-    push:
-      enabled: false
+# Outbox processing configuration (bound to OutboxOptions)
+outbox:
+  poll-interval: 30s  # Poll interval as a Spring Duration
+  batch-size: 10
+  parallel-processing-enabled: false
 
-# Stripe Configuration (used by StripeService)
-stripe:
-  api:
-    key: ${STRIPE_API_KEY}
-  webhook:
-    secret: ${STRIPE_WEBHOOK_SECRET}
+# ============================================================================
+# PROFILE-SPECIFIC OVERRIDES
+# ============================================================================
 
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: when-authorized
-  health:
-    diskspace:
-      enabled: true
+---
+# ============================================================================
+# DEVELOPMENT PROFILE
+# ============================================================================
+# Requirements: 7.1, 7.2
+spring:
+  config:
+    activate:
+      on-profile: development
+  
+  # Development database settings
+  datasource:
+    url: jdbc:postgresql://localhost:5432/regtech
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:dracons86}
 
+# Development logging settings
 logging:
-  # Logback configuration file for structured logging
-  config: classpath:logback-spring.xml
+  level:
+    com.bcbs239.regtech: DEBUG
+    com.bcbs239.regtech.core.events: DEBUG
+    com.bcbs239.regtech.core.inbox: DEBUG
+    com.bcbs239.regtech.core.outbox: DEBUG
+    com.bcbs239.regtech.modules.ingestion: DEBUG
+    com.bcbs239.regtech.dataquality: DEBUG
+    com.bcbs239.regtech.riskcalculation: DEBUG
+    com.bcbs239.regtech.reportgeneration: DEBUG
 
+# ============================================================================
+# DATA QUALITY & RULES ENGINE CONFIGURATION
+# ============================================================================
+# Configuration for the Data Quality Rules Engine
+# Requirements: 3.3, 3.4, 5.1, 5.2, 5.3, 5.4, 5.5, 6.1, 6.2, 6.3, 6.4, 6.5
+data-quality:
+  rules-engine:
+    # Enable the Rules Engine (REQUIRED)
+    enabled: true
+    
+    # Cache configuration (Requirement 5.1, 5.2, 5.3, 5.4, 5.5)
+    cache-enabled: true
+    cache-ttl: 300  # 5 minutes - rules cached in memory
+    
+    # Logging configuration (Requirement 6.1, 6.2, 6.3, 6.4, 6.5)
+    logging:
+      log-executions: true    # Log individual rule executions (Requirement 6.1)
+      log-violations: true    # Log violation details (Requirement 6.2)
+      log-summary: true       # Log summary statistics (Requirement 6.4)
+    
+    # Performance monitoring (Requirement 6.5)
+    performance:
+      warn-threshold-ms: 100        # Warn if single rule takes > 100ms
+      max-execution-time-ms: 5000   # Warn if total validation takes > 5s
+
+# ============================================================================
+# RULES ENGINE CONFIGURATION EXAMPLES
+# ============================================================================
+# Example configurations for different scenarios
+# Uncomment and modify as needed
+
+# Example 1: Disable Rules Engine (not recommended)
+# data-quality:
+#   rules-engine:
+#     enabled: false  # This will cause validation to fail
+
+# Example 2: Disable caching (for debugging)
+# data-quality:
+#   rules-engine:
+#     cache-enabled: false  # Rules loaded from DB every time
+
+# Example 3: Aggressive caching (for high-volume production)
+# data-quality:
+#   rules-engine:
+#     cache-enabled: true
+#     cache-ttl: 600  # 10 minutes
+
+# Example 4: Minimal logging (for production)
+# data-quality:
+#   rules-engine:
+#     logging:
+#       log-executions: false
+#       log-violations: true
+#       log-summary: true
+
+# Example 5: Verbose logging (for debugging)
+# data-quality:
+#   rules-engine:
+#     logging:
+#       log-executions: true
+#       log-violations: true
+#       log-summary: true
+
+# Example 6: Strict performance thresholds
+# data-quality:
+#   rules-engine:
+#     performance:
+#       warn-threshold-ms: 50  # Warn if rule takes > 50ms
+#       max-execution-time-ms: 2000  # Warn if validation takes > 2s
+
+# Example 7: Relaxed performance thresholds
+# data-quality:
+#   rules-engine:
+#     performance:
+#       warn-threshold-ms: 200  # Warn if rule takes > 200ms
+#       max-execution-time-ms: 10000  # Warn if validation takes > 10s
+
+---
+# ============================================================================
+# PRODUCTION PROFILE
+# ============================================================================
+# Requirements: 7.1, 7.3
+spring:
+  config:
+    activate:
+      on-profile: production
+  
+  # Production database settings (use environment variables)
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/regtech}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+# Production logging settings
+logging:
   level:
     com.bcbs239.regtech: INFO
-    # Event processing components
     com.bcbs239.regtech.core.events: INFO
     com.bcbs239.regtech.core.inbox: INFO
     com.bcbs239.regtech.core.outbox: INFO
-    # Bounded contexts
-    com.bcbs239.regtech.iam: INFO
-    com.bcbs239.regtech.billing: INFO
-    # Spring framework
-    org.springframework.security: WARN
-    org.springframework: WARN
-    org.springframework.scheduling: INFO
-    # Database
-    org.hibernate.SQL: WARN
-    org.hibernate.type.descriptor.sql.BasicBinder: WARN
-
-  # For GCP deployment, set SPRING_PROFILES_ACTIVE=gcp to enable JSON structured logging
-  # This will automatically use the GCP_JSON appender in logback-spring.xml
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
 ---
+# ============================================================================
+# GCP PROFILE (Google Cloud Platform)
+# ============================================================================
+# Enable JSON structured logging for Google Cloud Logging
 spring:
   config:
     activate:
       on-profile: gcp
 
 logging:
-  # GCP profile enables JSON structured logging for Google Cloud Logging
+  # GCP profile enables JSON structured logging
   level:
     com.bcbs239.regtech: INFO
     # Increase verbosity for event processing in GCP
     com.bcbs239.regtech.core.events: DEBUG
     com.bcbs239.regtech.core.inbox: DEBUG
     com.bcbs239.regtech.core.outbox: DEBUG
+    # Module debugging in GCP
+    com.bcbs239.regtech.modules.ingestion: DEBUG
+  
+  # Enable structured logging when running in the gcp profile
+  structured:
+    enabled: true

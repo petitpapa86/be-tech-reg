@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.6</version>
+		<version>4.0.0</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.bcbs239</groupId>
@@ -28,27 +28,122 @@
 		<url/>
 	</scm>
 	<properties>
+		<!-- Java version 25 -->
 		<java.version>25</java.version>
+		<maven.compiler.source>25</maven.compiler.source>
+		<maven.compiler.target>25</maven.compiler.target>
+		<maven.compiler.release>25</maven.compiler.release>
 		<project.version>0.0.1-SNAPSHOT</project.version>
+		
+		<!-- Version overrides (only what we need to override from Spring Boot 4) -->
+		<aws.sdk.version>2.29.29</aws.sdk.version>
+		<lombok.version>1.18.40</lombok.version>
+		<testcontainers.version>1.20.4</testcontainers.version>
+		
+		<!-- Security updates for CVEs -->
+		<commons-io.version>2.17.0</commons-io.version>
+		<commons-compress.version>1.27.1</commons-compress.version>
+		
+		<!-- Other dependencies -->
+		<poi.version>5.3.0</poi.version>
+		<jspecify.version>1.0.0</jspecify.version>
 	</properties>
+	
 	<modules>
 		<module>regtech-core</module>
 		<module>regtech-iam</module>
 		<module>regtech-billing</module>
+		<module>regtech-ingestion</module>
+		<module>regtech-data-quality</module>
+		<module>regtech-risk-calculation</module>
+		<module>regtech-report-generation</module>
 		<module>regtech-app</module>
 	</modules>
+	
+	<dependencyManagement>
+		<dependencies>
+			<!-- Spring Boot Dependencies BOM -->
+			<dependency>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-dependencies</artifactId>
+				<version>4.0.0</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			
+			<!-- Testcontainers BOM -->
+			<dependency>
+				<groupId>org.testcontainers</groupId>
+				<artifactId>testcontainers-bom</artifactId>
+				<version>${testcontainers.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			
+			<!-- AWS SDK BOM -->
+			<dependency>
+				<groupId>software.amazon.awssdk</groupId>
+				<artifactId>bom</artifactId>
+				<version>${aws.sdk.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			
+			<!-- Lombok -->
+			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>${lombok.version}</version>
+				<scope>provided</scope>
+			</dependency>
+			
+			<!-- JSpecify for null safety annotations -->
+			<dependency>
+				<groupId>org.jspecify</groupId>
+				<artifactId>jspecify</artifactId>
+				<version>${jspecify.version}</version>
+			</dependency>
+			
+			<!-- Apache Commons IO (security update) -->
+			<dependency>
+				<groupId>commons-io</groupId>
+				<artifactId>commons-io</artifactId>
+				<version>${commons-io.version}</version>
+			</dependency>
+			
+			<!-- Apache Commons Compress (security update) -->
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-compress</artifactId>
+				<version>${commons-compress.version}</version>
+			</dependency>
+			
+			<!-- Spring Retry -->
+<!--			<dependency>-->
+<!--				<groupId>org.springframework.retry</groupId>-->
+<!--				<artifactId>spring-retry</artifactId>-->
+<!--				<version>3.0.0</version>-->
+<!--			</dependency-->
+		</dependencies>
+	</dependencyManagement>
+
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.14.0</version>
 				<configuration>
-					<enablePreview>true</enablePreview>
+					<source>${java.version}</source>
+					<target>${java.version}</target>
+					<release>${java.version}</release>
 					<parameters>true</parameters>
+					<fork>true</fork>
 					<annotationProcessorPaths>
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
 						</path>
 						<path>
 							<groupId>org.springframework.boot</groupId>
@@ -67,6 +162,16 @@
 							<artifactId>lombok</artifactId>
 						</exclude>
 					</excludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.graalvm.buildtools</groupId>
+				<artifactId>native-maven-plugin</artifactId>
+				<version>0.10.4</version>
+				<configuration>
+					<buildArgs>
+						<buildArg>--initialize-at-build-time=org.slf4j</buildArg>
+					</buildArgs>
 				</configuration>
 			</plugin>
 		</plugins>

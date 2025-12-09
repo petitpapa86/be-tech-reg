@@ -1,0 +1,19 @@
+package com.bcbs239.regtech.core.application.outbox;
+
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Configuration for outbox processing beans.
+ */
+@Configuration
+public class OutboxProcessingConfiguration {
+
+    @Bean(name = "outboxOptions")
+    @ConfigurationProperties(prefix = "outbox")
+    public OutboxOptions outboxOptions() {
+        return new OutboxOptions();
+    }
+
+}

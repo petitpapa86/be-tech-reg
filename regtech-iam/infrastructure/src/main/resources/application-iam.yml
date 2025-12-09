@@ -1,0 +1,96 @@
+# IAM Module Configuration
+# Requirements: 1.2, 1.3
+# Note: Security configuration (JWT, OAuth2, public paths) remains in root application.yml
+# as it is a shared concern across all modules
+
+iam:
+  enabled: true
+  
+  # Module-specific IAM settings
+  # Most security configuration is in root application.yml under iam.security
+  
+  # User management settings
+  user-management:
+    # Password reset token expiration
+    password-reset-token-expiration: 3600  # 1 hour in seconds
+    
+    # Email verification token expiration
+    email-verification-token-expiration: 86400  # 24 hours in seconds
+    
+    # Account lockout settings
+    lockout:
+      enabled: true
+      max-failed-attempts: 5
+      lockout-duration: 1800  # 30 minutes in seconds
+  
+  # Session management
+  session:
+    # Maximum concurrent sessions per user
+    max-concurrent-sessions: 3
+    
+    # Session timeout
+    timeout: 3600  # 1 hour in seconds
+    
+    # Remember-me token validity
+    remember-me-validity: 2592000  # 30 days in seconds
+  
+  # Token cleanup configuration
+  # Requirements: 6.5
+  token-cleanup:
+    # Enable/disable automatic cleanup of expired tokens
+    enabled: true
+    
+    # Cron schedule for cleanup job (daily at 2 AM)
+    cron: "0 0 2 * * ?"
+    
+    # Retention period for expired tokens (in days)
+    # Expired tokens older than this will be deleted
+    retention-days: 30
+
+---
+# Development profile overrides
+spring:
+  config:
+    activate:
+      on-profile: development
+
+iam:
+  # More lenient settings for development
+  user-management:
+    password-reset-token-expiration: 7200  # 2 hours
+    lockout:
+      enabled: false  # Disable lockout in development
+  
+  session:
+    max-concurrent-sessions: 10  # Allow more sessions for testing
+    timeout: 7200  # 2 hours
+  
+  token-cleanup:
+    enabled: true
+    cron: "0 0 3 * * ?"  # Run at 3 AM in development
+    retention-days: 7  # Shorter retention in development
+
+---
+# Production profile overrides
+spring:
+  config:
+    activate:
+      on-profile: production
+
+iam:
+  # Stricter settings for production
+  user-management:
+    password-reset-token-expiration: 1800  # 30 minutes
+    lockout:
+      enabled: true
+      max-failed-attempts: 3  # Stricter in production
+      lockout-duration: 3600  # 1 hour
+  
+  session:
+    max-concurrent-sessions: 2  # Limit concurrent sessions
+    timeout: 1800  # 30 minutes
+  
+  token-cleanup:
+    enabled: true
+    cron: "0 0 2 * * ?"  # Run at 2 AM in production
+    retention-days: 30  # Keep expired tokens for 30 days

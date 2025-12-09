@@ -1,0 +1,45 @@
+package com.bcbs239.regtech.ingestion.domain.model;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class DomainMapper {
+
+    public static BankInfoModel toBankInfoModel(BankInfoDto dto) {
+        return new BankInfoModel(dto.bankName(), dto.abiCode(), dto.leiCode(), dto.reportDate(), dto.totalExposures());
+    }
+
+    public static LoanExposure toLoanExposure(ExposureDto dto) {
+        return new LoanExposure(
+            dto.instrumentId(),        // loanId
+            dto.exposureId(),          // exposureId
+            dto.counterpartyName(),    // borrowerName
+            dto.counterpartyId(),      // borrowerId
+            dto.counterpartyLei(),     // counterpartyLei
+            dto.exposureAmount(),      // loanAmount
+            dto.exposureAmount(),      // grossExposureAmount
+            dto.exposureAmount(),      // netExposureAmount
+            dto.currency(),            // currency
+            dto.productType(),         // loanType
+            null,                      // sector (not in new format)
+            dto.balanceSheetType(),    // exposureType
+            null,                      // borrowerCountry (not in new format)
+            dto.countryCode()          // countryCode
+        );
+    }
+
+    public static List<LoanExposure> toLoanExposureList(ExposureDto[] dtos) {
+        return Arrays.stream(dtos).map(DomainMapper::toLoanExposure).collect(Collectors.toList());
+    }
+
+    public static CreditRiskMitigation toCrm(CreditRiskMitigationDto dto) {
+        return new CreditRiskMitigation(dto.exposureId(), dto.collateralType(), dto.collateralValue(), dto.collateralCurrency());
+    }
+
+    public static List<CreditRiskMitigation> toCrmList(CreditRiskMitigationDto[] dtos) {
+        return Arrays.stream(dtos).map(DomainMapper::toCrm).collect(Collectors.toList());
+    }
+}
+
+

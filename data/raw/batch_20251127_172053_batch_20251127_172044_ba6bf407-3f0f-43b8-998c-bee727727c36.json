@@ -1,0 +1,96 @@
+{
+  "bank_info": {
+    "bank_name": "Community First Bank",
+    "abi_code": "08081",
+    "lei_code": "815600D7623147C25D86",
+    "report_date": "2024-09-12",
+    "total_exposures": 5
+  },
+  "exposures": [
+    {
+      "exposure_id": "EXP_LOAN001_2024",
+      "instrument_id": "LOAN001",
+      "instrument_type": "LOAN",
+      "counterparty_name": "Mike's Pizza Inc",
+      "counterparty_id": "CORP12345",
+      "counterparty_lei": "549300ABCDEF1234567890",
+      "exposure_amount": 250000.00,
+      "currency": "EUR",
+      "product_type": "Business Loan",
+      "balance_sheet_type": "ON_BALANCE",
+      "country_code": "IT"
+    },
+    {
+      "exposure_id": "EXP_LOAN002_2024",
+      "instrument_id": "LOAN002",
+      "instrument_type": "LOAN",
+      "counterparty_name": "Sarah Johnson",
+      "counterparty_id": "PERS67890",
+      "counterparty_lei": "",
+      "exposure_amount": 450000.00,
+      "currency": "EUR",
+      "product_type": "Mortgage",
+      "balance_sheet_type": "ON_BALANCE",
+      "country_code": "IT"
+    },
+    {
+      "exposure_id": "EXP_LOAN003_2024",
+      "instrument_id": "LOAN003",
+      "instrument_type": "LOAN",
+      "counterparty_name": "Tech Startup LLC",
+      "counterparty_id": "CORP54321",
+      "counterparty_lei": "549300TECHSTART123456",
+      "exposure_amount": 50000.00,
+      "currency": "EUR",
+      "product_type": "Credit Line",
+      "balance_sheet_type": "OFF_BALANCE",
+      "country_code": "DE"
+    },
+    {
+      "exposure_id": "EXP_LOAN004_2024",
+      "instrument_id": "LOAN004",
+      "instrument_type": "LOAN",
+      "counterparty_name": "Green Energy Corp",
+      "counterparty_id": "CORP98765",
+      "counterparty_lei": "549300GREENENERGY1234",
+      "exposure_amount": 750000.00,
+      "currency": "EUR",
+      "product_type": "Equipment Loan",
+      "balance_sheet_type": "ON_BALANCE",
+      "country_code": "CA"
+    },
+    {
+      "exposure_id": "EXP_LOAN005_2024",
+      "instrument_id": "LOAN005",
+      "instrument_type": "LOAN",
+      "counterparty_name": "Mary's Bakery",
+      "counterparty_id": "SMALL98765",
+      "counterparty_lei": "",
+      "exposure_amount": 125000.00,
+      "currency": "EUR",
+      "product_type": "Small Business",
+      "balance_sheet_type": "ON_BALANCE",
+      "country_code": "IT"
+    }
+  ],
+  "credit_risk_mitigation": [
+    {
+      "exposure_id": "EXP_LOAN001_2024",
+      "mitigation_type": "FINANCIAL_COLLATERAL",
+      "value": 10000.00,
+      "currency": "EUR"
+    },
+    {
+      "exposure_id": "EXP_LOAN003_2024",
+      "mitigation_type": "GUARANTEE",
+      "value": 5000.00,
+      "currency": "EUR"
+    },
+    {
+      "exposure_id": "EXP_LOAN004_2024",
+      "mitigation_type": "FINANCIAL_COLLATERAL",
+      "value": 50000.00,
+      "currency": "EUR"
+    }
+  ]
+}

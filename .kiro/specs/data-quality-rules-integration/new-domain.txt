@@ -1,0 +1,1986 @@
+i want to use this classes by repscting the requirement because i think it is better than the previous
+-- Batches table
+CREATE TABLE batches (
+    batch_id VARCHAR(100) PRIMARY KEY,
+    bank_name VARCHAR(255) NOT NULL,
+    abi_code VARCHAR(10) NOT NULL,
+    lei_code VARCHAR(20) NOT NULL,
+    report_date DATE NOT NULL,
+    total_exposures INTEGER NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    ingested_at TIMESTAMP NOT NULL,
+    processed_at TIMESTAMP,
+    
+    INDEX idx_report_date (report_date),
+    INDEX idx_status (status)
+);
+
+-- Exposures table
+CREATE TABLE exposures (
+    exposure_id VARCHAR(100) PRIMARY KEY,
+    batch_id VARCHAR(100) NOT NULL,
+    loan_id VARCHAR(100) NOT NULL,
+    
+    -- Counterparty
+    borrower_id VARCHAR(100) NOT NULL,
+    borrower_name VARCHAR(255) NOT NULL,
+    counterparty_lei VARCHAR(20),
+    
+    -- Monetary amount
+    original_amount DECIMAL(20, 2) NOT NULL,
+    currency_code VARCHAR(3) NOT NULL,
+    
+    -- Classification
+    loan_type VARCHAR(100) NOT NULL,
+    balance_sheet_type VARCHAR(20) NOT NULL,
+    country_code VARCHAR(2) NOT NULL,
+    
+    -- Metadata
+    recorded_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    
+    FOREIGN KEY (batch_id) REFERENCES batches(batch_id),
+    INDEX idx_batch_id (batch_id),
+    INDEX idx_country_code (country_code)
+);
+
+-- Mitigations table
+CREATE TABLE mitigations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    exposure_id VARCHAR(100) NOT NULL,
+    batch_id VARCHAR(100) NOT NULL,
+    mitigation_type VARCHAR(50) NOT NULL,
+    value DECIMAL(20, 2) NOT NULL,
+    currency_code VARCHAR(3) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    
+    FOREIGN KEY (exposure_id) REFERENCES exposures(exposure_id),
+    FOREIGN KEY (batch_id) REFERENCES batches(batch_id),
+    INDEX idx_exposure_id (exposure_id),
+    INDEX idx_batch_id (batch_id)
+);
+
+-- Portfolio analysis table
+CREATE TABLE portfolio_analysis (
+    batch_id VARCHAR(100) PRIMARY KEY,
+    
+    -- Totals
+    total_portfolio_eur DECIMAL(20, 2) NOT NULL,
+    
+    -- Geographic breakdown
+    italy_amount DECIMAL(20, 2),
+    italy_percentage DECIMAL(5, 2),
+    eu_other_amount DECIMAL(20, 2),
+    eu_other_percentage DECIMAL(5, 2),
+    non_european_amount DECIMAL(20, 2),
+    non_european_percentage DECIMAL(5, 2),
+    
+    -- Sector breakdown
+    retail_mortgage_amount DECIMAL(20, 2),
+    retail_mortgage_percentage DECIMAL(5, 2),
+    sovereign_amount DECIMAL(20, 2),
+    sovereign_percentage DECIMAL(5, 2),
+    corporate_amount DECIMAL(20, 2),
+    corporate_percentage DECIMAL(5, 2),
+    banking_amount DECIMAL(20, 2),
+    banking_percentage DECIMAL(5, 2),
+    other_amount DECIMAL(20, 2),
+    other_percentage DECIMAL(5, 2),
+    
+    -- Concentration indices
+    geographic_hhi DECIMAL(6, 4) NOT NULL,
+    geographic_concentration_level VARCHAR(20) NOT NULL,
+    sector_hhi DECIMAL(6, 4) NOT NULL,
+    sector_concentration_level VARCHAR(20) NOT NULL,
+    
+    -- Metadata
+    analyzed_at TIMESTAMP NOT NULL,
+    
+    FOREIGN KEY (batch_id) REFERENCES batches(batch_id)
+);
+```
+
+
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+public class RiskReportIngestionService {
+    
+    private final RiskReportMapper mapper;
+    private final RiskCalculationService calculationService;
+    private final ExposureRepositoryAdapter exposureRepository;
+    private final MitigationRepositoryAdapter mitigationRepository;
+    private final BatchJpaRepository batchRepository;
+    
+    public RiskReportIngestionService(
+        RiskReportMapper mapper,
+        RiskCalculationService calculationService,
+        ExposureRepositoryAdapter exposureRepository,
+        MitigationRepositoryAdapter mitigationRepository,
+        BatchJpaRepository batchRepository
+    ) {
+        this.mapper = mapper;
+        this.calculationService = calculationService;
+        this.exposureRepository = exposureRepository;
+        this.mitigationRepository = mitigationRepository;
+        this.batchRepository = batchRepository;
+    }
+    
+    /**
+     * Ingest raw JSON report and calculate risk metrics
+     */
+    @Transactional
+    public RiskCalculationResult ingestAndCalculate(RiskReportDTO rawReport) {
+        
+        // Step 1: Validate raw input
+        validateRawReport(rawReport);
+        
+        // Step 2: Convert DTO → Domain
+        IngestedRiskReport ingestedReport = mapper.toDomain(rawReport);
+        
+        // Step 3: Validate domain model
+        validateIngestedReport(ingestedReport);
+        
+        // Step 4: Persist batch metadata
+        BatchEntity batch = createBatchEntity(ingestedReport);
+        batchRepository.save(batch);
+        
+        // Step 5: Persist exposures
+        exposureRepository.saveAll(
+            ingestedReport.getExposures(),
+            ingestedReport.getBatchId()
+        );
+        
+        // Step 6: Persist mitigations
+        ingestedReport.getMitigations().forEach((exposureId, mitigations) -> {
+            mitigationRepository.saveAll(
+                exposureId,
+                ingestedReport.getBatchId(),
+                mitigations
+            );
+        });
+        
+        // Step 7: Calculate risk metrics
+        batch.setStatus(BatchStatusEntity.PROCESSING);
+        batchRepository.save(batch);
+        
+        PortfolioAnalysis analysis = calculationService.calculateRisk(
+            ingestedReport.getBatchId(),
+            ingestedReport.getExposures(),
+            ingestedReport.getMitigations()
+        );
+        
+        // Step 8: Mark batch as completed
+        batch.setStatus(BatchStatusEntity.COMPLETED);
+        batch.setProcessedAt(Instant.now());
+        batchRepository.save(batch);
+        
+        // Step 9: Return result
+        return new RiskCalculationResult(
+            ingestedReport.getBatchId(),
+            ingestedReport.getBankInfo(),
+            ingestedReport.getTotalExposures(),
+            analysis,
+            ingestedReport.getIngestedAt()
+        );
+    }
+    
+    private BatchEntity createBatchEntity(IngestedRiskReport report) {
+        BatchEntity batch = new BatchEntity();
+        batch.setBatchId(report.getBatchId());
+        batch.setBankName(report.getBankInfo().name());
+        batch.setAbiCode(report.getBankInfo().abiCode());
+        batch.setLeiCode(report.getBankInfo().leiCode());
+        batch.setReportDate(report.getBankInfo().reportDate());
+        batch.setTotalExposures(report.getTotalExposures());
+        batch.setStatus(BatchStatusEntity.INGESTED);
+        batch.setIngestedAt(report.getIngestedAt());
+        return batch;
+    }
+    
+    private void validateRawReport(RiskReportDTO dto) {
+        if (dto.getBankInfo() == null) {
+            throw new InvalidReportException("Bank info is required");
+        }
+        
+        if (dto.getLoanPortfolio() == null || dto.getLoanPortfolio().isEmpty()) {
+            throw new InvalidReportException("Loan portfolio cannot be empty");
+        }
+        
+        if (dto.getCreditRiskMitigation() == null) {
+            throw new InvalidReportException("Credit risk mitigation is required");
+        }
+    }
+    
+    private void validateIngestedReport(IngestedRiskReport report) {
+        
+        // Check for duplicate exposure IDs
+        long uniqueIds = report.getExposures().stream()
+            .map(ExposureRecording::getId)
+            .distinct()
+            .count();
+        
+        if (uniqueIds != report.getTotalExposures()) {
+            throw new InvalidReportException("Duplicate exposure IDs detected");
+        }
+        
+        // Check that mitigations reference existing exposures
+        Set<ExposureId> exposureIds = report.getExposures().stream()
+            .map(ExposureRecording::getId)
+            .collect(Collectors.toSet());
+        
+        Set<ExposureId> mitigationExposureIds = report.getMitigations().keySet();
+        
+        if (!exposureIds.containsAll(mitigationExposureIds)) {
+            throw new InvalidReportException(
+                "Some mitigations reference non-existent exposures"
+            );
+        }
+    }
+}
+
+
+
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Component
+public class MitigationRepositoryAdapter implements MitigationRepository {
+    
+    private final MitigationJpaRepository jpaRepository;
+    private final MitigationPersistenceMapper mapper;
+    
+    public MitigationRepositoryAdapter(
+        MitigationJpaRepository jpaRepository,
+        MitigationPersistenceMapper mapper
+    ) {
+        this.jpaRepository = jpaRepository;
+        this.mapper = mapper;
+    }
+    
+    @Override
+    public void save(ExposureId exposureId, RawMitigationData mitigation) {
+        throw new UnsupportedOperationException("Use save with batchId");
+    }
+    
+    public void save(ExposureId exposureId, String batchId, RawMitigationData mitigation) {
+        MitigationEntity entity = mapper.toEntity(exposureId.value(), batchId, mitigation);
+        jpaRepository.save(entity);
+    }
+    
+    @Override
+    public void saveAll(ExposureId exposureId, List<RawMitigationData> mitigations) {
+        throw new UnsupportedOperationException("Use saveAll with batchId");
+    }
+    
+    public void saveAll(ExposureId exposureId, String batchId, List<RawMitigationData> mitigations) {
+        List<MitigationEntity> entities = mitigations.stream()
+            .map(mit -> mapper.toEntity(exposureId.value(), batchId, mit))
+            .collect(Collectors.toList());
+        jpaRepository.saveAll(entities);
+    }
+    
+    @Override
+    public List<RawMitigationData> findByExposureId(ExposureId exposureId) {
+        return jpaRepository.findByExposureId(exposureId.value()).stream()
+            .map(mapper::toDomain)
+            .collect(Collectors.toList());
+    }
+}
+
+
+
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Component
+public class ExposureRepositoryAdapter implements ExposureRepository {
+    
+    private final ExposureJpaRepository jpaRepository;
+    private final ExposurePersistenceMapper mapper;
+    
+    public ExposureRepositoryAdapter(
+        ExposureJpaRepository jpaRepository,
+        ExposurePersistenceMapper mapper
+    ) {
+        this.jpaRepository = jpaRepository;
+        this.mapper = mapper;
+    }
+    
+    @Override
+    public void save(ExposureRecording exposure) {
+        // Note: batchId needs to be passed from context
+        // For now, extract from exposure if needed
+        throw new UnsupportedOperationException("Use saveAll with batchId");
+    }
+    
+    public void save(ExposureRecording exposure, String batchId) {
+        ExposureEntity entity = mapper.toEntity(exposure, batchId);
+        jpaRepository.save(entity);
+    }
+    
+    @Override
+    public void saveAll(List<ExposureRecording> exposures) {
+        throw new UnsupportedOperationException("Use saveAll with batchId");
+    }
+    
+    public void saveAll(List<ExposureRecording> exposures, String batchId) {
+        List<ExposureEntity> entities = exposures.stream()
+            .map(exp -> mapper.toEntity(exp, batchId))
+            .collect(Collectors.toList());
+        jpaRepository.saveAll(entities);
+    }
+    
+    @Override
+    public Optional<ExposureRecording> findById(ExposureId id) {
+        return jpaRepository.findById(id.value())
+            .map(mapper::toDomain);
+    }
+    
+    @Override
+    public List<ExposureRecording> findByBatchId(String batchId) {
+        return jpaRepository.findByBatchId(batchId).stream()
+            .map(mapper::toDomain)
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    public boolean existsById(ExposureId id) {
+        return jpaRepository.existsById(id.value());
+    }
+}
+import org.springframework.stereotype.Component;
+
+@Component
+public class MitigationPersistenceMapper {
+    
+    /**
+     * Domain → Entity
+     */
+    public MitigationEntity toEntity(String exposureId, String batchId, RawMitigationData domain) {
+        MitigationEntity entity = new MitigationEntity();
+        
+        entity.setExposureId(exposureId);
+        entity.setBatchId(batchId);
+        entity.setMitigationType(MitigationTypeEntity.valueOf(domain.type().name()));
+        entity.setValue(domain.value());
+        entity.setCurrencyCode(domain.currency());
+        
+        return entity;
+    }
+    
+    /**
+     * Entity → Domain
+     */
+    public RawMitigationData toDomain(MitigationEntity entity) {
+        return new RawMitigationData(
+            MitigationType.valueOf(entity.getMitigationType().name()),
+            entity.getValue(),
+            entity.getCurrencyCode()
+        );
+    }
+}
+
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface PortfolioAnalysisJpaRepository extends JpaRepository<PortfolioAnalysisEntity, String> {
+}
+
+
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface BatchJpaRepository extends JpaRepository<BatchEntity, String> {
+}
+
+
+
+@Repository
+public interface MitigationJpaRepository extends JpaRepository<MitigationEntity, Long> {
+    
+    List<MitigationEntity> findByExposureId(String exposureId);
+    
+    List<MitigationEntity> findByBatchId(String batchId);
+}
+
+
+
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.Instant;
+
+@Entity
+@Table(name = "portfolio_analysis")
+public class PortfolioAnalysisEntity {
+    
+    @Id
+    @Column(name = "batch_id", length = 100)
+    private String batchId;
+    
+    // Portfolio totals
+    @Column(name = "total_portfolio_eur", nullable = false, precision = 20, scale = 2)
+    private BigDecimal totalPortfolioEur;
+    
+    // Geographic breakdown (simplified - store as JSON or separate table)
+    @Column(name = "italy_amount", precision = 20, scale = 2)
+    private BigDecimal italyAmount;
+    
+    @Column(name = "italy_percentage", precision = 5, scale = 2)
+    private BigDecimal italyPercentage;
+    
+    @Column(name = "eu_other_amount", precision = 20, scale = 2)
+    private BigDecimal euOtherAmount;
+    
+    @Column(name = "eu_other_percentage", precision = 5, scale = 2)
+    private BigDecimal euOtherPercentage;
+    
+    @Column(name = "non_european_amount", precision = 20, scale = 2)
+    private BigDecimal nonEuropeanAmount;
+    
+    @Column(name = "non_european_percentage", precision = 5, scale = 2)
+    private BigDecimal nonEuropeanPercentage;
+    
+    // Sector breakdown
+    @Column(name = "retail_mortgage_amount", precision = 20, scale = 2)
+    private BigDecimal retailMortgageAmount;
+    
+    @Column(name = "retail_mortgage_percentage", precision = 5, scale = 2)
+    private BigDecimal retailMortgagePercentage;
+    
+    @Column(name = "sovereign_amount", precision = 20, scale = 2)
+    private BigDecimal sovereignAmount;
+    
+    @Column(name = "sovereign_percentage", precision = 5, scale = 2)
+    private BigDecimal sovereignPercentage;
+    
+    @Column(name = "corporate_amount", precision = 20, scale = 2)
+    private BigDecimal corporateAmount;
+    
+    @Column(name = "corporate_percentage", precision = 5, scale = 2)
+    private BigDecimal corporatePercentage;
+    
+    @Column(name = "banking_amount", precision = 20, scale = 2)
+    private BigDecimal bankingAmount;
+    
+    @Column(name = "banking_percentage", precision = 5, scale = 2)
+    private BigDecimal bankingPercentage;
+    
+    @Column(name = "other_amount", precision = 20, scale = 2)
+    private BigDecimal otherAmount;
+    
+    @Column(name = "other_percentage", precision = 5, scale = 2)
+    private BigDecimal otherPercentage;
+    
+    // Concentration indices
+    @Column(name = "geographic_hhi", nullable = false, precision = 6, scale = 4)
+    private BigDecimal geographicHHI;
+    
+    @Column(name = "geographic_concentration_level", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    private ConcentrationLevelEntity geographicConcentrationLevel;
+    
+    @Column(name = "sector_hhi", nullable = false, precision = 6, scale = 4)
+    private BigDecimal sectorHHI;
+    
+    @Column(name = "sector_concentration_level", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    private ConcentrationLevelEntity sectorConcentrationLevel;
+    
+    // Metadata
+    @Column(name = "analyzed_at", nullable = false)
+    private Instant analyzedAt;
+    
+    // Constructors
+    public PortfolioAnalysisEntity() {}
+    
+    // Getters & Setters (omitted for brevity - generate with IDE)
+    // ... add all getters/setters
+}
+
+enum ConcentrationLevelEntity {
+    LOW,
+    MODERATE,
+    HIGH
+}
+
+
+
+import jakarta.persistence.*;
+import java.time.Instant;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "batches")
+public class BatchEntity {
+    
+    @Id
+    @Column(name = "batch_id", length = 100)
+    private String batchId;
+    
+    @Column(name = "bank_name", nullable = false, length = 255)
+    private String bankName;
+    
+    @Column(name = "abi_code", nullable = false, length = 10)
+    private String abiCode;
+    
+    @Column(name = "lei_code", nullable = false, length = 20)
+    private String leiCode;
+    
+    @Column(name = "report_date", nullable = false)
+    private LocalDate reportDate;
+    
+    @Column(name = "total_exposures", nullable = false)
+    private Integer totalExposures;
+    
+    @Column(name = "status", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    private BatchStatusEntity status;
+    
+    @Column(name = "ingested_at", nullable = false)
+    private Instant ingestedAt;
+    
+    @Column(name = "processed_at")
+    private Instant processedAt;
+    
+    // Constructors
+    public BatchEntity() {}
+    
+    // Getters & Setters
+    public String getBatchId() { return batchId; }
+    public void setBatchId(String batchId) { this.batchId = batchId; }
+    
+    public String getBankName() { return bankName; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
+    
+    public String getAbiCode() { return abiCode; }
+    public void setAbiCode(String abiCode) { this.abiCode = abiCode; }
+    
+    public String getLeiCode() { return leiCode; }
+    public void setLeiCode(String leiCode) { this.leiCode = leiCode; }
+    
+    public LocalDate getReportDate() { return reportDate; }
+    public void setReportDate(LocalDate reportDate) { this.reportDate = reportDate; }
+    
+    public Integer getTotalExposures() { return totalExposures; }
+    public void setTotalExposures(Integer totalExposures) { 
+        this.totalExposures = totalExposures; 
+    }
+    
+    public BatchStatusEntity getStatus() { return status; }
+    public void setStatus(BatchStatusEntity status) { this.status = status; }
+    
+    public Instant getIngestedAt() { return ingestedAt; }
+    public void setIngestedAt(Instant ingestedAt) { this.ingestedAt = ingestedAt; }
+    
+    public Instant getProcessedAt() { return processedAt; }
+    public void setProcessedAt(Instant processedAt) { this.processedAt = processedAt; }
+}
+
+enum BatchStatusEntity {
+    INGESTED,
+    PROCESSING,
+    COMPLETED,
+    FAILED
+}
+
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.Instant;
+
+@Entity
+@Table(name = "mitigations")
+public class MitigationEntity {
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    @Column(name = "exposure_id", nullable = false, length = 100)
+    private String exposureId;
+    
+    @Column(name = "batch_id", nullable = false, length = 100)
+    private String batchId;
+    
+    @Column(name = "mitigation_type", nullable = false, length = 50)
+    @Enumerated(EnumType.STRING)
+    private MitigationTypeEntity mitigationType;
+    
+    @Column(name = "value", nullable = false, precision = 20, scale = 2)
+    private BigDecimal value;
+    
+    @Column(name = "currency_code", nullable = false, length = 3)
+    private String currencyCode;
+    
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+    
+    // Constructors
+    public MitigationEntity() {
+        this.createdAt = Instant.now();
+    }
+    
+    // Getters & Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    
+    public String getExposureId() { return exposureId; }
+    public void setExposureId(String exposureId) { this.exposureId = exposureId; }
+    
+    public String getBatchId() { return batchId; }
+    public void setBatchId(String batchId) { this.batchId = batchId; }
+    
+    public MitigationTypeEntity getMitigationType() { return mitigationType; }
+    public void setMitigationType(MitigationTypeEntity mitigationType) { 
+        this.mitigationType = mitigationType; 
+    }
+    
+    public BigDecimal getValue() { return value; }
+    public void setValue(BigDecimal value) { this.value = value; }
+    
+    public String getCurrencyCode() { return currencyCode; }
+    public void setCurrencyCode(String currencyCode) { this.currencyCode = currencyCode; }
+    
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+}
+
+enum MitigationTypeEntity {
+    FINANCIAL_COLLATERAL,
+    GUARANTEE,
+    PHYSICAL_ASSET,
+    REAL_ESTATE
+}
+
+
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.Instant;
+
+@Entity
+@Table(name = "exposures")
+public class ExposureEntity {
+    
+    @Id
+    @Column(name = "exposure_id", length = 100)
+    private String exposureId;
+    
+    @Column(name = "batch_id", nullable = false, length = 100)
+    private String batchId;
+    
+    @Column(name = "loan_id", nullable = false, length = 100)
+    private String loanId;
+    
+    // Counterparty
+    @Column(name = "borrower_id", nullable = false, length = 100)
+    private String borrowerId;
+    
+    @Column(name = "borrower_name", nullable = false, length = 255)
+    private String borrowerName;
+    
+    @Column(name = "counterparty_lei", length = 20)
+    private String counterpartyLei;
+    
+    // Monetary amount
+    @Column(name = "original_amount", nullable = false, precision = 20, scale = 2)
+    private BigDecimal originalAmount;
+    
+    @Column(name = "currency_code", nullable = false, length = 3)
+    private String currencyCode;
+    
+    // Classification
+    @Column(name = "loan_type", nullable = false, length = 100)
+    private String loanType;
+    
+    @Column(name = "balance_sheet_type", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
+    private BalanceSheetTypeEntity balanceSheetType;
+    
+    @Column(name = "country_code", nullable = false, length = 2)
+    private String countryCode;
+    
+    // Metadata
+    @Column(name = "recorded_at", nullable = false)
+    private Instant recordedAt;
+    
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+    
+    // Constructors
+    public ExposureEntity() {
+        this.createdAt = Instant.now();
+    }
+    
+    // Getters & Setters
+    public String getExposureId() { return exposureId; }
+    public void setExposureId(String exposureId) { this.exposureId = exposureId; }
+    
+    public String getBatchId() { return batchId; }
+    public void setBatchId(String batchId) { this.batchId = batchId; }
+    
+    public String getLoanId() { return loanId; }
+    public void setLoanId(String loanId) { this.loanId = loanId; }
+    
+    public String getBorrowerId() { return borrowerId; }
+    public void setBorrowerId(String borrowerId) { this.borrowerId = borrowerId; }
+    
+    public String getBorrowerName() { return borrowerName; }
+    public void setBorrowerName(String borrowerName) { this.borrowerName = borrowerName; }
+    
+    public String getCounterpartyLei() { return counterpartyLei; }
+    public void setCounterpartyLei(String counterpartyLei) { 
+        this.counterpartyLei = counterpartyLei; 
+    }
+    
+    public BigDecimal getOriginalAmount() { return originalAmount; }
+    public void setOriginalAmount(BigDecimal originalAmount) { 
+        this.originalAmount = originalAmount; 
+    }
+    
+    public String getCurrencyCode() { return currencyCode; }
+    public void setCurrencyCode(String currencyCode) { this.currencyCode = currencyCode; }
+    
+    public String getLoanType() { return loanType; }
+    public void setLoanType(String loanType) { this.loanType = loanType; }
+    
+    public BalanceSheetTypeEntity getBalanceSheetType() { return balanceSheetType; }
+    public void setBalanceSheetType(BalanceSheetTypeEntity balanceSheetType) { 
+        this.balanceSheetType = balanceSheetType; 
+    }
+    
+    public String getCountryCode() { return countryCode; }
+    public void setCountryCode(String countryCode) { this.countryCode = countryCode; }
+    
+    public Instant getRecordedAt() { return recordedAt; }
+    public void setRecordedAt(Instant recordedAt) { this.recordedAt = recordedAt; }
+    
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+}
+
+enum BalanceSheetTypeEntity {
+    ON_BALANCE,
+    OFF_BALANCE
+}
+
+--domain--
+
+import java.util.Optional;
+
+/**
+ * Repository interface for PortfolioAnalysis
+ */
+public interface PortfolioAnalysisRepository {
+    
+    void save(PortfolioAnalysis analysis);
+    
+    Optional<PortfolioAnalysis> findByBatchId(String batchId);
+}
+
+
+import java.util.List;
+
+/**
+ * Repository interface for Mitigation data
+ */
+public interface MitigationRepository {
+    
+    void save(ExposureId exposureId, RawMitigationData mitigation);
+    
+    void saveAll(ExposureId exposureId, List<RawMitigationData> mitigations);
+    
+    List<RawMitigationData> findByExposureId(ExposureId exposureId);
+}
+
+
+/**
+ * Repository interface for ExposureRecording aggregate
+ * (Domain layer - no infrastructure dependencies)
+ */
+public interface ExposureRepository {
+    
+    void save(ExposureRecording exposure);
+    
+    void saveAll(List<ExposureRecording> exposures);
+    
+    Optional<ExposureRecording> findById(ExposureId id);
+    
+    List<ExposureRecording> findByBatchId(String batchId);
+    
+    boolean existsById(ExposureId id);
+}
+
+we will read this instead , i changed the content of s3 
+package com.compliancecore.riskcalculation;
+
+import com.compliancecore.riskcalculation.application.RiskReportIngestionService;
+import com.compliancecore.riskcalculation.application.RiskCalculationResult;
+import com.compliancecore.riskcalculation.interfaces.inbound.dto.*;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+import java.math.BigDecimal;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest
+public class RiskReportIngestionIntegrationTest {
+    
+    @Autowired
+    private RiskReportIngestionService ingestionService;
+    
+    @Test
+    public void shouldIngestAndCalculateRiskReport() {
+        // Given: Your JSON data
+        String json = """
+            {
+                "bank_info": {
+                    "bank_name": "Community First Bank",
+                    "abi_code": "08081",
+                    "lei_code": "815600D7623147C25D86",
+                    "report_date": "2024-09-12",
+                    "total_loans": 5
+                },
+                "exposure_portfolio": [
+                    {
+                        "loan_id": "LOAN001", // this should be generic for example it could be loan, .....
+                        "exposure_id": "EXP_LOAN001_2024",
+                        "borrower_name": "Mike's Pizza Inc",
+                        "borrower_id": "CORP12345",
+                        "counterparty_lei": "549300ABCDEF1234567890",
+                        "loan_amount": 250000,
+                        "currency": "EUR",
+                        "loan_type": "Business Loan",//this should be generic for example it could be loan, .....
+                        "exposure_type": "ON_BALANCE",
+                        "country_code": "IT"
+                    },
+                    {
+                        "loan_id": "LOAN002",
+                        "exposure_id": "EXP_LOAN002_2024",
+                        "borrower_name": "Sarah Johnson",
+                        "borrower_id": "PERS67890",
+                        "counterparty_lei": "",
+                        "loan_amount": 450000,
+                        "currency": "EUR",
+                        "loan_type": "Mortgage",
+                        "exposure_type": "ON_BALANCE",
+                        "country_code": "IT"
+                    }
+                ],
+                "credit_risk_mitigation": [
+                    {
+                        "exposure_id": "EXP_LOAN001_2024",
+                        "collateral_type": "FINANCIAL_COLLATERAL",
+                        "collateral_value": 10000.00,
+                        "collateral_currency": "EUR"
+                    }
+                ]
+            }
+           
+		   
+		   
+		   
+
+
+@Service
+public class RiskReportIngestionService {
+    
+    private final RiskReportMapper mapper;
+    private final RiskCalculationService calculationService;
+    
+    public RiskReportIngestionService(
+        RiskReportMapper mapper,
+        RiskCalculationService calculationService
+    ) {
+        this.mapper = mapper;
+        this.calculationService = calculationService;
+    }
+    
+    /**
+     * Ingest raw JSON report and calculate risk metrics
+     */
+    @Transactional
+    public RiskCalculationResult ingestAndCalculate(RiskReportDTO rawReport) {
+        
+        // Step 1: Validate raw input
+        validateRawReport(rawReport);
+        
+        // Step 2: Convert DTO → Domain
+        IngestedRiskReport ingestedReport = mapper.toDomain(rawReport);
+        
+        // Step 3: Validate domain model
+        validateIngestedReport(ingestedReport);
+        
+        // Step 4: Calculate risk metrics
+        PortfolioAnalysis analysis = calculationService.calculateRisk(
+            ingestedReport.getBatchId(),
+            ingestedReport.getExposures(),
+            ingestedReport.getMitigations()
+        );
+        
+        // Step 5: Return result
+        return new RiskCalculationResult(
+            ingestedReport.getBatchId(),
+            ingestedReport.getBankInfo(),
+            ingestedReport.getTotalExposures(),
+            analysis,
+            ingestedReport.getIngestedAt()
+        );
+    }
+    
+    /**
+     * Validate raw DTO
+     */
+    private void validateRawReport(RiskReportDTO dto) {
+        if (dto.getBankInfo() == null) {
+            throw new InvalidReportException("Bank info is required");
+        }
+        
+        if (dto.getLoanPortfolio() == null || dto.getLoanPortfolio().isEmpty()) {
+            throw new InvalidReportException("Loan portfolio cannot be empty");
+        }
+        
+        if (dto.getCreditRiskMitigation() == null) {
+            throw new InvalidReportException("Credit risk mitigation is required");
+        }
+    }
+    
+    /**
+     * Validate domain model
+     */
+    private void validateIngestedReport(IngestedRiskReport report) {
+        
+        // Check for duplicate exposure IDs
+        long uniqueIds = report.getExposures().stream()
+            .map(ExposureRecording::getId)
+            .distinct()
+            .count();
+        
+        if (uniqueIds != report.getTotalExposures()) {
+            throw new InvalidReportException("Duplicate exposure IDs detected");
+        }
+        
+        // Check that mitigations reference existing exposures
+        Set<ExposureId> exposureIds = report.getExposures().stream()
+            .map(ExposureRecording::getId)
+            .collect(Collectors.toSet());
+        
+        Set<ExposureId> mitigationExposureIds = report.getMitigations().keySet();
+        
+        if (!exposureIds.containsAll(mitigationExposureIds)) {
+            throw new InvalidReportException(
+                "Some mitigations reference non-existent exposures"
+            );
+        }
+    }
+}
+
+/**
+ * Result of risk calculation
+ */
+public record RiskCalculationResult(
+    String batchId,
+    BankInfo bankInfo,
+    int totalExposures,
+    PortfolioAnalysis analysis,
+    Instant calculatedAt
+) {}
+
+/**
+ * Exception for invalid reports
+ */
+public class InvalidReportException extends RuntimeException {
+    public InvalidReportException(String message) {
+        super(message);
+    }
+}
+
+
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Represents raw risk report data after ingestion.
+ * Contains ONLY facts, no derived calculations.
+ */
+public class IngestedRiskReport {
+    
+    private final String batchId;
+    private final BankInfo bankInfo;
+    private final List<ExposureRecording> exposures;
+    private final Map<ExposureId, List<RawMitigationData>> mitigations;
+    private final Instant ingestedAt;
+    
+    public IngestedRiskReport(
+        String batchId,
+        BankInfo bankInfo,
+        List<ExposureRecording> exposures,
+        Map<ExposureId, List<RawMitigationData>> mitigations,
+        Instant ingestedAt
+    ) {
+        this.batchId = batchId;
+        this.bankInfo = bankInfo;
+        this.exposures = List.copyOf(exposures);
+        this.mitigations = Map.copyOf(mitigations);
+        this.ingestedAt = ingestedAt;
+    }
+    
+    public String getBatchId() { return batchId; }
+    public BankInfo getBankInfo() { return bankInfo; }
+    public List<ExposureRecording> getExposures() { return exposures; }
+    public Map<ExposureId, List<RawMitigationData>> getMitigations() { return mitigations; }
+    public Instant getIngestedAt() { return ingestedAt; }
+    
+    public int getTotalExposures() {
+        return exposures.size();
+    }
+}
+
+/**
+ * Bank information
+ */
+public record BankInfo(
+    String name,
+    String abiCode,
+    String leiCode,
+    LocalDate reportDate
+) {
+    public BankInfo {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(abiCode);
+        Objects.requireNonNull(leiCode);
+        Objects.requireNonNull(reportDate);
+    }
+}
+
+
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Component
+public class RiskReportMapper {
+    
+    /**
+     * Convert DTO → Domain Model
+     * 
+     * CRITICAL: We extract ONLY raw facts, ignore pre-calculated values
+     */
+    public IngestedRiskReport toDomain(RiskReportDTO dto) {
+        
+        // Parse batch metadata
+        String batchId = generateBatchId(dto.getBankInfo().getReportDate());
+        BankInfo bankInfo = toBankInfo(dto.getBankInfo());
+        
+        // Convert exposures (raw facts only)
+        List<ExposureRecording> exposures = dto.getLoanPortfolio().stream()
+            .map(this::toExposureRecording)
+            .toList();
+        
+        // Convert mitigations (group by exposure)
+        Map<ExposureId, List<RawMitigationData>> mitigations = 
+            dto.getCreditRiskMitigation().stream()
+                .collect(Collectors.groupingBy(
+                    m -> new ExposureId(m.getExposureId()),
+                    Collectors.mapping(
+                        this::toRawMitigationData,
+                        Collectors.toList()
+                    )
+                ));
+        
+        return new IngestedRiskReport(
+            batchId,
+            bankInfo,
+            exposures,
+            mitigations,
+            Instant.now()
+        );
+    }
+    
+    /**
+     * Convert BankInfoDTO → BankInfo
+     */
+    private BankInfo toBankInfo(BankInfoDTO dto) {
+        return new BankInfo(
+            dto.getBankName(),
+            dto.getAbiCode(),
+            dto.getLeiCode(),
+            LocalDate.parse(dto.getReportDate())
+        );
+    }
+    
+    /**
+     * Convert LoanPortfolioDTO → ExposureRecording
+     * 
+     * We IGNORE:
+     * - gross_exposure_amount (will be calculated by Valuation)
+     * - net_exposure_amount (will be calculated by Protection)
+     * - sector (will be classified by Classification Service)
+     */
+    private ExposureRecording toExposureRecording(LoanPortfolioDTO dto) {
+        
+        ExposureId exposureId = new ExposureId(dto.getExposureId());
+        LoanId loanId = new LoanId(dto.getLoanId());
+        
+        CounterpartyRef counterparty = new CounterpartyRef(
+            dto.getBorrowerId(),
+            dto.getBorrowerName(),
+            Optional.ofNullable(dto.getCounterpartyLei())
+                .filter(lei -> !lei.isBlank())
+        );
+        
+        MonetaryAmount originalAmount = new MonetaryAmount(
+            dto.getLoanAmount(),
+            dto.getCurrency()
+        );
+        
+        LoanClassification classification = new LoanClassification(
+            dto.getLoanType(),
+            BalanceSheetType.valueOf(dto.getExposureType()),
+            dto.getCountryCode()
+        );
+        
+        return new ExposureRecording(
+            exposureId,
+            loanId,
+            counterparty,
+            originalAmount,
+            classification,
+            Instant.now()
+        );
+    }
+    
+    /**
+     * Convert CreditRiskMitigationDTO → RawMitigationData
+     */
+    private RawMitigationData toRawMitigationData(CreditRiskMitigationDTO dto) {
+        return new RawMitigationData(
+            MitigationType.valueOf(dto.getCollateralType()),
+            dto.getCollateralValue(),
+            dto.getCollateralCurrency()
+        );
+    }
+    
+    /**
+     * Generate batch ID from report date
+     */
+    private String generateBatchId(String reportDate) {
+        String dateFormatted = reportDate.replace("-", "");
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
+        return "batch_" + dateFormatted + "_" + uniqueId;
+    }
+}
+
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.math.BigDecimal;
+
+public class CreditRiskMitigationDTO {
+    
+    @JsonProperty("exposure_id")
+    private String exposureId;
+    
+    @JsonProperty("collateral_type")
+    private String collateralType;
+    
+    @JsonProperty("collateral_value")
+    private BigDecimal collateralValue;
+    
+    @JsonProperty("collateral_currency")
+    private String collateralCurrency;
+    
+    // Constructors
+    public CreditRiskMitigationDTO() {}
+    
+    // Getters & Setters
+    public String getExposureId() { return exposureId; }
+    public void setExposureId(String exposureId) { this.exposureId = exposureId; }
+    
+    public String getCollateralType() { return collateralType; }
+    public void setCollateralType(String collateralType) { 
+        this.collateralType = collateralType; 
+    }
+    
+    public BigDecimal getCollateralValue() { return collateralValue; }
+    public void setCollateralValue(BigDecimal collateralValue) { 
+        this.collateralValue = collateralValue; 
+    }
+    
+    public String getCollateralCurrency() { return collateralCurrency; }
+    public void setCollateralCurrency(String collateralCurrency) { 
+        this.collateralCurrency = collateralCurrency; 
+    }
+}
+
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.math.BigDecimal;
+
+public class LoanPortfolioDTO {
+    
+    @JsonProperty("loan_id")
+    private String loanId;
+    
+    @JsonProperty("exposure_id")
+    private String exposureId;
+    
+    @JsonProperty("borrower_name")
+    private String borrowerName;
+    
+    @JsonProperty("borrower_id")
+    private String borrowerId;
+    
+    @JsonProperty("counterparty_lei")
+    private String counterpartyLei;
+    
+    @JsonProperty("loan_amount")
+    private BigDecimal loanAmount;
+    
+    // IGNORED: gross_exposure_amount - we will calculate this
+    // IGNORED: net_exposure_amount - we will calculate this
+    
+    @JsonProperty("currency")
+    private String currency;
+    
+    @JsonProperty("loan_type")
+    private String loanType;
+    
+    // IGNORED: sector - we will classify this
+    
+    @JsonProperty("exposure_type")
+    private String exposureType;
+    
+    // IGNORED: borrower_country - duplicate of country_code
+    
+    @JsonProperty("country_code")
+    private String countryCode;
+    
+    // Constructors
+    public LoanPortfolioDTO() {}
+    
+    // Getters & Setters
+    public String getLoanId() { return loanId; }
+    public void setLoanId(String loanId) { this.loanId = loanId; }
+    
+    public String getExposureId() { return exposureId; }
+    public void setExposureId(String exposureId) { this.exposureId = exposureId; }
+    
+    public String getBorrowerName() { return borrowerName; }
+    public void setBorrowerName(String borrowerName) { this.borrowerName = borrowerName; }
+    
+    public String getBorrowerId() { return borrowerId; }
+    public void setBorrowerId(String borrowerId) { this.borrowerId = borrowerId; }
+    
+    public String getCounterpartyLei() { return counterpartyLei; }
+    public void setCounterpartyLei(String counterpartyLei) { 
+        this.counterpartyLei = counterpartyLei; 
+    }
+    
+    public BigDecimal getLoanAmount() { return loanAmount; }
+    public void setLoanAmount(BigDecimal loanAmount) { this.loanAmount = loanAmount; }
+    
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
+    
+    public String getLoanType() { return loanType; }
+    public void setLoanType(String loanType) { this.loanType = loanType; }
+    
+    public String getExposureType() { return exposureType; }
+    public void setExposureType(String exposureType) { this.exposureType = exposureType; }
+    
+    public String getCountryCode() { return countryCode; }
+    public void setCountryCode(String countryCode) { this.countryCode = countryCode; }
+}
+
+
+
+
+package com.compliancecore.riskcalculation.interfaces.inbound.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.math.BigDecimal;
+import java.util.List;
+
+// Root DTO
+public class RiskReportDTO {
+    
+    @JsonProperty("bank_info")
+    private BankInfoDTO bankInfo;
+    
+    @JsonProperty("loan_portfolio")
+    private List<LoanPortfolioDTO> loanPortfolio;
+    
+    @JsonProperty("credit_risk_mitigation")
+    private List<CreditRiskMitigationDTO> creditRiskMitigation;
+    
+    // Constructors
+    public RiskReportDTO() {}
+    
+    // Getters & Setters
+    public BankInfoDTO getBankInfo() { return bankInfo; }
+    public void setBankInfo(BankInfoDTO bankInfo) { this.bankInfo = bankInfo; }
+    
+    public List<LoanPortfolioDTO> getLoanPortfolio() { return loanPortfolio; }
+    public void setLoanPortfolio(List<LoanPortfolioDTO> loanPortfolio) { 
+        this.loanPortfolio = loanPortfolio; 
+    }
+    
+    public List<CreditRiskMitigationDTO> getCreditRiskMitigation() { 
+        return creditRiskMitigation; 
+    }
+    public void setCreditRiskMitigation(List<CreditRiskMitigationDTO> creditRiskMitigation) {
+        this.creditRiskMitigation = creditRiskMitigation;
+    }
+}
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+public class BankInfoDTO {
+    
+    @JsonProperty("bank_name")
+    private String bankName;
+    
+    @JsonProperty("abi_code")
+    private String abiCode;
+    
+    @JsonProperty("lei_code")
+    private String leiCode;
+    
+    @JsonProperty("report_date")
+    private String reportDate;
+    
+    @JsonProperty("total_loans")
+    private Integer totalLoans;
+    
+    // Constructors
+    public BankInfoDTO() {}
+    
+    // Getters & Setters
+    public String getBankName() { return bankName; }
+    public void setBankName(String bankName) { this.bankName = bankName; }
+    
+    public String getAbiCode() { return abiCode; }
+    public void setAbiCode(String abiCode) { this.abiCode = abiCode; }
+    
+    public String getLeiCode() { return leiCode; }
+    public void setLeiCode(String leiCode) { this.leiCode = leiCode; }
+    
+    public String getReportDate() { return reportDate; }
+    public void setReportDate(String reportDate) { this.reportDate = reportDate; }
+    
+    public Integer getTotalLoans() { return totalLoans; }
+    public void setTotalLoans(Integer totalLoans) { this.totalLoans = totalLoans; }
+}
+
+
+// Aggregate Root
+public class PortfolioAnalysis {
+    private final String batchId;
+    private final EurAmount totalPortfolio;
+    private final Breakdown geographicBreakdown;
+    private final Breakdown sectorBreakdown;
+    private final HHI geographicHHI;
+    private final HHI sectorHHI;
+    private final Instant analyzedAt;
+    
+    private PortfolioAnalysis(
+        String batchId,
+        EurAmount totalPortfolio,
+        Breakdown geographicBreakdown,
+        Breakdown sectorBreakdown,
+        HHI geographicHHI,
+        HHI sectorHHI,
+        Instant analyzedAt
+    ) {
+        this.batchId = batchId;
+        this.totalPortfolio = totalPortfolio;
+        this.geographicBreakdown = geographicBreakdown;
+        this.sectorBreakdown = sectorBreakdown;
+        this.geographicHHI = geographicHHI;
+        this.sectorHHI = sectorHHI;
+        this.analyzedAt = analyzedAt;
+    }
+    
+    public static PortfolioAnalysis analyze(
+        String batchId,
+        List<ClassifiedExposure> exposures
+    ) {
+        // Calculate total
+        BigDecimal total = exposures.stream()
+            .map(e -> e.netExposure().value())
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        EurAmount totalPortfolio = new EurAmount(total);
+        
+        // Geographic breakdown
+        Map<GeographicRegion, BigDecimal> geoAmounts = exposures.stream()
+            .collect(Collectors.groupingBy(
+                ClassifiedExposure::region,
+                Collectors.mapping(
+                    e -> e.netExposure().value(),
+                    Collectors.reducing(BigDecimal.ZERO, BigDecimal::add)
+                )
+            ));
+        
+        Breakdown geoBreakdown = Breakdown.from(geoAmounts, total);
+        HHI geoHHI = HHI.calculate(geoBreakdown);
+        
+        // Sector breakdown
+        Map<EconomicSector, BigDecimal> sectorAmounts = exposures.stream()
+            .collect(Collectors.groupingBy(
+                ClassifiedExposure::sector,
+                Collectors.mapping(
+                    e -> e.netExposure().value(),
+                    Collectors.reducing(BigDecimal.ZERO, BigDecimal::add)
+                )
+            ));
+        
+        Breakdown sectorBreakdown = Breakdown.from(sectorAmounts, total);
+        HHI sectorHHI = HHI.calculate(sectorBreakdown);
+        
+        return new PortfolioAnalysis(
+            batchId,
+            totalPortfolio,
+            geoBreakdown,
+            sectorBreakdown,
+            geoHHI,
+            sectorHHI,
+            Instant.now()
+        );
+    }
+    
+    // Getters
+    public String getBatchId() { return batchId; }
+    public EurAmount getTotalPortfolio() { return totalPortfolio; }
+    public Breakdown getGeographicBreakdown() { return geographicBreakdown; }
+    public Breakdown getSectorBreakdown() { return sectorBreakdown; }
+    public HHI getGeographicHHI() { return geographicHHI; }
+    public HHI getSectorHHI() { return sectorHHI; }
+}
+
+// Value Objects
+public record Breakdown(Map<String, Share> shares) {
+    
+    public static Breakdown from(Map<?, BigDecimal> amounts, BigDecimal total) {
+        Map<String, Share> shares = amounts.entrySet().stream()
+            .collect(Collectors.toMap(
+                e -> e.getKey().toString(),
+                e -> Share.calculate(e.getValue(), total)
+            ));
+        return new Breakdown(Map.copyOf(shares));
+    }
+}
+
+public record Share(
+    EurAmount amount,
+    BigDecimal percentage
+) {
+    public static Share calculate(BigDecimal amount, BigDecimal total) {
+        BigDecimal pct = amount
+            .divide(total, 4, RoundingMode.HALF_UP)
+            .multiply(BigDecimal.valueOf(100));
+        return new Share(new EurAmount(amount), pct);
+    }
+}
+
+public record HHI(BigDecimal value, ConcentrationLevel level) {
+    
+    public HHI {
+        if (value.compareTo(BigDecimal.ZERO) < 0 || value.compareTo(BigDecimal.ONE) > 0) {
+            throw new IllegalArgumentException("HHI must be between 0 and 1");
+        }
+    }
+    
+    public static HHI calculate(Breakdown breakdown) {
+        BigDecimal hhi = breakdown.shares().values().stream()
+            .map(share -> {
+                BigDecimal decimal = share.percentage()
+                    .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP);
+                return decimal.multiply(decimal);
+            })
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        ConcentrationLevel level;
+        if (hhi.compareTo(BigDecimal.valueOf(0.15)) < 0) {
+            level = ConcentrationLevel.LOW;
+        } else if (hhi.compareTo(BigDecimal.valueOf(0.25)) < 0) {
+            level = ConcentrationLevel.MODERATE;
+        } else {
+            level = ConcentrationLevel.HIGH;
+        }
+        
+        return new HHI(hhi, level);
+    }
+}
+
+public enum ConcentrationLevel {
+    LOW,
+    MODERATE,
+    HIGH
+}
+
+
+// Domain Service
+public class ExposureClassifier {
+    
+    private static final Set<String> EU_COUNTRIES = Set.of(
+        "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR",
+        "DE", "GR", "HU", "IE", "LV", "LT", "LU", "MT", "NL", "PL",
+        "PT", "RO", "SK", "SI", "ES", "SE"
+    );
+    
+    public GeographicRegion classifyRegion(String countryCode) {
+        Objects.requireNonNull(countryCode);
+        
+        if ("IT".equals(countryCode)) {
+            return GeographicRegion.ITALY;
+        } else if (EU_COUNTRIES.contains(countryCode)) {
+            return GeographicRegion.EU_OTHER;
+        } else {
+            return GeographicRegion.NON_EUROPEAN;
+        }
+    }
+    
+    public EconomicSector classifySector(String loanType) {
+        Objects.requireNonNull(loanType);
+        
+        String normalized = loanType.toUpperCase().trim();
+        
+        if (normalized.contains("MORTGAGE")) {
+            return EconomicSector.RETAIL_MORTGAGE;
+        } else if (normalized.contains("GOVERNMENT") || normalized.contains("TREASURY")) {
+            return EconomicSector.SOVEREIGN;
+        } else if (normalized.contains("INTERBANK")) {
+            return EconomicSector.BANKING;
+        } else if (normalized.contains("BUSINESS") || normalized.contains("EQUIPMENT") || 
+                   normalized.contains("CREDIT LINE")) {
+            return EconomicSector.CORPORATE;
+        } else {
+            return EconomicSector.OTHER;
+        }
+    }
+}
+
+// Value Objects
+public enum GeographicRegion {
+    ITALY,
+    EU_OTHER,
+    NON_EUROPEAN
+}
+
+public enum EconomicSector {
+    RETAIL_MORTGAGE,
+    SOVEREIGN,
+    CORPORATE,
+    BANKING,
+    OTHER
+}
+
+// Classified Exposure (combines protection + classification)
+public record ClassifiedExposure(
+    ExposureId exposureId,
+    EurAmount netExposure,
+    GeographicRegion region,
+    EconomicSector sector
+) {
+    public ClassifiedExposure {
+        Objects.requireNonNull(exposureId);
+        Objects.requireNonNull(netExposure);
+        Objects.requireNonNull(region);
+        Objects.requireNonNull(sector);
+    }
+}
+
+
+// Aggregate Root
+public class ProtectedExposure {
+    private final ExposureId exposureId;
+    private final EurAmount grossExposure;
+    private final List<Mitigation> mitigations;
+    private final EurAmount netExposure;
+    
+    private ProtectedExposure(
+        ExposureId exposureId,
+        EurAmount grossExposure,
+        List<Mitigation> mitigations,
+        EurAmount netExposure
+    ) {
+        this.exposureId = exposureId;
+        this.grossExposure = grossExposure;
+        this.mitigations = List.copyOf(mitigations);
+        this.netExposure = netExposure;
+    }
+    
+    public static ProtectedExposure calculate(
+        ExposureId exposureId,
+        EurAmount grossExposure,
+        List<Mitigation> mitigations
+    ) {
+        BigDecimal totalMitigation = mitigations.stream()
+            .map(m -> m.eurValue().value())
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal net = grossExposure.value()
+            .subtract(totalMitigation)
+            .max(BigDecimal.ZERO);
+        
+        return new ProtectedExposure(
+            exposureId,
+            grossExposure,
+            mitigations,
+            new EurAmount(net)
+        );
+    }
+    
+    public ExposureId getExposureId() { return exposureId; }
+    public EurAmount getGrossExposure() { return grossExposure; }
+    public EurAmount getNetExposure() { return netExposure; }
+    public List<Mitigation> getMitigations() { return mitigations; }
+}
+
+// Entity
+public class Mitigation {
+    private final MitigationType type;
+    private final EurAmount eurValue;
+    
+    public Mitigation(
+        MitigationType type,
+        BigDecimal value,
+        String currency,
+        ExchangeRateProvider rateProvider
+    ) {
+        this.type = Objects.requireNonNull(type);
+        
+        // Convert to EUR immediately
+        if ("EUR".equals(currency)) {
+            this.eurValue = new EurAmount(value);
+        } else {
+            ExchangeRate rate = rateProvider.getRate(currency, "EUR");
+            BigDecimal eurVal = value.multiply(rate.rate());
+            this.eurValue = new EurAmount(eurVal);
+        }
+    }
+    
+    public MitigationType getType() { return type; }
+    public EurAmount eurValue() { return eurValue; }
+}
+
+public enum MitigationType {
+    FINANCIAL_COLLATERAL,
+    GUARANTEE,
+    PHYSICAL_ASSET,
+    REAL_ESTATE
+}
+
+
+
+// Aggregate Root
+public class ExposureValuation {
+    private final ExposureId exposureId;
+    private final MonetaryAmount original;
+    private final EurAmount converted;
+    private final ExchangeRate rateUsed;
+    private final Instant valuedAt;
+    
+    private ExposureValuation(
+        ExposureId exposureId,
+        MonetaryAmount original,
+        EurAmount converted,
+        ExchangeRate rateUsed,
+        Instant valuedAt
+    ) {
+        this.exposureId = exposureId;
+        this.original = original;
+        this.converted = converted;
+        this.rateUsed = rateUsed;
+        this.valuedAt = valuedAt;
+    }
+    
+    public static ExposureValuation convert(
+        ExposureId exposureId,
+        MonetaryAmount original,
+        ExchangeRateProvider rateProvider
+    ) {
+        if ("EUR".equals(original.currencyCode())) {
+            // No conversion needed
+            return new ExposureValuation(
+                exposureId,
+                original,
+                new EurAmount(original.amount()),
+                ExchangeRate.identity(),
+                Instant.now()
+            );
+        }
+        
+        ExchangeRate rate = rateProvider.getRate(original.currencyCode(), "EUR");
+        BigDecimal eurAmount = original.amount().multiply(rate.rate());
+        
+        return new ExposureValuation(
+            exposureId,
+            original,
+            new EurAmount(eurAmount),
+            rate,
+            Instant.now()
+        );
+    }
+    
+    public ExposureId getExposureId() { return exposureId; }
+    public EurAmount getConverted() { return converted; }
+    public ExchangeRate getRateUsed() { return rateUsed; }
+}
+
+// Value Objects
+public record EurAmount(BigDecimal value) {
+    public EurAmount {
+        Objects.requireNonNull(value);
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("EUR amount cannot be negative");
+        }
+    }
+}
+
+public record ExchangeRate(
+    String fromCurrency,
+    String toCurrency,
+    BigDecimal rate,
+    LocalDate effectiveDate
+) {
+    public static ExchangeRate identity() {
+        return new ExchangeRate("EUR", "EUR", BigDecimal.ONE, LocalDate.now());
+    }
+}
+
+// Domain Service Interface
+public interface ExchangeRateProvider {
+    ExchangeRate getRate(String fromCurrency, String toCurrency);
+}
+
+
+// Aggregate Root
+public class ExposureRecording {
+    private final ExposureId id;
+    private final LoanId loanId;
+    private final CounterpartyRef counterparty;
+    private final MonetaryAmount originalAmount;
+    private final LoanClassification classification;
+    private final Instant recordedAt;
+    
+    public ExposureRecording(
+        ExposureId id,
+        LoanId loanId,
+        CounterpartyRef counterparty,
+        MonetaryAmount originalAmount,
+        LoanClassification classification,
+        Instant recordedAt
+    ) {
+        this.id = Objects.requireNonNull(id);
+        this.loanId = Objects.requireNonNull(loanId);
+        this.counterparty = Objects.requireNonNull(counterparty);
+        this.originalAmount = Objects.requireNonNull(originalAmount);
+        this.classification = Objects.requireNonNull(classification);
+        this.recordedAt = Objects.requireNonNull(recordedAt);
+    }
+    
+    // Only getters - immutable
+    public ExposureId getId() { return id; }
+    public LoanId getLoanId() { return loanId; }
+    public CounterpartyRef getCounterparty() { return counterparty; }
+    public MonetaryAmount getOriginalAmount() { return originalAmount; }
+    public LoanClassification getClassification() { return classification; }
+    public Instant getRecordedAt() { return recordedAt; }
+}
+
+// Value Objects
+public record ExposureId(String value) {
+    public ExposureId {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Exposure ID cannot be blank");
+        }
+    }
+}
+
+public record LoanId(String value) {
+    public LoanId {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Loan ID cannot be blank");
+        }
+    }
+}
+
+public record CounterpartyRef(
+    String borrowerId,
+    String name,
+    Optional<String> leiCode
+) {
+    public CounterpartyRef {
+        Objects.requireNonNull(borrowerId);
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(leiCode);
+    }
+}
+
+public record MonetaryAmount(
+    BigDecimal amount,
+    String currencyCode
+) {
+    public MonetaryAmount {
+        Objects.requireNonNull(amount);
+        Objects.requireNonNull(currencyCode);
+        if (amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Amount cannot be negative");
+        }
+    }
+}
+
+public record LoanClassification(
+    String loanType,
+    BalanceSheetType balanceSheetType,
+    String countryCode
+) {
+    public LoanClassification {
+        Objects.requireNonNull(loanType);
+        Objects.requireNonNull(balanceSheetType);
+        Objects.requireNonNull(countryCode);
+    }
+}
+
+public enum BalanceSheetType {
+    ON_BALANCE,
+    OFF_BALANCE
+}
+
+CORRECTED APPROACH
+1. What Raw Data Belongs Where?
+Let's analyze your JSON against our contexts:
+EXPOSURE RECORDING Context (immutable facts only):
+✓ loan_id
+✓ exposure_id  
+✓ borrower_name
+✓ borrower_id
+✓ counterparty_lei
+✓ loan_amount (original)
+✓ currency (original)
+✓ loan_type (raw classification)
+✓ exposure_type (ON_BALANCE/OFF_BALANCE)
+✓ country_code
+
+✗ gross_exposure_amount (DERIVED - belongs to Valuation context)
+✗ net_exposure_amount (DERIVED - belongs to Protection context)
+✗ sector (DERIVED - belongs to Classification service)
+✗ borrower_country (duplicate of country_code)
+
+I created an "ExposureRecording" that had ALL the data mixed together again - exactly what we were trying to avoid! The raw JSON already has the data incorrectly bundled (gross_exposure_amount, net_exposure_amount are pre-calculated, sectors are pre-assigned, etc.).
+We need to ignore those pre-calculated fields and only take the raw facts that belong to each context.
+
+
+EXPOSURE RECORDING context
+VALUATION ENGINE context
+CREDIT PROTECTION context
+CONCENTRATION ANALYSIS context
+
+This model applies anti-requirements by:
+
+Separating concerns that change independently
+Making derivations explicit (valuation, protection, concentration)
+Preventing inappropriate coupling (currency ≠ sector, collateral ≠ geography)
+Clear data flow: Recording → Valuation → Protection → Classification → Analysis
+Immutable facts vs derived calculations
+
+Great! You want to apply the anti-requirements technique to properly decompose your BCBS 239 domain before jumping into full DDD implementation. This is a smart approach - it will help you avoid the "god entity" trap.
+Let me help you identify the core domains first, then we'll apply anti-requirements to find the proper boundaries.
+Current Domain Analysis
+From your data and aggregation pipeline, I can see several apparent nouns that might seem like single entities but probably shouldn't be:
+1. Exposure (The Shopping Cart equivalent)
+Currently bundles together:
+
+Loan identification (loan_id, exposure_id)
+Counterparty info (borrower_name, LEI, country)
+Financial amounts (gross, net, currency)
+Classifications (sector, exposure_type, geographic_region)
+Risk mitigation (collateral data)
+
+2. Batch Summary (Aggregation Results)
+Currently bundles:
+
+Batch metadata
+Geographic breakdowns
+Sector breakdowns
+Concentration indices
+Capital adequacy metrics
+
+Let's Apply Anti-Requirements
+I'll propose some ridiculous business rules to test which attributes truly belong together:
+Testing the "Exposure" Entity
+Anti-requirement 1: "When a borrower's LEI code has more than 20 characters, we must increase the loan amount by 10%"
+
+Expected reaction: Ridiculous! LEI is just an identifier, it has nothing to do with loan pricing.
+Insight: Identity/Counterparty data is separate from Financial/Pricing data
+
+Anti-requirement 2: "When the collateral value exceeds €50,000, we must change the borrower's country code to 'XX'"
+
+Expected reaction: Absurd! Collateral and geography are unrelated.
+Insight: Risk Mitigation is separate from Geographic Classification
+
+Anti-requirement 3: "If the exposure is OFF_BALANCE, the borrower's name must be in ALL CAPS"
+Expected reaction: Nonsensical! Accounting treatment doesn't affect counterparty naming.
+Insight: Accounting Classification is separate from Counterparty Identity
+
+Anti-requirement 4: "When converting from USD to EUR, we must also change the sector from CORPORATE to RETAIL"
+
+Expected reaction: Preposterous! Currency has nothing to do with economic sector.
+Insight: Currency Conversion is separate from Sector Classification
+
+Proposed Domain Decomposition
+Based on these anti-requirements, here are the bounded contexts I suggest:
+
+
+1. COUNTERPARTY CONTEXT
+   - Counterparty identity (name, LEI, borrower_id)
+   - Geographic classification (country, region)
+   - Sector classification (RETAIL, CORPORATE, etc.)
+
+2. EXPOSURE VALUATION CONTEXT
+   - Original amounts and currencies
+   - Currency conversion
+   - Exchange rates
+   - Gross vs Net calculations
+
+3. RISK MITIGATION CONTEXT
+   - Collateral types and values
+   - Guarantees
+   - Net exposure adjustments
+
+4. REGULATORY REPORTING CONTEXT
+   - Batch processing
+   - Aggregations (geographic, sector)
+   - Concentration metrics (HHI)
+   - Capital adequacy
+
+5. DATA QUALITY CONTEXT (BCBS 239 Principle 3)
+   - Validation rules
+   - Data completeness checks
+   - Accuracy metrics
+   - Lineage tracking
+   
+   
+we applied the antirequirement
+we need to refactor by maintaining the requirements we define before  
+this package C:\Users\alseny\Desktop\react projects\regtech\regtech-risk-calculation\application\src\main\java\com\bcbs239\regtech\riskcalculation\application\integration should not change 

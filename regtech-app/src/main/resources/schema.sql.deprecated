@@ -1,0 +1,31 @@
+-- ============================================================================
+-- DEPRECATED: This file is no longer used for database initialization
+-- ============================================================================
+-- 
+-- This schema.sql file has been replaced by Flyway migrations.
+-- 
+-- All database schema management is now handled through versioned Flyway
+-- migration scripts located in:
+--   regtech-app/src/main/resources/db/migration/
+--
+-- The initial schema creation is now performed by:
+--   V1__init_schemas.sql
+--
+-- Spring Boot's schema.sql execution has been disabled via:
+--   spring.sql.init.mode: never
+--
+-- DO NOT USE THIS FILE. It is kept for historical reference only.
+--
+-- For more information, see:
+--   - .kiro/specs/database-consolidation-flyway/design.md
+--   - .kiro/specs/database-consolidation-flyway/requirements.md
+--
+-- ============================================================================
+
+-- Create schemas if they don't exist
+CREATE SCHEMA IF NOT EXISTS billing;
+CREATE SCHEMA IF NOT EXISTS iam;
+CREATE SCHEMA IF NOT EXISTS ingestion;
+CREATE SCHEMA IF NOT EXISTS dataquality;
+CREATE SCHEMA IF NOT EXISTS riskcalculation;
+CREATE SCHEMA IF NOT EXISTS reportgeneration;

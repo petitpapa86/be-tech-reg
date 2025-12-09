@@ -8,99 +8,144 @@
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
 	<artifactId>regtech-billing</artifactId>
+	<packaging>pom</packaging>
 	<name>regtech-billing</name>
-	<description>Billing module for Regtech application</description>
-	<dependencies>
-		<dependency>
-			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-core</artifactId>
-			<version>${project.version}</version>
-		</dependency>
+	<description>Billing module for Regtech application - Modular Monolith</description>
+	
+	<modules>
+		<module>domain</module>
+		<module>application</module>
+		<module>infrastructure</module>
+		<module>presentation</module>
+	</modules>
+	
+	<properties>
+		<maven.compiler.source>25</maven.compiler.source>
+		<maven.compiler.target>25</maven.compiler.target>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		
-		<!-- IAM module for user management -->
-		<dependency>
-			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-iam</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-		
-		<!-- Stripe SDK for payment processing -->
-		<dependency>
-			<groupId>com.stripe</groupId>
-			<artifactId>stripe-java</artifactId>
-			<version>25.12.0</version>
-		</dependency>
-		
-		<!-- Spring Boot JPA for data persistence -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-		
-		<!-- Spring Boot Web for REST endpoints -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-		
-		<!-- Spring Boot Validation for input validation -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-validation</artifactId>
-		</dependency>
-		
-		<!-- Spring Boot Actuator for health checks -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-actuator</artifactId>
-		</dependency>
-		
-		<!-- Flyway for database migrations -->
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
-		</dependency>
-		
-		<!-- PostgreSQL driver for production -->
-		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		
-		<!-- H2 database for development and testing -->
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		
-		<!-- Lombok for reducing boilerplate code -->
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-		</dependency>
-		
-		<!-- Spring Boot Test for testing -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-	</dependencies>
+		<!-- Version management for billing module dependencies -->
+		<stripe.version>25.12.0</stripe.version>
+		<jackson.version>2.15.2</jackson.version>
+	</properties>
+	
+	<dependencyManagement>
+		<dependencies>
+			<!-- Internal module dependencies -->
+			<dependency>
+				<groupId>com.bcbs239</groupId>
+				<artifactId>regtech-billing-domain</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.bcbs239</groupId>
+				<artifactId>regtech-billing-application</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.bcbs239</groupId>
+				<artifactId>regtech-billing-infrastructure</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.bcbs239</groupId>
+				<artifactId>regtech-billing-presentation</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
+			<!-- Core module dependency -->
+			<dependency>
+				<groupId>com.bcbs239</groupId>
+				<artifactId>regtech-core</artifactId>
+				<version>${project.version}</version>
+				<type>pom</type>
+			</dependency>
+			
+			<!-- Stripe SDK for payment processing -->
+			<dependency>
+				<groupId>com.stripe</groupId>
+				<artifactId>stripe-java</artifactId>
+				<version>${stripe.version}</version>
+			</dependency>
+			
+			<!-- Jackson for JSON processing -->
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-core</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
+				<version>${jackson.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+	
 	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>repackage</id>
-						<phase>none</phase>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<configuration>
+						<source>25</source>
+						<target>25</target>
+						<enablePreview>true</enablePreview>
+						<parameters>true</parameters>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-maven-plugin</artifactId>
+					<configuration>
+						<skip>true</skip>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-surefire-plugin</artifactId>
+					<configuration>
+						<includes>
+							<include>**/*Test.java</include>
+						</includes>
+						<excludes>
+							<exclude>**/*IntegrationTest.java</exclude>
+						</excludes>
+					</configuration>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-failsafe-plugin</artifactId>
+					<configuration>
+						<includes>
+							<include>**/*IntegrationTest.java</include>
+						</includes>
+					</configuration>
+					<executions>
+						<execution>
+							<goals>
+								<goal>integration-test</goal>
+								<goal>verify</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 	</build>
+	
+	<profiles>
+		<profile>
+			<id>integration-tests</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-failsafe-plugin</artifactId>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

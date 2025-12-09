@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Risk Analysis Report</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <style>
+        @media print {
+            .no-print { display: none; }
+            .page-break { page-break-before: always; }
+        }
+        
+        .quality-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+        
+        .quality-badge.grade-a { background-color: #10b981; color: white; }
+        .quality-badge.grade-b { background-color: #84cc16; color: white; }
+        .quality-badge.grade-c { background-color: #eab308; color: white; }
+        .quality-badge.grade-d { background-color: #f97316; color: white; }
+        .quality-badge.grade-e { background-color: #ef4444; color: white; }
+        .quality-badge.grade-f { background-color: #dc2626; color: white; }
+        
+        .compliance-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .compliance-badge.compliant { background-color: #10b981; color: white; }
+        .compliance-badge.non-compliant { background-color: #ef4444; color: white; }
+        .compliance-badge.warning { background-color: #f59e0b; color: white; }
+        
+        .summary-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+        
+        .summary-card-title {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-bottom: 0.5rem;
+        }
+        
+        .summary-card-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #111827;
+        }
+        
+        .dimension-bar {
+            height: 1.5rem;
+            border-radius: 0.25rem;
+            transition: width 0.3s ease;
+        }
+        
+        .recommendation-section {
+            border-left: 4px solid;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f9fafb;
+            border-radius: 0.25rem;
+        }
+        
+        .recommendation-section.red { border-color: #ef4444; }
+        .recommendation-section.yellow { border-color: #f59e0b; }
+        .recommendation-section.green { border-color: #10b981; }
+        .recommendation-section.blue { border-color: #3b82f6; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-7xl mx-auto p-8">
+        
+        <!-- Header Section -->
+        <header class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                        Comprehensive Risk Analysis Report
+                    </h1>
+                    <p class="text-lg text-gray-600">
+                        Large Exposures & Data Quality Assessment
+                    </p>
+                    <div class="mt-4 space-y-1">
+                        <p class="text-sm text-gray-700">
+                            <span class="font-semibold">Bank:</span> 
+                            <span th:text="${metadata.bankName}">Bank Name</span>
+                            (<span th:text="${metadata.bankId.value()}">BANK001</span>)
+                        </p>
+                        <p class="text-sm text-gray-700">
+                            <span class="font-semibold">Reporting Date:</span> 
+                            <span th:text="${#temporals.format(metadata.reportingDate.value(), 'dd/MM/yyyy')}">01/01/2024</span>
+                        </p>
+                        <p class="text-sm text-gray-700">
+                            <span class="font-semibold">Generated:</span> 
+                            <span th:text="${#temporals.format(metadata.generatedAt, 'dd/MM/yyyy HH:mm:ss')}">01/01/2024 10:00:00</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <div class="mb-2">
+                        <span class="quality-badge" 
+                              th:classappend="${'grade-' + #strings.toLowerCase(qualityResults.overallGrade.name())}">
+                            <span th:text="${qualityResults.overallGrade.name()}">A</span>
+                            <span th:text="${#numbers.formatDecimal(qualityResults.overallScore, 1, 1)}">95.0</span>%
+                        </span>
+                    </div>
+                    <div>
+                        <span class="compliance-badge" 
+                              th:classappend="${qualityResults.complianceStatus.name() == 'COMPLIANT' ? 'compliant' : 'non-compliant'}">
+                            <span th:text="${qualityResults.complianceStatus.displayName}">Compliant</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Large Exposures Section -->
+        <section class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">
+                📊 Large Exposures Analysis
+            </h2>
+            
+            <!-- Regulatory Reference -->
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                <p class="text-sm text-blue-900">
+                    <span class="font-semibold">Regulatory Framework:</span> 
+                    CRR Regulation (EU) No. 575/2013, Articles 392 and 395 | 
+                    EBA ITS 680/2014 (COREP)
+                </p>
+            </div>
+            
+            <!-- Executive Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+                <div class="summary-card">
+                    <div class="summary-card-title">Tier 1 Capital</div>
+                    <div class="summary-card-value" th:text="${calculationResults.tierOneCapital.toFormattedString()}">
+                        €1,000,000
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-title">Large Exposures</div>
+                    <div class="summary-card-value" th:text="${calculationResults.totalExposures}">
+                        25
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-title">Total Amount</div>
+                    <div class="summary-card-value" th:text="${calculationResults.totalAmount.toFormattedString()}">
+                        €5,000,000
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-title">Limit Breaches</div>
+                    <div class="summary-card-value text-red-600" th:text="${calculationResults.limitBreaches}">
+                        2
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-title">Sector Concentration</div>
+                    <div class="summary-card-value" 
+                         th:text="${#numbers.formatDecimal(calculationResults.concentrationIndices.sectorHerfindahl.value(), 1, 2)}">
+                        0.25
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <!-- Sector Distribution Chart -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Sector Distribution</h3>
+                    <canvas id="sectorChart" width="400" height="300"></canvas>
+                </div>
+                
+                <!-- Top Exposures Chart -->
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Top 10 Exposures</h3>
+                    <canvas id="topExposuresChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+            
+            <!-- Exposures Table -->
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Detailed Exposures</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Counterparty
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    LEI
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Sector
+                                </th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Country
+                                </th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Amount (EUR)
+                                </th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    % of Capital
+                                </th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr th:each="exposure : ${calculationResults.exposures}">
+                                <td class="px-4 py-3 text-sm text-gray-900" th:text="${exposure.counterpartyName}">
+                                    Counterparty Name
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600 font-mono" th:text="${exposure.leiCode}">
+                                    LEI123456789
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600" th:text="${exposure.sectorCode}">
+                                    S.11
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-600" th:text="${exposure.countryCode}">
+                                    IT
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900 text-right" 
+                                    th:text="${exposure.exposureValueEur.toFormattedString()}">
+                                    €100,000
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-900 text-right font-semibold"
+                                    th:text="${#numbers.formatDecimal(exposure.percentageOfCapital.value(), 1, 2) + '%'}">
+                                    10.5%
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <span class="compliance-badge"
+                                          th:classappend="${exposure.percentageOfCapital.value() > 25.0 ? 'non-compliant' : 'compliant'}"
+                                          th:text="${exposure.percentageOfCapital.value() > 25.0 ? 'BREACH' : 'OK'}">
+                                        OK
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Compliance Summary -->
+            <div class="bg-gray-50 rounded-lg p-4">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3">Compliance Summary</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-600">Compliant Exposures (≤25% of capital)</p>
+                        <p class="text-2xl font-bold text-green-600" 
+                           th:text="${calculationResults.totalExposures - calculationResults.limitBreaches}">
+                            23
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-600">Non-Compliant Exposures (>25% of capital)</p>
+                        <p class="text-2xl font-bold text-red-600" th:text="${calculationResults.limitBreaches}">
+                            2
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Data Quality Section -->
+        <section class="bg-white rounded-lg shadow-md p-6 mb-8 page-break">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">
+                ✅ Data Quality Assessment
+            </h2>
+            
+            <!-- Overall Score -->
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Overall Quality Score</h3>
+                        <p class="text-sm text-gray-600">
+                            Based on <span th:text="${qualityResults.totalExposures}">100</span> exposures analyzed
+                        </p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-5xl font-bold" 
+                             th:classappend="${qualityResults.overallScore >= 90 ? 'text-green-600' : 
+                                            qualityResults.overallScore >= 70 ? 'text-yellow-600' : 'text-red-600'}"
+                             th:text="${#numbers.formatDecimal(qualityResults.overallScore, 1, 1) + '%'}">
+                            95.0%
+                        </div>
+                        <div class="text-lg font-semibold text-gray-700" 
+                             th:text="${'Grade: ' + qualityResults.overallGrade.name()}">
+                            Grade: A
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Dimension Scores -->
+            <div class="mb-8">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Quality Dimensions</h3>
+                <div class="space-y-4">
+                    <div th:each="entry : ${qualityResults.dimensionScores}">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-sm font-medium text-gray-700" th:text="${entry.key.displayName}">
+                                Completeness
+                            </span>
+                            <span class="text-sm font-semibold" 
+                                  th:classappend="${entry.value >= 90 ? 'text-green-600' : 
+                                                  entry.value >= 70 ? 'text-yellow-600' : 'text-red-600'}"
+                                  th:text="${#numbers.formatDecimal(entry.value, 1, 1) + '%'}">
+                                95.0%
+                            </span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-6">
+                            <div class="dimension-bar h-6 rounded-full flex items-center justify-end pr-2 text-white text-xs font-semibold"
+                                 th:classappend="${entry.value >= 90 ? 'bg-green-500' : 
+                                                entry.value >= 70 ? 'bg-yellow-500' : 'bg-red-500'}"
+                                 th:style="${'width: ' + entry.value + '%'}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error Distribution -->
+            <div class="mb-8" th:if="${qualityResults.totalErrors > 0}">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Error Distribution</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div th:each="entry : ${qualityResults.errorDistributionByDimension}" 
+                         class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div class="text-sm text-gray-600" th:text="${entry.key.displayName}">Dimension</div>
+                        <div class="text-2xl font-bold text-red-600" th:text="${entry.value.count}">10</div>
+                        <div class="text-xs text-gray-500" 
+                             th:text="${#numbers.formatDecimal(entry.value.percentage, 1, 1) + '% of total errors'}">
+                            25% of total errors
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- BCBS 239 Compliance -->
+            <div class="bg-gray-50 rounded-lg p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">BCBS 239 Compliance</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="flex items-center justify-between p-3 bg-white rounded border">
+                        <span class="text-sm font-medium text-gray-700">Principle 3: Accuracy</span>
+                        <span class="compliance-badge"
+                              th:classappend="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY) >= 90 ? 'compliant' : 'warning'}">
+                            <span th:text="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY) >= 90 ? 'COMPLIANT' : 'REVIEW'}">
+                                COMPLIANT
+                            </span>
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white rounded border">
+                        <span class="text-sm font-medium text-gray-700">Principle 4: Completeness</span>
+                        <span class="compliance-badge"
+                              th:classappend="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS) >= 90 ? 'compliant' : 'warning'}">
+                            <span th:text="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS) >= 90 ? 'COMPLIANT' : 'REVIEW'}">
+                                COMPLIANT
+                            </span>
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white rounded border">
+                        <span class="text-sm font-medium text-gray-700">Principle 5: Timeliness</span>
+                        <span class="compliance-badge"
+                              th:classappend="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).TIMELINESS) >= 90 ? 'compliant' : 'warning'}">
+                            <span th:text="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).TIMELINESS) >= 90 ? 'COMPLIANT' : 'REVIEW'}">
+                                COMPLIANT
+                            </span>
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white rounded border">
+                        <span class="text-sm font-medium text-gray-700">Principle 6: Integrity</span>
+                        <span class="compliance-badge"
+                              th:classappend="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).CONSISTENCY) >= 90 ? 'compliant' : 'warning'}">
+                            <span th:text="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).CONSISTENCY) >= 90 ? 'COMPLIANT' : 'REVIEW'}">
+                                COMPLIANT
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Recommendations Section -->
+        <section class="bg-white rounded-lg shadow-md p-6 mb-8" th:if="${recommendations != null and !recommendations.isEmpty()}">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">
+                💡 Quality Recommendations
+            </h2>
+            
+            <div th:each="recommendation : ${recommendations}">
+                <div class="recommendation-section" th:classappend="${recommendation.colorClass}">
+                    <div class="flex items-start">
+                        <div class="text-3xl mr-4" th:text="${recommendation.icon}">🚨</div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-2" th:text="${recommendation.title}">
+                                Recommendation Title
+                            </h3>
+                            <p class="text-sm text-gray-700 mb-3" th:utext="${recommendation.content}">
+                                Recommendation content
+                            </p>
+                            <ul class="list-disc list-inside space-y-1" th:if="${recommendation.bullets != null and !recommendation.bullets.isEmpty()}">
+                                <li class="text-sm text-gray-700" th:each="bullet : ${recommendation.bullets}" th:text="${bullet}">
+                                    Bullet point
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Footer -->
+        <footer class="bg-gray-100 rounded-lg p-6 text-center text-sm text-gray-600">
+            <p class="mb-2">
+                <span class="font-semibold">Report Generated:</span> 
+                <span th:text="${#temporals.format(metadata.generatedAt, 'dd/MM/yyyy HH:mm:ss')}">01/01/2024 10:00:00</span>
+            </p>
+            <p class="text-xs text-gray-500">
+                This report contains confidential information and is intended solely for authorized personnel. 
+                Unauthorized distribution or disclosure is strictly prohibited.
+            </p>
+            <p class="text-xs text-gray-500 mt-2">
+                Generated by RegTech BCBS 239 Compliance Platform
+            </p>
+        </footer>
+        
+    </div>
+    
+    <!-- Chart.js Scripts -->
+    <script th:inline="javascript">
+        // Sector Distribution Chart
+        const sectorData = /*[[${sectorChartData}]]*/ {};
+        const sectorCtx = document.getElementById('sectorChart').getContext('2d');
+        new Chart(sectorCtx, {
+            type: 'doughnut',
+            data: {
+                labels: sectorData.labels,
+                datasets: [{
+                    data: sectorData.values,
+                    backgroundColor: [
+                        '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+                        '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            font: { size: 11 },
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(1);
+                                return label + ': €' + value.toLocaleString() + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Top Exposures Chart
+        const topExposuresData = /*[[${topExposuresChartData}]]*/ {};
+        const topExposuresCtx = document.getElementById('topExposuresChart').getContext('2d');
+        new Chart(topExposuresCtx, {
+            type: 'bar',
+            data: {
+                labels: topExposuresData.labels,
+                datasets: [{
+                    label: 'Exposure Amount (EUR)',
+                    data: topExposuresData.values,
+                    backgroundColor: '#3b82f6',
+                    borderColor: '#2563eb',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '€' + context.parsed.x.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '€' + (value / 1000000).toFixed(1) + 'M';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

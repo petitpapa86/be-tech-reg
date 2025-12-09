@@ -1,0 +1,37 @@
+package com.bcbs239.regtech.billing.domain.subscriptions;
+
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountId;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
+
+/**
+ * Domain repository interface for Subscription aggregate operations.
+ * Clean interface with direct method signatures.
+ */
+public interface SubscriptionRepository {
+    
+    /**
+     * Find a subscription by ID
+     */
+    Maybe<Subscription> findById(SubscriptionId subscriptionId);
+    
+    /**
+     * Find active subscription by billing account ID
+     */
+    Maybe<Subscription> findActiveByBillingAccountId(BillingAccountId billingAccountId);
+    
+    /**
+     * Find subscription by Stripe subscription ID
+     */
+    Maybe<Subscription> findByStripeSubscriptionId(StripeSubscriptionId stripeSubscriptionId);
+    
+    /**
+     * Save a new subscription
+     */
+    Result<SubscriptionId> save(Subscription subscription);
+    
+    /**
+     * Update an existing subscription
+     */
+    Result<SubscriptionId> update(Subscription subscription);
+}

@@ -1,0 +1,262 @@
+package com.bcbs239.regtech.billing.application.jobs;
+
+import com.bcbs239.regtech.billing.domain.accounts.BillingAccountRepository;
+import com.bcbs239.regtech.billing.domain.shared.valueobjects.BillingPeriod;
+import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionRepository;
+import com.bcbs239.regtech.core.application.saga.SagaManager;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+
+/**
+ * Scheduled job for triggering monthly billing processes.
+ * Runs on the first day of each month to start billing sagas for all active subscriptions.
+ */
+@Component
+public class MonthlyBillingScheduler {
+
+    private static final Logger logger = LoggerFactory.getLogger(MonthlyBillingScheduler.class);
+
+    private final SagaManager sagaManager;
+    private final SubscriptionRepository subscriptionRepository;
+    private final BillingAccountRepository billingAccountRepository;
+
+    public MonthlyBillingScheduler(
+            SagaManager sagaManager,
+            SubscriptionRepository subscriptionRepository,
+            BillingAccountRepository billingAccountRepository) {
+        this.sagaManager = sagaManager;
+        this.subscriptionRepository = subscriptionRepository;
+        this.billingAccountRepository = billingAccountRepository;
+    }
+
+    /**
+     * Scheduled job that runs on the first day of each month at 00:00:00 UTC.
+     * Triggers monthly billing for the previous month's usage.
+     * 
+     * TODO: Phase 3 - Implement batch query methods in SubscriptionRepository
+     * Currently disabled until repository interface is extended with findByStatusIn() method
+     */
+    // @Scheduled(cron = "0 0 0 1 * ?", zone = "UTC")
+    public void executeMonthlyBilling() {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of("UTC"));
+        YearMonth previousMonth = YearMonth.from(now.minusMonths(1));
+        
+        logger.info("Starting scheduled monthly billing for period: {}", previousMonth);
+
+        try {
+            MonthlyBillingResult result = startMonthlyBillingSagas(previousMonth);
+
+            logger.info("Monthly billing orchestration completed for {}: " +
+                "{} total subscriptions, {} successful sagas, {} failed sagas, success rate: {:.2f}%",
+                previousMonth,
+                result.totalSubscriptions(),
+                result.successfulSagas(),
+                result.failedSagas(),
+                result.getSuccessRate() * 100);
+
+            if (result.hasFailures()) {
+                logger.warn("Monthly billing had {} failures out of {} total subscriptions",
+                    result.failedSagas(), result.totalSubscriptions());
+            }
+
+        } catch (Exception e) {
+            logger.error("Unexpected error during scheduled monthly billing for {}: {}",
+                previousMonth, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Manual trigger for monthly billing (useful for testing or manual runs).
+     */
+    public MonthlyBillingResult triggerMonthlyBilling(YearMonth billingMonth) {
+        logger.info("Manually triggering monthly billing for period: {}", billingMonth);
+
+        try {
+            MonthlyBillingResult result = startMonthlyBillingSagas(billingMonth);
+
+            logger.info("Manual monthly billing completed for {}: " +
+                "{} total subscriptions, {} successful sagas, {} failed sagas",
+                billingMonth,
+                result.totalSubscriptions(),
+                result.successfulSagas(),
+                result.failedSagas());
+
+            return result;
+
+        } catch (Exception e) {
+            logger.error("Unexpected error during manual monthly billing for {}: {}",
+                billingMonth, e.getMessage(), e);
+            return new MonthlyBillingResult(
+                BillingPeriod.forMonth(billingMonth), 0, 0, 1
+            );
+        }
+    }
+
+    /**
+     * Start monthly billing sagas for all active subscriptions
+     * 
+     * TODO: Phase 3 - Implement when repository supports batch queries
+     * Requires: SubscriptionRepository.findByStatusIn(List<SubscriptionStatus>)
+     */
+    private MonthlyBillingResult startMonthlyBillingSagas(YearMonth billingMonth) {
+        BillingPeriod billingPeriod = BillingPeriod.forMonth(billingMonth);
+        logger.warn("Monthly billing orchestration is currently disabled - awaiting Phase 3 repository enhancements");
+        return new MonthlyBillingResult(billingPeriod, 0, 0, 0);
+    }
+    
+    /*
+     * TODO: Phase 3 - Replace stub implementation above with this full implementation
+     * 
+    private MonthlyBillingResult startMonthlyBillingSagas(YearMonth billingMonth) {
+        BillingPeriod billingPeriod = BillingPeriod.forMonth(billingMonth);
+        
+        // Find all active subscriptions
+        List<Subscription> activeSubscriptions = subscriptionRepository.findByStatusIn(
+            List.of(SubscriptionStatus.ACTIVE)
+        );
+        
+        if (activeSubscriptions.isEmpty()) {
+            logger.info("No active subscriptions found for billing period: {}", billingMonth);
+            return new MonthlyBillingResult(billingPeriod, 0, 0, 0);
+        }
+
+        logger.info("Found {} active subscriptions for billing", activeSubscriptions.size());
+
+        int successCount = 0;
+        int failureCount = 0;
+        
+        // Create saga for each active subscription
+        for (Subscription subscription : activeSubscriptions) {
+            try {
+                // Extract user ID from subscription by looking up billing account
+                Maybe<UserId> userIdMaybe = extractUserIdFromSubscription(subscription);
+                
+                if (userIdMaybe.isEmpty()) {
+                    failureCount++;
+                    logger.error("Failed to extract user ID for subscription {}: billing account not found", 
+                        subscription.getId());
+                    continue;
+                }
+                
+                UserId userId = userIdMaybe.getValue();
+                
+                // Generate correlation ID in format: userId-billingPeriod (e.g., "user-123-2024-01")
+                String correlationId = generateCorrelationId(userId, billingPeriod);
+                
+                // Create saga data with correlation ID
+                MonthlyBillingSagaData sagaData = MonthlyBillingSagaData.create(userId, billingPeriod);
+                sagaData.setId(UUID.randomUUID().toString());
+                sagaData.setCorrelationId(correlationId);
+                
+                // Add metadata for tracking and audit
+                sagaData.getMetadata().put("subscriptionId", subscription.getId().value());
+                sagaData.getMetadata().put("billingAccountId", subscription.getBillingAccountId().getValue().value());
+                sagaData.getMetadata().put("subscriptionTier", subscription.getTier().name());
+                sagaData.getMetadata().put("orchestrationTimestamp", java.time.Instant.now().toString());
+                sagaData.getMetadata().put("scheduledBillingPeriod", billingMonth.toString());
+
+                // Start the saga using the saga manager
+                SagaId sagaId = sagaManager.startSaga(MonthlyBillingSaga.class, sagaData);
+                
+                // For now, we'll just log the saga start - in production you might want to track these futures
+                successCount++;
+                logger.info("Started monthly billing saga {} with correlation ID {} for subscription {} (user: {})", 
+                    sagaId, correlationId, subscription.getId(), userId.getValue());
+                
+            } catch (Exception e) {
+                failureCount++;
+                logger.error("Failed to start monthly billing saga for subscription {}: {}", 
+                    subscription.getId(), e.getMessage(), e);
+            }
+        }
+
+        return new MonthlyBillingResult(
+            billingPeriod,
+            activeSubscriptions.size(),
+            successCount,
+            failureCount
+        );
+    }
+    */
+
+    /**
+     * Generate correlation ID in format: userId-billingPeriod (e.g., "user-123-2024-01")
+     */
+    public String generateCorrelationId(UserId userId, BillingPeriod billingPeriod) {
+        return userId.getValue() + "-" + billingPeriod.getPeriodId();
+    }
+
+    /*
+     * TODO: Phase 3 - Re-enable these methods when batch query methods are available
+     *
+    public MonthlyBillingResult triggerCurrentMonthBilling() {
+        YearMonth currentMonth = YearMonth.now();
+        return triggerMonthlyBilling(currentMonth);
+    }
+
+    public MonthlyBillingResult triggerPreviousMonthBilling() {
+        YearMonth previousMonth = YearMonth.now().minusMonths(1);
+        return triggerMonthlyBilling(previousMonth);
+    }
+
+    /**
+     * Extract user ID from subscription by looking up the billing account
+     *
+    private Maybe<UserId> extractUserIdFromSubscription(Subscription subscription) {
+        try {
+            // Look up the billing account to get the user ID
+            Maybe<BillingAccountId> billingAccountIdMaybe = subscription.getBillingAccountId();
+
+            if (billingAccountIdMaybe.isEmpty()) {
+                logger.warn("Subscription {} has no billing account ID", subscription.getId());
+                return Maybe.none();
+            }
+
+            BillingAccountId billingAccountId = billingAccountIdMaybe.getValue();
+
+            Maybe<BillingAccount> billingAccountMaybe = billingAccountRepository
+                .findById(billingAccountId);
+
+            if (billingAccountMaybe.isEmpty()) {
+                logger.warn("Billing account {} not found for subscription {}", 
+                    billingAccountId.getValue(), subscription.getId());
+                return Maybe.none();
+            }
+            
+            BillingAccount billingAccount = billingAccountMaybe.getValue();
+            return Maybe.some(billingAccount.getUserId());
+            
+        } catch (Exception e) {
+            logger.error("Error extracting user ID for subscription {}: {}", 
+                subscription.getId(), e.getMessage(), e);
+            return Maybe.none();
+        }
+    }
+    */
+
+    /**
+     * Result of monthly billing orchestration
+     */
+    public record MonthlyBillingResult(
+        BillingPeriod billingPeriod,
+        int totalSubscriptions,
+        int successfulSagas,
+        int failedSagas
+    ) {
+        public boolean hasFailures() {
+            return failedSagas > 0;
+        }
+
+        public double getSuccessRate() {
+            if (totalSubscriptions == 0) return 1.0;
+            return (double) successfulSagas / totalSubscriptions;
+        }
+    }
+}
+

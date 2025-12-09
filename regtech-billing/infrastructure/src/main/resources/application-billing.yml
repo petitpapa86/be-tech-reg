@@ -1,0 +1,126 @@
+# Billing Module Configuration
+# Requirements: 1.2, 1.3
+billing:
+  enabled: true
+  
+  # Stripe configuration
+  # Read Stripe credentials from environment. Do NOT commit secret keys to source control.
+  stripe:
+    api-key: ${STRIPE_API_KEY:sk_test_default}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_default}
+  
+  # Subscription tier configuration
+  tiers:
+    starter:
+      monthly-price: 299.99
+      currency: USD
+      exposure-limit: 10000
+  
+  # Dunning process configuration
+  # Dunning handles failed payment recovery through automated reminders
+  dunning:
+    reminder-intervals:
+      step1: 7   # Days after first failure
+      step2: 14  # Days after first failure
+      step3: 21  # Days after first failure
+    final-action-delay: 30  # Days before final action (suspension/cancellation)
+  
+  # Invoice configuration
+  invoices:
+    due-days: 30  # Payment due within 30 days
+    currency: USD
+  
+  # Billing cycle configuration
+  billing-cycle:
+    timezone: America/New_York
+    billing-day: 1  # Bill on the 1st of each month
+  
+  # Outbox pattern configuration for event publishing
+  outbox:
+    enabled: true
+    processing-interval: 30000  # 30 seconds
+    retry-interval: 60000  # 1 minute
+    max-retries: 3
+    cleanup-interval: 86400000  # 24 hours
+    cleanup-retention-days: 30
+  
+  # Scheduled job configuration
+  scheduling:
+    # Monthly billing job
+    monthly-billing:
+      enabled: true
+      cron: "0 0 1 * *"  # Run at midnight on the 1st of each month
+      timezone: America/New_York
+    
+    # Dunning process job
+    dunning-process:
+      enabled: true
+      cron: "0 0 2 * *"  # Run at 2 AM daily
+      timezone: America/New_York
+      thread-pool-size: 5
+  
+  # Notification configuration
+  notifications:
+    email:
+      enabled: true
+      templates:
+        payment-reminder: "payment-reminder.html"
+        payment-failed: "payment-failed.html"
+        subscription-cancelled: "subscription-cancelled.html"
+    sms:
+      enabled: false
+    push:
+      enabled: false
+
+---
+# Development profile overrides
+spring:
+  config:
+    activate:
+      on-profile: development
+
+billing:
+  # Use Stripe test mode in development
+  stripe:
+    api-key: ${STRIPE_TEST_API_KEY:}
+    webhook-secret: ${STRIPE_TEST_WEBHOOK_SECRET:}
+  
+  # Shorter intervals for testing
+  dunning:
+    reminder-intervals:
+      step1: 1
+      step2: 2
+      step3: 3
+    final-action-delay: 5
+  
+  # More frequent processing for development
+  outbox:
+    processing-interval: 10000  # 10 seconds
+  
+  # Disable scheduled jobs in development (run manually)
+  scheduling:
+    monthly-billing:
+      enabled: false
+    dunning-process:
+      enabled: false
+
+---
+# Production profile overrides
+spring:
+  config:
+    activate:
+      on-profile: production
+
+billing:
+  # Use Stripe live mode in production
+  stripe:
+    api-key: ${STRIPE_LIVE_API_KEY:}
+    webhook-secret: ${STRIPE_LIVE_WEBHOOK_SECRET:}
+  
+  # Enable all scheduled jobs in production
+  scheduling:
+    monthly-billing:
+      enabled: true
+    dunning-process:
+      enabled: true
+      thread-pool-size: 10  # Increased for production load

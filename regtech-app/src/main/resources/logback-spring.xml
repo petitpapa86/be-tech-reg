@@ -3,12 +3,59 @@
     <!-- Include Spring Boot's default configuration -->
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <!-- Console appender for development -->
+    <!-- For dev profile use a simple, readable console pattern; for other profiles keep JSON output -->
+    <!-- Default console (readable) - used unless a profile overrides the root logger to use JSON -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n%X%n</pattern>
         </encoder>
     </appender>
+
+    <!-- JSON console appender (for non-dev environments) -->
+    <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <!-- Timestamp -->
+                <timestamp>
+                    <fieldName>timestamp</fieldName>
+                    <timeZone>UTC</timeZone>
+                </timestamp>
+
+                <!-- Log level -->
+                <logLevel>
+                    <fieldName>severity</fieldName>
+                </logLevel>
+
+                <!-- Logger name -->
+                <loggerName>
+                    <fieldName>logger</fieldName>
+                </loggerName>
+
+                <!-- Message -->
+                <message/>
+
+                <!-- Exception -->
+                <stackTrace>
+                    <fieldName>exception</fieldName>
+                </stackTrace>
+
+                <!-- MDC fields -->
+                <mdc/>
+
+                <!-- Thread name -->
+                <threadName>
+                    <fieldName>thread</fieldName>
+                </threadName>
+            </providers>
+        </encoder>
+    </appender>
+
+    <!-- For non-dev profiles, switch the root logger to JSON output -->
+    <springProfile name="!dev,!development">
+        <root level="INFO">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </root>
+    </springProfile>
 
     <!-- JSON appender for GCP production -->
     <appender name="GCP_JSON" class="ch.qos.logback.core.ConsoleAppender">

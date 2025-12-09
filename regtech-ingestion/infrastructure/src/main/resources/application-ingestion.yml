@@ -1,0 +1,94 @@
+# Ingestion Module Configuration
+# Requirements: 1.2, 1.3, 2.2, 13.1
+ingestion:
+  enabled: true
+  
+  # File upload settings
+  file:
+    max-size: 524288000  # 500MB in bytes
+    supported-types:
+      - application/json
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+  
+  # Storage configuration (Requirement 2.2)
+  # Supports both S3 and local filesystem storage
+  storage:
+    type: s3  # Options: 's3' for AWS S3, 'local' for filesystem (default: s3)
+    
+    # S3 storage configuration
+    s3:
+      bucket: regtech-ingestion
+      region: us-east-1
+      prefix: raw/
+      access-key: ${AWS_ACCESS_KEY_ID:}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:}
+      endpoint: ${AWS_S3_ENDPOINT:}  # For LocalStack testing
+      encryption: AES256
+    
+    # Local filesystem storage configuration
+    local:
+      base-path: ./data/ingestion
+      create-directories: true
+  
+  # Async thread pool configuration (Requirement 13.1)
+  # Purpose: Handles async file upload and processing operations
+  async:
+    enabled: true
+    core-pool-size: 5
+    max-pool-size: 10
+    queue-capacity: 100
+    thread-name-prefix: ingestion-async-
+    await-termination-seconds: 60
+  
+  # Processing configuration
+  processing:
+    async-enabled: true
+    thread-pool-size: 10
+    queue-capacity: 100
+  
+  # Performance optimization settings
+  performance:
+    max-concurrent-files: 4      # Maximum number of files to process concurrently
+    chunk-size: 10000           # Default chunk size for processing large files
+  
+  # Parser settings
+  parser:
+    default-max-records: 10000  # Maximum records to parse per file by default
+  
+  # Retry settings for failed batch processing
+  retry:
+    max-retries: 5  # Maximum number of retry attempts for failed batch processing
+
+---
+# Development profile overrides
+spring:
+  config:
+    activate:
+      on-profile: development
+
+ingestion:
+  # Use local filesystem storage in development
+  storage:
+    type: local
+  
+  # Reduced thread pool for development
+  async:
+    core-pool-size: 2
+    max-pool-size: 4
+
+---
+# Production profile overrides
+spring:
+  config:
+    activate:
+      on-profile: production
+
+ingestion:
+  # Use S3 storage in production
+  storage:
+    type: s3
+  
+  # Increased thread pool for production
+  async:
+    core-pool-size: 10
+    max-pool-size: 20
