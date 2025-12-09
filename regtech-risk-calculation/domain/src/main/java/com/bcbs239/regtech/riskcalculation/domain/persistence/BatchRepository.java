@@ -44,4 +44,21 @@ public interface BatchRepository {
      * @return List of batches with the specified status
      */
     List<Batch> findByStatus(BatchStatus status);
+    
+    /**
+     * Gets the calculation results URI for a batch.
+     * Used by storage services to check if results already exist.
+     * 
+     * @param batchId the batch identifier
+     * @return Optional containing the URI if found, empty otherwise
+     */
+    java.util.Optional<String> getCalculationResultsUri(String batchId);
+    
+    /**
+     * Checks if a batch exists in the system.
+     * 
+     * @param batchId the batch identifier
+     * @return true if the batch exists, false otherwise
+     */
+    boolean exists(String batchId);
 }

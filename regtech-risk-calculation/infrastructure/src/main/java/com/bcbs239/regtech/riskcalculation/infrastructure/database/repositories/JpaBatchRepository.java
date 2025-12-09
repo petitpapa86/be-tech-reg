@@ -78,12 +78,12 @@ public class JpaBatchRepository implements BatchRepository {
             
             return springDataRepository.findById(batchId.value())
                 .map(this::reconstituteBatch)
-                .map(Maybe::of)
-                .orElse(Maybe.empty());
+                .map(Maybe::some)
+                .orElse(Maybe.none());
                 
         } catch (Exception e) {
             log.error("Failed to find batch by ID: {}", batchId.value(), e);
-            return Maybe.empty();
+            return Maybe.none();
         }
     }
     
@@ -138,8 +138,8 @@ public class JpaBatchRepository implements BatchRepository {
         // Reconstitute timestamps
         ProcessingTimestamps timestamps = ProcessingTimestamps.reconstitute(
             entity.getIngestedAt(),
-            entity.getProcessedAt(),
-            null // failedAt - not stored in current schema
+            java.util.Optional.ofNullable(entity.getProcessedAt()),
+            java.util.Optional.empty() // failedAt - not stored in current schema
         );
         
         String failureReason = null; // Not stored in current schema
@@ -155,5 +155,35 @@ public class JpaBatchRepository implements BatchRepository {
             timestamps,
             failureReason
         );
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<String> getCalculationResultsUri(String batchId) {
+        try {
+            log.debug("Getting calculation results URI for batch: {}", batchId);
+            
+            return springDataRepository.findById(batchId)
+                .map(BatchEntity::getCalculationResultsUri)
+                .filter(uri -> uri != null && !uri.trim().isEmpty());
+                
+        } catch (Exception e) {
+            log.error("Failed to get calculation results URI for batch: {}", batchId, e);
+            return java.util.Optional.empty();
+        }
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public boolean exists(String batchId) {
+        try {
+            log.debug("Checking if batch exists: {}", batchId);
+            
+            return springDataRepository.existsById(batchId);
+            
+        } catch (Exception e) {
+            log.error("Failed to check if batch exists: {}", batchId, e);
+            return false;
+        }
     }
 }

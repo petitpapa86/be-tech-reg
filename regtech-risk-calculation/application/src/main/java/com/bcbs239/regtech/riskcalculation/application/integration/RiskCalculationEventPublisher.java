@@ -67,8 +67,8 @@ public class RiskCalculationEventPublisher {
                 batchId,
                 bankId,
                 totalExposures,
-                0.0, // Total amount will be calculated from analysis
-                calculationResultsUri
+                calculationResultsUri,
+                Instant.now()
             );
             
             // Publish the domain event
@@ -101,9 +101,9 @@ public class RiskCalculationEventPublisher {
                 new BatchCalculationCompletedIntegrationEvent(
                     domainEvent.getBatchId(),
                     domainEvent.getBankId(),
-                    domainEvent.getResultFileUri(),
-                    domainEvent.getTotalExposures(),
-                    BigDecimal.valueOf(domainEvent.getTotalAmountEur()),
+                    domainEvent.getCalculationResultsUri(),
+                    domainEvent.getProcessedExposures(),
+                    BigDecimal.ZERO, // Total amount - will be calculated from analysis
                     Instant.now(),
                     BigDecimal.ZERO, // Geographic HHI - will be populated from analysis
                     BigDecimal.ZERO  // Sector HHI - will be populated from analysis
@@ -148,9 +148,8 @@ public class RiskCalculationEventPublisher {
             BatchCalculationFailedEvent domainEvent = new BatchCalculationFailedEvent(
                 batchId,
                 bankId,
-                "RISK_CALCULATION_FAILED",
                 errorMessage,
-                errorMessage
+                Instant.now()
             );
             
             // Publish the domain event
@@ -180,7 +179,7 @@ public class RiskCalculationEventPublisher {
                 new BatchCalculationFailedIntegrationEvent(
                     domainEvent.getBatchId(),
                     domainEvent.getBankId(),
-                    domainEvent.getErrorMessage(),
+                    domainEvent.getReason(),
                     "RISK_CALCULATION_FAILED", // Standard error code
                     Instant.now()
                 );
