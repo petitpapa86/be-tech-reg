@@ -1,11 +1,9 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
-import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
+import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
-import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityCompletedEvent;
-import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityFailedEvent;
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
@@ -56,19 +54,19 @@ public class ValidateBatchQualityCommandHandler {
     
     private final IQualityReportRepository qualityReportRepository;
     private final S3StorageService s3StorageService;
-    private final IIntegrationEventBus eventBus;
     private final DataQualityRulesService rulesService;
+    private final BaseUnitOfWork unitOfWork;
     
     public ValidateBatchQualityCommandHandler(
         IQualityReportRepository qualityReportRepository,
         S3StorageService s3StorageService,
-        IIntegrationEventBus eventBus,
-        DataQualityRulesService rulesService
+        DataQualityRulesService rulesService,
+        BaseUnitOfWork unitOfWork
     ) {
         this.qualityReportRepository = qualityReportRepository;
         this.s3StorageService = s3StorageService;
-        this.eventBus = eventBus;
         this.rulesService = rulesService;
+        this.unitOfWork = unitOfWork;
     }
     
     /**
@@ -234,12 +232,13 @@ public class ValidateBatchQualityCommandHandler {
             return Result.failure(saveResult.errors());
         }
         
-        // Finalize workflow with logging and event publishing
+        // Register aggregate with Unit of Work to persist domain events
+        unitOfWork.registerEntity(report);
+        unitOfWork.saveChanges();
+        
+        // Finalize workflow with logging
         logger.info("Successfully completed quality validation for batch {} with overall score: {}", 
             command.batchId().value(), scores.overallScore());
-        
-        // Publish completion event (best effort - don't fail if this fails)
-        publishCompletionEvent(command, scores, detailsReference);
         
         return Result.success();
     }
@@ -257,45 +256,9 @@ public class ValidateBatchQualityCommandHandler {
                 saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
         }
         
-        publishFailureEvent(report, errorMessage);
-    }
-    
-    private void publishCompletionEvent(ValidateBatchQualityCommand command, QualityScores scores, S3Reference detailsReference) {
-        logger.debug("Publishing batch quality completed event for batch {}", command.batchId().value());
-
-        Map<String, Object> validationSummary = new HashMap<>();
-        Map<String, Object> processingMetadata = new HashMap<>();
-        if (command.correlationId() != null) {
-            processingMetadata.put("correlationId", command.correlationId());
-        }
-
-        BatchQualityCompletedEvent event = new BatchQualityCompletedEvent(
-            command.batchId(),
-            command.bankId(),
-            scores,
-            detailsReference,
-            validationSummary,
-            processingMetadata
-        );
-
-        eventBus.publish(event);
-        logger.info("Successfully published batch quality completed event for batch {}", command.batchId().value());
-    }
-    
-    private void publishFailureEvent(QualityReport report, String errorMessage) {
-        Map<String, Object> errorDetails = new HashMap<>();
-        Map<String, Object> processingMetadata = new HashMap<>();
-
-        BatchQualityFailedEvent event = new BatchQualityFailedEvent(
-            report.getBatchId(),
-            report.getBankId(),
-            errorMessage,
-            errorDetails,
-            processingMetadata
-        );
-
-        eventBus.publish(event);
-        logger.info("Published batch quality failed event for batch {}", report.getBatchId().value());
+        // Register failed aggregate with Unit of Work
+        unitOfWork.registerEntity(report);
+        unitOfWork.saveChanges();
     }
 }
 
