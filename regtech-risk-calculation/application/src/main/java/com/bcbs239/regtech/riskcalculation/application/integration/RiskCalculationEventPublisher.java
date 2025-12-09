@@ -3,7 +3,7 @@ package com.bcbs239.regtech.riskcalculation.application.integration;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.application.integration.events.BatchCalculationCompletedIntegrationEvent;
+import com.bcbs239.regtech.core.domain.events.integration.BatchCalculationCompletedIntegrationEvent;
 import com.bcbs239.regtech.riskcalculation.application.integration.events.BatchCalculationFailedIntegrationEvent;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationCompletedEvent;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationFailedEvent;

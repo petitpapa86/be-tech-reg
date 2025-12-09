@@ -1,10 +1,9 @@
-package com.bcbs239.regtech.riskcalculation.application.integration.events;
+package com.bcbs239.regtech.core.domain.events.integration;
 
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import lombok.Getter;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
@@ -23,36 +22,22 @@ public class BatchCalculationCompletedIntegrationEvent extends IntegrationEvent 
     private final String batchId;
     private final String bankId;
     private final String resultFileUri;
-    private final int totalExposures;
-    private final BigDecimal totalAmountEur;
     private final Instant completedAt;
     private final String eventVersion;
-    
-    // Key risk indicators for billing and basic reporting
-    private final BigDecimal herfindahlGeographic;
-    private final BigDecimal herfindahlSector;
     
     public BatchCalculationCompletedIntegrationEvent(
             String batchId,
             String bankId,
             String resultFileUri,
-            int totalExposures,
-            BigDecimal totalAmountEur,
-            Instant completedAt,
-            BigDecimal herfindahlGeographic,
-            BigDecimal herfindahlSector) {
+            Instant completedAt) {
         
         super(batchId, Maybe.none(), "BatchCalculationCompletedIntegrationEvent");
         
         this.batchId = batchId;
         this.bankId = bankId;
         this.resultFileUri = resultFileUri;
-        this.totalExposures = totalExposures;
-        this.totalAmountEur = totalAmountEur;
         this.completedAt = completedAt;
         this.eventVersion = EVENT_VERSION;
-        this.herfindahlGeographic = herfindahlGeographic;
-        this.herfindahlSector = herfindahlSector;
     }
     
     @Override
@@ -63,11 +48,8 @@ public class BatchCalculationCompletedIntegrationEvent extends IntegrationEvent 
     @Override
     public String toString() {
         return String.format(
-            "BatchCalculationCompletedIntegrationEvent{batchId='%s', bankId='%s', totalExposures=%d, " +
-            "totalAmountEur=%s, herfindahlGeographic=%s, herfindahlSector=%s, resultFileUri='%s', " +
-            "completedAt=%s, version='%s'}",
-            batchId, bankId, totalExposures, totalAmountEur, 
-            herfindahlGeographic, herfindahlSector, resultFileUri, completedAt, eventVersion
+            "BatchCalculationCompletedIntegrationEvent{batchId='%s', bankId='%s', resultFileUri='%s', completedAt=%s, version='%s'}",
+            batchId, bankId, resultFileUri, completedAt, eventVersion
         );
     }
 }
