@@ -1,6 +1,8 @@
 package com.bcbs239.regtech.riskcalculation.domain.calculation.events;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
 
@@ -15,11 +17,12 @@ public class BatchCalculationStartedEvent extends DomainEvent {
     private final int totalExposures;
     private final Instant startedAt;
     
+    @JsonCreator
     public BatchCalculationStartedEvent(
-            String batchId,
-            String bankId,
-            int totalExposures,
-            Instant startedAt) {
+            @JsonProperty("batchId") String batchId,
+            @JsonProperty("bankId") String bankId,
+            @JsonProperty("totalExposures") int totalExposures,
+            @JsonProperty("startedAt") Instant startedAt) {
         super(batchId, "BatchCalculationStarted");
         this.batchId = batchId;
         this.bankId = bankId;

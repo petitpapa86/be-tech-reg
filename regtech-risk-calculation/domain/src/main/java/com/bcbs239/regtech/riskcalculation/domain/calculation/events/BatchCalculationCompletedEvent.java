@@ -19,12 +19,13 @@ public class BatchCalculationCompletedEvent extends DomainEvent {
     private final String calculationResultsUri;
     private final Instant completedAt;
 
+    @JsonCreator
     public BatchCalculationCompletedEvent(
-            String batchId,
-            String bankId,
-            int processedExposures,
-            String calculationResultsUri,
-            Instant completedAt) {
+            @JsonProperty("batchId") String batchId,
+            @JsonProperty("bankId") String bankId,
+            @JsonProperty("processedExposures") int processedExposures,
+            @JsonProperty("calculationResultsUri") String calculationResultsUri,
+            @JsonProperty("completedAt") Instant completedAt) {
         super(batchId, "BatchCalculationCompleted");
         this.batchId = batchId;
         this.bankId = bankId;
