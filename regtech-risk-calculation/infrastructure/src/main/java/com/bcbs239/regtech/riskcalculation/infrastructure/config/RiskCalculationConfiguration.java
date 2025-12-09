@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.riskcalculation.infrastructure.config;
 
+import com.bcbs239.regtech.riskcalculation.domain.classification.ExposureClassifier;
+import com.bcbs239.regtech.riskcalculation.domain.services.ExposureProcessingService;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
 import com.bcbs239.regtech.riskcalculation.infrastructure.external.CurrencyApiExchangeRateProvider;
 import com.bcbs239.regtech.riskcalculation.infrastructure.external.CurrencyApiProperties;
@@ -70,6 +72,27 @@ public class RiskCalculationConfiguration {
             log.info("Using CurrencyApiExchangeRateProvider for production");
             return new CurrencyApiExchangeRateProvider(currencyApiProperties, httpClient, objectMapper);
         }
+    }
+
+    /**
+     * Exposure processing domain service bean.
+     * Orchestrates the exposure processing pipeline following DDD principles.
+     * 
+     * This domain service coordinates:
+     * - Currency conversion to EUR
+     * - Credit risk mitigation application
+     * - Exposure classification by region and sector
+     * 
+     * Requirement 6.1: Exposure processing pipeline
+     * Requirement 7.1: Risk calculation orchestration
+     */
+    @Bean
+    public ExposureProcessingService exposureProcessingService(
+        ExchangeRateProvider exchangeRateProvider,
+        ExposureClassifier exposureClassifier
+    ) {
+        log.info("Creating ExposureProcessingService domain service");
+        return new ExposureProcessingService(exchangeRateProvider, exposureClassifier);
     }
 
     /**

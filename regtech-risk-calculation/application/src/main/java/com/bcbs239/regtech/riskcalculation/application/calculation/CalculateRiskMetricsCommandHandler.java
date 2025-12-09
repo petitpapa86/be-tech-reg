@@ -10,24 +10,19 @@ import com.bcbs239.regtech.riskcalculation.application.storage.ICalculationResul
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.Batch;
 import com.bcbs239.regtech.riskcalculation.domain.classification.ClassifiedExposure;
-import com.bcbs239.regtech.riskcalculation.domain.classification.ExposureClassifier;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRecording;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
-import com.bcbs239.regtech.riskcalculation.domain.protection.Mitigation;
 import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
 import com.bcbs239.regtech.riskcalculation.domain.services.BatchDataParsingService;
+import com.bcbs239.regtech.riskcalculation.domain.services.ExposureProcessingService;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
-import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
-import com.bcbs239.regtech.riskcalculation.domain.valuation.ExposureValuation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -55,7 +50,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class CalculateRiskMetricsCommandHandler {
 
-    private final ExposureRepository exposureRepository;
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
     private final BatchRepository batchRepository;
     private final IFileStorageService fileStorageService;
@@ -63,8 +57,7 @@ public class CalculateRiskMetricsCommandHandler {
     private final BaseUnitOfWork unitOfWork;
     private final PerformanceMetrics performanceMetrics;
     private final BatchDataParsingService batchDataParsingService;
-    private final ExchangeRateProvider exchangeRateProvider;
-    private final ExposureClassifier exposureClassifier;
+    private final ExposureProcessingService exposureProcessingService;
 
     @Transactional
     public Result<Void> handle(CalculateRiskMetricsCommand command) {
@@ -103,35 +96,13 @@ public class CalculateRiskMetricsCommandHandler {
                 parsedData.batchData().creditRiskMitigation().stream()
                     .collect(Collectors.groupingBy(CreditRiskMitigationDTO::exposureId));
 
-            // Process exposures: convert to EUR, apply mitigations, classify
-            List<ProtectedExposure> protectedExposures = new ArrayList<>();
-            List<ClassifiedExposure> classifiedExposures = new ArrayList<>();
+            // Process exposures through domain service - "Tell, Don't Ask"
+            // Domain service knows how to process exposures through the pipeline
+            ExposureProcessingService.ProcessingResult processingResult = 
+                exposureProcessingService.processExposures(exposures, mitigationsByExposure);
             
-            for (ExposureRecording exposure : exposures) {
-                // Convert to EUR using domain object
-                ExposureValuation eurValuation = ExposureValuation.convert(
-                    exposure.id(), exposure.exposureAmount(), exchangeRateProvider);
-                
-                // Get and convert mitigations using domain objects
-                List<Mitigation> mitigations = mitigationsByExposure
-                    .getOrDefault(exposure.id().value(), List.of())
-                    .stream()
-                    .map(dto -> Mitigation.fromDTO(dto, exchangeRateProvider))
-                    .collect(Collectors.toList());
-                
-                // Calculate protected exposure using domain object
-                ProtectedExposure protectedExposure = ProtectedExposure.calculate(
-                    exposure.id(), eurValuation.getConverted(), mitigations);
-                protectedExposures.add(protectedExposure);
-                
-                // Classify exposure using domain objects
-                var region = exposureClassifier.classifyRegion(exposure.classification().countryCode());
-                var sector = exposureClassifier.classifySector(exposure.classification().productType());
-                
-                ClassifiedExposure classifiedExposure = ClassifiedExposure.of(
-                    exposure.id(), protectedExposure.getNetExposure(), region, sector);
-                classifiedExposures.add(classifiedExposure);
-            }
+            List<ProtectedExposure> protectedExposures = processingResult.protectedExposures();
+            List<ClassifiedExposure> classifiedExposures = processingResult.classifiedExposures();
 
             // Analyze portfolio using domain object
             PortfolioAnalysis analysis = PortfolioAnalysis.analyze(batchId, classifiedExposures);
