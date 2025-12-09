@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.billing.api.monitoring;
+package com.bcbs239.regtech.billing.presentation.monitoring;
 
 
 import org.springframework.web.bind.annotation.RequestMapping;

@@ -75,6 +75,23 @@ public class RiskCalculationConfiguration {
     }
 
     /**
+     * Exposure classifier domain service bean.
+     * Classifies exposures by geographic region and economic sector.
+     * 
+     * This domain service implements business rules for:
+     * - Geographic classification (ITALY, EU_OTHER, NON_EUROPEAN)
+     * - Sector classification (RETAIL_MORTGAGE, SOVEREIGN, CORPORATE, BANKING, OTHER)
+     * 
+     * Requirement 4.1-4.4: Geographic classification
+     * Requirement 5.1-5.6: Sector classification
+     */
+    @Bean
+    public ExposureClassifier exposureClassifier() {
+        log.info("Creating ExposureClassifier domain service");
+        return new ExposureClassifier();
+    }
+
+    /**
      * Exposure processing domain service bean.
      * Orchestrates the exposure processing pipeline following DDD principles.
      * 
