@@ -176,7 +176,7 @@ public class SecurityFilter implements Filter {
 
         } catch (MissingTokenException e) {
             // Handle missing token (Requirements: 11.3)
-            logger.warn("Missing authentication token for path {}", requestPath);
+            logger.debug("Missing authentication token for path {}", requestPath);
             sendUnauthorizedResponse(httpResponse, "MISSING_TOKEN", "Authentication token is required");
         } catch (Exception e) {
             // Handle unexpected errors

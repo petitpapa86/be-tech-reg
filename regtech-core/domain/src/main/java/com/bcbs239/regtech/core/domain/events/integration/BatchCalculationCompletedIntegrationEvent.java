@@ -2,6 +2,8 @@ package com.bcbs239.regtech.core.domain.events.integration;
 
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 import java.time.Instant;
@@ -25,6 +27,26 @@ public class BatchCalculationCompletedIntegrationEvent extends IntegrationEvent 
     private final Instant completedAt;
     private final String eventVersion;
     
+    @JsonCreator
+    public BatchCalculationCompletedIntegrationEvent(
+            @JsonProperty("correlationId") String correlationId,
+            @JsonProperty("causationId") Maybe<String> causationId,
+            @JsonProperty("eventId") String eventId,
+            @JsonProperty("batchId") String batchId,
+            @JsonProperty("bankId") String bankId,
+            @JsonProperty("resultFileUri") String resultFileUri,
+            @JsonProperty("completedAt") Instant completedAt) {
+        
+        super(correlationId, causationId, "BatchCalculationCompletedIntegrationEvent");
+        
+        this.batchId = batchId;
+        this.bankId = bankId;
+        this.resultFileUri = resultFileUri;
+        this.completedAt = completedAt;
+        this.eventVersion = EVENT_VERSION;
+    }
+    
+    // Convenience constructor for programmatic creation
     public BatchCalculationCompletedIntegrationEvent(
             String batchId,
             String bankId,

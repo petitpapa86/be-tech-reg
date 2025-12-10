@@ -158,6 +158,8 @@ logging:
     org.springframework.security: WARN
     org.springframework: WARN
     org.springframework.scheduling: INFO
+    org.springframework.boot.actuate: WARN
+    org.springframework.boot.actuate.endpoint: WARN
     
     # Database
     org.hibernate.SQL: WARN
@@ -355,6 +357,8 @@ iam:
       # Health check endpoints (public for monitoring)
       - /api/health
       - /actuator/health
+      - /actuator/prometheus
+      - /actuator/metrics
       - /api/v1/ingestion/health
       - /api/v1/data-quality/health
       - /api/v1/data-quality/health/**
@@ -449,14 +453,14 @@ spring:
 # Development logging settings
 logging:
   level:
-    com.bcbs239.regtech: DEBUG
-    com.bcbs239.regtech.core.events: DEBUG
-    com.bcbs239.regtech.core.inbox: DEBUG
-    com.bcbs239.regtech.core.outbox: DEBUG
-    com.bcbs239.regtech.modules.ingestion: DEBUG
-    com.bcbs239.regtech.dataquality: DEBUG
-    com.bcbs239.regtech.riskcalculation: DEBUG
-    com.bcbs239.regtech.reportgeneration: DEBUG
+    com.bcbs239.regtech: INFO
+    com.bcbs239.regtech.core.events: INFO
+    com.bcbs239.regtech.core.inbox: INFO
+    com.bcbs239.regtech.core.outbox: INFO
+    com.bcbs239.regtech.modules.ingestion: INFO
+    com.bcbs239.regtech.dataquality: INFO
+    com.bcbs239.regtech.riskcalculation: INFO
+    com.bcbs239.regtech.reportgeneration: INFO
 
 # ============================================================================
 # DATA QUALITY & RULES ENGINE CONFIGURATION
@@ -574,11 +578,11 @@ logging:
   level:
     com.bcbs239.regtech: INFO
     # Increase verbosity for event processing in GCP
-    com.bcbs239.regtech.core.events: DEBUG
-    com.bcbs239.regtech.core.inbox: DEBUG
-    com.bcbs239.regtech.core.outbox: DEBUG
+    com.bcbs239.regtech.core.events: INFO
+    com.bcbs239.regtech.core.inbox: INFO
+    com.bcbs239.regtech.core.outbox: INFO
     # Module debugging in GCP
-    com.bcbs239.regtech.modules.ingestion: DEBUG
+    com.bcbs239.regtech.modules.ingestion: INFO
   
   # Enable structured logging when running in the gcp profile
   structured:
