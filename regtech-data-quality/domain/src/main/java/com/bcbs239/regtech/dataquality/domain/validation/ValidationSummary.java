@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.dataquality.domain.validation;
 
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.Map;
 
@@ -87,6 +88,7 @@ public record ValidationSummary(
     /**
      * Gets the dimension with the most errors
      */
+    @JsonIgnore
     public QualityDimension getDimensionWithMostErrors() {
         return errorsByDimension.entrySet().stream()
             .max(Map.Entry.comparingByValue())

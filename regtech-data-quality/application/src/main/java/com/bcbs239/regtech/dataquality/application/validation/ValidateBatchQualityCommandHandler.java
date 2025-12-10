@@ -84,30 +84,36 @@ public class ValidateBatchQualityCommandHandler {
         logger.info("Starting quality validation for batch {} from bank {}", 
             command.batchId().value(), command.bankId().value());
         
-        // Check if report already exists (idempotency)
+        // Check if report already exists and is completed (idempotency)
         Optional<QualityReport> existingReport = qualityReportRepository.findByBatchId(command.batchId());
         if (existingReport.isPresent()) {
-            logger.info("Quality report already exists for batch {}, skipping", command.batchId().value());
-            return Result.success();
+            QualityReport existing = existingReport.get();
+            // Only skip if already completed or failed - let in-progress reports continue
+            if (existing.getStatus().name().equals("COMPLETED") || existing.getStatus().name().equals("FAILED")) {
+                logger.info("Quality report already {} for batch {}, skipping", 
+                    existing.getStatus(), command.batchId().value());
+                return Result.success();
+            }
+            logger.debug("Quality report exists but status is {}, will process", existing.getStatus());
         }
         
-        // Create and save quality report
+        // Try to create and save quality report (may fail if another thread created it)
         QualityReport report = QualityReport.createForBatch(command.batchId(), command.bankId());
         report.startValidation();
         
         Result<QualityReport> saveResult = qualityReportRepository.save(report);
         if (saveResult.isFailure()) {
-            // If duplicate key error, another thread created it - that's OK
+            // If duplicate key error, another thread is processing it
             if (saveResult.getError().map(e -> 
                 e.getCode().equals("QUALITY_REPORT_DUPLICATE_BATCH_ID")
             ).orElse(false)) {
-                logger.info("Another thread created report for batch {}, continuing", command.batchId().value());
+                logger.info("Another thread is processing batch {}, skipping duplicate", command.batchId().value());
+                return Result.success();
             } else {
                 return Result.failure(saveResult.errors());
             }
-        } else {
-            report = saveResult.getValueOrThrow();
         }
+        report = saveResult.getValueOrThrow();
         
         // Download exposure data
         logger.debug("Downloading exposure data from S3: {}", command.s3Uri());
