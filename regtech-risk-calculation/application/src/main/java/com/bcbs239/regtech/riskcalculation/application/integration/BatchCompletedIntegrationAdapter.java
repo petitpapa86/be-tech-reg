@@ -63,6 +63,13 @@ public class BatchCompletedIntegrationAdapter {
                 "isInboxReplay", String.valueOf(com.bcbs239.regtech.core.domain.context.CorrelationContext.isInboxReplay())
             ));
 
+            // Skip processing entirely if this is an inbox replay
+            // Events are processed once during initial dispatch, inbox replay is for reliability only
+            if (com.bcbs239.regtech.core.domain.context.CorrelationContext.isInboxReplay()) {
+                log.info("Skipping inbox replay for BatchCompletedIntegrationEvent: {}", integrationEvent.getBatchId());
+                return;
+            }
+
             // Convert BatchCompletedIntegrationEvent to BatchIngestedEvent
             // This allows the risk-calculation module to process completed batches
             // using its existing BatchIngestedEventListener
