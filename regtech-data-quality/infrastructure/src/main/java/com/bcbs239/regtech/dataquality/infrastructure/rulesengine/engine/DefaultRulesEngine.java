@@ -11,7 +11,6 @@ import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
-
 import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluationException;
 import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluator;
 import org.slf4j.Logger;
@@ -140,9 +139,11 @@ public class DefaultRulesEngine implements RulesEngine {
                 RuleExecutionLogEntity execLog = logExecution(rule, context, ExecutionResult.FAILURE,
                     1, executionTime, null);
                 
-                // Create violation with execution ID
+                // Create violation with execution ID (if logging succeeded)
                 RuleViolationEntity violation = createViolation(rule, context);
-                violation.setExecutionId(execLog.getExecutionId());
+                if (execLog != null) {
+                    violation.setExecutionId(execLog.getExecutionId());
+                }
                 
                 // Save violation
                 violationRepository.save(violation);
@@ -350,6 +351,7 @@ public class DefaultRulesEngine implements RulesEngine {
     
     /**
      * Logs a rule execution.
+     * Returns null if logging fails to avoid blocking rule execution.
      */
     private RuleExecutionLogEntity logExecution(BusinessRuleEntity rule, RuleContext context, 
                                          ExecutionResult result, int violationCount, 
@@ -374,18 +376,11 @@ public class DefaultRulesEngine implements RulesEngine {
         try {
             return executionLogRepository.save(ruleExecLog);
         } catch (Exception e) {
-            log.error("Failed to save rule execution log for rule {}: {}", rule.getRuleId(), e.getMessage());
-            // Try again with minimal context
-            ruleExecLog.setContextData(Map.of(
-                "entity_type", entityType != null ? entityType : "UNKNOWN",
-                "entity_id", entityId != null ? entityId : "UNKNOWN"
-            ));
-            try {
-                return executionLogRepository.save(ruleExecLog);
-            } catch (Exception e2) {
-                log.error("Failed to save rule execution log even with minimal context: {}", e2.getMessage());
-                throw new RuntimeException("Unable to log rule execution", e2);
-            }
+            log.warn("Failed to save rule execution log for rule {}: {}. Logging is best-effort, continuing execution.", 
+                rule.getRuleId(), e.getMessage());
+            // Don't retry - just log the failure and return null
+            // Rule execution should continue even if logging fails
+            return null;
         }
     }
     
