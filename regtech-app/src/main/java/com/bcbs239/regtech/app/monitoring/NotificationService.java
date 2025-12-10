@@ -1,16 +1,22 @@
 package com.bcbs239.regtech.app.monitoring;
 
+import com.sendgrid.Method;
+import com.sendgrid.Request;
+import com.sendgrid.Response;
+import com.sendgrid.SendGrid;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -33,7 +39,7 @@ public class NotificationService {
     private static final int MAX_RETRY_ATTEMPTS = 3;
     private static final Duration RETRY_DELAY = Duration.ofSeconds(5);
     
-    private final JavaMailSender mailSender;
+    private final SendGrid sendGrid;
     private final RestTemplate restTemplate;
     
     @Value("${observability.notifications.email.enabled:false}")
@@ -44,6 +50,9 @@ public class NotificationService {
     
     @Value("${observability.notifications.email.to:}")
     private String emailTo;
+    
+    @Value("${sendgrid.api.key:}")
+    private String sendGridApiKey;
     
     @Value("${observability.notifications.slack.enabled:false}")
     private boolean slackEnabled;
@@ -61,9 +70,8 @@ public class NotificationService {
     private final Map<String, NotificationFailure> recentFailures = new ConcurrentHashMap<>();
     
     public NotificationService(
-            Optional<JavaMailSender> mailSender,
             RestTemplate restTemplate) {
-        this.mailSender = mailSender.orElse(null);
+        this.sendGrid = new SendGrid(sendGridApiKey);
         this.restTemplate = restTemplate;
         
         logger.info("NotificationService initialized (email: {}, slack: {}, webhook: {})",
@@ -141,7 +149,7 @@ public class NotificationService {
     private List<NotificationChannel> getEnabledChannels() {
         List<NotificationChannel> channels = new ArrayList<>();
         
-        if (emailEnabled && mailSender != null && !emailTo.isEmpty()) {
+        if (emailEnabled && sendGrid != null && !emailTo.isEmpty() && !sendGridApiKey.isEmpty()) {
             channels.add(new EmailNotificationChannel());
         }
         
@@ -192,6 +200,7 @@ public class NotificationService {
     public Map<String, Object> getStatistics() {
         Map<String, Object> stats = new HashMap<>();
         stats.put("emailEnabled", emailEnabled);
+        stats.put("sendGridConfigured", sendGrid != null && !sendGridApiKey.isEmpty());
         stats.put("slackEnabled", slackEnabled);
         stats.put("webhookEnabled", webhookEnabled);
         stats.put("recentFailures", recentFailures.size());
@@ -199,29 +208,43 @@ public class NotificationService {
     }
     
     /**
-     * Email notification channel implementation.
+     * Email notification channel implementation using SendGrid.
      */
     private class EmailNotificationChannel implements NotificationChannel {
         
         @Override
         public void sendAlert(AlertingService.Alert alert) {
-            if (mailSender == null) {
-                throw new IllegalStateException("JavaMailSender not configured");
+            if (sendGrid == null || sendGridApiKey.isEmpty()) {
+                throw new IllegalStateException("SendGrid not configured");
             }
             
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(emailFrom);
-            message.setTo(emailTo.split(","));
-            message.setSubject(formatEmailSubject(alert));
-            message.setText(formatEmailBody(alert));
-            
-            mailSender.send(message);
-            logger.info("Email notification sent for alert: {}", alert.getRuleName());
+            try {
+                Email from = new Email(emailFrom);
+                Email to = new Email(emailTo);
+                Content content = new Content("text/plain", formatEmailBody(alert));
+                Mail mail = new Mail(from, formatEmailSubject(alert), to, content);
+                
+                Request request = new Request();
+                request.setMethod(Method.POST);
+                request.setEndpoint("mail/send");
+                request.setBody(mail.build());
+                
+                Response response = sendGrid.api(request);
+                
+                if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
+                    logger.info("Email notification sent for alert: {}", alert.getRuleName());
+                } else {
+                    throw new RuntimeException("SendGrid API error: " + response.getStatusCode() + " - " + response.getBody());
+                }
+                
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to send email via SendGrid", e);
+            }
         }
         
         @Override
         public boolean isAvailable() {
-            return emailEnabled && mailSender != null && !emailTo.isEmpty();
+            return emailEnabled && sendGrid != null && !emailTo.isEmpty() && !sendGridApiKey.isEmpty();
         }
         
         @Override

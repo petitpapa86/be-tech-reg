@@ -144,6 +144,8 @@ services:
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
+    environment:
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
     volumes:
       - ./observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml
       - ./observability/alertmanager-templates.tmpl:/etc/alertmanager-templates.tmpl

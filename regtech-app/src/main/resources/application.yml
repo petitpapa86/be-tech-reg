@@ -274,6 +274,11 @@ observability:
       enabled: ${OBSERVABILITY_WEBHOOK_ENABLED:false}
       url: ${OBSERVABILITY_WEBHOOK_URL:}
 
+# SendGrid configuration
+sendgrid:
+  api:
+    key: ${SENDGRID_API_KEY:}
+
 # ============================================================================
 # CORS CONFIGURATION
 # ============================================================================
