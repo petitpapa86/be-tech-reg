@@ -133,10 +133,8 @@ public class S3StorageServiceImpl implements S3StorageService {
      * 3. Direct array format
      */
     private List<ExposureRecord> downloadFromLocalFile(String fileUri) throws IOException {
-        // Convert file:// URI to file path
-        String filePath = fileUri.replace("file:///", "").replace("file://", "");
-        // Handle URL encoding (e.g., %20 -> space)
-        filePath = java.net.URLDecoder.decode(filePath, StandardCharsets.UTF_8.name());
+        // Convert file:// URI to file path using proper parsing
+        String filePath = parseFileUri(fileUri);
 
         logger.info("Reading exposures from local file: {}", filePath);
         
@@ -685,6 +683,38 @@ public class S3StorageServiceImpl implements S3StorageService {
         }
 
         return Result.success(exposures);
+    }
+    
+    /**
+     * Parses a file URI to extract the file path, handling both Unix and Windows formats.
+     * Also handles URL-encoded characters (e.g., %20 for spaces).
+     * 
+     * @param uri The file URI (e.g., "file:///C:/path" or "file:///path" or just "/path")
+     * @return The file path suitable for Paths.get()
+     */
+    private String parseFileUri(String uri) {
+        String path = uri;
+        
+        if (uri.startsWith("file://")) {
+            // Remove file:// prefix
+            path = uri.substring(7);
+            
+            // On Windows, file URIs look like file:///C:/path
+            // After removing file://, we get /C:/path which needs to become C:/path
+            if (path.startsWith("/") && path.length() > 2 && path.charAt(2) == ':') {
+                // Windows path: /C:/path -> C:/path
+                path = path.substring(1);
+            }
+        }
+        
+        // Decode URL-encoded characters (e.g., %20 -> space)
+        try {
+            path = java.net.URLDecoder.decode(path, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            logger.warn("Failed to URL decode path, using as-is [path:{},error:{}]", path, e.getMessage());
+        }
+        
+        return path;
     }
 }
 
