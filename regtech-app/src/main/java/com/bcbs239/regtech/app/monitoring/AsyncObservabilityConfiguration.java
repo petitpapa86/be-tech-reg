@@ -2,11 +2,13 @@ package com.bcbs239.regtech.app.monitoring;
 
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
+import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskDecorator;
+import org.springframework.core.task.support.ContextPropagatingTaskDecorator;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -40,7 +42,7 @@ public class AsyncObservabilityConfiguration implements AsyncConfigurer {
      */
     @Bean
     public TaskDecorator observationTaskDecorator() {
-        return new ObservationTaskDecorator(observationRegistry);
+        return new ContextPropagatingTaskDecorator();
     }
 
     /**
@@ -145,38 +147,6 @@ public class AsyncObservabilityConfiguration implements AsyncConfigurer {
     }
 
     /**
-     * Custom TaskDecorator that propagates observation context across threads.
-     */
-    public static class ObservationTaskDecorator implements TaskDecorator {
-        
-        private static final Logger logger = LoggerFactory.getLogger(ObservationTaskDecorator.class);
-        
-        private final ObservationRegistry observationRegistry;
-
-        public ObservationTaskDecorator(ObservationRegistry observationRegistry) {
-            this.observationRegistry = observationRegistry;
-        }
-
-        @Override
-        public Runnable decorate(Runnable runnable) {
-            // Capture the current observation context
-            io.micrometer.context.ContextSnapshot contextSnapshot = 
-                io.micrometer.context.ContextSnapshot.captureAll();
-            
-            return () -> {
-                // Restore the observation context in the new thread
-                try (io.micrometer.context.ContextSnapshot.Scope scope = contextSnapshot.setThreadLocals()) {
-                    logger.debug("Executing task with propagated observation context");
-                    runnable.run();
-                } catch (Exception e) {
-                    logger.error("Error executing task with observation context", e);
-                    throw e;
-                }
-            };
-        }
-    }
-
-    /**
      * Example service demonstrating async operations with observation context propagation.
      */
     @org.springframework.stereotype.Service
@@ -237,8 +207,9 @@ public class AsyncObservabilityConfiguration implements AsyncConfigurer {
             if (traceContextManager.hasActiveTrace()) {
                 String traceContext = traceContextManager.getFormattedTraceContext();
                 logger.info("Trace context available in batch async task: {}", traceContext);
-                traceContextManager.addBatchContext(batchId, "ASYNC");
-                traceContextManager.addPerformanceContext("async", (long) recordCount);
+                traceContextManager.addBusinessContext("batch.id", batchId);
+                traceContextManager.addBusinessContext("batch.type", "ASYNC");
+                traceContextManager.addBusinessContext("performance.async", String.valueOf(recordCount));
             } else {
                 logger.warn("No trace context available in batch async task: {}", batchId);
             }
@@ -270,8 +241,9 @@ public class AsyncObservabilityConfiguration implements AsyncConfigurer {
             if (traceContextManager.hasActiveTrace()) {
                 String traceContext = traceContextManager.getFormattedTraceContext();
                 logger.info("Trace context available in risk async task: {}", traceContext);
-                traceContextManager.addPortfolioContext(portfolioId, "ASYNC");
-                traceContextManager.addPerformanceContext("calculation", (long) exposureCount);
+                traceContextManager.addBusinessContext("portfolio.id", portfolioId);
+                traceContextManager.addBusinessContext("portfolio.type", "ASYNC");
+                traceContextManager.addBusinessContext("performance.calculation", String.valueOf(exposureCount));
             } else {
                 logger.warn("No trace context available in risk async task: {}", portfolioId);
             }

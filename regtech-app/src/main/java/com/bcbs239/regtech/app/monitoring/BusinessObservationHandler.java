@@ -2,6 +2,7 @@ package com.bcbs239.regtech.app.monitoring;
 
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationHandler;
+import io.micrometer.common.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -76,43 +77,43 @@ public class BusinessObservationHandler implements ObservationHandler<Observatio
      */
     private void addBusinessContext(Observation.Context context) {
         // Add service identification
-        context.addLowCardinalityKeyValue("service.type", "regtech");
-        context.addLowCardinalityKeyValue("service.layer", determineServiceLayer(context));
+        context.addLowCardinalityKeyValue(KeyValue.of("service.type", "regtech"));
+        context.addLowCardinalityKeyValue(KeyValue.of("service.layer", determineServiceLayer(context)));
         
         // Add business domain context
         String businessDomain = determineBusinessDomain(context);
         if (businessDomain != null) {
-            context.addLowCardinalityKeyValue("business.domain", businessDomain);
+            context.addLowCardinalityKeyValue(KeyValue.of("business.domain", businessDomain));
         }
         
         // Add operation type context
         String operationType = determineOperationType(context);
         if (operationType != null) {
-            context.addLowCardinalityKeyValue("business.operation.type", operationType);
+            context.addLowCardinalityKeyValue(KeyValue.of("business.operation.type", operationType));
         }
         
         // Add tenant/organization context if available
         String tenantId = extractTenantId(context);
         if (tenantId != null) {
-            context.addLowCardinalityKeyValue("business.tenant.id", tenantId);
+            context.addLowCardinalityKeyValue(KeyValue.of("business.tenant.id", tenantId));
         }
         
         // Add user context if available
         String userId = extractUserId(context);
         if (userId != null) {
-            context.addHighCardinalityKeyValue("business.user.id", userId);
+            context.addHighCardinalityKeyValue(KeyValue.of("business.user.id", userId));
         }
         
         // Add batch context if available
         String batchId = extractBatchId(context);
         if (batchId != null) {
-            context.addHighCardinalityKeyValue("business.batch.id", batchId);
+            context.addHighCardinalityKeyValue(KeyValue.of("business.batch.id", batchId));
         }
         
         // Add portfolio context if available
         String portfolioId = extractPortfolioId(context);
         if (portfolioId != null) {
-            context.addHighCardinalityKeyValue("business.portfolio.id", portfolioId);
+            context.addHighCardinalityKeyValue(KeyValue.of("business.portfolio.id", portfolioId));
         }
     }
 
@@ -125,25 +126,25 @@ public class BusinessObservationHandler implements ObservationHandler<Observatio
         Throwable error = context.getError();
         if (error != null) {
             // Add error classification
-            context.addLowCardinalityKeyValue("error.type", error.getClass().getSimpleName());
-            context.addLowCardinalityKeyValue("error.category", categorizeError(error));
+            context.addLowCardinalityKeyValue(KeyValue.of("error.type", error.getClass().getSimpleName()));
+            context.addLowCardinalityKeyValue(KeyValue.of("error.category", categorizeError(error)));
             
             // Add business error context for domain exceptions
             if (isBusinessException(error)) {
-                context.addLowCardinalityKeyValue("error.business", "true");
-                context.addHighCardinalityKeyValue("error.business.code", extractBusinessErrorCode(error));
+                context.addLowCardinalityKeyValue(KeyValue.of("error.business", "true"));
+                context.addHighCardinalityKeyValue(KeyValue.of("error.business.code", extractBusinessErrorCode(error)));
             }
             
             // Add validation error context
             if (isValidationException(error)) {
-                context.addLowCardinalityKeyValue("error.validation", "true");
-                context.addHighCardinalityKeyValue("error.validation.field", extractValidationField(error));
+                context.addLowCardinalityKeyValue(KeyValue.of("error.validation", "true"));
+                context.addHighCardinalityKeyValue(KeyValue.of("error.validation.field", extractValidationField(error)));
             }
             
             // Add security error context
             if (isSecurityException(error)) {
-                context.addLowCardinalityKeyValue("error.security", "true");
-                context.addLowCardinalityKeyValue("error.security.type", extractSecurityErrorType(error));
+                context.addLowCardinalityKeyValue(KeyValue.of("error.security", "true"));
+                context.addLowCardinalityKeyValue(KeyValue.of("error.security.type", extractSecurityErrorType(error)));
             }
         }
     }
@@ -156,18 +157,18 @@ public class BusinessObservationHandler implements ObservationHandler<Observatio
      */
     private void addEventContext(Observation.Event event, Observation.Context context) {
         // Add event classification
-        context.addLowCardinalityKeyValue("event.type", event.getName());
+        context.addLowCardinalityKeyValue(KeyValue.of("event.type", event.getName()));
         
         // Add business milestone context for specific events
         if (isBusinessMilestone(event)) {
-            context.addLowCardinalityKeyValue("business.milestone", "true");
-            context.addLowCardinalityKeyValue("business.milestone.type", event.getName());
+            context.addLowCardinalityKeyValue(KeyValue.of("business.milestone", "true"));
+            context.addLowCardinalityKeyValue(KeyValue.of("business.milestone.type", event.getName()));
         }
         
         // Add processing stage context
         String processingStage = determineProcessingStage(event, context);
         if (processingStage != null) {
-            context.addLowCardinalityKeyValue("business.processing.stage", processingStage);
+            context.addLowCardinalityKeyValue(KeyValue.of("business.processing.stage", processingStage));
         }
     }
 
@@ -179,11 +180,11 @@ public class BusinessObservationHandler implements ObservationHandler<Observatio
     private void addCompletionContext(Observation.Context context) {
         // Add outcome classification
         String outcome = context.getError() != null ? "failure" : "success";
-        context.addLowCardinalityKeyValue("business.outcome", outcome);
+        context.addLowCardinalityKeyValue(KeyValue.of("business.outcome", outcome));
         
         // Add performance classification
         // Note: Duration is not available in context, would need to be calculated externally
-        context.addLowCardinalityKeyValue("business.performance.category", "normal");
+        context.addLowCardinalityKeyValue(KeyValue.of("business.performance.category", "normal"));
     }
 
     // Helper methods for context extraction and classification
@@ -245,23 +246,27 @@ public class BusinessObservationHandler implements ObservationHandler<Observatio
     private String extractTenantId(Observation.Context context) {
         // Extract tenant ID from context if available
         // This would typically come from security context or request headers
-        return context.getHighCardinalityKeyValue("tenant.id");
+        KeyValue kv = context.getHighCardinalityKeyValue("tenant.id");
+        return kv != null ? kv.getValue() : null;
     }
 
     private String extractUserId(Observation.Context context) {
         // Extract user ID from context if available
         // This would typically come from security context
-        return context.getHighCardinalityKeyValue("user.id");
+        KeyValue kv = context.getHighCardinalityKeyValue("user.id");
+        return kv != null ? kv.getValue() : null;
     }
 
     private String extractBatchId(Observation.Context context) {
         // Extract batch ID from context if available
-        return context.getHighCardinalityKeyValue("batch.id");
+        KeyValue kv = context.getHighCardinalityKeyValue("batch.id");
+        return kv != null ? kv.getValue() : null;
     }
 
     private String extractPortfolioId(Observation.Context context) {
         // Extract portfolio ID from context if available
-        return context.getHighCardinalityKeyValue("portfolio.id");
+        KeyValue kv = context.getHighCardinalityKeyValue("portfolio.id");
+        return kv != null ? kv.getValue() : null;
     }
 
     private String categorizeError(Throwable error) {

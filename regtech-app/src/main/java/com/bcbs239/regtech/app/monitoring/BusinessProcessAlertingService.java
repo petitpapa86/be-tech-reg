@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.app.monitoring;
 
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.search.Search;
 import org.slf4j.Logger;
@@ -60,12 +61,12 @@ public class BusinessProcessAlertingService {
             "batch-processing-failure",
             "Batch Processing Failure Detected",
             AlertingService.AlertSeverity.CRITICAL,
-            Duration.ofMinutes(5),
+            "One or more batch processing operations have failed",
             (metrics) -> {
                 Double failureRate = getBatchProcessingFailureRate();
                 return failureRate != null && failureRate > 0.0; // Any batch failure
             },
-            "One or more batch processing operations have failed"
+            null
         ));
         
         // Risk calculation failure alerts
@@ -73,12 +74,12 @@ public class BusinessProcessAlertingService {
             "risk-calculation-failure",
             "Risk Calculation Failure Detected",
             AlertingService.AlertSeverity.CRITICAL,
-            Duration.ofMinutes(5),
+            "One or more risk calculations have failed",
             (metrics) -> {
                 Double failureRate = getRiskCalculationFailureRate();
                 return failureRate != null && failureRate > 0.0; // Any calculation failure
             },
-            "One or more risk calculations have failed"
+            null
         ));
         
         // Data quality validation failure alerts
@@ -86,12 +87,12 @@ public class BusinessProcessAlertingService {
             "data-quality-failure",
             "Data Quality Validation Failure Detected",
             AlertingService.AlertSeverity.WARNING,
-            Duration.ofMinutes(10),
+            "Data quality validation failure rate exceeded 20%",
             (metrics) -> {
                 Double failureRate = getDataQualityFailureRate();
                 return failureRate != null && failureRate > 0.20; // 20% failure rate threshold
             },
-            "Data quality validation failure rate exceeded 20%"
+            null
         ));
         
         // Report generation failure alerts
@@ -99,12 +100,12 @@ public class BusinessProcessAlertingService {
             "report-generation-failure",
             "Report Generation Failure Detected",
             AlertingService.AlertSeverity.WARNING,
-            Duration.ofMinutes(10),
+            "One or more report generation operations have failed",
             (metrics) -> {
                 Double failureRate = getReportGenerationFailureRate();
                 return failureRate != null && failureRate > 0.0; // Any report generation failure
             },
-            "One or more report generation operations have failed"
+            null
         ));
         
         // Authentication failure spike alerts
@@ -112,12 +113,12 @@ public class BusinessProcessAlertingService {
             "authentication-failure-spike",
             "Authentication Failure Spike Detected",
             AlertingService.AlertSeverity.WARNING,
-            Duration.ofMinutes(10),
+            "Authentication failure rate exceeded 30%",
             (metrics) -> {
                 Double failureRate = getAuthenticationFailureRate();
                 return failureRate != null && failureRate > 0.30; // 30% failure rate threshold
             },
-            "Authentication failure rate exceeded 30%"
+            null
         ));
         
         // Billing operation failure alerts
@@ -125,12 +126,12 @@ public class BusinessProcessAlertingService {
             "billing-operation-failure",
             "Billing Operation Failure Detected",
             AlertingService.AlertSeverity.CRITICAL,
-            Duration.ofMinutes(5),
+            "One or more billing operations have failed",
             (metrics) -> {
                 Double failureRate = getBillingOperationFailureRate();
                 return failureRate != null && failureRate > 0.0; // Any billing failure
             },
-            "One or more billing operations have failed"
+            null
         ));
     }
     
@@ -218,8 +219,8 @@ public class BusinessProcessAlertingService {
             AlertingService.AlertSeverity.CRITICAL,
             String.format("%d %s failures detected in the last %d minutes. Immediate attention required.",
                 failureCount, formatProcessType(processType), ESCALATION_WINDOW.toMinutes()),
-            metrics,
-            Instant.now()
+            Instant.now(),
+            metrics
         );
         
         // Send escalated alert
@@ -284,15 +285,19 @@ public class BusinessProcessAlertingService {
         try {
             Double totalBatches = Search.in(meterRegistry)
                 .name("business.batch.processing")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             Double failedBatches = Search.in(meterRegistry)
                 .name("business.batch.processing")
                 .tag("status", "FAILED")
-                .counter()
-                .map(counter -> counter.count())
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
                 .reduce(0.0, Double::sum);
             
             if (totalBatches > 0) {
@@ -311,16 +316,20 @@ public class BusinessProcessAlertingService {
         try {
             Double totalCalculations = Search.in(meterRegistry)
                 .name("business.risk_calculation.calculations")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             Double failedCalculations = Search.in(meterRegistry)
                 .name("business.risk_calculation.calculations")
                 .tag("status", "FAILED")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             if (totalCalculations > 0) {
                 return failedCalculations / totalCalculations;
@@ -338,16 +347,20 @@ public class BusinessProcessAlertingService {
         try {
             Double totalValidations = Search.in(meterRegistry)
                 .name("business.data_quality.validations")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             Double failedValidations = Search.in(meterRegistry)
                 .name("business.data_quality.validations")
                 .tag("status", "FAILED")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             if (totalValidations > 0) {
                 return failedValidations / totalValidations;
@@ -365,16 +378,20 @@ public class BusinessProcessAlertingService {
         try {
             Double totalReports = Search.in(meterRegistry)
                 .name("business.report.generation")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             Double failedReports = Search.in(meterRegistry)
                 .name("business.report.generation")
                 .tag("status", "FAILED")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             if (totalReports > 0) {
                 return failedReports / totalReports;
@@ -392,16 +409,20 @@ public class BusinessProcessAlertingService {
         try {
             Double totalAttempts = Search.in(meterRegistry)
                 .name("business.authentication.attempts")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             Double failedAttempts = Search.in(meterRegistry)
                 .name("business.authentication.attempts")
                 .tag("success", "false")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             if (totalAttempts > 0) {
                 return failedAttempts / totalAttempts;
@@ -419,16 +440,20 @@ public class BusinessProcessAlertingService {
         try {
             Double totalOperations = Search.in(meterRegistry)
                 .name("business.billing.operations")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             Double failedOperations = Search.in(meterRegistry)
                 .name("business.billing.operations")
                 .tag("success", "false")
-                .counter()
-                .map(counter -> counter.count())
-                .reduce(0.0, Double::sum);
+                .meters()
+                .stream()
+                .filter(m -> m instanceof Counter)
+                .mapToDouble(m -> ((Counter) m).count())
+                .sum();
             
             if (totalOperations > 0) {
                 return failedOperations / totalOperations;

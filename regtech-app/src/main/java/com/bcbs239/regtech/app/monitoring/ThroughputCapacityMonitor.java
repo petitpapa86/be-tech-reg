@@ -158,7 +158,8 @@ public class ThroughputCapacityMonitor {
             thresholdValue,
             impactAssessment,
             rootCause,
-            calculateBreachSeverity(actualValue, thresholdValue)
+            calculateBreachSeverity(actualValue, thresholdValue),
+            determineBreachSeverity(calculateBreachSeverity(actualValue, thresholdValue))
         );
         
         breachHistory.add(breach);
@@ -176,11 +177,10 @@ public class ThroughputCapacityMonitor {
             .register(meterRegistry)
             .increment();
             
-        Gauge.builder("sla.breach.severity.score")
+        Gauge.builder("sla.breach.severity.score", breach.severityScore, Number::doubleValue)
             .description("SLA breach severity score")
-            .tag("component", component)
-            .tag("breach.type", breachType)
-            .register(meterRegistry, breach.severityScore, Number::doubleValue);
+            .tags("component", component, "breach.type", breachType)
+            .register(meterRegistry);
     }
 
     /**
@@ -325,6 +325,13 @@ public class ThroughputCapacityMonitor {
     }
 
     /**
+     * Determines breach severity level based on severity score.
+     */
+    private BottleneckSeverity determineBreachSeverity(double severityScore) {
+        return severityScore > 1.5 ? BottleneckSeverity.CRITICAL : BottleneckSeverity.HIGH;
+    }
+
+    /**
      * Generates optimization recommendations for a component.
      */
     private List<String> generateOptimizationRecommendations(ComponentThroughputTracker tracker, 
@@ -396,20 +403,20 @@ public class ThroughputCapacityMonitor {
      * Registers throughput metrics with the meter registry.
      */
     private void registerThroughputMetrics(ComponentThroughputTracker tracker) {
-        Gauge.builder("throughput.current")
+        Gauge.builder("throughput.current", tracker, ComponentThroughputTracker::getCurrentThroughput)
             .description("Current throughput")
-            .tag("component", tracker.component)
-            .register(meterRegistry, tracker, ComponentThroughputTracker::getCurrentThroughput);
+            .tags("component", tracker.component)
+            .register(meterRegistry);
             
-        Gauge.builder("throughput.capacity.utilization")
+        Gauge.builder("throughput.capacity.utilization", tracker, t -> t.getCapacityUtilization() * 100)
             .description("Capacity utilization percentage")
-            .tag("component", tracker.component)
-            .register(meterRegistry, tracker, t -> t.getCapacityUtilization() * 100);
+            .tags("component", tracker.component)
+            .register(meterRegistry);
             
-        Gauge.builder("throughput.capacity.target")
+        Gauge.builder("throughput.capacity.target", tracker, t -> t.capacityTarget)
             .description("Capacity target")
-            .tag("component", tracker.component)
-            .register(meterRegistry, tracker, t -> t.capacityTarget);
+            .tags("component", tracker.component)
+            .register(meterRegistry);
     }
 
     // Inner classes
@@ -551,6 +558,7 @@ public class ThroughputCapacityMonitor {
         long thresholdValue,
         String impactAssessment,
         String rootCause,
-        double severityScore
+        double severityScore,
+        BottleneckSeverity severity
     ) {}
 }

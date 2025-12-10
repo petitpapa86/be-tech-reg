@@ -164,15 +164,7 @@ public class DatabaseHealthIndicator implements HealthIndicator {
             info.put("transactionIsolation", connection.getTransactionIsolation());
             
             // Connection pool information (if available)
-            if (dataSource instanceof org.apache.tomcat.jdbc.pool.DataSource tomcatDataSource) {
-                var poolProperties = tomcatDataSource.getPoolProperties();
-                info.put("poolSize", tomcatDataSource.getSize());
-                info.put("activeConnections", tomcatDataSource.getActive());
-                info.put("idleConnections", tomcatDataSource.getIdle());
-                info.put("maxActive", poolProperties.getMaxActive());
-                info.put("maxIdle", poolProperties.getMaxIdle());
-                info.put("minIdle", poolProperties.getMinIdle());
-            } else if (dataSource instanceof com.zaxxer.hikari.HikariDataSource hikariDataSource) {
+            if (dataSource instanceof com.zaxxer.hikari.HikariDataSource hikariDataSource) {
                 var poolMXBean = hikariDataSource.getHikariPoolMXBean();
                 if (poolMXBean != null) {
                     info.put("poolSize", poolMXBean.getTotalConnections());

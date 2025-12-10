@@ -195,30 +195,30 @@ public class ServiceAvailabilityCalculator {
      * Registers availability metrics with the meter registry.
      */
     private void registerAvailabilityMetrics(ServiceAvailabilityData data) {
-        Gauge.builder("service.availability.current")
+        Gauge.builder("service.availability.current", data, d -> d.getCurrentAvailability() * 100)
             .description("Current service availability percentage")
-            .tag("service", data.serviceName)
-            .register(meterRegistry, data, d -> d.getCurrentAvailability() * 100);
+            .tags("service", data.serviceName)
+            .register(meterRegistry);
             
-        Gauge.builder("service.availability.uptime.seconds")
+        Gauge.builder("service.availability.uptime.seconds", data, ServiceAvailabilityData::getUptimeSeconds)
             .description("Total uptime in seconds")
-            .tag("service", data.serviceName)
-            .register(meterRegistry, data, ServiceAvailabilityData::getUptimeSeconds);
+            .tags("service", data.serviceName)
+            .register(meterRegistry);
             
-        Gauge.builder("service.availability.downtime.seconds")
+        Gauge.builder("service.availability.downtime.seconds", data, ServiceAvailabilityData::getDowntimeSeconds)
             .description("Total downtime in seconds")
-            .tag("service", data.serviceName)
-            .register(meterRegistry, data, ServiceAvailabilityData::getDowntimeSeconds);
+            .tags("service", data.serviceName)
+            .register(meterRegistry);
             
-        Gauge.builder("service.availability.mtbf.seconds")
+        Gauge.builder("service.availability.mtbf.seconds", data, ServiceAvailabilityData::getMeanTimeBetweenFailures)
             .description("Mean time between failures")
-            .tag("service", data.serviceName)
-            .register(meterRegistry, data, ServiceAvailabilityData::getMeanTimeBetweenFailures);
+            .tags("service", data.serviceName)
+            .register(meterRegistry);
             
-        Gauge.builder("service.availability.mttr.seconds")
+        Gauge.builder("service.availability.mttr.seconds", data, ServiceAvailabilityData::getMeanTimeToRecovery)
             .description("Mean time to recovery")
-            .tag("service", data.serviceName)
-            .register(meterRegistry, data, ServiceAvailabilityData::getMeanTimeToRecovery);
+            .tags("service", data.serviceName)
+            .register(meterRegistry);
     }
 
     // Inner classes

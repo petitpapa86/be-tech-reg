@@ -67,11 +67,10 @@ public class BusinessMetricsCollector {
      */
     public void recordDataQualityScore(String batchId, double score) {
         // Record the score as a gauge (current value)
-        Gauge.builder("business.data_quality.score")
+        Gauge.builder("business.data_quality.score", score, Number::doubleValue)
             .description("Current data quality score for batch")
-            .tag("batch.id", batchId)
-            .tag("component", "data-quality")
-            .register(meterRegistry, score, Number::doubleValue);
+            .tags("batch.id", batchId, "component", "data-quality")
+            .register(meterRegistry);
             
         // Increment validation counter
         dataQualityValidationsCounter.increment();
@@ -80,10 +79,10 @@ public class BusinessMetricsCollector {
         String key = "quality_score_" + batchId;
         qualityScores.computeIfAbsent(key, k -> {
             AtomicLong atomicScore = new AtomicLong((long) (score * 1000)); // Store as integer (score * 1000)
-            Gauge.builder("business.data_quality.score.current")
+            Gauge.builder("business.data_quality.score.current", atomicScore, value -> value.get() / 1000.0)
                 .description("Current data quality score")
-                .tag("batch.id", batchId)
-                .register(meterRegistry, atomicScore, value -> value.get() / 1000.0);
+                .tags("batch.id", batchId)
+                .register(meterRegistry);
             return atomicScore;
         }).set((long) (score * 1000));
     }
@@ -120,11 +119,10 @@ public class BusinessMetricsCollector {
         riskCalculationsCounter.increment();
         
         // Record exposure count as a gauge
-        Gauge.builder("business.risk_calculation.exposures.count")
+        Gauge.builder("business.risk_calculation.exposures.count", exposureCount, Number::intValue)
             .description("Number of exposures in portfolio")
-            .tag("portfolio.id", portfolioId)
-            .tag("component", "risk-calculation")
-            .register(meterRegistry, exposureCount, Number::intValue);
+            .tags("portfolio.id", portfolioId, "component", "risk-calculation")
+            .register(meterRegistry);
             
         // Record calculation time
         Timer.builder("business.risk_calculation.duration")
@@ -147,22 +145,20 @@ public class BusinessMetricsCollector {
         batchProcessingCounter.increment();
         
         // Record batch size
-        Gauge.builder("business.batch.records.count")
+        Gauge.builder("business.batch.records.count", recordCount, Number::intValue)
             .description("Number of records in batch")
-            .tag("batch.id", batchId)
-            .tag("status", processingStatus)
-            .tag("component", "ingestion")
-            .register(meterRegistry, recordCount, Number::intValue);
+            .tags("batch.id", batchId, "status", processingStatus, "component", "ingestion")
+            .register(meterRegistry);
             
         // Track active processes
         if ("PROCESSING".equals(processingStatus)) {
             String key = "active_batch_" + batchId;
             activeProcesses.computeIfAbsent(key, k -> {
                 AtomicLong activeCount = new AtomicLong(1);
-                Gauge.builder("business.batch.active.count")
+                Gauge.builder("business.batch.active.count", activeCount, AtomicLong::get)
                     .description("Number of active batch processes")
-                    .tag("batch.id", batchId)
-                    .register(meterRegistry, activeCount, AtomicLong::get);
+                    .tags("batch.id", batchId)
+                    .register(meterRegistry);
                 return activeCount;
             }).set(1);
         } else {
@@ -187,11 +183,10 @@ public class BusinessMetricsCollector {
         reportGenerationCounter.increment();
         
         // Record report size
-        Gauge.builder("business.report.size.bytes")
+        Gauge.builder("business.report.size.bytes", reportSize, Number::longValue)
             .description("Size of generated report in bytes")
-            .tag("report.type", reportType)
-            .tag("component", "report-generation")
-            .register(meterRegistry, reportSize, Number::longValue);
+            .tags("report.type", reportType, "component", "report-generation")
+            .register(meterRegistry);
             
         // Record generation time
         Timer.builder("business.report.generation.duration")
@@ -240,12 +235,10 @@ public class BusinessMetricsCollector {
             
         if (success) {
             // Record transaction amount for successful operations
-            Gauge.builder("business.billing.transaction.amount")
+            Gauge.builder("business.billing.transaction.amount", amount, Number::doubleValue)
                 .description("Billing transaction amount")
-                .tag("operation", operation)
-                .tag("currency", currency)
-                .tag("component", "billing")
-                .register(meterRegistry, amount, Number::doubleValue);
+                .tags("operation", operation, "currency", currency, "component", "billing")
+                .register(meterRegistry);
         }
     }
 

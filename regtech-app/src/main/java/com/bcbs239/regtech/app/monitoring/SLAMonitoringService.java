@@ -303,71 +303,70 @@ public class SLAMonitoringService {
             
         // Record breach severity based on how much threshold was exceeded
         double breachSeverity = (double) actualValue / thresholdValue;
-        Gauge.builder("sla.breach.severity")
+        Gauge.builder("sla.breach.severity", breachSeverity, Number::doubleValue)
             .description("SLA breach severity ratio")
-            .tag("sla.type", slaType)
-            .tag("identifier", identifier)
-            .register(meterRegistry, breachSeverity, Number::doubleValue);
+            .tags("sla.type", slaType, "identifier", identifier)
+            .register(meterRegistry);
     }
 
     /**
      * Registers API performance metrics with the meter registry.
      */
     private void registerApiMetrics(ApiPerformanceTracker tracker) {
-        Gauge.builder("sla.api.response_time.average")
+        Gauge.builder("sla.api.response_time.average", tracker, ApiPerformanceTracker::getAverageResponseTime)
             .description("Average API response time")
-            .tag("endpoint", tracker.endpoint)
-            .register(meterRegistry, tracker, ApiPerformanceTracker::getAverageResponseTime);
+            .tags("endpoint", tracker.endpoint)
+            .register(meterRegistry);
             
-        Gauge.builder("sla.api.compliance.percentage")
+        Gauge.builder("sla.api.compliance.percentage", tracker, ApiPerformanceTracker::getSlaCompliancePercentage)
             .description("API SLA compliance percentage")
-            .tag("endpoint", tracker.endpoint)
-            .register(meterRegistry, tracker, ApiPerformanceTracker::getSlaCompliancePercentage);
+            .tags("endpoint", tracker.endpoint)
+            .register(meterRegistry);
     }
 
     /**
      * Registers batch processing metrics with the meter registry.
      */
     private void registerBatchMetrics(BatchProcessingTracker tracker) {
-        Gauge.builder("sla.batch.processing_time.average")
+        Gauge.builder("sla.batch.processing_time.average", tracker, BatchProcessingTracker::getAverageProcessingTime)
             .description("Average batch processing time")
-            .tag("batch.id", tracker.batchId)
-            .register(meterRegistry, tracker, BatchProcessingTracker::getAverageProcessingTime);
+            .tags("batch.id", tracker.batchId)
+            .register(meterRegistry);
             
-        Gauge.builder("sla.batch.compliance.percentage")
+        Gauge.builder("sla.batch.compliance.percentage", tracker, BatchProcessingTracker::getSlaCompliancePercentage)
             .description("Batch processing SLA compliance percentage")
-            .tag("batch.id", tracker.batchId)
-            .register(meterRegistry, tracker, BatchProcessingTracker::getSlaCompliancePercentage);
+            .tags("batch.id", tracker.batchId)
+            .register(meterRegistry);
     }
 
     /**
      * Registers availability metrics with the meter registry.
      */
     private void registerAvailabilityMetrics(ServiceAvailabilityTracker tracker) {
-        Gauge.builder("sla.availability.percentage")
+        Gauge.builder("sla.availability.percentage", tracker, ServiceAvailabilityTracker::getAvailabilityPercentage)
             .description("Service availability percentage")
-            .tag("service", tracker.serviceName)
-            .register(meterRegistry, tracker, ServiceAvailabilityTracker::getAvailabilityPercentage);
+            .tags("service", tracker.serviceName)
+            .register(meterRegistry);
             
-        Gauge.builder("sla.availability.uptime.seconds")
+        Gauge.builder("sla.availability.uptime.seconds", tracker, ServiceAvailabilityTracker::getUptimeSeconds)
             .description("Service uptime in seconds")
-            .tag("service", tracker.serviceName)
-            .register(meterRegistry, tracker, ServiceAvailabilityTracker::getUptimeSeconds);
+            .tags("service", tracker.serviceName)
+            .register(meterRegistry);
     }
 
     /**
      * Registers throughput metrics with the meter registry.
      */
     private void registerThroughputMetrics(ThroughputTracker tracker) {
-        Gauge.builder("sla.throughput.current")
+        Gauge.builder("sla.throughput.current", tracker, ThroughputTracker::getCurrentThroughput)
             .description("Current throughput")
-            .tag("component", tracker.component)
-            .register(meterRegistry, tracker, ThroughputTracker::getCurrentThroughput);
+            .tags("component", tracker.component)
+            .register(meterRegistry);
             
-        Gauge.builder("sla.throughput.capacity_utilization")
+        Gauge.builder("sla.throughput.capacity_utilization", tracker, ThroughputTracker::getCapacityUtilization)
             .description("Capacity utilization percentage")
-            .tag("component", tracker.component)
-            .register(meterRegistry, tracker, ThroughputTracker::getCapacityUtilization);
+            .tags("component", tracker.component)
+            .register(meterRegistry);
     }
 
     // Inner tracker classes

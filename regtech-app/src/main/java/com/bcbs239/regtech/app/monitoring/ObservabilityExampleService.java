@@ -41,8 +41,10 @@ public class ObservabilityExampleService {
         logger.info("Authenticating user: {} with method: {}", userId, authMethod);
         
         // Add business context to the trace
-        traceContextManager.addUserContext(userId, "USER");
-        traceContextManager.addOperationContext("authenticate", "user-login");
+        traceContextManager.addBusinessContext("business.user.id", userId);
+        traceContextManager.addBusinessContext("business.user.role", "USER");
+        traceContextManager.addBusinessContext("operation.type", "authenticate");
+        traceContextManager.addBusinessContext("operation.name", "user-login");
         
         try {
             // Simulate authentication logic
@@ -62,7 +64,8 @@ public class ObservabilityExampleService {
             return success;
             
         } catch (Exception e) {
-            traceContextManager.addErrorContext("AUTH_ERROR", "authentication");
+            traceContextManager.addBusinessContext("error.type", "AUTH_ERROR");
+            traceContextManager.addBusinessContext("error.context", "authentication");
             logger.error("Authentication error for user: {}", userId, e);
             throw e;
         }
@@ -80,9 +83,11 @@ public class ObservabilityExampleService {
         logger.info("Processing batch: {} with {} records", batchId, recordCount);
         
         // Add business context to the trace
-        traceContextManager.addBatchContext(batchId, "DAILY");
-        traceContextManager.addOperationContext("process", "batch-ingestion");
-        traceContextManager.addPerformanceContext("normal", (long) recordCount);
+        traceContextManager.addBusinessContext("batch.id", batchId);
+        traceContextManager.addBusinessContext("batch.type", "DAILY");
+        traceContextManager.addBusinessContext("operation.type", "process");
+        traceContextManager.addBusinessContext("operation.name", "batch-ingestion");
+        traceContextManager.addBusinessContext("performance.normal", String.valueOf(recordCount));
         
         try {
             // Simulate batch processing
@@ -95,7 +100,8 @@ public class ObservabilityExampleService {
             logger.info("Batch processing completed: {} with status: {}", batchId, status);
             
         } catch (Exception e) {
-            traceContextManager.addErrorContext("BATCH_ERROR", "processing");
+            traceContextManager.addBusinessContext("error.type", "BATCH_ERROR");
+            traceContextManager.addBusinessContext("error.context", "processing");
             businessMetricsCollector.recordBatchProcessing(batchId, recordCount, "FAILED");
             logger.error("Batch processing failed: {}", batchId, e);
             throw e;
@@ -114,9 +120,11 @@ public class ObservabilityExampleService {
         logger.info("Calculating risk for portfolio: {} with {} exposures", portfolioId, exposureCount);
         
         // Add business context to the trace
-        traceContextManager.addPortfolioContext(portfolioId, "CREDIT");
-        traceContextManager.addOperationContext("calculate", "portfolio-risk");
-        traceContextManager.addPerformanceContext("normal", (long) exposureCount);
+        traceContextManager.addBusinessContext("portfolio.id", portfolioId);
+        traceContextManager.addBusinessContext("portfolio.type", "CREDIT");
+        traceContextManager.addBusinessContext("operation.type", "calculate");
+        traceContextManager.addBusinessContext("operation.name", "portfolio-risk");
+        traceContextManager.addBusinessContext("performance.normal", String.valueOf(exposureCount));
         
         long startTime = System.currentTimeMillis();
         
@@ -137,7 +145,8 @@ public class ObservabilityExampleService {
             
         } catch (Exception e) {
             long calculationTime = System.currentTimeMillis() - startTime;
-            traceContextManager.addErrorContext("CALC_ERROR", "calculation");
+            traceContextManager.addBusinessContext("error.type", "CALC_ERROR");
+            traceContextManager.addBusinessContext("error.context", "calculation");
             logger.error("Risk calculation failed for portfolio: {}", portfolioId, e);
             throw e;
         }
@@ -155,9 +164,11 @@ public class ObservabilityExampleService {
         logger.info("Validating data quality for batch: {} with {} records", batchId, recordCount);
         
         // Add business context to the trace
-        traceContextManager.addBatchContext(batchId, "VALIDATION");
-        traceContextManager.addOperationContext("validate", "data-quality");
-        traceContextManager.addPerformanceContext("normal", (long) recordCount);
+        traceContextManager.addBusinessContext("batch.id", batchId);
+        traceContextManager.addBusinessContext("batch.type", "VALIDATION");
+        traceContextManager.addBusinessContext("operation.type", "validate");
+        traceContextManager.addBusinessContext("operation.name", "data-quality");
+        traceContextManager.addBusinessContext("performance.normal", String.valueOf(recordCount));
         
         try {
             // Simulate data quality validation
@@ -173,7 +184,8 @@ public class ObservabilityExampleService {
             return qualityScore;
             
         } catch (Exception e) {
-            traceContextManager.addErrorContext("QUALITY_ERROR", "validation");
+            traceContextManager.addBusinessContext("error.type", "QUALITY_ERROR");
+            traceContextManager.addBusinessContext("error.context", "validation");
             logger.error("Data quality validation failed for batch: {}", batchId, e);
             throw e;
         }
@@ -191,8 +203,10 @@ public class ObservabilityExampleService {
         logger.info("Generating report: {} for portfolio: {}", reportType, portfolioId);
         
         // Add business context to the trace
-        traceContextManager.addPortfolioContext(portfolioId, "CREDIT");
-        traceContextManager.addOperationContext("generate", "report-creation");
+        traceContextManager.addBusinessContext("portfolio.id", portfolioId);
+        traceContextManager.addBusinessContext("portfolio.type", "CREDIT");
+        traceContextManager.addBusinessContext("operation.type", "generate");
+        traceContextManager.addBusinessContext("operation.name", "report-creation");
         traceContextManager.addBusinessContext("report.type", reportType);
         
         long startTime = System.currentTimeMillis();
@@ -215,7 +229,8 @@ public class ObservabilityExampleService {
             
         } catch (Exception e) {
             long generationTime = System.currentTimeMillis() - startTime;
-            traceContextManager.addErrorContext("REPORT_ERROR", "generation");
+            traceContextManager.addBusinessContext("error.type", "REPORT_ERROR");
+            traceContextManager.addBusinessContext("error.context", "generation");
             logger.error("Report generation failed: {} for portfolio: {}", reportType, portfolioId, e);
             throw e;
         }
@@ -235,7 +250,8 @@ public class ObservabilityExampleService {
         // Add business context to the trace
         traceContextManager.addBusinessContext("task.id", taskId);
         traceContextManager.addBusinessContext("task.type", taskType);
-        traceContextManager.addOperationContext("process", "async-task");
+        traceContextManager.addBusinessContext("operation.type", "process");
+        traceContextManager.addBusinessContext("operation.name", "async-task");
         
         return CompletableFuture.supplyAsync(() -> {
             try {

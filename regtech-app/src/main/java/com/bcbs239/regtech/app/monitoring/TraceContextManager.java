@@ -55,4 +55,52 @@ public interface TraceContextManager {
      * @return The context value, or null if not found or no active span
      */
     String getBusinessContext(String key);
+    
+    /**
+     * Adds user context to the current span if available.
+     * 
+     * @param userId The user ID
+     * @param userRole The user role
+     */
+    void addUserContext(String userId, String userRole);
+    
+    /**
+     * Adds batch context to the current span if available.
+     * 
+     * @param batchId The batch ID
+     * @param batchType The batch type
+     */
+    void addBatchContext(String batchId, String batchType);
+    
+    /**
+     * Adds portfolio context to the current span if available.
+     * 
+     * @param portfolioId The portfolio ID
+     * @param portfolioType The portfolio type
+     */
+    void addPortfolioContext(String portfolioId, String portfolioType);
+    
+    /**
+     * Adds operation context to the current span if available.
+     * 
+     * @param operationType The operation type
+     * @param operationName The operation name
+     */
+    void addOperationContext(String operationType, String operationName);
+    
+    /**
+     * Adds error context to the current span if available.
+     * 
+     * @param errorCode The error code
+     * @param errorCategory The error category
+     */
+    void addErrorContext(String errorCode, String errorCategory);
+    
+    /**
+     * Adds performance context to the current span if available.
+     * 
+     * @param performanceCategory The performance category
+     * @param recordCount The record count
+     */
+    void addPerformanceContext(String performanceCategory, Long recordCount);
 }
