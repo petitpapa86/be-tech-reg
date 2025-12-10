@@ -4,6 +4,7 @@ package com.bcbs239.regtech.ingestion.presentation.compliance.lifecycle;
 import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
+import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -42,6 +43,7 @@ public class LifecyclePoliciesController extends BaseController implements IEndp
             .withAttribute("permissions", new String[]{"ingestion:compliance:manage"});
     }
     
+    @Observed(name = "ingestion.api.compliance.lifecycle.configure", contextualName = "configure-lifecycle-policies")
     private ServerResponse configureLifecyclePolicies(ServerRequest request) {
         // TODO: Implement when compliance services are available
         log.info("Lifecycle policies configuration not yet implemented");
@@ -49,6 +51,7 @@ public class LifecyclePoliciesController extends BaseController implements IEndp
             .body(ResponseUtils.systemError("Compliance features not yet implemented"));
     }
     
+    @Observed(name = "ingestion.api.compliance.lifecycle.cleanup", contextualName = "perform-data-cleanup")
     private ServerResponse performDataCleanup(ServerRequest request) {
         // TODO: Implement when compliance services are available
         log.info("Data cleanup not yet implemented");

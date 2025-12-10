@@ -6,6 +6,7 @@ import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import com.bcbs239.regtech.ingestion.presentation.constants.Tags;
+import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -55,6 +56,7 @@ public class ComplianceReportsController extends BaseController implements IEndp
         ));
     }
     
+    @Observed(name = "ingestion.api.compliance.report.generate", contextualName = "generate-compliance-report")
     private ServerResponse generateComplianceReport(ServerRequest request) {
         // TODO: Implement when compliance services are available
         log.info("Compliance report generation not yet implemented");
@@ -62,6 +64,7 @@ public class ComplianceReportsController extends BaseController implements IEndp
             .body(ResponseUtils.systemError("Compliance features not yet implemented"));
     }
     
+    @Observed(name = "ingestion.api.compliance.status.get", contextualName = "get-compliance-status")
     private ServerResponse getComplianceStatus(ServerRequest request) {
         // TODO: Implement when compliance services are available
         log.info("Compliance status retrieval not yet implemented");

@@ -6,6 +6,7 @@ import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import com.bcbs239.regtech.ingestion.presentation.constants.Tags;
+import io.micrometer.observation.annotation.Observed;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.http.MediaType;
@@ -45,6 +46,7 @@ public class IngestionHealthController extends BaseController implements IEndpoi
     /**
      * Get detailed health information for the ingestion module.
      */
+    @Observed(name = "ingestion.api.health.module", contextualName = "get-ingestion-health")
     private ServerResponse getIngestionHealth(ServerRequest request) {
         try {
             Health health = healthIndicator.health();

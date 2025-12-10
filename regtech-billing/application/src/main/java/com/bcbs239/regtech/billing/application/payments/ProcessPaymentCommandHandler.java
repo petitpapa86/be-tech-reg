@@ -12,6 +12,7 @@ import com.bcbs239.regtech.billing.domain.subscriptions.SubscriptionTier;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
+import io.micrometer.core.annotation.Timed;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -39,6 +40,7 @@ public class ProcessPaymentCommandHandler {
     /**
      * Handle payment processing command
      */
+    @Timed(value = "billing.payment.process", description = "Time taken to process payment")
     public Result<ProcessPaymentResponse> handle(ProcessPaymentCommand command) {
         // Create customer using PaymentService
         PaymentService.CustomerCreationRequest customerRequest = new PaymentService.CustomerCreationRequest(

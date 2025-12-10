@@ -4,6 +4,7 @@ import com.bcbs239.regtech.dataquality.presentation.common.IEndpoint;
 import com.bcbs239.regtech.dataquality.presentation.monitoring.QualityHealthChecker.HealthCheckResult;
 import com.bcbs239.regtech.dataquality.presentation.monitoring.QualityHealthChecker.ModuleHealthResult;
 import com.bcbs239.regtech.dataquality.presentation.monitoring.QualityMetricsCollector.QualityMetrics;
+import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -60,6 +61,7 @@ public class QualityHealthController implements IEndpoint {
      * Get comprehensive health status of the data quality module.
      * Endpoint: GET /api/v1/data-quality/health
      */
+    @Observed(name = "data-quality.api.health.module", contextualName = "get-module-health")
     public ServerResponse getModuleHealth(ServerRequest request) {
         logger.debug("Processing module health check request");
         
@@ -71,6 +73,7 @@ public class QualityHealthController implements IEndpoint {
      * Get database connectivity status.
      * Endpoint: GET /api/v1/data-quality/health/database
      */
+    @Observed(name = "data-quality.api.health.database", contextualName = "get-database-health")
     public ServerResponse getDatabaseHealth(ServerRequest request) {
         logger.debug("Processing database health check request");
         
@@ -82,6 +85,7 @@ public class QualityHealthController implements IEndpoint {
      * Get S3 storage service availability status.
      * Endpoint: GET /api/v1/data-quality/health/s3
      */
+    @Observed(name = "data-quality.api.health.s3", contextualName = "get-s3-health")
     public ServerResponse getS3Health(ServerRequest request) {
         logger.debug("Processing S3 health check request");
         
@@ -96,6 +100,7 @@ public class QualityHealthController implements IEndpoint {
      * Note: Validation is now done through value object factory methods (DDD approach),
      * so this returns a simple UP status indicating the validation capability is available.
      */
+    @Observed(name = "data-quality.api.health.validation-engine", contextualName = "get-validation-engine-health")
     public ServerResponse getValidationEngineHealth(ServerRequest request) {
         logger.debug("Processing validation engine health check request");
         
@@ -115,6 +120,7 @@ public class QualityHealthController implements IEndpoint {
      * Get performance metrics and statistics.
      * Endpoint: GET /api/v1/data-quality/metrics
      */
+    @Observed(name = "data-quality.api.metrics.performance", contextualName = "get-performance-metrics")
     public ServerResponse getPerformanceMetrics(ServerRequest request) {
         logger.debug("Processing performance metrics request");
         

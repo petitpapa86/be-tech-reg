@@ -10,6 +10,7 @@ import com.bcbs239.regtech.iam.domain.authentication.PasswordHasher;
 import com.bcbs239.regtech.iam.domain.authentication.RefreshTokenId;
 import com.bcbs239.regtech.iam.domain.authentication.TokenPair;
 import com.bcbs239.regtech.iam.domain.users.*;
+import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -56,6 +57,7 @@ public class LoginCommandHandler {
      * Handles the login command
      */
     @Transactional
+    @Observed(name = "iam.login", contextualName = "login-user")
     public Result<LoginResponse> handle(LoginCommand command) {
         // Log login attempt (Requirement 9.1)
         log.info("LOGIN_ATTEMPT - email: {}, ipAddress: {}", 

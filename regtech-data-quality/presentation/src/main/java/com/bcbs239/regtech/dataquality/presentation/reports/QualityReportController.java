@@ -13,6 +13,7 @@ import com.bcbs239.regtech.dataquality.presentation.common.IEndpoint;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator.TrendsQueryParams;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityResponseHandler;
+import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -74,6 +75,7 @@ public class QualityReportController implements IEndpoint {
      * Get quality report for a specific batch.
      * Endpoint: GET /api/v1/data-quality/reports/{batchId}
      */
+    @Observed(name = "data-quality.api.report.get", contextualName = "get-quality-report")
     public ServerResponse getQualityReport(ServerRequest request) {
         try {
             logger.debug("Processing quality report request for batch: {}", 
@@ -115,6 +117,7 @@ public class QualityReportController implements IEndpoint {
      * Get quality trends analysis for a bank over time.
      * Endpoint: GET /api/v1/data-quality/trends?days=30&limit=100
      */
+    @Observed(name = "data-quality.api.trends.get", contextualName = "get-quality-trends")
     public ServerResponse getQualityTrends(ServerRequest request) {
         try {
             logger.debug("Processing quality trends request");

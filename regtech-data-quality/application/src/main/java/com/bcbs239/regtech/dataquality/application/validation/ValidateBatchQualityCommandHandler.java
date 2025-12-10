@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import io.micrometer.core.annotation.Timed;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,6 +75,7 @@ public class ValidateBatchQualityCommandHandler {
      * Implements the complete workflow with proper error handling and transaction management.
      */
     @Transactional
+    @Timed(value = "dataquality.validation.batch", description = "Time taken to validate batch quality")
     public Result<Void> handle(ValidateBatchQualityCommand command) {
         // Validate command parameters
         command.validate();

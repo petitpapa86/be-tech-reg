@@ -4,6 +4,7 @@ import com.bcbs239.regtech.riskcalculation.presentation.common.IEndpoint;
 import com.bcbs239.regtech.riskcalculation.presentation.monitoring.RiskCalculationHealthChecker.HealthCheckResult;
 import com.bcbs239.regtech.riskcalculation.presentation.monitoring.RiskCalculationHealthChecker.ModuleHealthResult;
 import com.bcbs239.regtech.riskcalculation.presentation.monitoring.RiskCalculationMetricsCollector.RiskCalculationMetrics;
+import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -58,6 +59,7 @@ public class RiskCalculationHealthController implements IEndpoint {
      * Get comprehensive health status of the risk calculation module.
      * Endpoint: GET /api/v1/risk-calculation/health
      */
+    @Observed(name = "risk-calculation.api.health.module", contextualName = "get-module-health")
     public ServerResponse getModuleHealth(ServerRequest request) {
         logger.debug("Processing module health check request");
         
@@ -69,6 +71,7 @@ public class RiskCalculationHealthController implements IEndpoint {
      * Get database connectivity status.
      * Endpoint: GET /api/v1/risk-calculation/health/database
      */
+    @Observed(name = "risk-calculation.api.health.database", contextualName = "get-database-health")
     public ServerResponse getDatabaseHealth(ServerRequest request) {
         logger.debug("Processing database health check request");
         
@@ -80,6 +83,7 @@ public class RiskCalculationHealthController implements IEndpoint {
      * Get file storage service availability status.
      * Endpoint: GET /api/v1/risk-calculation/health/file-storage
      */
+    @Observed(name = "risk-calculation.api.health.file-storage", contextualName = "get-file-storage-health")
     public ServerResponse getFileStorageHealth(ServerRequest request) {
         logger.debug("Processing file storage health check request");
         
@@ -91,6 +95,7 @@ public class RiskCalculationHealthController implements IEndpoint {
      * Get currency conversion service status.
      * Endpoint: GET /api/v1/risk-calculation/health/currency-conversion
      */
+    @Observed(name = "risk-calculation.api.health.currency-conversion", contextualName = "get-currency-conversion-health")
     public ServerResponse getCurrencyConversionHealth(ServerRequest request) {
         logger.debug("Processing currency conversion health check request");
         
@@ -102,6 +107,7 @@ public class RiskCalculationHealthController implements IEndpoint {
      * Get performance metrics and statistics.
      * Endpoint: GET /api/v1/risk-calculation/metrics
      */
+    @Observed(name = "risk-calculation.api.metrics.performance", contextualName = "get-performance-metrics")
     public ServerResponse getPerformanceMetrics(ServerRequest request) {
         logger.debug("Processing performance metrics request");
         

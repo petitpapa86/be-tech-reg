@@ -10,6 +10,7 @@ import com.bcbs239.regtech.ingestion.application.batch.upload.UploadAndProcessFi
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import com.bcbs239.regtech.ingestion.presentation.common.MultipartFileUtils;
+import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -51,6 +52,7 @@ public class UploadAndProcessFileController extends BaseController implements IE
         );
     }
 
+    @Observed(name = "ingestion.api.upload.process", contextualName = "upload-and-process-file")
     private ServerResponse handle(ServerRequest request) {
         // Extract bank ID from header
         String bankIdValue = request.headers().firstHeader("X-Bank-Id");

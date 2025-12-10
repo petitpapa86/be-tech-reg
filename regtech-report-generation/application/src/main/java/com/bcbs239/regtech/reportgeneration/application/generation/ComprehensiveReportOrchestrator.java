@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import io.micrometer.core.annotation.Timed;
 import org.w3c.dom.Document;
 
 import java.time.Instant;
@@ -69,6 +70,7 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
      */
     @Async("reportGenerationExecutor")
     @Override
+    @Timed(value = "reportgeneration.comprehensive", description = "Time taken to generate comprehensive report")
     public CompletableFuture<Void> generateComprehensiveReport(
             CalculationEventData riskEventData,
             QualityEventData qualityEventData) {

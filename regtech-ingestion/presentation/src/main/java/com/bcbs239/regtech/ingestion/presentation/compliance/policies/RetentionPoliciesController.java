@@ -6,6 +6,7 @@ import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import com.bcbs239.regtech.ingestion.presentation.constants.Tags;
+import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
@@ -56,6 +57,7 @@ public class RetentionPoliciesController extends BaseController implements IEndp
         ));
     }
     
+    @Observed(name = "ingestion.api.compliance.retention-policies.get", contextualName = "get-retention-policies")
     private ServerResponse getRetentionPolicies(ServerRequest request) {
         // TODO: Implement when compliance services are available
         log.info("Retention policies retrieval not yet implemented");
@@ -63,6 +65,7 @@ public class RetentionPoliciesController extends BaseController implements IEndp
             .body(ResponseUtils.systemError("Compliance features not yet implemented"));
     }
     
+    @Observed(name = "ingestion.api.compliance.retention-policies.update", contextualName = "update-retention-policy")
     private ServerResponse updateRetentionPolicy(ServerRequest request) {
         // TODO: Implement when compliance services are available
         log.info("Retention policy update not yet implemented");

@@ -397,37 +397,37 @@
   - Leverage automatic trace context propagation
   - _Requirements: 1.1, 1.2, 2.1, 2.3, 2.5_
 
-- [ ] 9.1 Add observability annotations to IAM module
+- [x] 9.1 Add observability annotations to IAM module
   - Add @Observed annotations to authentication and authorization methods
   - Implement SecurityAuditLogger integration
   - Add IAM-specific health indicators for user store and authentication providers
   - _Requirements: 2.1, 7.1, 7.2_
 
-- [ ] 9.2 Add observability annotations to Billing module
+- [x] 9.2 Add observability annotations to Billing module
   - Add @Timed annotations to payment processing and subscription operations
   - Implement billing event logging with automatic trace context
   - Add billing-specific health indicators for payment providers
   - _Requirements: 2.5, 7.4_
 
-- [ ] 9.3 Add observability annotations to Ingestion module
+- [x] 9.3 Add observability annotations to Ingestion module
   - Add @Observed annotations to file processing and batch operations
   - Implement batch context propagation using BusinessObservationHandler
   - Add ingestion-specific health indicators for file storage
   - _Requirements: 1.2, 2.3, 2.5_
 
-- [ ] 9.4 Add observability annotations to Data Quality module
+- [x] 9.4 Add observability annotations to Data Quality module
   - Add @Timed annotations to data quality rule execution
   - Implement quality score metrics using BusinessMetricsCollector
   - Add data quality health indicators for rules engine
   - _Requirements: 2.5, 4.1_
 
-- [ ] 9.5 Add observability annotations to Risk Calculation module
+- [x] 9.5 Add observability annotations to Risk Calculation module
   - Add @Observed annotations to risk calculation and exposure processing
   - Implement calculation context propagation with portfolio and batch IDs
   - Add risk calculation health indicators for calculation engines
   - _Requirements: 1.2, 2.3, 2.5_
 
-- [ ] 9.6 Add observability annotations to Report Generation module
+- [x] 9.6 Add observability annotations to Report Generation module
   - Add @Timed annotations to report generation and template processing
   - Implement report context propagation with report type and data context
   - Add report generation health indicators for template engines

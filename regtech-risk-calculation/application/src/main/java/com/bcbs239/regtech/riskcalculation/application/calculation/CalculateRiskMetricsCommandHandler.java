@@ -22,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import io.micrometer.observation.annotation.Observed;
 
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,7 @@ public class CalculateRiskMetricsCommandHandler {
     private final ExposureProcessingService exposureProcessingService;
 
     @Transactional
+    @Observed(name = "riskcalculation.batch.process", contextualName = "calculate-risk-metrics")
     public Result<Void> handle(CalculateRiskMetricsCommand command) {
         String batchId = command.getBatchId();
         performanceMetrics.recordBatchStart(batchId);

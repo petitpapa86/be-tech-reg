@@ -9,6 +9,7 @@ import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommand;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommandHandler;
 import com.bcbs239.regtech.iam.application.users.RegisterUserResponse;
+import io.micrometer.observation.annotation.Observed;
 import jakarta.servlet.ServletException;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -53,6 +54,7 @@ public class UserController extends BaseController {
                 .and(RouterAttributes.withPermissions(profileRoute, "users:read"));
     }
 
+    @Observed(name = "iam.api.users.register", contextualName = "register-user")
     private ServerResponse registerUserHandler(ServerRequest request) throws ServletException, IOException {
 
             RegisterUserRequest req = request.body(RegisterUserRequest.class);
@@ -105,6 +107,7 @@ public class UserController extends BaseController {
 
     }
 
+    @Observed(name = "iam.api.users.profile", contextualName = "get-user-profile")
     private ServerResponse getUserProfileHandler(ServerRequest request) {
         try {
             var ctx = SecurityContextHolder.getContext();
