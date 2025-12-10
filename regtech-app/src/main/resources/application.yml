@@ -231,8 +231,10 @@ management:
     health:
       show-details: when-authorized
       show-components: always
+      roles: ACTUATOR
     metrics:
       enabled: true
+      roles: ACTUATOR
     prometheus:
       enabled: true
   
@@ -245,11 +247,6 @@ management:
   # Security for production Hetzner deployment
   security:
     enabled: true
-  endpoint:
-    health:
-      roles: ACTUATOR
-    metrics:
-      roles: ACTUATOR
 
 # ============================================================================
 # OBSERVABILITY NOTIFICATIONS CONFIGURATION
@@ -461,15 +458,6 @@ logging:
     com.bcbs239.regtech.riskcalculation: DEBUG
     com.bcbs239.regtech.reportgeneration: DEBUG
 
-# Development observability settings
-management:
-  tracing:
-    sampling:
-      probability: 1.0  # 100% sampling in development
-  opentelemetry:
-    resource-attributes:
-      deployment.environment: development
-
 # ============================================================================
 # DATA QUALITY & RULES ENGINE CONFIGURATION
 # ============================================================================
@@ -570,18 +558,6 @@ logging:
     com.bcbs239.regtech.core.events: INFO
     com.bcbs239.regtech.core.inbox: INFO
     com.bcbs239.regtech.core.outbox: INFO
-
-# Production observability settings (Hetzner)
-management:
-  tracing:
-    sampling:
-      probability: 0.1  # 10% sampling in production
-  opentelemetry:
-    resource-attributes:
-      deployment.environment: production
-      deployment.provider: hetzner
-  security:
-    enabled: true
 
 ---
 # ============================================================================

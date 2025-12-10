@@ -58,9 +58,9 @@ observability:
         validate: "validate.*|check.*|verify.*"
 
 # ============================================================================
-# CUSTOM HEALTH INDICATORS CONFIGURATION
+# CUSTOM HEALTH INDICATORS & SAMPLING CONFIGURATION
 # ============================================================================
-# Configuration for custom health indicators
+# Configuration for custom health indicators and business-specific sampling rules
 management:
   health:
     # Database health indicator
@@ -95,6 +95,45 @@ management:
       report-generation:
         enabled: true
         max-generation-time: 180000  # 3 minutes in milliseconds
+  
+  # Business-specific sampling rules
+  tracing:
+    sampling:
+      # Default sampling rate (10% for production)
+      probability: ${TRACE_SAMPLING_RATE:0.1}
+      
+      # Business-specific sampling rules
+      # These override the default probability for specific operations
+      rules:
+        # Always sample risk calculations (100%)
+        - pattern: ".*riskcalculation.*"
+          probability: 1.0
+          priority: 1
+        
+        # Sample 50% of report generation operations
+        - pattern: ".*reportgeneration.*"
+          probability: 0.5
+          priority: 2
+        
+        # Sample 30% of data quality operations
+        - pattern: ".*dataquality.*"
+          probability: 0.3
+          priority: 3
+        
+        # Sample 20% of ingestion operations
+        - pattern: ".*ingestion.*"
+          probability: 0.2
+          priority: 4
+        
+        # Sample 10% of IAM operations (default)
+        - pattern: ".*iam.*"
+          probability: 0.1
+          priority: 5
+        
+        # Sample 10% of billing operations (default)
+        - pattern: ".*billing.*"
+          probability: 0.1
+          priority: 6
 
 # ============================================================================
 # ALERTING THRESHOLDS CONFIGURATION
@@ -184,49 +223,6 @@ notifications:
       enabled: true
       max-attempts: 3
       backoff-multiplier: 2
-
-# ============================================================================
-# BUSINESS-SPECIFIC SAMPLING RULES
-# ============================================================================
-# Advanced sampling configuration for business operations
-management:
-  tracing:
-    sampling:
-      # Default sampling rate (10% for production)
-      probability: ${TRACE_SAMPLING_RATE:0.1}
-      
-      # Business-specific sampling rules
-      # These override the default probability for specific operations
-      rules:
-        # Always sample risk calculations (100%)
-        - pattern: ".*riskcalculation.*"
-          probability: 1.0
-          priority: 1
-        
-        # Sample 50% of report generation operations
-        - pattern: ".*reportgeneration.*"
-          probability: 0.5
-          priority: 2
-        
-        # Sample 30% of data quality operations
-        - pattern: ".*dataquality.*"
-          probability: 0.3
-          priority: 3
-        
-        # Sample 20% of ingestion operations
-        - pattern: ".*ingestion.*"
-          probability: 0.2
-          priority: 4
-        
-        # Sample 10% of IAM operations (default)
-        - pattern: ".*iam.*"
-          probability: 0.1
-          priority: 5
-        
-        # Sample 10% of billing operations (default)
-        - pattern: ".*billing.*"
-          probability: 0.1
-          priority: 6
 
 # ============================================================================
 # ENVIRONMENT-SPECIFIC PROFILES
