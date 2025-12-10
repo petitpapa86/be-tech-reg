@@ -318,12 +318,12 @@ management:
   tracing:
     export:
       otlp:
-        endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://otel-collector:4318/v1/traces}
+        endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://localhost:4318/v1/traces}
   
   metrics:
     export:
       otlp:
-        endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://otel-collector:4318/v1/metrics}
+        endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://localhost:4318/v1/metrics}
 
 # Hetzner-specific alerting (use internal IPs)
 alerting:
