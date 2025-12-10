@@ -77,8 +77,18 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
             return Result.success(savedReport);
             
         } catch (DataIntegrityViolationException e) {
-            logger.error("Data integrity violation saving quality report: {}", report.getReportId().value(), e);
-            return Result.failure("QUALITY_REPORT_SAVE_CONSTRAINT_VIOLATION", ErrorType.SYSTEM_ERROR, "Quality report violates database constraints: " + e.getMessage(), "report_id");
+            // Check if this is a duplicate batch_id constraint violation
+            String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (errorMsg.contains("batch_id") || errorMsg.contains("quality_reports_batch_id_key")) {
+                logger.warn("Duplicate batch_id constraint violation for report: {} batch_id: {}", 
+                    report.getReportId().value(), report.getBatchId().value());
+                return Result.failure("QUALITY_REPORT_DUPLICATE_BATCH_ID", ErrorType.VALIDATION_ERROR, 
+                    "Quality report already exists for batch_id: " + report.getBatchId().value(), "batch_id");
+            } else {
+                logger.error("Data integrity violation saving quality report: {}", report.getReportId().value(), e);
+                return Result.failure("QUALITY_REPORT_SAVE_CONSTRAINT_VIOLATION", ErrorType.SYSTEM_ERROR, 
+                    "Quality report violates database constraints: " + e.getMessage(), "report_id");
+            }
         } catch (DataAccessException e) {
             logger.error("Database error saving quality report: {}", report.getReportId().value(), e);
             return Result.failure("QUALITY_REPORT_SAVE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to save quality report: " + e.getMessage(), "database");

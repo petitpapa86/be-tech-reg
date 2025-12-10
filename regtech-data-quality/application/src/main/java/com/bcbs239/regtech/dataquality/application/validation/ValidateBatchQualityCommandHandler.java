@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Command handler for validating batch quality using proper DDD approach.
@@ -83,27 +84,30 @@ public class ValidateBatchQualityCommandHandler {
         logger.info("Starting quality validation for batch {} from bank {}", 
             command.batchId().value(), command.bankId().value());
         
-        // Check for idempotency - if report already exists, skip processing
-        if (qualityReportRepository.existsByBatchId(command.batchId())) {
+        // Check if report already exists (idempotency)
+        Optional<QualityReport> existingReport = qualityReportRepository.findByBatchId(command.batchId());
+        if (existingReport.isPresent()) {
+            logger.info("Quality report already exists for batch {}, skipping", command.batchId().value());
             return Result.success();
         }
         
-        // Create quality report
+        // Create and save quality report
         QualityReport report = QualityReport.createForBatch(command.batchId(), command.bankId());
-
-        QualityReport finalReport = report;
-        Result<QualityReport> reportResult = report.startValidation()
-            .flatMap(ignored -> qualityReportRepository.save(finalReport))
-            .map(savedReport -> {
-                logger.debug("Created quality report {} for batch {}", 
-                    savedReport.getReportId().value(), command.batchId().value());
-                return savedReport;
-            });
+        report.startValidation();
         
-        if (reportResult.isFailure()) {
-            return Result.failure(reportResult.errors());
+        Result<QualityReport> saveResult = qualityReportRepository.save(report);
+        if (saveResult.isFailure()) {
+            // If duplicate key error, another thread created it - that's OK
+            if (saveResult.getError().map(e -> 
+                e.getCode().equals("QUALITY_REPORT_DUPLICATE_BATCH_ID")
+            ).orElse(false)) {
+                logger.info("Another thread created report for batch {}, continuing", command.batchId().value());
+            } else {
+                return Result.failure(saveResult.errors());
+            }
+        } else {
+            report = saveResult.getValueOrThrow();
         }
-        report = reportResult.getValueOrThrow();
         
         // Download exposure data
         logger.debug("Downloading exposure data from S3: {}", command.s3Uri());
@@ -222,16 +226,16 @@ public class ValidateBatchQualityCommandHandler {
         }
         
         // Save completed report
-        Result<QualityReport> saveResult = qualityReportRepository.save(report)
+        Result<QualityReport> finalSaveResult = qualityReportRepository.save(report)
             .map(savedReport -> {
                 logger.debug("Saved quality report {} for batch {}", 
                     savedReport.getReportId().value(), savedReport.getBatchId().value());
                 return savedReport;
             });
         
-        if (saveResult.isFailure()) {
+        if (finalSaveResult.isFailure()) {
             logger.error("Failed to save completed quality report for batch {}", command.batchId().value());
-            return Result.failure(saveResult.errors());
+            return Result.failure(finalSaveResult.errors());
         }
         
         // Register aggregate with Unit of Work to persist domain events
