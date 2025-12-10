@@ -18,6 +18,8 @@ import com.bcbs239.regtech.riskcalculation.domain.services.BatchDataParsingServi
 import com.bcbs239.regtech.riskcalculation.domain.services.ExposureProcessingService;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -71,6 +73,13 @@ public class CalculateRiskMetricsCommandHandler {
         Batch batch = null;
         
         try {
+            // Check if batch already exists (idempotency check)
+            Maybe<Batch> existingBatch = batchRepository.findById(BatchId.of(batchId));
+            if (existingBatch.isPresent()) {
+                log.info("Batch {} already exists, skipping duplicate calculation", batchId);
+                return Result.success();
+            }
+            
             // Download and parse batch data
             Result<String> downloadResult = fileStorageService.retrieveFile(command.getS3Uri());
             if (downloadResult.isFailure()) {

@@ -59,6 +59,20 @@ public class JpaBatchRepository implements BatchRepository {
             log.debug("Successfully saved batch aggregate: {}", batch.getId().value());
             return Result.success();
             
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // Check if this is a duplicate key violation (race condition during concurrent processing)
+            if (e.getMessage() != null && e.getMessage().contains("batches_pkey")) {
+                log.warn("Batch {} already exists (duplicate key), treating as idempotent success", batch.getId().value());
+                // Return success for idempotent operation - batch already exists
+                return Result.success();
+            }
+            log.error("Data integrity violation while saving batch aggregate: {}", batch.getId().value(), e);
+            return Result.failure(ErrorDetail.of(
+                "BATCH_SAVE_FAILED",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to save batch due to data integrity violation: " + e.getMessage(),
+                "batch.save.failed"
+            ));
         } catch (Exception e) {
             log.error("Failed to save batch aggregate: {}", batch.getId().value(), e);
             return Result.failure(ErrorDetail.of(

@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class BatchIngestedEventListener {
      */
     @EventListener
     @Async("riskCalculationTaskExecutor")
+    @Transactional
     public void handleBatchIngestedEvent(BatchIngestedEvent event) {
         log.info("Received BatchIngestedEvent for batch: {} from bank: {}, isInboxReplay: {}",
             event.getBatchId(), event.getBankId(), CorrelationContext.isInboxReplay());
@@ -69,7 +71,7 @@ public class BatchIngestedEventListener {
             // Check if portfolio analysis already exists for this batch
             BatchId batchId = BatchId.of(event.getBatchId());
             if (portfolioAnalysisRepository.findByBatchId(batchId.value()).isPresent()) {
-                log.info("Batch {} already processed, skipping duplicate event", event.getBatchId());
+                log.info("Batch {} already processed (portfolio analysis exists), skipping duplicate event", event.getBatchId());
                 return;
             }
 
