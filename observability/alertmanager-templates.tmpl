@@ -1,0 +1,38 @@
+{{ define "email.subject" }}{{ .GroupLabels.alertname }} - {{ .Status | title }}{{ end }}
+
+{{ define "email.text" }}{{ range .Alerts }}
+Alert: {{ .Annotations.summary }}
+Description: {{ .Annotations.description }}
+Severity: {{ .Labels.severity }}
+Service: {{ .Labels.service }}
+Instance: {{ .Labels.instance }}
+Status: {{ .Status | title }}
+{{ if .Annotations.runbook_url }}Runbook: {{ .Annotations.runbook_url }}{{ end }}
+{{ if .Annotations.dashboard_url }}Dashboard: {{ .Annotations.dashboard_url }}{{ end }}
+{{ end }}{{ end }}
+
+{{ define "slack.title" }}{{ .GroupLabels.alertname }} - {{ .Status | title }}{{ end }}
+
+{{ define "slack.text" }}{{ range .Alerts }}
+*Alert:* {{ .Annotations.summary }}
+*Description:* {{ .Annotations.description }}
+*Severity:* {{ .Labels.severity }}
+*Service:* {{ .Labels.service }}
+*Instance:* {{ .Labels.instance }}
+*Status:* {{ .Status | title }}
+{{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+{{ if .Annotations.dashboard_url }}*Dashboard:* {{ .Annotations.dashboard_url }}{{ end }}
+---
+{{ end }}{{ end }}
+
+{{ define "pagerduty.description" }}{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}{{ end }}
+
+{{ define "pagerduty.details" }}{
+  "firing": {{ .Alerts.Firing | len }},
+  "resolved": {{ .Alerts.Resolved | len }},
+  "severity": "{{ .CommonLabels.severity }}",
+  "service": "{{ .CommonLabels.service }}",
+  "description": "{{ .CommonAnnotations.description }}",
+  "runbook_url": "{{ .CommonAnnotations.runbook_url }}",
+  "dashboard_url": "{{ .CommonAnnotations.dashboard_url }}"
+}{{ end }}

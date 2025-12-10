@@ -13,16 +13,16 @@ global:
     environment: 'production'
     cluster: 'bcbs239-platform'
 
-# Alertmanager configuration (optional)
+# Alertmanager configuration
 alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          # - alertmanager:9093
+          - alertmanager:9093
 
 # Load rules once and periodically evaluate them
 rule_files:
-  # - "alerts/*.yml"
+  - "alert_rules.yml"
 
 # Scrape configurations
 scrape_configs:
@@ -129,13 +129,10 @@ scrape_configs:
           application: 'bcbs239-platform'
           module: 'report-generation'
 
-# Storage configuration
-storage:
-  tsdb:
-    path: /prometheus
-    retention:
-      time: 90d
-      size: 50GB
+# Storage configuration handled by Docker Compose command-line arguments
+# --storage.tsdb.path=/prometheus
+# --storage.tsdb.retention.time=90d
+# --storage.tsdb.retention.size=50GB
 
 # ============================================================================
 # CONFIGURATION NOTES

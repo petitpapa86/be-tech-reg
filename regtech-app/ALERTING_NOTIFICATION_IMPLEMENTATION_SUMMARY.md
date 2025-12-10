@@ -257,7 +257,7 @@ notificationService.sendAlert(testAlert);
 - Spring Web (for HTTP notifications)
 
 ### Optional Dependencies
-- JavaMailSender (for email support)
+- SendGrid Java SDK (for email support via SendGrid SMTP)
 
 ## Future Enhancements
 

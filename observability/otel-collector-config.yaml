@@ -71,15 +71,6 @@ exporters:
     const_labels:
       deployment: hetzner
 
-  # Loki exporter for logs
-  loki:
-    endpoint: http://loki:3100/loki/api/v1/push
-    labels:
-      attributes:
-        deployment.environment: ""
-        service.name: ""
-        service.version: ""
-
   # Logging exporter for debugging (optional)
   logging:
     loglevel: info
@@ -99,12 +90,6 @@ service:
       receivers: [otlp, prometheus]
       processors: [memory_limiter, batch, resource]
       exporters: [prometheus, logging]
-
-    # Logs pipeline
-    logs:
-      receivers: [otlp]
-      processors: [memory_limiter, batch, resource]
-      exporters: [loki, logging]
 
   # Telemetry configuration
   telemetry:
