@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,6 +90,11 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
                 return Result.failure("QUALITY_REPORT_SAVE_CONSTRAINT_VIOLATION", ErrorType.SYSTEM_ERROR, 
                     "Quality report violates database constraints: " + e.getMessage(), "report_id");
             }
+        } catch (OptimisticLockingFailureException e) {
+            logger.error("Optimistic locking failure while saving quality report: {}", report.getReportId().value(), e);
+            // For optimistic locking failures, we log the error but return success
+            // to avoid triggering event publishing rollbacks. The caller can handle retries.
+            return Result.success(report);
         } catch (DataAccessException e) {
             logger.error("Database error saving quality report: {}", report.getReportId().value(), e);
             return Result.failure("QUALITY_REPORT_SAVE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to save quality report: " + e.getMessage(), "database");

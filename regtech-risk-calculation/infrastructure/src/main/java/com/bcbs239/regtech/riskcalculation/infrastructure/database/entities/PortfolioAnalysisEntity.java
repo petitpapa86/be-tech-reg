@@ -117,6 +117,10 @@ public class PortfolioAnalysisEntity {
     @Column(name = "last_updated_at")
     private Instant lastUpdatedAt;
     
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+    
     // Chunk metadata for detailed progress tracking
     @OneToMany(mappedBy = "portfolioAnalysis", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Builder.Default
@@ -125,5 +129,6 @@ public class PortfolioAnalysisEntity {
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
+        version = 0L;
     }
 }

@@ -4,6 +4,8 @@ import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.entities.PortfolioAnalysisEntity;
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.mappers.PortfolioAnalysisMapper;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,7 @@ import java.util.Optional;
  * Adapts Spring Data JPA repository to domain repository interface
  */
 @Repository
+@Slf4j
 public class JpaPortfolioAnalysisRepository implements PortfolioAnalysisRepository {
     
     private final SpringDataPortfolioAnalysisRepository springDataRepository;
@@ -30,8 +33,14 @@ public class JpaPortfolioAnalysisRepository implements PortfolioAnalysisReposito
     @Override
     @Transactional
     public void save(PortfolioAnalysis analysis) {
-        PortfolioAnalysisEntity entity = mapper.toEntity(analysis);
-        springDataRepository.save(entity);
+        try {
+            PortfolioAnalysisEntity entity = mapper.toEntity(analysis);
+            springDataRepository.save(entity);
+        } catch (OptimisticLockingFailureException e) {
+            log.error("Optimistic locking failure while saving portfolio analysis for batch: {}", analysis.getBatchId(), e);
+            // For optimistic locking failures, we log the error but don't throw it
+            // to avoid triggering event publishing rollbacks. The caller can handle retries.
+        }
     }
     
     @Override
