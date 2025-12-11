@@ -8,6 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component("riskCalculationBatchCalculationCompletedEventPublisher")
@@ -22,7 +25,8 @@ public class BatchCalculationCompletedEventPublisher {
         this.eventBus = eventBus;
     }
 
-    @TransactionalEventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handle(BatchCalculationCompletedEvent event) {
         if (CorrelationContext.isOutboxReplay()) {
             logger.debug("Skipping integration publish for BatchCalculationCompletedEvent {} because this is an outbox replay", event.getEventId());

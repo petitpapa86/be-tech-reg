@@ -16,7 +16,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Instant;
 import java.util.Map;
@@ -78,7 +81,8 @@ public class BatchIngestedEventListener {
      * This prevents "Transaction silently rolled back" errors when handleEventProcessingError()
      * marks the transaction as rollback-only.
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Async("qualityEventExecutor")
     public void handleBatchIngestedEvent(BatchIngestedEvent event) {
         totalEventsReceived.incrementAndGet();

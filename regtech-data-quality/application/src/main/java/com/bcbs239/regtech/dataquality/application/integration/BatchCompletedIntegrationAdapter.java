@@ -7,6 +7,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.Map;
 
@@ -49,7 +53,8 @@ public class BatchCompletedIntegrationAdapter {
      * 
      * @param integrationEvent The batch completed integration event from the ingestion module
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onBatchCompletedIntegrationEvent(BatchCompletedIntegrationEvent integrationEvent) {
         log.info("🔔 BatchCompletedIntegrationAdapter received event; details={}", Map.of(
             "eventType", "BATCH_COMPLETED_INTEGRATION_EVENT",
