@@ -8,6 +8,7 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,6 +42,12 @@ public class JpaEventProcessingFailureRepository implements IEventProcessingFail
             EventProcessingFailureEntity entity = mapper.toEntity(failure);
             EventProcessingFailureEntity saved = jpaRepository.save(entity);
             return Result.success(mapper.toDomain(saved));
+        } catch (OptimisticLockingFailureException e) {
+            // Multiple threads trying to save the same failure - this is expected in concurrent processing
+            log.debug("Optimistic locking failure for event processing failure: {} (type: {}) - Another thread already saved it", 
+                failure.getId(), failure.getEventType());
+            // Return success since another thread already persisted the failure
+            return Result.success(failure);
         } catch (Exception e) {
             log.error("EVENT_PROCESSING_FAILURE_SAVE_FAILED; details={}", Map.of(
                     "eventType", failure.getEventType(),

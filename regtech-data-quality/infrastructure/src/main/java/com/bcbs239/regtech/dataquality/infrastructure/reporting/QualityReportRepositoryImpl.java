@@ -70,7 +70,19 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Override
     public Result<QualityReport> save(QualityReport report) {
         try {
-            QualityReportEntity entity = mapper.toEntity(report);
+            // Load existing entity to preserve version for optimistic locking
+            // This prevents Hibernate AssertionFailure when updating existing records
+            QualityReportEntity entity = jpaRepository.findById(report.getReportId().value())
+                .orElseGet(() -> new QualityReportEntity(
+                    report.getReportId().value(),
+                    report.getBatchId().value(),
+                    report.getBankId().value(),
+                    report.getStatus()
+                ));
+            
+            // Update entity fields from domain object
+            updateEntityFromDomain(entity, report);
+            
             QualityReportEntity savedEntity = jpaRepository.save(entity);
             QualityReport savedReport = mapper.toDomain(savedEntity);
             
@@ -349,6 +361,67 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
             logger.error("Error finding non-compliant quality reports by bank ID: {}", bankId.value(), e);
             return List.of();
         }
+    }
+    
+    /**
+     * Helper method to update entity fields from domain object while preserving version.
+     * This is critical for optimistic locking to work correctly.
+     */
+    private void updateEntityFromDomain(QualityReportEntity entity, QualityReport report) {
+        // Update basic fields
+        entity.setBatchId(report.getBatchId().value());
+        entity.setBankId(report.getBankId().value());
+        entity.setStatus(report.getStatus());
+        
+        // Update quality scores
+        if (report.getScores() != null) {
+            var scores = report.getScores();
+            entity.setCompletenessScore(BigDecimal.valueOf(scores.completenessScore()));
+            entity.setAccuracyScore(BigDecimal.valueOf(scores.accuracyScore()));
+            entity.setConsistencyScore(BigDecimal.valueOf(scores.consistencyScore()));
+            entity.setTimelinessScore(BigDecimal.valueOf(scores.timelinessScore()));
+            entity.setUniquenessScore(BigDecimal.valueOf(scores.uniquenessScore()));
+            entity.setValidityScore(BigDecimal.valueOf(scores.validityScore()));
+            entity.setOverallScore(BigDecimal.valueOf(scores.overallScore()));
+            entity.setQualityGrade(scores.grade());
+        }
+        
+        // Update validation summary
+        if (report.getValidationSummary() != null) {
+            var summary = report.getValidationSummary();
+            entity.setTotalExposures(summary.totalExposures());
+            entity.setValidExposures(summary.validExposures());
+            entity.setTotalErrors(summary.totalErrors());
+            
+            var byDim = summary.errorsByDimension();
+            if (byDim != null) {
+                entity.setCompletenessErrors(byDim.getOrDefault(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.COMPLETENESS, 0));
+                entity.setAccuracyErrors(byDim.getOrDefault(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.ACCURACY, 0));
+                entity.setConsistencyErrors(byDim.getOrDefault(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.CONSISTENCY, 0));
+                entity.setTimelinessErrors(byDim.getOrDefault(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.TIMELINESS, 0));
+                entity.setUniquenessErrors(byDim.getOrDefault(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.UNIQUENESS, 0));
+                entity.setValidityErrors(byDim.getOrDefault(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.VALIDITY, 0));
+            }
+        }
+        
+        // Update S3 reference
+        if (report.getDetailsReference() != null) {
+            var s3ref = report.getDetailsReference();
+            entity.setS3Bucket(s3ref.bucket());
+            entity.setS3Key(s3ref.key());
+            entity.setS3Uri(s3ref.uri());
+        }
+        
+        // Update compliance and error info
+        entity.setComplianceStatus(report.isCompliant());
+        entity.setErrorMessage(report.getErrorMessage());
+        
+        // Update processing metadata
+        entity.setProcessingStartTime(report.getProcessingStartTime());
+        entity.setProcessingEndTime(report.getProcessingEndTime());
+        entity.setProcessingDurationMs(report.getProcessingDurationMs());
+        
+        // Note: createdAt and version are NOT updated - they're managed by JPA
     }
 }
 

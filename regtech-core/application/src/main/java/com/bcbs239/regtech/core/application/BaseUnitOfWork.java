@@ -62,8 +62,13 @@ public class BaseUnitOfWork {
     @Transactional
     public void saveChanges() {
         if (!domainEvents.isEmpty()) {
+            // Create a snapshot to avoid ConcurrentModificationException
+            // This is critical in concurrent/async processing scenarios
+            List<DomainEvent> eventsToProcess = new ArrayList<>(domainEvents);
+            domainEvents.clear(); // Clear immediately to allow new events to be added
+            
             List<OutboxMessage> outboxMessages = new ArrayList<>();
-            for (DomainEvent domainEvent : domainEvents) {
+            for (DomainEvent domainEvent : eventsToProcess) {
                 String content;
                 try {
                     content = objectMapper.writeValueAsString(domainEvent);
@@ -84,8 +89,6 @@ public class BaseUnitOfWork {
                 logger.error("Failed to persist outbox messages", e);
                 throw e;
             }
-            // Clear only after successful persistence
-            domainEvents.clear();
         }
     }
 }

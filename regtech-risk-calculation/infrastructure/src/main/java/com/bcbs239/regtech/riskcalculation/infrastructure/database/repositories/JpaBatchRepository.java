@@ -63,7 +63,7 @@ public class JpaBatchRepository implements BatchRepository {
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
             // Check if this is a duplicate key violation (race condition during concurrent processing)
             if (e.getMessage() != null && e.getMessage().contains("batches_pkey")) {
-                log.warn("Batch {} already exists (duplicate key), treating as idempotent success", batch.getId().value());
+                log.debug("Duplicate batch_id detected: {} - This is expected in concurrent processing", batch.getId().value());
                 // Return success for idempotent operation - batch already exists
                 return Result.success();
             }
