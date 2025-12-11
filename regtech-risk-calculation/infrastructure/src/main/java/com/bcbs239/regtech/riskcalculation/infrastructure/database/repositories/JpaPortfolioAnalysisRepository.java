@@ -5,6 +5,7 @@ import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisR
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.entities.PortfolioAnalysisEntity;
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.mappers.PortfolioAnalysisMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,17 @@ public class JpaPortfolioAnalysisRepository implements PortfolioAnalysisReposito
         try {
             PortfolioAnalysisEntity entity = mapper.toEntity(analysis);
             springDataRepository.save(entity);
+        } catch (DataIntegrityViolationException e) {
+            // Check if this is a duplicate batch_id primary key violation
+            String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (errorMsg.contains("batch_id") || errorMsg.contains("portfolio_analysis_pkey")) {
+                log.debug("Duplicate batch_id detected for portfolio analysis: {} - This is expected in concurrent processing", 
+                    analysis.getBatchId());
+                // Silently skip - another thread already created this analysis
+                return;
+            }
+            log.error("Data integrity violation while saving portfolio analysis for batch: {}", analysis.getBatchId(), e);
+            throw e;
         } catch (OptimisticLockingFailureException e) {
             log.error("Optimistic locking failure while saving portfolio analysis for batch: {}", analysis.getBatchId(), e);
             // For optimistic locking failures, we log the error but don't throw it

@@ -98,22 +98,37 @@ public class ValidateBatchQualityCommandHandler {
         }
         
         // Try to create and save quality report (may fail if another thread created it)
-        QualityReport report = QualityReport.createForBatch(command.batchId(), command.bankId());
-        report.startValidation();
-        
-        Result<QualityReport> saveResult = qualityReportRepository.save(report);
-        if (saveResult.isFailure()) {
-            // If duplicate key error, another thread is processing it
-            if (saveResult.getError().map(e -> 
-                e.getCode().equals("QUALITY_REPORT_DUPLICATE_BATCH_ID")
-            ).orElse(false)) {
-                logger.info("Another thread is processing batch {}, skipping duplicate", command.batchId().value());
-                return Result.success();
-            } else {
+        QualityReport report;
+        try {
+            report = QualityReport.createForBatch(command.batchId(), command.bankId());
+            report.startValidation();
+            
+            Result<QualityReport> saveResult = qualityReportRepository.save(report);
+            if (saveResult.isFailure()) {
+                // If duplicate key error, another thread is processing it
+                if (saveResult.getError().map(e -> 
+                    e.getCode().equals("QUALITY_REPORT_DUPLICATE_BATCH_ID")
+                ).orElse(false)) {
+                    logger.debug("Concurrent creation detected for batch {}, another thread created the report", command.batchId().value());
+                    return Result.success();
+                }
+                logger.error("Failed to save quality report for batch {}: {}", 
+                    command.batchId().value(), 
+                    saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
                 return Result.failure(saveResult.errors());
             }
+            report = saveResult.getValueOrThrow();
+        } catch (Exception e) {
+            logger.warn("Exception during initial quality report creation for batch {}: {}", 
+                command.batchId().value(), e.getMessage());
+            // Check if report was created by another thread despite the exception
+            Optional<QualityReport> retryCheck = qualityReportRepository.findByBatchId(command.batchId());
+            if (retryCheck.isPresent()) {
+                logger.debug("Report exists after exception, another thread succeeded for batch {}", command.batchId().value());
+                return Result.success();
+            }
+            throw e;
         }
-        report = saveResult.getValueOrThrow();
         
         // Download exposure data
         logger.debug("Downloading exposure data from S3: {}", command.s3Uri());

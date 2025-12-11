@@ -81,7 +81,7 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
             // Check if this is a duplicate batch_id constraint violation
             String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
             if (errorMsg.contains("batch_id") || errorMsg.contains("quality_reports_batch_id_key")) {
-                logger.warn("Duplicate batch_id constraint violation for report: {} batch_id: {}", 
+                logger.debug("Duplicate batch_id detected for report: {} batch_id: {} - This is expected in concurrent processing", 
                     report.getReportId().value(), report.getBatchId().value());
                 return Result.failure("QUALITY_REPORT_DUPLICATE_BATCH_ID", ErrorType.VALIDATION_ERROR, 
                     "Quality report already exists for batch_id: " + report.getBatchId().value(), "batch_id");
