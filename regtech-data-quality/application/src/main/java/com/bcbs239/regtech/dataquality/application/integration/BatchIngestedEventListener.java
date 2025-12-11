@@ -262,6 +262,11 @@ public class BatchIngestedEventListener {
     /**
      * Handle event processing errors by persisting to the failure repository.
      * 
+     * Uses REQUIRES_NEW to ensure error recording happens in a separate transaction,
+     * preventing "Transaction silently rolled back" errors when the main transaction
+     * is marked as rollback-only due to OptimisticLockingFailureException or 
+     * DataIntegrityViolationException.
+     * 
      * <p>The IEventProcessingFailureRepository serves as the dead letter queue.
      * The EventRetryProcessor will automatically:
      * <ul>
@@ -273,6 +278,7 @@ public class BatchIngestedEventListener {
      * 
      * <p>No manual retry logic or dead letter queue implementation is needed here.
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     private void handleEventProcessingError(BatchIngestedEvent event, Exception error) {
         String batchId = event.getBatchId();
 

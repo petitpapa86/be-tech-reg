@@ -161,11 +161,17 @@ public class BatchIngestedEventListener {
     /**
      * Handles event processing errors by persisting to the failure repository.
      * This serves as a dead letter queue for failed events that can be retried later.
+     * 
+     * Uses REQUIRES_NEW to ensure error recording happens in a separate transaction,
+     * preventing "Transaction silently rolled back" errors when the main transaction
+     * is marked as rollback-only due to OptimisticLockingFailureException or 
+     * DataIntegrityViolationException.
      *
      * @param event The failed event
      * @param errorMessage The error message
      * @param exception The exception (if any)
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     private void handleEventProcessingError(BatchIngestedEvent event, String errorMessage, Exception exception) {
         try {
             String eventPayload = objectMapper.writeValueAsString(event);
