@@ -8,6 +8,7 @@ import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ProcessingTimestamps;
+import lombok.Getter;
 
 import java.time.Instant;
 
@@ -25,8 +26,10 @@ import java.time.Instant;
  * - Provides factory methods for creation
  * - Provides reconstitution method for persistence
  */
+@Getter
 public class Batch extends Entity {
-    
+
+    // Getters
     private BatchId id;
     private BankInfo bankInfo;
     private BatchStatus status;
@@ -179,40 +182,7 @@ public class Batch extends Entity {
         
         return batch;
     }
-    
-    // Getters
-    public BatchId getId() {
-        return id;
-    }
-    
-    public BankInfo getBankInfo() {
-        return bankInfo;
-    }
-    
-    public BatchStatus getStatus() {
-        return status;
-    }
-    
-    public int getTotalExposures() {
-        return totalExposures;
-    }
-    
-    public FileStorageUri getSourceDataUri() {
-        return sourceDataUri;
-    }
-    
-    public FileStorageUri getCalculationResultsUri() {
-        return calculationResultsUri;
-    }
-    
-    public ProcessingTimestamps getTimestamps() {
-        return timestamps;
-    }
-    
-    public String getFailureReason() {
-        return failureReason;
-    }
-    
+
     /**
      * Populates a persistence entity with this aggregate's state.
      * Implements "Tell, don't ask" principle - the aggregate controls its own persistence representation.

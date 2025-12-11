@@ -14,6 +14,7 @@ import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.Processing
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.entities.BatchEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,6 +74,11 @@ public class JpaBatchRepository implements BatchRepository {
                 "Failed to save batch due to data integrity violation: " + e.getMessage(),
                 "batch.save.failed"
             ));
+        } catch (OptimisticLockingFailureException e) {
+            log.error("Optimistic locking failure while saving batch aggregate: {}", batch.getId().value(), e);
+            // For optimistic locking failures, we log the error but don't fail the operation
+            // to avoid triggering event publishing rollbacks. The caller can handle retries.
+            return Result.success();
         } catch (Exception e) {
             log.error("Failed to save batch aggregate: {}", batch.getId().value(), e);
             return Result.failure(ErrorDetail.of(

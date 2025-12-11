@@ -60,11 +60,16 @@ public class BatchEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
     
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+    
     @PrePersist
     protected void onCreate() {
         Instant now = Instant.now();
         createdAt = now;
         updatedAt = now;
+        version = 0L;
     }
     
     @PreUpdate
