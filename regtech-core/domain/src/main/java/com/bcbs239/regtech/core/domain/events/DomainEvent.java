@@ -16,7 +16,7 @@ import java.util.UUID;
 public abstract class DomainEvent {
 
     private final String eventId = UUID.randomUUID().toString();
-    private final String correlationId;
+    private String correlationId;
     private Maybe<String> causationId;
     private final Instant timestamp = Instant.now();
     protected String eventType;

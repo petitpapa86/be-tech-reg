@@ -6,9 +6,8 @@ import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrat
 import com.bcbs239.regtech.ingestion.domain.batch.BatchCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,7 +15,7 @@ import java.util.Map;
 /**
  * Publisher that listens to BatchCompletedEvent domain events and publishes
  * BatchCompletedIntegrationEvent to notify other bounded contexts.
- * 
+ * <p>
  * This follows the outbox pattern - the domain event triggers the integration event
  * publication within the same transaction boundary.
  */
@@ -35,10 +34,10 @@ public class BatchCompletedEventPublisher {
      * Handles BatchCompletedEvent domain events and publishes integration events.
      * Uses TransactionalEventListener to ensure the integration event is published
      * within the same transaction as the domain event.
-     * 
+     *
      * @param event The domain event from the ingestion batch aggregate
      */
-    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT)
+    @EventListener//(phase = TransactionPhase.BEFORE_COMMIT)
     public void handleBatchCompletedEvent(BatchCompletedEvent event) {
         // Skip if this is an outbox replay to avoid duplicate publishing
         if (CorrelationContext.isOutboxReplay()) {
@@ -59,9 +58,17 @@ public class BatchCompletedEventPublisher {
             integrationEvent.setCausationId(event.getCorrelationId());
 
             // Publish to other bounded contexts
-            integrationEventBus.publish(integrationEvent);
+            ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
+                    .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
+                    //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
+                    .where(CorrelationContext.OUTBOX_REPLAY, true)
+                    .where(CorrelationContext.INBOX_REPLAY, false)
+                    .run(() -> {
+                        integrationEventBus.publish(integrationEvent);
 
-            logEventPublished(event);
+                        logEventPublished(event);
+                    });
+
 
         } catch (Exception ex) {
             logEventPublishingError(event, ex);

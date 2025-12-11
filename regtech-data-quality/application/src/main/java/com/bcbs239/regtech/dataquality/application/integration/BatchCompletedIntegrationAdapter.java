@@ -1,10 +1,12 @@
 package com.bcbs239.regtech.dataquality.application.integration;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
 import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -34,10 +36,10 @@ import java.util.Map;
 @Component("dataQualityBatchCompletedIntegrationAdapter")
 public class BatchCompletedIntegrationAdapter {
 
-    private final DomainEventBus domainEventBus;
+    private final ApplicationEventPublisher domainEventBus;
     private static final Logger log = LoggerFactory.getLogger(BatchCompletedIntegrationAdapter.class);
 
-    public BatchCompletedIntegrationAdapter(DomainEventBus domainEventBus) {
+    public BatchCompletedIntegrationAdapter(ApplicationEventPublisher domainEventBus) {
         this.domainEventBus = domainEventBus;
         log.info("✅ BatchCompletedIntegrationAdapter bean created successfully!");
     }
@@ -56,6 +58,9 @@ public class BatchCompletedIntegrationAdapter {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void onBatchCompletedIntegrationEvent(BatchCompletedIntegrationEvent integrationEvent) {
+        if (CorrelationContext.isOutboxReplay()) {
+            return;
+        }
         log.info("🔔 BatchCompletedIntegrationAdapter received event; details={}", Map.of(
             "eventType", "BATCH_COMPLETED_INTEGRATION_EVENT",
             "batchId", integrationEvent.getBatchId(),
@@ -73,9 +78,11 @@ public class BatchCompletedIntegrationAdapter {
             integrationEvent.getFileSizeBytes(),
             integrationEvent.getCompletedAt()
         );
+        batchIngestedEvent.setCorrelationId(integrationEvent.getCorrelationId());
+        batchIngestedEvent.setCausationId(integrationEvent.getCausationId().getValue());
 
         // Publish as replay so listener can detect and skip if it's a duplicate
-        domainEventBus.publishAsReplay(batchIngestedEvent);
+        domainEventBus.publishEvent(batchIngestedEvent);
         
         log.info("Published BatchIngestedEvent as replay for data-quality processing; details={}", Map.of(
             "eventId", batchIngestedEvent.getEventId(),

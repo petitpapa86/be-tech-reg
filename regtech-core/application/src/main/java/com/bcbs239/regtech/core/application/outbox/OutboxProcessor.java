@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.application.outbox;
 
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.outbox.IOutboxMessageRepository;
@@ -10,6 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -28,12 +30,12 @@ public class OutboxProcessor {
     private static final Logger logger = LoggerFactory.getLogger(OutboxProcessor.class);
 
     private final IOutboxMessageRepository outboxMessageRepository;
-    private final DomainEventBus domainEventDispatcher;
+    private final ApplicationEventPublisher domainEventDispatcher;
     private final ObjectMapper objectMapper;
     private final OutboxOptions outboxOptions;
 
     public OutboxProcessor(
-            IOutboxMessageRepository outboxMessageRepository, DomainEventBus domainEventDispatcher,
+            IOutboxMessageRepository outboxMessageRepository, ApplicationEventPublisher domainEventDispatcher,
             ObjectMapper objectMapper, OutboxOptions outboxOptions) {
         this.outboxMessageRepository = outboxMessageRepository;
         this.domainEventDispatcher = domainEventDispatcher;
@@ -68,7 +70,20 @@ public class OutboxProcessor {
                     continue;
                 }
 
-                publishMessage(message);
+                ScopedValue.where(CorrelationContext.CORRELATION_ID, message.getCorrelationId())
+                        .where(CorrelationContext.CAUSATION_ID, message.getCausationId())
+                        //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
+                        .where(CorrelationContext.OUTBOX_REPLAY, false)
+                        .where(CorrelationContext.INBOX_REPLAY, false)
+                        .run(() -> {
+                            try {
+                                publishMessage(message);
+                            } catch (ClassNotFoundException | JsonProcessingException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+
+
 
                 // Mark processed after successful publish
                 outboxMessageRepository.markAsProcessed(message.getId(), java.time.Instant.now());
@@ -106,7 +121,8 @@ public class OutboxProcessor {
 
         // Publish all deserialized domain events as outbox replays so listeners can avoid
         // emitting side-effects again (for example, re-publishing integration events).
-        domainEventDispatcher.publishAsReplay(event);
+
+        domainEventDispatcher.publishEvent(event);
         logger.info("Dispatched domain event (outbox replay) from outbox: type={}, id={}", typeName, message.getId());
 
     }
