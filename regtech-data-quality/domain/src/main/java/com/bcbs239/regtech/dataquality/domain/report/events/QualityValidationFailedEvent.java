@@ -4,12 +4,16 @@ import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 
 import java.time.Instant;
 
 /**
  * Domain event raised when quality validation fails for a batch.
  */
+@Getter
 public class QualityValidationFailedEvent extends DomainEvent {
 
     private final QualityReportId reportId;
@@ -18,7 +22,13 @@ public class QualityValidationFailedEvent extends DomainEvent {
     private final String errorMessage;
     private final Instant occurredAt;
 
-    public QualityValidationFailedEvent(QualityReportId reportId, BatchId batchId, BankId bankId, String errorMessage, Instant occurredAt) {
+    @JsonCreator
+    public QualityValidationFailedEvent(
+            @JsonProperty("reportId") QualityReportId reportId,
+            @JsonProperty("batchId") BatchId batchId,
+            @JsonProperty("bankId") BankId bankId,
+            @JsonProperty("errorMessage") String errorMessage,
+            @JsonProperty("occurredAt") Instant occurredAt) {
         super("QualityValidationFailedEvent", null, "QualityValidationFailed");
         if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
         if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
@@ -32,26 +42,6 @@ public class QualityValidationFailedEvent extends DomainEvent {
         this.bankId = bankId;
         this.errorMessage = errorMessage;
         this.occurredAt = occurredAt;
-    }
-
-    public QualityReportId getReportId() {
-        return reportId;
-    }
-
-    public BatchId getBatchId() {
-        return batchId;
-    }
-
-    public BankId getBankId() {
-        return bankId;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public Instant getOccurredAt() {
-        return occurredAt;
     }
 
     @Override

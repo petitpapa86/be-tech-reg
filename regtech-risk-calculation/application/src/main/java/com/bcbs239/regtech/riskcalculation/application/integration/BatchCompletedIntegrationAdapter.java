@@ -45,56 +45,36 @@ public class BatchCompletedIntegrationAdapter {
      * Converts the BatchCompletedIntegrationEvent to a BatchIngestedEvent and publishes it
      * as a replay to trigger risk calculation workflows in the risk-calculation module.
      * 
+     * The listener checks for outbox replays and skips duplicate processing.
+     * 
      * @param integrationEvent The batch completed integration event from the ingestion module
      */
     @EventListener
     public void onBatchCompletedIntegrationEvent(BatchCompletedIntegrationEvent integrationEvent) {
-        try {
-            log.info("🔔 BatchCompletedIntegrationAdapter invoked! details={}", Map.of(
-                "eventType", "BATCH_COMPLETED_INTEGRATION_EVENT",
-                "integrationEventId", integrationEvent.getEventId(),
-                "batchId", integrationEvent.getBatchId(),
-                "bankId", integrationEvent.getBankId(),
-                "s3Uri", integrationEvent.getS3Uri(),
-                "totalExposures", integrationEvent.getTotalExposures(),
-                "fileSizeBytes", integrationEvent.getFileSizeBytes(),
-                "completedAt", integrationEvent.getCompletedAt().toString(),
-                "correlationId", integrationEvent.getCorrelationId(),
-                "isInboxReplay", String.valueOf(com.bcbs239.regtech.core.domain.context.CorrelationContext.isInboxReplay())
-            ));
+        log.info("🔔 BatchCompletedIntegrationAdapter received event; details={}", Map.of(
+            "eventType", "BATCH_COMPLETED_INTEGRATION_EVENT",
+            "batchId", integrationEvent.getBatchId(),
+            "bankId", integrationEvent.getBankId()
+        ));
 
-            // Skip processing entirely if this is an inbox replay
-            // Events are processed once during initial dispatch, inbox replay is for reliability only
-            if (com.bcbs239.regtech.core.domain.context.CorrelationContext.isInboxReplay()) {
-                log.info("Skipping inbox replay for BatchCompletedIntegrationEvent: {}", integrationEvent.getBatchId());
-                return;
-            }
+        // Convert BatchCompletedIntegrationEvent to BatchIngestedEvent
+        // This allows the risk-calculation module to process completed batches
+        // using its existing BatchIngestedEventListener
+        BatchIngestedEvent batchIngestedEvent = new BatchIngestedEvent(
+            integrationEvent.getBatchId(),
+            integrationEvent.getBankId(),
+            integrationEvent.getS3Uri(),
+            integrationEvent.getTotalExposures(),
+            integrationEvent.getFileSizeBytes(),
+            integrationEvent.getCompletedAt()
+        );
 
-            // Convert BatchCompletedIntegrationEvent to BatchIngestedEvent
-            // This allows the risk-calculation module to process completed batches
-            // using its existing BatchIngestedEventListener
-            BatchIngestedEvent batchIngestedEvent = new BatchIngestedEvent(
-                integrationEvent.getBatchId(),
-                integrationEvent.getBankId(),
-                integrationEvent.getS3Uri(),
-                integrationEvent.getTotalExposures(),
-                integrationEvent.getFileSizeBytes(),
-                integrationEvent.getCompletedAt()
-            );
-
-            // Publish as replay so existing risk-calculation handlers receive it
-            // This will trigger the BatchIngestedEventListener to process the batch
-            domainEventBus.publishAsReplay(batchIngestedEvent);
-            
-            log.info("Published BatchIngestedEvent as replay for risk-calculation processing; details={}", Map.of(
-                "eventType", "BATCH_INGESTED_EVENT_PUBLISHED",
-                "eventId", batchIngestedEvent.getEventId(),
-                "batchId", integrationEvent.getBatchId(),
-                "bankId", integrationEvent.getBankId()
-            ));
-        } catch (Exception e) {
-            log.error("❌ Error in BatchCompletedIntegrationAdapter: {}", e.getMessage(), e);
-            throw e;
-        }
+        // Publish as replay so listener can detect and skip if it's a duplicate
+        domainEventBus.publishAsReplay(batchIngestedEvent);
+        
+        log.info("Published BatchIngestedEvent as replay for risk-calculation processing; details={}", Map.of(
+            "eventId", batchIngestedEvent.getEventId(),
+            "batchId", integrationEvent.getBatchId()
+        ));
     }
 }

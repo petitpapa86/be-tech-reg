@@ -73,10 +73,13 @@ public class BatchIngestedEventListener {
      * Main event handler for BatchIngested events.
      * Includes event filtering, routing logic, and error handling.
      * Failed events are persisted to the failure repository for retry by EventRetryProcessor.
+     * 
+     * Note: No @Transactional here - each internal operation manages its own transaction.
+     * This prevents "Transaction silently rolled back" errors when handleEventProcessingError()
+     * marks the transaction as rollback-only.
      */
     @EventListener
     @Async("qualityEventExecutor")
-    @Transactional
     public void handleBatchIngestedEvent(BatchIngestedEvent event) {
         totalEventsReceived.incrementAndGet();
 
@@ -89,12 +92,12 @@ public class BatchIngestedEventListener {
         ));
 
         try {
-            // Skip processing entirely if this is an inbox replay
-            // Events are processed once during initial dispatch, inbox replay is for reliability only
-            if (CorrelationContext.isInboxReplay()) {
-                log.info("batch_ingested_event_inbox_replay_skip; details={}", Map.of(
+            // Skip processing entirely if this is a replay (either inbox or outbox)
+            // Events are processed once during initial dispatch, replays are for reliability only
+            if (CorrelationContext.isInboxReplay() || CorrelationContext.isOutboxReplay()) {
+                log.info("batch_ingested_event_replay_skip; details={}", Map.of(
                         "batchId", event.getBatchId(),
-                        "reason", "inbox_replay_skipped"
+                        "reason", CorrelationContext.isInboxReplay() ? "inbox_replay_skipped" : "outbox_replay_skipped"
                 ));
                 return;
             }

@@ -43,21 +43,25 @@ public class BatchIngestedEventListener {
 
     /**
      * Handles BatchIngestedEvent with async processing and comprehensive error handling.
+     * 
+     * Note: No @Transactional here - each internal operation manages its own transaction.
+     * This prevents "Transaction silently rolled back" errors when handleEventProcessingError()
+     * marks the transaction as rollback-only.
      *
      * @param event The batch ingested event from ingestion module
      */
     @EventListener
     @Async("riskCalculationTaskExecutor")
-    @Transactional
     public void handleBatchIngestedEvent(BatchIngestedEvent event) {
         log.info("Received BatchIngestedEvent for batch: {} from bank: {}, isInboxReplay: {}",
             event.getBatchId(), event.getBankId(), CorrelationContext.isInboxReplay());
 
         try {
-            // Skip processing entirely if this is an inbox replay
-            // Events are processed once during initial dispatch, inbox replay is for reliability only
-            if (CorrelationContext.isInboxReplay()) {
-                log.info("Batch {} inbox replay skipped", event.getBatchId());
+            // Skip processing entirely if this is a replay (either inbox or outbox)
+            // Events are processed once during initial dispatch, replays are for reliability only
+            if (CorrelationContext.isInboxReplay() || CorrelationContext.isOutboxReplay()) {
+                log.info("Batch {} replay skipped [reason:{}]", event.getBatchId(),
+                    CorrelationContext.isInboxReplay() ? "inbox_replay" : "outbox_replay");
                 return;
             }
 
