@@ -70,50 +70,100 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Override
     public Result<QualityReport> save(QualityReport report) {
         try {
-            // Load existing entity to preserve version for optimistic locking
-            // This prevents Hibernate AssertionFailure when updating existing records
-            QualityReportEntity entity = jpaRepository.findById(report.getReportId().value())
-                .orElseGet(() -> new QualityReportEntity(
-                    report.getReportId().value(),
-                    report.getBatchId().value(),
-                    report.getBankId().value(),
-                    report.getStatus()
-                ));
+            // 1. Find or create entity
+            Optional<QualityReportEntity> existing = jpaRepository.findById(report.getReportId().value());
             
-            // Update entity fields from domain object
+            QualityReportEntity entity;
+            boolean isNew = false;
+            
+            if (existing.isPresent()) {
+                // UPDATE existing entity
+                entity = existing.get();
+                logger.debug("Updating existing quality report: {}", report.getReportId().value());
+            } else {
+                // CREATE new entity
+                entity = mapper.toEntity(report);
+                entity.setVersion(0L);  // CRITICAL: Set version for new entities
+                isNew = true;
+                logger.debug("Creating new quality report: {}", report.getReportId().value());
+            }
+            
+            // 2. Update all fields from domain
             updateEntityFromDomain(entity, report);
             
+            // 3. Save
             QualityReportEntity savedEntity = jpaRepository.save(entity);
             QualityReport savedReport = mapper.toDomain(savedEntity);
             
-            logger.debug("Successfully saved quality report: {}", report.getReportId().value());
+            logger.debug("Successfully saved quality report: {} (new: {})", 
+                report.getReportId().value(), isNew);
+            
             return Result.success(savedReport);
             
         } catch (DataIntegrityViolationException e) {
-            // Check if this is a duplicate batch_id constraint violation
-            String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-            if (errorMsg.contains("batch_id") || errorMsg.contains("quality_reports_batch_id_key")) {
-                logger.debug("Duplicate batch_id detected for report: {} batch_id: {} - This is expected in concurrent processing", 
-                    report.getReportId().value(), report.getBatchId().value());
-                return Result.failure("QUALITY_REPORT_DUPLICATE_BATCH_ID", ErrorType.VALIDATION_ERROR, 
-                    "Quality report already exists for batch_id: " + report.getBatchId().value(), "batch_id");
-            } else {
-                logger.error("Data integrity violation saving quality report: {}", report.getReportId().value(), e);
-                return Result.failure("QUALITY_REPORT_SAVE_CONSTRAINT_VIOLATION", ErrorType.SYSTEM_ERROR, 
-                    "Quality report violates database constraints: " + e.getMessage(), "report_id");
-            }
+            return handleDuplicateKeyOrConstraintViolation(e, report);
+            
         } catch (OptimisticLockingFailureException e) {
-            logger.error("Optimistic locking failure while saving quality report: {}", report.getReportId().value(), e);
-            // For optimistic locking failures, we log the error but return success
-            // to avoid triggering event publishing rollbacks. The caller can handle retries.
-            return Result.success(report);
-        } catch (DataAccessException e) {
-            logger.error("Database error saving quality report: {}", report.getReportId().value(), e);
-            return Result.failure("QUALITY_REPORT_SAVE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to save quality report: " + e.getMessage(), "database");
+            return handleOptimisticLockConflict(report);
+            
         } catch (Exception e) {
-            logger.error("Unexpected error saving quality report: {}", report.getReportId().value(), e);
-            return Result.failure("QUALITY_REPORT_SAVE_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error saving quality report: " + e.getMessage(), "system");
+            logger.error("Failed to save quality report: {}", report.getReportId().value(), e);
+            return Result.failure("SAVE_FAILED", ErrorType.SYSTEM_ERROR, 
+                "Failed to save quality report: " + e.getMessage(), "system");
         }
+    }
+    
+    /**
+     * Handle duplicate key (batch_id) or other constraint violations
+     */
+    private Result<QualityReport> handleDuplicateKeyOrConstraintViolation(
+            DataIntegrityViolationException e, QualityReport report) {
+        
+        String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+        
+        if (errorMsg.contains("batch_id") || errorMsg.contains("quality_reports_batch_id_key")) {
+            // Duplicate batch_id - try to find the existing report
+            Optional<QualityReportEntity> existing = jpaRepository.findByBatchId(report.getBatchId().value());
+            
+            if (existing.isPresent()) {
+                logger.debug("Duplicate batch_id - returning existing report: {} for batch: {}", 
+                    existing.get().getReportId(), report.getBatchId().value());
+                return Result.success(mapper.toDomain(existing.get()));
+            }
+            
+            logger.warn("Duplicate batch_id but existing report not found: {}", 
+                report.getBatchId().value());
+            return Result.failure("DUPLICATE_BATCH_ID", ErrorType.VALIDATION_ERROR,
+                "A quality report already exists for this batch", "batch_id");
+        }
+        
+        logger.error("Data integrity violation: {}", report.getReportId().value(), e);
+        return Result.failure("CONSTRAINT_VIOLATION", ErrorType.VALIDATION_ERROR,
+            "Quality report violates database constraints", "data");
+    }
+    
+    /**
+     * Handle optimistic lock conflicts
+     */
+    private Result<QualityReport> handleOptimisticLockConflict(QualityReport report) {
+        logger.warn("Optimistic lock conflict for quality report: {}", report.getReportId().value());
+        
+        // Try to get the latest version
+        try {
+            Optional<QualityReportEntity> latest = jpaRepository.findById(report.getReportId().value());
+            if (latest.isPresent()) {
+                logger.debug("Returning latest version after optimistic lock conflict: {}", 
+                    report.getReportId().value());
+                return Result.success(mapper.toDomain(latest.get()));
+            }
+        } catch (Exception ex) {
+            logger.error("Failed to fetch latest after optimistic lock conflict: {}", 
+                report.getReportId().value(), ex);
+        }
+        
+        // Can't get latest - return conflict error
+        return Result.failure("OPTIMISTIC_LOCK_CONFLICT", ErrorType.SYSTEM_ERROR,
+            "This report was modified by another process. Please refresh and try again.", "version");
     }
     
     @Override

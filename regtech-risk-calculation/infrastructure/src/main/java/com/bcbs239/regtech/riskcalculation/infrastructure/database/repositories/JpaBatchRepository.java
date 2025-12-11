@@ -19,6 +19,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -42,43 +43,39 @@ public class JpaBatchRepository implements BatchRepository {
     @Transactional
     public Result<Void> save(Batch batch) {
         try {
-            log.debug("Saving batch aggregate: {}", batch.getId().value());
+            // 1. Find or create entity
+            Optional<BatchEntity> existing = springDataRepository.findById(batch.getId().value());
             
-            // Find existing entity or create new one
-            BatchEntity entity = springDataRepository.findById(batch.getId().value())
-                .orElseGet(() -> {
-                    BatchEntity newEntity = new BatchEntity();
-                    return newEntity;
-                });
+            BatchEntity entity;
+            boolean isNew = false;
             
-            // Let the aggregate populate the entity (Tell, don't ask)
+            if (existing.isPresent()) {
+                // UPDATE existing entity
+                entity = existing.get();
+                log.debug("Updating existing batch aggregate: {}", batch.getId().value());
+            } else {
+                // CREATE new entity
+                entity = new BatchEntity();
+                entity.setVersion(0L);  // CRITICAL: Set version for new entities
+                isNew = true;
+                log.debug("Creating new batch aggregate: {}", batch.getId().value());
+            }
+            
+            // 2. Let the aggregate populate the entity (Tell, don't ask)
             batch.populateEntity(entity);
             
-            // Persist the entity
+            // 3. Persist the entity
             springDataRepository.save(entity);
             
-            log.debug("Successfully saved batch aggregate: {}", batch.getId().value());
+            log.debug("Successfully saved batch aggregate: {} (new: {})", batch.getId().value(), isNew);
             return Result.success();
             
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            // Check if this is a duplicate key violation (race condition during concurrent processing)
-            if (e.getMessage() != null && e.getMessage().contains("batches_pkey")) {
-                log.debug("Duplicate batch_id detected: {} - This is expected in concurrent processing", batch.getId().value());
-                // Return success for idempotent operation - batch already exists
-                return Result.success();
-            }
-            log.error("Data integrity violation while saving batch aggregate: {}", batch.getId().value(), e);
-            return Result.failure(ErrorDetail.of(
-                "BATCH_SAVE_FAILED",
-                ErrorType.SYSTEM_ERROR,
-                "Failed to save batch due to data integrity violation: " + e.getMessage(),
-                "batch.save.failed"
-            ));
+            return handleDuplicateKeyOrConstraintViolation(e, batch);
+            
         } catch (OptimisticLockingFailureException e) {
-            log.error("Optimistic locking failure while saving batch aggregate: {}", batch.getId().value(), e);
-            // For optimistic locking failures, we log the error but don't fail the operation
-            // to avoid triggering event publishing rollbacks. The caller can handle retries.
-            return Result.success();
+            return handleOptimisticLockConflict(batch);
+            
         } catch (Exception e) {
             log.error("Failed to save batch aggregate: {}", batch.getId().value(), e);
             return Result.failure(ErrorDetail.of(
@@ -205,5 +202,50 @@ public class JpaBatchRepository implements BatchRepository {
             log.error("Failed to check if batch exists: {}", batchId, e);
             return false;
         }
+    }
+    
+    /**
+     * Handle duplicate key (batch_id) or other constraint violations
+     */
+    private Result<Void> handleDuplicateKeyOrConstraintViolation(
+            org.springframework.dao.DataIntegrityViolationException e, Batch batch) {
+        
+        // Check if this is a duplicate key violation (race condition during concurrent processing)
+        if (e.getMessage() != null && e.getMessage().contains("batches_pkey")) {
+            log.debug("Duplicate batch_id detected: {} - This is expected in concurrent processing", 
+                batch.getId().value());
+            // Return success for idempotent operation - batch already exists
+            return Result.success();
+        }
+        
+        log.error("Data integrity violation while saving batch aggregate: {}", batch.getId().value(), e);
+        return Result.failure(ErrorDetail.of(
+            "BATCH_SAVE_FAILED",
+            ErrorType.SYSTEM_ERROR,
+            "Failed to save batch due to data integrity violation: " + e.getMessage(),
+            "batch.save.failed"
+        ));
+    }
+    
+    /**
+     * Handle optimistic lock conflicts
+     */
+    private Result<Void> handleOptimisticLockConflict(Batch batch) {
+        log.warn("Optimistic lock conflict for batch: {}", batch.getId().value());
+        
+        // Try to get the latest version
+        try {
+            Optional<BatchEntity> latest = springDataRepository.findById(batch.getId().value());
+            if (latest.isPresent()) {
+                log.debug("Latest version exists after optimistic lock conflict: {}", 
+                    batch.getId().value());
+            }
+        } catch (Exception ex) {
+            log.error("Failed to fetch latest after optimistic lock conflict: {}", 
+                batch.getId().value(), ex);
+        }
+        
+        // Return success to avoid triggering event publishing rollbacks
+        return Result.success();
     }
 }

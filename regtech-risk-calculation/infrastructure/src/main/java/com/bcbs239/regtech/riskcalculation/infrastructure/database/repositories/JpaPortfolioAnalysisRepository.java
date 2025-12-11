@@ -35,33 +35,77 @@ public class JpaPortfolioAnalysisRepository implements PortfolioAnalysisReposito
     @Transactional
     public void save(PortfolioAnalysis analysis) {
         try {
-            // CRITICAL FIX for Hibernate AssertionFailure:
-            // Load existing entity first to preserve the @Version field for optimistic locking.
-            // Using mapper.toEntity() creates a new entity with version=0, which causes
-            // Hibernate AssertionFailure when the database entity has version=1+
-            PortfolioAnalysisEntity entity = springDataRepository
-                .findById(analysis.getBatchId())
-                .orElseGet(() -> mapper.toEntity(analysis));
+            // 1. Find or create entity
+            Optional<PortfolioAnalysisEntity> existing = springDataRepository.findById(analysis.getBatchId());
             
-            // Update entity fields from domain model (preserves version field)
+            PortfolioAnalysisEntity entity;
+            boolean isNew = false;
+            
+            if (existing.isPresent()) {
+                // UPDATE existing entity
+                entity = existing.get();
+                log.debug("Updating existing portfolio analysis for batch: {}", analysis.getBatchId());
+            } else {
+                // CREATE new entity
+                entity = mapper.toEntity(analysis);
+                entity.setVersion(0L);  // CRITICAL: Set version for new entities
+                isNew = true;
+                log.debug("Creating new portfolio analysis for batch: {}", analysis.getBatchId());
+            }
+            
+            // 2. Update all fields from domain
             updateEntityFromDomain(entity, analysis);
             
+            // 3. Save
             springDataRepository.save(entity);
+            
+            log.debug("Successfully saved portfolio analysis for batch: {} (new: {})", 
+                analysis.getBatchId(), isNew);
+            
         } catch (DataIntegrityViolationException e) {
-            // Check if this is a duplicate batch_id primary key violation
-            String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
-            if (errorMsg.contains("batch_id") || errorMsg.contains("portfolio_analysis_pkey")) {
-                log.debug("Duplicate batch_id detected for portfolio analysis: {} - This is expected in concurrent processing", 
-                    analysis.getBatchId());
-                // Silently skip - another thread already created this analysis
-                return;
-            }
-            log.error("Data integrity violation while saving portfolio analysis for batch: {}", analysis.getBatchId(), e);
-            throw e;
+            handleDuplicateKeyOrConstraintViolation(e, analysis);
+            
         } catch (OptimisticLockingFailureException e) {
-            log.error("Optimistic locking failure while saving portfolio analysis for batch: {}", analysis.getBatchId(), e);
-            // For optimistic locking failures, we log the error but don't throw it
-            // to avoid triggering event publishing rollbacks. The caller can handle retries.
+            handleOptimisticLockConflict(analysis);
+        }
+    }
+    
+    /**
+     * Handle duplicate key (batch_id) or other constraint violations
+     */
+    private void handleDuplicateKeyOrConstraintViolation(
+            DataIntegrityViolationException e, PortfolioAnalysis analysis) {
+        
+        String errorMsg = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+        
+        if (errorMsg.contains("batch_id") || errorMsg.contains("portfolio_analysis_pkey")) {
+            log.debug("Duplicate batch_id detected for portfolio analysis: {} - This is expected in concurrent processing", 
+                analysis.getBatchId());
+            // Silently skip - another thread already created this analysis
+            return;
+        }
+        
+        log.error("Data integrity violation while saving portfolio analysis for batch: {}", 
+            analysis.getBatchId(), e);
+        throw e;
+    }
+    
+    /**
+     * Handle optimistic lock conflicts
+     */
+    private void handleOptimisticLockConflict(PortfolioAnalysis analysis) {
+        log.warn("Optimistic lock conflict for portfolio analysis: {}", analysis.getBatchId());
+        
+        // Try to get the latest version
+        try {
+            Optional<PortfolioAnalysisEntity> latest = springDataRepository.findById(analysis.getBatchId());
+            if (latest.isPresent()) {
+                log.debug("Latest version exists after optimistic lock conflict: {}", 
+                    analysis.getBatchId());
+            }
+        } catch (Exception ex) {
+            log.error("Failed to fetch latest after optimistic lock conflict: {}", 
+                analysis.getBatchId(), ex);
         }
     }
     
