@@ -33,13 +33,31 @@ public class JpaGeneratedReportRepository implements IGeneratedReportRepository 
     @Transactional
     public void save(GeneratedReport report) {
         try {
-            GeneratedReportEntity entity = GeneratedReportEntity.fromDomain(report);
-            springDataRepository.save(entity);
+            // CRITICAL FIX: Check for existing report by batch_id since batch_id is unique
+            Optional<GeneratedReportEntity> existing = springDataRepository.findByBatchId(report.getBatchId().value());
             
-            log.info("Generated report saved successfully: reportId={}, batchId={}, status={}", 
-                    report.getReportId().value(), 
-                    report.getBatchId().value(), 
-                    report.getStatus());
+            if (existing.isPresent()) {
+                // Report already exists for this batch - update it instead of creating duplicate
+                GeneratedReportEntity entity = existing.get();
+                // Update entity from domain (preserves version for optimistic locking)
+                entity.updateFromDomain(report);
+                
+                springDataRepository.save(entity);
+                log.info("Updated existing generated report: reportId={}, batchId={}, status={}", 
+                        report.getReportId().value(), 
+                        report.getBatchId().value(), 
+                        report.getStatus());
+            } else {
+                // No existing report for this batch - create new one
+                GeneratedReportEntity entity = GeneratedReportEntity.fromDomain(report);
+                entity.setVersion(0L);  // CRITICAL: Set version for new entities
+                springDataRepository.save(entity);
+                
+                log.info("Created new generated report: reportId={}, batchId={}, status={}", 
+                        report.getReportId().value(), 
+                        report.getBatchId().value(), 
+                        report.getStatus());
+            }
                     
         } catch (Exception e) {
             log.error("Error saving generated report: reportId={}, batchId={}", 

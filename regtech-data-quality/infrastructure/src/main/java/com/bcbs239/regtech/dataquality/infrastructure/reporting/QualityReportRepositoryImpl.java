@@ -70,33 +70,30 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
     @Override
     public Result<QualityReport> save(QualityReport report) {
         try {
-            // 1. Find or create entity
-            Optional<QualityReportEntity> existing = jpaRepository.findById(report.getReportId().value());
+            // CRITICAL FIX: Check for existing report by batch_id, not report_id
+            // The business constraint is one report per batch, not unique report_ids
+            Optional<QualityReportEntity> existingByBatch = jpaRepository.findByBatchId(report.getBatchId().value());
             
-            QualityReportEntity entity;
-            boolean isNew = false;
-            
-            if (existing.isPresent()) {
-                // UPDATE existing entity
-                entity = existing.get();
-                logger.debug("Updating existing quality report: {}", report.getReportId().value());
-            } else {
-                // CREATE new entity
-                entity = mapper.toEntity(report);
-                entity.setVersion(0L);  // CRITICAL: Set version for new entities
-                isNew = true;
-                logger.debug("Creating new quality report: {}", report.getReportId().value());
+            if (existingByBatch.isPresent()) {
+                // Report already exists for this batch - return it instead of creating duplicate
+                logger.debug("Quality report already exists for batch: {} - returning existing report: {}", 
+                    report.getBatchId().value(), existingByBatch.get().getReportId());
+                return Result.success(mapper.toDomain(existingByBatch.get()));
             }
             
-            // 2. Update all fields from domain
+            // No existing report for this batch - create new one
+            QualityReportEntity entity = mapper.toEntity(report);
+            entity.setVersion(0L);  // CRITICAL: Set version for new entities
+            
+            // Update all fields from domain
             updateEntityFromDomain(entity, report);
             
-            // 3. Save
+            // Save
             QualityReportEntity savedEntity = jpaRepository.save(entity);
             QualityReport savedReport = mapper.toDomain(savedEntity);
             
-            logger.debug("Successfully saved quality report: {} (new: {})", 
-                report.getReportId().value(), isNew);
+            logger.debug("Successfully created new quality report: {} for batch: {}", 
+                report.getReportId().value(), report.getBatchId().value());
             
             return Result.success(savedReport);
             

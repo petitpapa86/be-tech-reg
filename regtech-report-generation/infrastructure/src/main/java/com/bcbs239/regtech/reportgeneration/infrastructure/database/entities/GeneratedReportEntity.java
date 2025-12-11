@@ -141,6 +141,54 @@ public class GeneratedReportEntity {
     }
 
     /**
+     * Update existing JPA entity from domain aggregate
+     * 
+     * @param report the domain aggregate to update from
+     * @return the updated entity
+     */
+    public GeneratedReportEntity updateFromDomain(GeneratedReport report) {
+        this.setBankId(report.getBankId().value());
+        this.setReportingDate(report.getReportingDate().value());
+        this.setReportType(report.getReportType().name());
+        this.setStatus(report.getStatus().name());
+        
+        // Map quality metrics
+        this.setOverallQualityScore(report.getOverallQualityScore());
+        if (report.getComplianceStatus() != null) {
+            this.setComplianceStatus(report.getComplianceStatus().name());
+        }
+        
+        // Map HTML metadata if present
+        if (report.getHtmlMetadata() != null) {
+            HtmlReportMetadata htmlMetadata = report.getHtmlMetadata();
+            this.setHtmlS3Uri(htmlMetadata.s3Uri().value());
+            this.setHtmlFileSize(htmlMetadata.fileSize().bytes());
+            this.setHtmlPresignedUrl(htmlMetadata.presignedUrl().url());
+        }
+        
+        // Map XBRL metadata if present
+        if (report.getXbrlMetadata() != null) {
+            XbrlReportMetadata xbrlMetadata = report.getXbrlMetadata();
+            this.setXbrlS3Uri(xbrlMetadata.s3Uri().value());
+            this.setXbrlFileSize(xbrlMetadata.fileSize().bytes());
+            this.setXbrlPresignedUrl(xbrlMetadata.presignedUrl().url());
+            this.setXbrlValidationStatus(xbrlMetadata.validationStatus().name());
+        }
+        
+        // Map timestamps
+        if (report.getTimestamps().completedAt() != null) {
+            this.setCompletedAt(report.getTimestamps().completedAt());
+        }
+        
+        // Map failure reason if present
+        if (report.getFailureReason() != null) {
+            this.setFailureReason(report.getFailureReason().message());
+        }
+        
+        return this;
+    }
+
+    /**
      * Convert JPA entity to domain aggregate
      * Uses package-private reconstruction method to avoid reflection
      * 
