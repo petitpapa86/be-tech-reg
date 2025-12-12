@@ -111,7 +111,6 @@ public class ReportEventListener {
      */
     @EventListener
     @Async("reportGenerationExecutor")
-    @Transactional
     public void handleBatchCalculationCompleted(BatchCalculationCompletedIntegrationEvent event) {
         totalCalculationEventsReceived.incrementAndGet();
         

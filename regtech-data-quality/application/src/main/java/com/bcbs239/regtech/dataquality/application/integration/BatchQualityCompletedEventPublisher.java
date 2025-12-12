@@ -7,6 +7,7 @@ import com.bcbs239.regtech.dataquality.domain.report.events.QualityValidationCom
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 
@@ -22,7 +23,7 @@ public class BatchQualityCompletedEventPublisher {
         this.eventBus = eventBus;
     }
 
-    @TransactionalEventListener
+    @EventListener
     public void handle(QualityValidationCompletedEvent event) {
         if (CorrelationContext.isOutboxReplay()) {
             logger.debug("Skipping integration publish for QualityValidationCompletedEvent {} because this is an outbox replay", event.getEventId());
@@ -39,7 +40,15 @@ public class BatchQualityCompletedEventPublisher {
                     java.util.Map.of()  // processingMetadata - can be populated if needed
             );
 
-            eventBus.publish(integrationEvent);
+            ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
+                   // .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
+                    //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
+                    .where(CorrelationContext.OUTBOX_REPLAY, true)
+                    .where(CorrelationContext.INBOX_REPLAY, false)
+                    .run(() -> {
+                        eventBus.publish(integrationEvent);
+                    });
+
             logger.info("Published BatchQualityCompletedIntegrationEvent for batch {}", event.getBatchId().value());
 
         } catch (Exception ex) {

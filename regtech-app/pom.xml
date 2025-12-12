@@ -120,6 +120,30 @@
         </dependency>
 
         <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-report-generation-presentation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-report-generation-application</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-report-generation-domain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-report-generation-infrastructure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
