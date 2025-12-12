@@ -3,6 +3,7 @@ package com.bcbs239.regtech.riskcalculation.application.integration;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
+import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Result;
 
 import com.bcbs239.regtech.riskcalculation.application.calculation.CalculateRiskMetricsCommand;
@@ -35,10 +36,10 @@ import java.util.Map;
  * - Error handling with EventProcessingFailure repository
  * - Structured logging for monitoring
  */
-@Component("riskCalculationBatchIngestedEventListener")
+@Component("riskCalculationCompletedIntegrationEventListener")
 @RequiredArgsConstructor
 @Slf4j
-public class BatchIngestedEventListener {
+public class BatchCompletedIntegrationEventListener {
 
     private final CalculateRiskMetricsCommandHandler commandHandler;
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
@@ -54,10 +55,11 @@ public class BatchIngestedEventListener {
      *
      * @param event The batch ingested event from ingestion module
      */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @Async("eventProcessingExecutor")
-    public void handleBatchIngestedEvent(BatchIngestedEvent event) {
+    @TransactionalEventListener
+    public void handleBatchIngestedEvent(BatchCompletedIntegrationEvent event) {
+        if (CorrelationContext.isInboxReplay()) {
+            return;
+        }
         log.info("Received BatchIngestedEvent for batch: {} from bank: {}, isInboxReplay: {}",
                 event.getBatchId(), event.getBankId(), CorrelationContext.isInboxReplay());
 
@@ -83,32 +85,9 @@ public class BatchIngestedEventListener {
                     //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
                     .where(CorrelationContext.OUTBOX_REPLAY, false)
                     .where(CorrelationContext.INBOX_REPLAY, true)
-                    .run(() -> {
-                        Result<CalculateRiskMetricsCommand> commandResult = CalculateRiskMetricsCommand.create(
-                                event.getBatchId(),
-                                event.getBankId(),
-                                event.getS3Uri(),
-                                event.getTotalExposures(),
-                                null // No correlation ID from ingestion event
-                        );
-
-                        if (commandResult.isFailure()) {
-                            log.error("Failed to create CalculateRiskMetricsCommand for batch: {}", event.getBatchId());
-                            handleEventProcessingError(event, commandResult.getError().get().getMessage(), null);
-                            return;
-                        }
-
-                        // Step 4: Execute risk calculation
-                        Result<Void> executionResult = commandHandler.handle(commandResult.getValue().get());
-
-                        if (executionResult.isFailure()) {
-                            log.error("Risk calculation failed for batch: {}", event.getBatchId());
-                            handleEventProcessingError(event, executionResult.getError().get().getMessage(), null);
-                            return;
-                        }
-
-                        log.info("Successfully processed BatchIngestedEvent for batch: {}", event.getBatchId());
-                    });
+                    .run(() ->
+                        routeEvent(event)
+                    );
 
 
         } catch (Exception e) {
@@ -118,13 +97,41 @@ public class BatchIngestedEventListener {
         }
     }
 
+    @Async("eventProcessingExecutor")
+    private void routeEvent(BatchCompletedIntegrationEvent event) {
+        Result<CalculateRiskMetricsCommand> commandResult = CalculateRiskMetricsCommand.create(
+                event.getBatchId(),
+                event.getBankId(),
+                event.getS3Uri(),
+                event.getTotalExposures(),
+                null // No correlation ID from ingestion event
+        );
+
+        if (commandResult.isFailure()) {
+            log.error("Failed to create CalculateRiskMetricsCommand for batch: {}", event.getBatchId());
+            handleEventProcessingError(event, commandResult.getError().get().getMessage(), null);
+            return;
+        }
+
+        // Step 4: Execute risk calculation
+        Result<Void> executionResult = commandHandler.handle(commandResult.getValue().get());
+
+        if (executionResult.isFailure()) {
+            log.error("Risk calculation failed for batch: {}", event.getBatchId());
+            handleEventProcessingError(event, executionResult.getError().get().getMessage(), null);
+            return;
+        }
+
+        log.info("Successfully processed BatchIngestedEvent for batch: {}", event.getBatchId());
+    }
+
     /**
      * Validates the incoming BatchIngestedEvent for required fields and business rules.
      *
      * @param event The event to validate
      * @return true if event is valid, false otherwise
      */
-    private boolean isValidEvent(BatchIngestedEvent event) {
+    private boolean isValidEvent(BatchCompletedIntegrationEvent event) {
         if (event == null) {
             log.warn("Received null BatchIngestedEvent");
             return false;
@@ -175,7 +182,7 @@ public class BatchIngestedEventListener {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @Async("riskCalculationTaskExecutor")
-    protected void handleEventProcessingError(BatchIngestedEvent event, String errorMessage, Exception exception) {
+    protected void handleEventProcessingError(BatchCompletedIntegrationEvent event, String errorMessage, Exception exception) {
         try {
             String eventPayload = objectMapper.writeValueAsString(event);
             String stackTrace = exception != null ? getStackTrace(exception) : null;

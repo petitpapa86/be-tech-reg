@@ -10,7 +10,6 @@ import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQuali
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
-import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +18,6 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Instant;
@@ -43,10 +41,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>No manual retry logic is needed - the EventRetryProcessor handles all retry attempts
  * and the failure repository serves as the dead letter queue for permanently failed events.
  */
-@Component
-public class BatchIngestedEventListener {
+@Component("dataQualityBatchCompletedIntegrationEventListener")
+public class BatchCompletedIntegrationEventListener {
 
-    private static final Logger log = LoggerFactory.getLogger(BatchIngestedEventListener.class);
+    private static final Logger log = LoggerFactory.getLogger(BatchCompletedIntegrationEventListener.class);
     private final ValidateBatchQualityCommandHandler commandHandler;
     private final IQualityReportRepository qualityReportRepository;
     private final IEventProcessingFailureRepository failureRepository;
@@ -61,7 +59,7 @@ public class BatchIngestedEventListener {
     private final AtomicInteger totalEventsFailed = new AtomicInteger(0);
     private final AtomicInteger totalEventsFiltered = new AtomicInteger(0);
 
-    public BatchIngestedEventListener(
+    public BatchCompletedIntegrationEventListener(
             ValidateBatchQualityCommandHandler commandHandler,
             IQualityReportRepository qualityReportRepository,
             IEventProcessingFailureRepository failureRepository,
@@ -82,7 +80,7 @@ public class BatchIngestedEventListener {
      * This prevents "Transaction silently rolled back" errors when handleEventProcessingError()
      * marks the transaction as rollback-only.
      */
-    @EventListener
+    @TransactionalEventListener
     public void handleBatchIngestedEvent(BatchCompletedIntegrationEvent event) {
         if (CorrelationContext.isInboxReplay()) {
             return;

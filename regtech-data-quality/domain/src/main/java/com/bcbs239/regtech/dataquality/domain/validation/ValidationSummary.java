@@ -43,6 +43,7 @@ public record ValidationSummary(
     /**
      * Gets the validation rate as a percentage (0-100)
      */
+    @JsonIgnore
     public double getValidationRatePercentage() {
         return overallValidationRate * 100.0;
     }
@@ -50,6 +51,7 @@ public record ValidationSummary(
     /**
      * Gets the error count for a specific dimension
      */
+    @JsonIgnore
     public int getErrorCountForDimension(QualityDimension dimension) {
         return errorsByDimension.getOrDefault(dimension, 0);
     }
@@ -57,6 +59,7 @@ public record ValidationSummary(
     /**
      * Gets the error count for a specific severity
      */
+    @JsonIgnore
     public int getErrorCountForSeverity(ValidationError.ErrorSeverity severity) {
         return errorsBySeverity.getOrDefault(severity, 0);
     }
@@ -64,6 +67,7 @@ public record ValidationSummary(
     /**
      * Gets the error count for a specific error code
      */
+    @JsonIgnore
     public int getErrorCountForCode(String errorCode) {
         return errorsByCode.getOrDefault(errorCode, 0);
     }
@@ -71,6 +75,7 @@ public record ValidationSummary(
     /**
      * Checks if there are any critical errors
      */
+    @JsonIgnore
     public boolean hasCriticalErrors() {
         return getErrorCountForSeverity(ValidationError.ErrorSeverity.CRITICAL) > 0;
     }
@@ -78,6 +83,7 @@ public record ValidationSummary(
     /**
      * Gets the most common error code
      */
+    @JsonIgnore
     public String getMostCommonErrorCode() {
         return errorsByCode.entrySet().stream()
             .max(Map.Entry.comparingByValue())
@@ -99,6 +105,7 @@ public record ValidationSummary(
     /**
      * Checks if the batch meets minimum quality thresholds
      */
+    @JsonIgnore
     public boolean meetsQualityThreshold(double minimumValidationRate) {
         return overallValidationRate >= minimumValidationRate;
     }
