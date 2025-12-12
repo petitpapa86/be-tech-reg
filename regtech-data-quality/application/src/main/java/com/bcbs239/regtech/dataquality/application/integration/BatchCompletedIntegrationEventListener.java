@@ -3,6 +3,7 @@ package com.bcbs239.regtech.dataquality.application.integration;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
+import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommand;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommandHandler;
@@ -29,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Specialized event listener for BatchIngested events that triggers quality validation.
- * 
+ *
  * <p>Event Processing Flow:
  * <ul>
  *   <li>Events are filtered for validity (non-empty IDs, valid counts, not stale)</li>
@@ -38,7 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *   <li>EventRetryProcessor automatically retries failed events with exponential backoff</li>
  *   <li>Permanently failed events (after max retries) remain in the repository for manual intervention</li>
  * </ul>
- * 
+ *
  * <p>No manual retry logic is needed - the EventRetryProcessor handles all retry attempts
  * and the failure repository serves as the dead letter queue for permanently failed events.
  */
@@ -76,16 +77,17 @@ public class BatchIngestedEventListener {
      * Main event handler for BatchIngested events.
      * Includes event filtering, routing logic, and error handling.
      * Failed events are persisted to the failure repository for retry by EventRetryProcessor.
-     * 
+     * <p>
      * Note: No @Transactional here - each internal operation manages its own transaction.
      * This prevents "Transaction silently rolled back" errors when handleEventProcessingError()
      * marks the transaction as rollback-only.
      */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @Async("qualityEventExecutor")
-    public void handleBatchIngestedEvent(BatchIngestedEvent event) {
-        totalEventsReceived.incrementAndGet();
+    @EventListener
+    public void handleBatchIngestedEvent(BatchCompletedIntegrationEvent event) {
+        if (CorrelationContext.isInboxReplay()) {
+            return;
+        }
+
 
         log.info("batch_ingested_event_received; details={}", Map.of(
                 "batchId", event.getBatchId(),
@@ -96,16 +98,6 @@ public class BatchIngestedEventListener {
         ));
 
         try {
-            // Skip processing entirely if this is a replay (either inbox or outbox)
-            // Events are processed once during initial dispatch, replays are for reliability only
-//            if (CorrelationContext.isInboxReplay() || CorrelationContext.isOutboxReplay()) {
-//                log.info("batch_ingested_event_replay_skip; details={}", Map.of(
-//                        "batchId", event.getBatchId(),
-//                        "reason", CorrelationContext.isInboxReplay() ? "inbox_replay_skipped" : "outbox_replay_skipped"
-//                ));
-//                return;
-//            }
-
             // Event filtering
             if (!shouldProcessEvent(event)) {
                 totalEventsFiltered.incrementAndGet();
@@ -132,8 +124,6 @@ public class BatchIngestedEventListener {
                     .where(CorrelationContext.INBOX_REPLAY, true)
                     .run(() -> routeEvent(event));
 
-
-            totalEventsProcessed.incrementAndGet();
             log.info("batch_ingested_event_processed_successfully; details={}", Map.of(
                     "batchId", event.getBatchId()
             ));
@@ -148,7 +138,7 @@ public class BatchIngestedEventListener {
     /**
      * Event filtering logic to determine if an event should be processed.
      */
-    private boolean shouldProcessEvent(BatchIngestedEvent event) {
+    private boolean shouldProcessEvent(BatchCompletedIntegrationEvent event) {
         // Filter out events with invalid data
         if (event.getBatchId() == null || event.getBatchId().trim().isEmpty()) {
             log.info("batch_ingested_event_invalid_batch_id; details={}", Map.of(
@@ -200,7 +190,7 @@ public class BatchIngestedEventListener {
     /**
      * Ensure idempotency by checking various sources.
      */
-    private boolean ensureIdempotency(BatchIngestedEvent event) {
+    private boolean ensureIdempotency(BatchCompletedIntegrationEvent event) {
         String eventKey = createEventKey(event);
 
         // Check if event is already being processed
@@ -224,10 +214,11 @@ public class BatchIngestedEventListener {
         return true;
     }
 
-    /**
-     * Route event to appropriate processing logic based on event characteristics.
-     */
-    private void routeEvent(BatchIngestedEvent event) {
+    // @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    //@Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Async("qualityEventExecutor")
+    private void routeEvent(BatchCompletedIntegrationEvent event) {
+        totalEventsReceived.incrementAndGet();
         // Create command with appropriate configuration
         ValidateBatchQualityCommand command = createValidationCommand(event);
 
@@ -238,12 +229,13 @@ public class BatchIngestedEventListener {
             String errMsg = result.getError().map(ed -> ed.getMessage() != null ? ed.getMessage() : ed.getCode()).orElse("unknown error");
             throw new RuntimeException("Command handling failed: " + errMsg);
         }
+        totalEventsProcessed.incrementAndGet();
     }
 
     /**
      * Create validation command with appropriate configuration.
      */
-    private ValidateBatchQualityCommand createValidationCommand(BatchIngestedEvent event) {
+    private ValidateBatchQualityCommand createValidationCommand(BatchCompletedIntegrationEvent event) {
         // Try to reuse a correlation id if available
         String correlationId = event.getCorrelationId();
 
@@ -267,12 +259,12 @@ public class BatchIngestedEventListener {
 
     /**
      * Handle event processing errors by persisting to the failure repository.
-     * 
+     * <p>
      * Uses REQUIRES_NEW to ensure error recording happens in a separate transaction,
      * preventing "Transaction silently rolled back" errors when the main transaction
-     * is marked as rollback-only due to OptimisticLockingFailureException or 
+     * is marked as rollback-only due to OptimisticLockingFailureException or
      * DataIntegrityViolationException.
-     * 
+     *
      * <p>The IEventProcessingFailureRepository serves as the dead letter queue.
      * The EventRetryProcessor will automatically:
      * <ul>
@@ -281,11 +273,11 @@ public class BatchIngestedEventListener {
      *   <li>Mark events as permanently failed after max retries</li>
      *   <li>Publish integration events for monitoring and alerting</li>
      * </ul>
-     * 
+     *
      * <p>No manual retry logic or dead letter queue implementation is needed here.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    private void handleEventProcessingError(BatchIngestedEvent event, Exception error) {
+    private void handleEventProcessingError(BatchCompletedIntegrationEvent event, Exception error) {
         String batchId = event.getBatchId();
 
         log.error("batch_ingested_event_processing_error; details={}", Map.of(
@@ -297,32 +289,32 @@ public class BatchIngestedEventListener {
         // Persist failure to repository for retry by EventRetryProcessor
         try {
             String eventPayload = objectMapper.writeValueAsString(event);
-            
+
             Map<String, String> metadata = Map.of(
-                "batchId", event.getBatchId(),
-                "bankId", event.getBankId(),
-                "s3Uri", event.getS3Uri(),
-                "totalExposures", String.valueOf(event.getTotalExposures()),
-                "correlationId", event.getCorrelationId() != null ? event.getCorrelationId() : "",
-                "eventId", event.getEventId() != null ? event.getEventId() : ""
+                    "batchId", event.getBatchId(),
+                    "bankId", event.getBankId(),
+                    "s3Uri", event.getS3Uri(),
+                    "totalExposures", String.valueOf(event.getTotalExposures()),
+                    "correlationId", event.getCorrelationId() != null ? event.getCorrelationId() : "",
+                    "eventId", event.getEventId() != null ? event.getEventId() : ""
             );
-            
+
             EventProcessingFailure failure = EventProcessingFailure.create(
-                event.getClass().getName(),
-                eventPayload,
-                error.getMessage() != null ? error.getMessage() : error.getClass().getName(),
-                getStackTraceAsString(error),
-                metadata,
-                5 // max retries - will be handled by EventRetryProcessor
+                    event.getClass().getName(),
+                    eventPayload,
+                    error.getMessage() != null ? error.getMessage() : error.getClass().getName(),
+                    getStackTraceAsString(error),
+                    metadata,
+                    5 // max retries - will be handled by EventRetryProcessor
             );
-            
+
             failureRepository.save(failure);
-            
+
             log.info("event_processing_failure_persisted; details={}", Map.of(
                     "batchId", batchId,
                     "message", "will_be_retried_by_EventRetryProcessor"
             ));
-            
+
         } catch (Exception saveEx) {
             log.error("failed_to_persist_event_processing_failure; details={}", Map.of(
                     "batchId", batchId
@@ -339,21 +331,21 @@ public class BatchIngestedEventListener {
      */
     private String getStackTraceAsString(Exception e) {
         if (e == null) return "";
-        
+
         StringBuilder sb = new StringBuilder();
         sb.append(e.getClass().getName()).append(": ").append(e.getMessage()).append("\n");
-        
+
         for (StackTraceElement element : e.getStackTrace()) {
             sb.append("\tat ").append(element.toString()).append("\n");
         }
-        
+
         return sb.toString();
     }
 
     /**
      * Create unique event key for idempotency checking.
      */
-    private String createEventKey(BatchIngestedEvent event) {
+    private String createEventKey(BatchCompletedIntegrationEvent event) {
         return String.format("%s:%s:%s",
                 event.getBatchId(),
                 event.getBankId(),
@@ -387,9 +379,9 @@ public class BatchIngestedEventListener {
      * Event processing statistics.
      */
     public record EventProcessingStatistics(
-            int totalReceived, 
-            int totalProcessed, 
-            int totalFailed, 
+            int totalReceived,
+            int totalProcessed,
+            int totalFailed,
             int totalFiltered,
             int currentlyProcessing) {
 
