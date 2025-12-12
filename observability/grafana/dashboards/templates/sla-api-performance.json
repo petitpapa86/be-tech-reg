@@ -1,370 +1,379 @@
 {
-  "dashboard": {
-    "id": null,
-    "title": "[SLA] API Performance and Availability",
-    "tags": ["sla", "api", "availability", "performance"],
-    "timezone": "browser",
-    "panels": [
-      {
-        "id": 1,
-        "title": "API Availability (99.9% SLA Target)",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "(1 - (sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[30d])) / sum(rate(http_server_requests_seconds_count[30d])))) * 100",
-            "legendFormat": "Availability %",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "red",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 99.5
-                },
-                {
-                  "color": "green",
-                  "value": 99.9
-                }
+    "id":  null,
+    "title":  "[SLA] API Performance and Availability",
+    "tags":  [
+                 "sla",
+                 "api",
+                 "availability",
+                 "performance"
+             ],
+    "timezone":  "browser",
+    "panels":  [
+                   {
+                       "id":  1,
+                       "title":  "API Availability (99.9% SLA Target)",
+                       "type":  "stat",
+                       "targets":  [
+                                       {
+                                           "expr":  "(1 - (sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[30d])) / sum(rate(http_server_requests_seconds_count[30d])))) * 100",
+                                           "legendFormat":  "Availability %",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "percent",
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "orange",
+                                                                                                 "value":  99.5
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  99.9
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  8,
+                                       "x":  0,
+                                       "y":  0
+                                   }
+                   },
+                   {
+                       "id":  2,
+                       "title":  "P95 Response Time SLA (\u003c 500ms Target)",
+                       "type":  "stat",
+                       "targets":  [
+                                       {
+                                           "expr":  "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000",
+                                           "legendFormat":  "P95 Response Time",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "ms",
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "orange",
+                                                                                                 "value":  300
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  500
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  8,
+                                       "x":  8,
+                                       "y":  0
+                                   }
+                   },
+                   {
+                       "id":  3,
+                       "title":  "Error Rate SLA (\u003c 0.1% Target)",
+                       "type":  "stat",
+                       "targets":  [
+                                       {
+                                           "expr":  "sum(rate(http_server_requests_seconds_count{status=~\"4..|5..\"}[5m])) / sum(rate(http_server_requests_seconds_count[5m])) * 100",
+                                           "legendFormat":  "Error Rate %",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "percent",
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "orange",
+                                                                                                 "value":  0.05
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  0.1
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  8,
+                                       "x":  16,
+                                       "y":  0
+                                   }
+                   },
+                   {
+                       "id":  4,
+                       "title":  "API Availability Trend (30 days)",
+                       "type":  "graph",
+                       "targets":  [
+                                       {
+                                           "expr":  "(1 - (sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1h])) / sum(rate(http_server_requests_seconds_count[1h])))) * 100",
+                                           "legendFormat":  "Availability %",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "percent"
+                                                        }
+                                       },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  24,
+                                       "x":  0,
+                                       "y":  8
+                                   }
+                   },
+                   {
+                       "id":  5,
+                       "title":  "Response Time Distribution by Module",
+                       "type":  "heatmap",
+                       "targets":  [
+                                       {
+                                           "expr":  "sum(rate(http_server_requests_seconds_bucket[5m])) by (le, module)",
+                                           "legendFormat":  "{{module}}",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "custom":  {
+                                                                           "scaleDistribution":  {
+                                                                                                     "type":  "log"
+                                                                                                 }
+                                                                       }
+                                                        }
+                                       },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  0,
+                                       "y":  16
+                                   }
+                   },
+                   {
+                       "id":  6,
+                       "title":  "Error Rate by Endpoint",
+                       "type":  "table",
+                       "targets":  [
+                                       {
+                                           "expr":  "sum(rate(http_server_requests_seconds_count{status=~\"4..|5..\"}[5m])) by (uri, module) / sum(rate(http_server_requests_seconds_count[5m])) by (uri, module) * 100",
+                                           "legendFormat":  "{{uri}}",
+                                           "refId":  "A",
+                                           "instant":  true
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "percent",
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "orange",
+                                                                                                 "value":  1
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  5
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  12,
+                                       "y":  16
+                                   }
+                   },
+                   {
+                       "id":  7,
+                       "title":  "SLA Compliance by Module",
+                       "type":  "bargauge",
+                       "targets":  [
+                                       {
+                                           "expr":  "(1 - (sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[7d])) by (module) / sum(rate(http_server_requests_seconds_count[7d])) by (module))) * 100",
+                                           "legendFormat":  "{{module}}",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "percent",
+                                                            "min":  99.9,
+                                                            "max":  100,
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "orange",
+                                                                                                 "value":  99.9
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  99.95
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  24,
+                                       "x":  0,
+                                       "y":  24
+                                   }
+                   },
+                   {
+                       "id":  8,
+                       "title":  "Top Slowest Endpoints (P95 \u003e 1s)",
+                       "type":  "table",
+                       "targets":  [
+                                       {
+                                           "expr":  "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le, uri, module)) \u003e 1",
+                                           "legendFormat":  "{{uri}}",
+                                           "refId":  "A",
+                                           "instant":  true
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "s",
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "orange",
+                                                                                                 "value":  1
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  2
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  0,
+                                       "y":  32
+                                   }
+                   },
+                   {
+                       "id":  9,
+                       "title":  "Highest Error Rate Endpoints (\u003e 1%)",
+                       "type":  "table",
+                       "targets":  [
+                                       {
+                                           "expr":  "(sum(rate(http_server_requests_seconds_count{status=~\"4..|5..\"}[5m])) by (uri, module) / sum(rate(http_server_requests_seconds_count[5m])) by (uri, module) * 100) \u003e 1",
+                                           "legendFormat":  "{{uri}}",
+                                           "refId":  "A",
+                                           "instant":  true
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "unit":  "percent",
+                                                            "thresholds":  {
+                                                                               "mode":  "absolute",
+                                                                               "steps":  [
+                                                                                             {
+                                                                                                 "color":  "green",
+                                                                                                 "value":  null
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "orange",
+                                                                                                 "value":  1
+                                                                                             },
+                                                                                             {
+                                                                                                 "color":  "red",
+                                                                                                 "value":  5
+                                                                                             }
+                                                                                         ]
+                                                                           }
+                                                        }
+                                       },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  12,
+                                       "y":  32
+                                   }
+                   }
+               ],
+    "time":  {
+                 "from":  "now-24h",
+                 "to":  "now"
+             },
+    "timepicker":  {
+
+                   },
+    "templating":  {
+                       "list":  [
+                                    {
+                                        "name":  "module",
+                                        "type":  "query",
+                                        "datasource":  "Prometheus",
+                                        "query":  "label_values(module)",
+                                        "label":  "Module",
+                                        "multi":  true,
+                                        "includeAll":  true
+                                    }
+                                ]
+                   },
+    "annotations":  {
+                        "list":  [
+
+                                 ]
+                    },
+    "refresh":  "1m",
+    "schemaVersion":  27,
+    "version":  0,
+    "links":  [
+
               ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 8,
-          "x": 0,
-          "y": 0
-        }
-      },
-      {
-        "id": 2,
-        "title": "P95 Response Time SLA (< 500ms Target)",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le)) * 1000",
-            "legendFormat": "P95 Response Time",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "ms",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 300
-                },
-                {
-                  "color": "red",
-                  "value": 500
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 8,
-          "x": 8,
-          "y": 0
-        }
-      },
-      {
-        "id": 3,
-        "title": "Error Rate SLA (< 0.1% Target)",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "sum(rate(http_server_requests_seconds_count{status=~\"4..|5..\"}[5m])) / sum(rate(http_server_requests_seconds_count[5m])) * 100",
-            "legendFormat": "Error Rate %",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 0.05
-                },
-                {
-                  "color": "red",
-                  "value": 0.1
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 8,
-          "x": 16,
-          "y": 0
-        }
-      },
-      {
-        "id": 4,
-        "title": "API Availability Trend (30 days)",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "(1 - (sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[1h])) / sum(rate(http_server_requests_seconds_count[1h])))) * 100",
-            "legendFormat": "Availability %",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent"
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 24,
-          "x": 0,
-          "y": 8
-        }
-      },
-      {
-        "id": 5,
-        "title": "Response Time Distribution by Module",
-        "type": "heatmap",
-        "targets": [
-          {
-            "expr": "sum(rate(http_server_requests_seconds_bucket[5m])) by (le, module)",
-            "legendFormat": "{{module}}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "custom": {
-              "scaleDistribution": {
-                "type": "log"
-              }
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 16
-        }
-      },
-      {
-        "id": 6,
-        "title": "Error Rate by Endpoint",
-        "type": "table",
-        "targets": [
-          {
-            "expr": "sum(rate(http_server_requests_seconds_count{status=~\"4..|5..\"}[5m])) by (uri, module) / sum(rate(http_server_requests_seconds_count[5m])) by (uri, module) * 100",
-            "legendFormat": "{{uri}}",
-            "refId": "A",
-            "instant": true
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 1
-                },
-                {
-                  "color": "red",
-                  "value": 5
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 16
-        }
-      },
-      {
-        "id": 7,
-        "title": "SLA Compliance by Module",
-        "type": "bargauge",
-        "targets": [
-          {
-            "expr": "(1 - (sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[7d])) by (module) / sum(rate(http_server_requests_seconds_count[7d])) by (module))) * 100",
-            "legendFormat": "{{module}}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "min": 99.9,
-            "max": 100,
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "red",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 99.9
-                },
-                {
-                  "color": "green",
-                  "value": 99.95
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 24,
-          "x": 0,
-          "y": 24
-        }
-      },
-      {
-        "id": 8,
-        "title": "Top Slowest Endpoints (P95 > 1s)",
-        "type": "table",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le, uri, module)) > 1",
-            "legendFormat": "{{uri}}",
-            "refId": "A",
-            "instant": true
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "s",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 1
-                },
-                {
-                  "color": "red",
-                  "value": 2
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 32
-        }
-      },
-      {
-        "id": 9,
-        "title": "Highest Error Rate Endpoints (> 1%)",
-        "type": "table",
-        "targets": [
-          {
-            "expr": "(sum(rate(http_server_requests_seconds_count{status=~\"4..|5..\"}[5m])) by (uri, module) / sum(rate(http_server_requests_seconds_count[5m])) by (uri, module) * 100) > 1",
-            "legendFormat": "{{uri}}",
-            "refId": "A",
-            "instant": true
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "unit": "percent",
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 1
-                },
-                {
-                  "color": "red",
-                  "value": 5
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 32
-        }
-      }
-    ],
-    "time": {
-      "from": "now-24h",
-      "to": "now"
-    },
-    "timepicker": {},
-    "templating": {
-      "list": [
-        {
-          "name": "module",
-          "type": "query",
-          "datasource": "Prometheus",
-          "query": "label_values(module)",
-          "label": "Module",
-          "multi": true,
-          "includeAll": true
-        }
-      ]
-    },
-    "annotations": {
-      "list": []
-    },
-    "refresh": "1m",
-    "schemaVersion": 27,
-    "version": 0,
-    "links": []
-  }
 }

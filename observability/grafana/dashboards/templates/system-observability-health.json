@@ -1,162 +1,172 @@
 {
-  "dashboard": {
-    "id": null,
-    "title": "[System] Observability Stack Health",
-    "tags": ["system", "observability", "health"],
-    "timezone": "browser",
-    "panels": [
-      {
-        "id": 1,
-        "title": "Observability Stack Status",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "up{job=~\"tempo|loki|prometheus|grafana\"}",
-            "legendFormat": "{{job}}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "mappings": [
-              {
-                "options": {
-                  "0": {
-                    "text": "DOWN",
-                    "color": "red"
-                  },
-                  "1": {
-                    "text": "UP",
-                    "color": "green"
-                  }
-                },
-                "type": "value"
-              }
-            ]
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 0
-        }
-      },
-      {
-        "id": 2,
-        "title": "OpenTelemetry Collector Metrics",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "rate(otelcol_exporter_sent_spans_total[5m])",
-            "legendFormat": "Spans/sec",
-            "refId": "A"
-          },
-          {
-            "expr": "rate(otelcol_receiver_accepted_spans_total[5m])",
-            "legendFormat": "Spans received/sec",
-            "refId": "B"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 0
-        }
-      },
-      {
-        "id": 3,
-        "title": "JVM Memory Usage by Module",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "jvm_memory_used_bytes / jvm_memory_max_bytes * 100",
-            "legendFormat": "{{module}} - {{area}}",
-            "refId": "A"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 24,
-          "x": 0,
-          "y": 8
-        }
-      },
-      {
-        "id": 4,
-        "title": "HTTP Request Rate by Module",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "sum(rate(http_server_requests_seconds_count[5m])) by (module)",
-            "legendFormat": "{{module}}",
-            "refId": "A"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 16
-        }
-      },
-      {
-        "id": 5,
-        "title": "HTTP Error Rate by Module",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) by (module) / sum(rate(http_server_requests_seconds_count[5m])) by (module) * 100",
-            "legendFormat": "{{module}} error %",
-            "refId": "A"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 16
-        }
-      },
-      {
-        "id": 6,
-        "title": "Database Connection Pool Usage",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "hikaricp_connections_active",
-            "legendFormat": "{{pool}} active",
-            "refId": "A"
-          },
-          {
-            "expr": "hikaricp_connections_idle",
-            "legendFormat": "{{pool}} idle",
-            "refId": "B"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 24,
-          "x": 0,
-          "y": 24
-        }
-      }
-    ],
-    "time": {
-      "from": "now-1h",
-      "to": "now"
-    },
-    "timepicker": {},
-    "templating": {
-      "list": []
-    },
-    "annotations": {
-      "list": []
-    },
-    "refresh": "30s",
-    "schemaVersion": 27,
-    "version": 0,
-    "links": []
-  }
+    "id":  null,
+    "title":  "[System] Observability Stack Health",
+    "tags":  [
+                 "system",
+                 "observability",
+                 "health"
+             ],
+    "timezone":  "browser",
+    "panels":  [
+                   {
+                       "id":  1,
+                       "title":  "Observability Stack Status",
+                       "type":  "stat",
+                       "targets":  [
+                                       {
+                                           "expr":  "up{job=~\"tempo|loki|prometheus|grafana\"}",
+                                           "legendFormat":  "{{job}}",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "fieldConfig":  {
+                                           "defaults":  {
+                                                            "mappings":  [
+                                                                             {
+                                                                                 "options":  {
+                                                                                                 "0":  {
+                                                                                                           "text":  "DOWN",
+                                                                                                           "color":  "red"
+                                                                                                       },
+                                                                                                 "1":  {
+                                                                                                           "text":  "UP",
+                                                                                                           "color":  "green"
+                                                                                                       }
+                                                                                             },
+                                                                                 "type":  "value"
+                                                                             }
+                                                                         ]
+                                                        }
+                                       },
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  0,
+                                       "y":  0
+                                   }
+                   },
+                   {
+                       "id":  2,
+                       "title":  "OpenTelemetry Collector Metrics",
+                       "type":  "graph",
+                       "targets":  [
+                                       {
+                                           "expr":  "rate(otelcol_exporter_sent_spans_total[5m])",
+                                           "legendFormat":  "Spans/sec",
+                                           "refId":  "A"
+                                       },
+                                       {
+                                           "expr":  "rate(otelcol_receiver_accepted_spans_total[5m])",
+                                           "legendFormat":  "Spans received/sec",
+                                           "refId":  "B"
+                                       }
+                                   ],
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  12,
+                                       "y":  0
+                                   }
+                   },
+                   {
+                       "id":  3,
+                       "title":  "JVM Memory Usage by Module",
+                       "type":  "graph",
+                       "targets":  [
+                                       {
+                                           "expr":  "jvm_memory_used_bytes / jvm_memory_max_bytes * 100",
+                                           "legendFormat":  "{{module}} - {{area}}",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  24,
+                                       "x":  0,
+                                       "y":  8
+                                   }
+                   },
+                   {
+                       "id":  4,
+                       "title":  "HTTP Request Rate by Module",
+                       "type":  "graph",
+                       "targets":  [
+                                       {
+                                           "expr":  "sum(rate(http_server_requests_seconds_count[5m])) by (module)",
+                                           "legendFormat":  "{{module}}",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  0,
+                                       "y":  16
+                                   }
+                   },
+                   {
+                       "id":  5,
+                       "title":  "HTTP Error Rate by Module",
+                       "type":  "graph",
+                       "targets":  [
+                                       {
+                                           "expr":  "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) by (module) / sum(rate(http_server_requests_seconds_count[5m])) by (module) * 100",
+                                           "legendFormat":  "{{module}} error %",
+                                           "refId":  "A"
+                                       }
+                                   ],
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  12,
+                                       "x":  12,
+                                       "y":  16
+                                   }
+                   },
+                   {
+                       "id":  6,
+                       "title":  "Database Connection Pool Usage",
+                       "type":  "graph",
+                       "targets":  [
+                                       {
+                                           "expr":  "hikaricp_connections_active",
+                                           "legendFormat":  "{{pool}} active",
+                                           "refId":  "A"
+                                       },
+                                       {
+                                           "expr":  "hikaricp_connections_idle",
+                                           "legendFormat":  "{{pool}} idle",
+                                           "refId":  "B"
+                                       }
+                                   ],
+                       "gridPos":  {
+                                       "h":  8,
+                                       "w":  24,
+                                       "x":  0,
+                                       "y":  24
+                                   }
+                   }
+               ],
+    "time":  {
+                 "from":  "now-1h",
+                 "to":  "now"
+             },
+    "timepicker":  {
+
+                   },
+    "templating":  {
+                       "list":  [
+
+                                ]
+                   },
+    "annotations":  {
+                        "list":  [
+
+                                 ]
+                    },
+    "refresh":  "30s",
+    "schemaVersion":  27,
+    "version":  0,
+    "links":  [
+
+              ]
 }
