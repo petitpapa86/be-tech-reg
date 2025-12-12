@@ -49,11 +49,11 @@ ingestion:
   # Performance optimization settings
   performance:
     max-concurrent-files: 4      # Maximum number of files to process concurrently
-    chunk-size: 10000           # Default chunk size for processing large files
+    chunk-size: 100000          # Default chunk size for processing large files
   
   # Parser settings
   parser:
-    default-max-records: 10000  # Maximum records to parse per file by default
+    default-max-records: 100000  # Maximum records to parse per file by default
   
   # Retry settings for failed batch processing
   retry:

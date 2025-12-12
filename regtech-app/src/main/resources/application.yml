@@ -49,6 +49,14 @@ spring:
     favicon:
       enabled: false
   
+  # Multipart file upload configuration
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 500MB
+      max-request-size: 500MB
+      file-size-threshold: 10MB
+  
   # Database configuration
   datasource:
     url: jdbc:postgresql://localhost:5432/regtech
