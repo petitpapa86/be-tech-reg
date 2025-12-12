@@ -151,22 +151,25 @@ public class BusinessMetricsCollector {
             .register(meterRegistry);
             
         // Track active processes
-        if ("PROCESSING".equals(processingStatus)) {
-            String key = "active_batch_" + batchId;
-            activeProcesses.computeIfAbsent(key, k -> {
-                AtomicLong activeCount = new AtomicLong(1);
-                Gauge.builder("business.batch.active.count", activeCount, AtomicLong::get)
-                    .description("Number of active batch processes")
-                    .tags("batch.id", batchId)
-                    .register(meterRegistry);
-                return activeCount;
-            }).set(1);
-        } else {
-            // Remove from active processes when completed
-            String key = "active_batch_" + batchId;
-            AtomicLong activeCount = activeProcesses.get(key);
-            if (activeCount != null) {
-                activeCount.set(0);
+        switch (processingStatus) {
+            case "PROCESSING" -> {
+                String key = "active_batch_" + batchId;
+                activeProcesses.computeIfAbsent(key, k -> {
+                    AtomicLong activeCount = new AtomicLong(1);
+                    Gauge.builder("business.batch.active.count", activeCount, AtomicLong::get)
+                            .description("Number of active batch processes")
+                            .tags("batch.id", batchId)
+                            .register(meterRegistry);
+                    return activeCount;
+                }).set(1);
+            }
+            default -> {
+                // Remove from active processes when completed
+                String key = "active_batch_" + batchId;
+                AtomicLong activeCount = activeProcesses.get(key);
+                if (activeCount != null) {
+                    activeCount.set(0);
+                }
             }
         }
     }
