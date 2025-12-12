@@ -14,13 +14,13 @@ import java.util.UUID;
 /**
  * JPA Entity for report metadata failures (fallback table).
  * Used when database insert fails after S3 upload for later reconciliation.
- * Maps to report_metadata_failures table.
+ * Maps to report_metadata_failures table in reportgeneration schema.
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "report_metadata_failures")
+@Table(name = "report_metadata_failures", schema = "reportgeneration")
 public class ReportMetadataFailureEntity {
 
     @Id
