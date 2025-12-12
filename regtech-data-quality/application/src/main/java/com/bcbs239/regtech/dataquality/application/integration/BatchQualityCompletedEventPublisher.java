@@ -36,12 +36,12 @@ public class BatchQualityCompletedEventPublisher {
                     event.getBatchId().value(),
                     event.getBankId().value(),
                     event.getDetailsReference().uri(),
-                    java.util.Map.of(), // validationSummary - can be populated if needed
-                    java.util.Map.of()  // processingMetadata - can be populated if needed
+                    event.getQualityScores().overallScore(),
+                    event.getQualityGrade().getLetterGrade()
             );
 
             ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
-                   // .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
+                    // .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
                     //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
                     .where(CorrelationContext.OUTBOX_REPLAY, true)
                     .where(CorrelationContext.INBOX_REPLAY, false)

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +16,7 @@ import java.util.Map;
  * This event notifies downstream modules (reporting) that quality validation results
  * are available for a batch. Detailed results are stored in S3 and can be accessed
  * via the S3 reference URI.
- *
+ * <p>
  * Event versioning: v1.0 - Initial version with essential quality data
  */
 @Getter
@@ -26,8 +27,8 @@ public class BatchQualityCompletedIntegrationEvent extends IntegrationEvent {
     private final String batchId;
     private final String bankId;
     private final String s3ReferenceUri;
-    private final Map<String, Object> validationSummary;
-    private final Map<String, Object> processingMetadata;
+    private final double overallScore;
+    private final String qualityGrade;
     private final Instant completedAt;
     private final String eventVersion;
 
@@ -36,16 +37,16 @@ public class BatchQualityCompletedIntegrationEvent extends IntegrationEvent {
             @JsonProperty("batchId") String batchId,
             @JsonProperty("bankId") String bankId,
             @JsonProperty("s3ReferenceUri") String s3ReferenceUri,
-            @JsonProperty("validationSummary") Map<String, Object> validationSummary,
-            @JsonProperty("processingMetadata") Map<String, Object> processingMetadata,
+            @JsonProperty("overallScore") double overallScore,
+            @JsonProperty("qualityGrade") String qualityGrade,
             @JsonProperty("completedAt") Instant completedAt
     ) {
         super(batchId, Maybe.none(), "BatchQualityCompletedIntegrationEvent");
         this.batchId = batchId;
         this.bankId = bankId;
         this.s3ReferenceUri = s3ReferenceUri;
-        this.validationSummary = validationSummary != null ? validationSummary : new HashMap<>();
-        this.processingMetadata = processingMetadata != null ? processingMetadata : new HashMap<>();
+        this.overallScore = overallScore;
+        this.qualityGrade = qualityGrade;
         this.completedAt = completedAt;
         this.eventVersion = EVENT_VERSION;
     }
@@ -55,10 +56,10 @@ public class BatchQualityCompletedIntegrationEvent extends IntegrationEvent {
             String batchId,
             String bankId,
             String s3ReferenceUri,
-            Map<String, Object> validationSummary,
-            Map<String, Object> processingMetadata
+            double overallScore,
+            String qualityGrade
     ) {
-        this(batchId, bankId, s3ReferenceUri, validationSummary, processingMetadata, Instant.now());
+        this(batchId, bankId, s3ReferenceUri, overallScore, qualityGrade, Instant.now());
     }
 
     @Override

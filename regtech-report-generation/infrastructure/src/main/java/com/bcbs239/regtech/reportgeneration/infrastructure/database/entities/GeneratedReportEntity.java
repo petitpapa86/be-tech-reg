@@ -41,11 +41,13 @@ public class GeneratedReportEntity {
     @Column(name = "reporting_date", nullable = false)
     private LocalDate reportingDate;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "report_type", nullable = false, length = 20)
-    private String reportType;
+    private ReportType reportType;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private ReportStatus status;
 
     @Column(name = "html_s3_uri", columnDefinition = "TEXT")
     private String htmlS3Uri;
@@ -65,14 +67,16 @@ public class GeneratedReportEntity {
     @Column(name = "xbrl_presigned_url", columnDefinition = "TEXT")
     private String xbrlPresignedUrl;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "xbrl_validation_status", length = 20)
-    private String xbrlValidationStatus;
+    private XbrlValidationStatus xbrlValidationStatus;
 
     @Column(name = "overall_quality_score", precision = 5, scale = 2)
     private java.math.BigDecimal overallQualityScore;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "compliance_status", length = 20)
-    private String complianceStatus;
+    private ComplianceStatus complianceStatus;
 
     @Column(name = "generated_at", nullable = false)
     private Instant generatedAt;
@@ -100,13 +104,13 @@ public class GeneratedReportEntity {
         entity.setBatchId(report.getBatchId().value());
         entity.setBankId(report.getBankId().value());
         entity.setReportingDate(report.getReportingDate().value());
-        entity.setReportType(report.getReportType().name());
-        entity.setStatus(report.getStatus().name());
+        entity.setReportType(report.getReportType());
+        entity.setStatus(report.getStatus());
         
         // Map quality metrics
         entity.setOverallQualityScore(report.getOverallQualityScore());
         if (report.getComplianceStatus() != null) {
-            entity.setComplianceStatus(report.getComplianceStatus().name());
+            entity.setComplianceStatus(report.getComplianceStatus());
         }
         
         // Map HTML metadata if present
@@ -123,7 +127,7 @@ public class GeneratedReportEntity {
             entity.setXbrlS3Uri(xbrlMetadata.s3Uri().value());
             entity.setXbrlFileSize(xbrlMetadata.fileSize().bytes());
             entity.setXbrlPresignedUrl(xbrlMetadata.presignedUrl().url());
-            entity.setXbrlValidationStatus(xbrlMetadata.validationStatus().name());
+            entity.setXbrlValidationStatus(xbrlMetadata.validationStatus());
         }
         
         // Map timestamps
@@ -149,13 +153,13 @@ public class GeneratedReportEntity {
     public GeneratedReportEntity updateFromDomain(GeneratedReport report) {
         this.setBankId(report.getBankId().value());
         this.setReportingDate(report.getReportingDate().value());
-        this.setReportType(report.getReportType().name());
-        this.setStatus(report.getStatus().name());
+        this.setReportType(report.getReportType());
+        this.setStatus(report.getStatus());
         
         // Map quality metrics
         this.setOverallQualityScore(report.getOverallQualityScore());
         if (report.getComplianceStatus() != null) {
-            this.setComplianceStatus(report.getComplianceStatus().name());
+            this.setComplianceStatus(report.getComplianceStatus());
         }
         
         // Map HTML metadata if present
@@ -172,7 +176,7 @@ public class GeneratedReportEntity {
             this.setXbrlS3Uri(xbrlMetadata.s3Uri().value());
             this.setXbrlFileSize(xbrlMetadata.fileSize().bytes());
             this.setXbrlPresignedUrl(xbrlMetadata.presignedUrl().url());
-            this.setXbrlValidationStatus(xbrlMetadata.validationStatus().name());
+            this.setXbrlValidationStatus(xbrlMetadata.validationStatus());
         }
         
         // Map timestamps
@@ -214,7 +218,7 @@ public class GeneratedReportEntity {
         XbrlReportMetadata xbrlMetadata = null;
         if (this.xbrlS3Uri != null) {
             XbrlValidationStatus validationStatus = this.xbrlValidationStatus != null
-                    ? XbrlValidationStatus.valueOf(this.xbrlValidationStatus)
+                    ? this.xbrlValidationStatus
                     : XbrlValidationStatus.NOT_VALIDATED;
             
             // PresignedUrl requires URL and expiration time
@@ -239,23 +243,18 @@ public class GeneratedReportEntity {
                 ? FailureReason.of(this.failureReason)
                 : null;
         
-        // Parse compliance status
-        ComplianceStatus complianceStatus = this.complianceStatus != null
-                ? ComplianceStatus.valueOf(this.complianceStatus)
-                : null;
-        
         // Use package-private reconstruction method (no reflection needed)
         return GeneratedReport.reconstituteFromPersistence(
                 ReportId.of(this.reportId),
                 BatchId.of(this.batchId),
                 BankId.of(this.bankId),
                 ReportingDate.of(this.reportingDate),
-                ReportType.valueOf(this.reportType),
-                ReportStatus.valueOf(this.status),
+                this.reportType,
+                this.status,
                 htmlMetadata,
                 xbrlMetadata,
                 this.overallQualityScore,
-                complianceStatus,
+                this.complianceStatus,
                 timestamps,
                 failureReason
         );

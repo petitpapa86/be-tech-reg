@@ -7,6 +7,7 @@ import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalcul
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,13 +21,11 @@ public class BatchCalculationCompletedEventPublisher {
 
     private final IIntegrationEventBus eventBus;
 
-    @Autowired
     public BatchCalculationCompletedEventPublisher(IIntegrationEventBus eventBus) {
         this.eventBus = eventBus;
     }
 
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @EventListener
     public void handle(BatchCalculationCompletedEvent event) {
         if (CorrelationContext.isOutboxReplay()) {
             logger.debug("Skipping integration publish for BatchCalculationCompletedEvent {} because this is an outbox replay", event.getEventId());
@@ -39,10 +38,18 @@ public class BatchCalculationCompletedEventPublisher {
                     event.getBatchId(),
                     event.getBankId(),
                     event.getCalculationResultsUri(),
-                    event.getCompletedAt()
+                    event.getCompletedAt(),
+                    event.getTotalAmountEur(),
+                    event.getProcessedExposures()
             );
-
-            eventBus.publish(integrationEvent);
+            ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
+                    // .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
+                    //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
+                    .where(CorrelationContext.OUTBOX_REPLAY, true)
+                    .where(CorrelationContext.INBOX_REPLAY, false)
+                    .run(() -> {
+                        eventBus.publish(integrationEvent);
+                    });
             logger.info("Published BatchCalculationCompletedIntegrationEvent for batch {}", event.getBatchId());
 
         } catch (Exception ex) {

@@ -128,7 +128,7 @@ public class CalculateRiskMetricsCommandHandler {
             }
 
             // Complete batch
-            batch.completeCalculation(storageResult.getValue().orElseThrow(), protectedExposures.size());
+            batch.completeCalculation(storageResult.getValue().orElseThrow(), protectedExposures.size(), analysis.getTotalPortfolio());
             batchRepository.save(batch);
             portfolioAnalysisRepository.save(analysis);
 

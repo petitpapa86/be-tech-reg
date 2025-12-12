@@ -1,21 +1,27 @@
 package com.bcbs239.regtech.dataquality.domain.report;
 
 
+import java.time.Instant;
+
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
-import com.bcbs239.regtech.dataquality.domain.report.events.*;
+import com.bcbs239.regtech.dataquality.domain.report.events.QualityResultsRecordedEvent;
+import com.bcbs239.regtech.dataquality.domain.report.events.QualityScoresCalculatedEvent;
+import com.bcbs239.regtech.dataquality.domain.report.events.QualityValidationCompletedEvent;
+import com.bcbs239.regtech.dataquality.domain.report.events.QualityValidationFailedEvent;
+import com.bcbs239.regtech.dataquality.domain.report.events.QualityValidationStartedEvent;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
+
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.Instant;
 
 /**
  * Quality Report aggregate root that manages the lifecycle of data quality validation
@@ -38,6 +44,7 @@ public class QualityReport extends Entity {
     private String errorMessage;
     private Instant createdAt;
     private Instant updatedAt;
+    private QualityGrade qualityGrade;
     // Processing metadata (persisted/auditable)
     private Instant processingStartTime;
     private Instant processingEndTime;
@@ -139,8 +146,9 @@ public class QualityReport extends Entity {
         // QualityScores knows how to create itself from validation results
         QualityScores qualityScores = QualityScores.calculateFrom(validation);
         
-        // Business Logic: Store quality scores
+        // Business Logic: Store quality scores and grade
         this.scores = qualityScores;
+        this.qualityGrade = qualityScores.grade();
         this.updatedAt = Instant.now();
         
         // Emit domain event for score calculation
@@ -291,7 +299,7 @@ public class QualityReport extends Entity {
         this.updatedAt = Instant.now();
         
         addDomainEvent(new QualityValidationCompletedEvent(
-            reportId, batchId, bankId, scores, detailsReference, updatedAt
+            reportId, batchId, bankId, scores,qualityGrade, detailsReference, updatedAt
         ));
         
         return Result.success();

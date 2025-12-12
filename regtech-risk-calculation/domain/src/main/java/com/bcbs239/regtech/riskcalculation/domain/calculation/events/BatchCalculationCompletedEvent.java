@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 /**
@@ -18,6 +19,7 @@ public class BatchCalculationCompletedEvent extends DomainEvent {
     private final int processedExposures;
     private final String calculationResultsUri;
     private final Instant completedAt;
+    private final BigDecimal TotalAmountEur;
 
     @JsonCreator
     public BatchCalculationCompletedEvent(
@@ -25,13 +27,15 @@ public class BatchCalculationCompletedEvent extends DomainEvent {
             @JsonProperty("bankId") String bankId,
             @JsonProperty("processedExposures") int processedExposures,
             @JsonProperty("calculationResultsUri") String calculationResultsUri,
-            @JsonProperty("completedAt") Instant completedAt) {
+            @JsonProperty("completedAt") Instant completedAt,
+            @JsonProperty("totalAmountEur")BigDecimal totalAmountEur) {
         super(batchId, "BatchCalculationCompleted");
         this.batchId = batchId;
         this.bankId = bankId;
         this.processedExposures = processedExposures;
         this.calculationResultsUri = calculationResultsUri;
         this.completedAt = completedAt;
+        TotalAmountEur = totalAmountEur;
     }
 
     @Override
