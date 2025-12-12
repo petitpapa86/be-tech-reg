@@ -36,7 +36,7 @@ public class IntegrationEventReceiver {
             logger.info("✅ Skipping inbox save (replay): {}", event.getClass().getSimpleName());
             return;
         }
-        
+
         // Save to inbox for guaranteed delivery
         try {
             logger.info("💾 Saving to inbox: {}", event.getClass().getSimpleName());

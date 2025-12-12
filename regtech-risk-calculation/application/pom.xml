@@ -23,6 +23,12 @@
 			<version>${project.version}</version>
 		</dependency>
 		
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-core-domain</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		
 		<!-- Spring Boot Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -61,12 +67,6 @@
 			<artifactId>jqwik</artifactId>
 			<scope>test</scope>
 		</dependency>
-		
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-ingestion-domain</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
+
     </dependencies>
 </project>

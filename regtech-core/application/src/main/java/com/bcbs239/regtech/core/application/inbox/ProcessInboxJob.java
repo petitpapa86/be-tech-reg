@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.application.inbox;
 
 import com.bcbs239.regtech.core.application.eventprocessing.CoreIntegrationEventDeserializer;
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.inbox.IInboxMessageRepository;
@@ -8,8 +9,10 @@ import com.bcbs239.regtech.core.domain.inbox.InboxMessage;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessageStatus;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,11 +30,11 @@ public class ProcessInboxJob {
     private static final Logger logger = LoggerFactory.getLogger(ProcessInboxJob.class);
 
     private final IInboxMessageRepository inboxMessageRepository;
-    private final DomainEventBus dispatcher;
+    private final ApplicationEventPublisher dispatcher;
     private final InboxOptions inboxOptions;
     private final CoreIntegrationEventDeserializer deserializer;
 
-    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository, DomainEventBus dispatcher, InboxOptions inboxOptions, CoreIntegrationEventDeserializer deserializer) {
+    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository, ApplicationEventPublisher dispatcher, InboxOptions inboxOptions, CoreIntegrationEventDeserializer deserializer) {
         this.inboxMessageRepository = inboxMessageRepository;
         this.dispatcher = dispatcher;
         this.inboxOptions = inboxOptions;
@@ -74,12 +77,21 @@ public class ProcessInboxJob {
 
 
             DomainEvent event = deserializeResult.getValue().orElseThrow();
-            try{
+            try {
                 logger.info("Publishing replayed integration event: {} (eventId={})", event.getClass().getSimpleName(), event.getEventId());
-                dispatcher.publishFromInbox(event);
+
+                ScopedValue.where(CorrelationContext.CORRELATION_ID, message.getCorrelationId())
+                        .where(CorrelationContext.CAUSATION_ID, message.getCausationId())
+                        //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
+                        .where(CorrelationContext.OUTBOX_REPLAY, true)
+                        .where(CorrelationContext.INBOX_REPLAY, false)
+                        .run(() -> {
+                            dispatcher.publishEvent(event);
+                        });
+
                 inboxMessageRepository.markAsProcessed(message.getId(), Instant.now());
                 logger.info("Successfully processed inbox message {} and published event {}", message.getId(), event.getClass().getSimpleName());
-            } catch (Exception e){
+            } catch (Exception e) {
                 inboxMessageRepository.markAsPermanentlyFailed(message.getId());
                 logger.error("Processing failed for inbox message {}: {}", message.getId(), e.getMessage(), e);
             }

@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.ingestion.domain.integrationevents;
 
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -16,7 +17,7 @@ import java.time.Instant;
  * Event versioning: v1.0 - Initial version with core batch information
  */
 @Getter
-public class BatchIngestedEvent extends IntegrationEvent {
+public class BatchIngestedEvent extends DomainEvent {
     
     private static final String EVENT_VERSION = "1.0";
     private final String batchId;

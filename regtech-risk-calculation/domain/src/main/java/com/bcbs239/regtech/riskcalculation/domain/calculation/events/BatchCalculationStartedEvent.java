@@ -3,6 +3,7 @@ package com.bcbs239.regtech.riskcalculation.domain.calculation.events;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 
 import java.time.Instant;
 
@@ -10,6 +11,7 @@ import java.time.Instant;
  * Domain event raised when a batch calculation is started.
  * This event marks the beginning of the calculation process.
  */
+@Getter
 public class BatchCalculationStartedEvent extends DomainEvent {
     
     private final String batchId;
@@ -34,23 +36,7 @@ public class BatchCalculationStartedEvent extends DomainEvent {
     public String eventType() {
         return "BatchCalculationStarted";
     }
-    
-    public String getBatchId() {
-        return batchId;
-    }
-    
-    public String getBankId() {
-        return bankId;
-    }
-    
-    public int getTotalExposures() {
-        return totalExposures;
-    }
-    
-    public Instant getStartedAt() {
-        return startedAt;
-    }
-    
+
     @Override
     public String toString() {
         return "BatchCalculationStartedEvent{" +

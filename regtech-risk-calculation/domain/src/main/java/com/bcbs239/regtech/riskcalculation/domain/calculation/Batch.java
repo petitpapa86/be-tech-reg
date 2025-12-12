@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.domain.calculation;
 
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationCompletedEvent;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationFailedEvent;

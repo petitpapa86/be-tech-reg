@@ -3,12 +3,13 @@ package com.bcbs239.regtech.riskcalculation.application.calculation;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import lombok.Getter;
 import lombok.Value;
 
 /**
  * Command to trigger risk metrics calculation for a batch.
  */
-@Value
+@Getter
 public class CalculateRiskMetricsCommand {
     String batchId;
     String bankId;

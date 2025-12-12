@@ -4,9 +4,10 @@ import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.ingestion.domain.integrationevents.BatchIngestedEvent;
+
 import com.bcbs239.regtech.riskcalculation.application.calculation.CalculateRiskMetricsCommand;
 import com.bcbs239.regtech.riskcalculation.application.calculation.CalculateRiskMetricsCommandHandler;
+import com.bcbs239.regtech.riskcalculation.application.integration.events.BatchIngestedEvent;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,7 +27,7 @@ import java.util.Map;
 /**
  * Event listener for BatchIngestedEvent from the ingestion module.
  * Handles async processing with idempotency checking and error handling.
- *
+ * <p>
  * Features:
  * - Async processing using dedicated thread pool
  * - Idempotency checking to prevent duplicate processing
@@ -46,7 +47,7 @@ public class BatchIngestedEventListener {
 
     /**
      * Handles BatchIngestedEvent with async processing and comprehensive error handling.
-     * 
+     * <p>
      * Note: No @Transactional here - each internal operation manages its own transaction.
      * This prevents "Transaction silently rolled back" errors when handleEventProcessingError()
      * marks the transaction as rollback-only.
@@ -55,19 +56,12 @@ public class BatchIngestedEventListener {
      */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @Async("riskCalculationTaskExecutor")
+    @Async("eventProcessingExecutor")
     public void handleBatchIngestedEvent(BatchIngestedEvent event) {
         log.info("Received BatchIngestedEvent for batch: {} from bank: {}, isInboxReplay: {}",
-            event.getBatchId(), event.getBankId(), CorrelationContext.isInboxReplay());
+                event.getBatchId(), event.getBankId(), CorrelationContext.isInboxReplay());
 
         try {
-            // Skip processing entirely if this is a replay (either inbox or outbox)
-            // Events are processed once during initial dispatch, replays are for reliability only
-            if (CorrelationContext.isInboxReplay() || CorrelationContext.isOutboxReplay()) {
-                log.info("Batch {} replay skipped [reason:{}]", event.getBatchId(),
-                    CorrelationContext.isInboxReplay() ? "inbox_replay" : "outbox_replay");
-                return;
-            }
 
             // Step 1: Validate event
             if (!isValidEvent(event)) {
@@ -84,34 +78,42 @@ public class BatchIngestedEventListener {
             }
 
             // Step 3: Create and execute risk calculation command
-            Result<CalculateRiskMetricsCommand> commandResult = CalculateRiskMetricsCommand.create(
-                event.getBatchId(),
-                event.getBankId(),
-                event.getS3Uri(),
-                event.getTotalExposures(),
-                null // No correlation ID from ingestion event
-            );
+            ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
+                    .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
+                    //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
+                    .where(CorrelationContext.OUTBOX_REPLAY, false)
+                    .where(CorrelationContext.INBOX_REPLAY, true)
+                    .run(() -> {
+                        Result<CalculateRiskMetricsCommand> commandResult = CalculateRiskMetricsCommand.create(
+                                event.getBatchId(),
+                                event.getBankId(),
+                                event.getS3Uri(),
+                                event.getTotalExposures(),
+                                null // No correlation ID from ingestion event
+                        );
 
-            if (commandResult.isFailure()) {
-                log.error("Failed to create CalculateRiskMetricsCommand for batch: {}", event.getBatchId());
-                handleEventProcessingError(event, commandResult.getError().get().getMessage(), null);
-                return;
-            }
+                        if (commandResult.isFailure()) {
+                            log.error("Failed to create CalculateRiskMetricsCommand for batch: {}", event.getBatchId());
+                            handleEventProcessingError(event, commandResult.getError().get().getMessage(), null);
+                            return;
+                        }
 
-            // Step 4: Execute risk calculation
-            Result<Void> executionResult = commandHandler.handle(commandResult.getValue().get());
+                        // Step 4: Execute risk calculation
+                        Result<Void> executionResult = commandHandler.handle(commandResult.getValue().get());
 
-            if (executionResult.isFailure()) {
-                log.error("Risk calculation failed for batch: {}", event.getBatchId());
-                handleEventProcessingError(event, executionResult.getError().get().getMessage(), null);
-                return;
-            }
+                        if (executionResult.isFailure()) {
+                            log.error("Risk calculation failed for batch: {}", event.getBatchId());
+                            handleEventProcessingError(event, executionResult.getError().get().getMessage(), null);
+                            return;
+                        }
 
-            log.info("Successfully processed BatchIngestedEvent for batch: {}", event.getBatchId());
+                        log.info("Successfully processed BatchIngestedEvent for batch: {}", event.getBatchId());
+                    });
+
 
         } catch (Exception e) {
             log.error("Unexpected error processing BatchIngestedEvent for batch: {}",
-                event.getBatchId(), e);
+                    event.getBatchId(), e);
             handleEventProcessingError(event, "Unexpected error: " + e.getMessage(), e);
         }
     }
@@ -150,7 +152,7 @@ public class BatchIngestedEventListener {
 
         // Check if event is stale (older than 24 hours)
         if (event.getCompletedAt() != null &&
-            event.getCompletedAt().isBefore(Instant.now().minusSeconds(86400))) {
+                event.getCompletedAt().isBefore(Instant.now().minusSeconds(86400))) {
             log.warn("BatchIngestedEvent is stale (older than 24 hours): {}", event.getCompletedAt());
             return false;
         }
@@ -161,37 +163,38 @@ public class BatchIngestedEventListener {
     /**
      * Handles event processing errors by persisting to the failure repository.
      * This serves as a dead letter queue for failed events that can be retried later.
-     * 
+     * <p>
      * Uses REQUIRES_NEW to ensure error recording happens in a separate transaction,
      * preventing "Transaction silently rolled back" errors when the main transaction
-     * is marked as rollback-only due to OptimisticLockingFailureException or 
+     * is marked as rollback-only due to OptimisticLockingFailureException or
      * DataIntegrityViolationException.
      *
-     * @param event The failed event
+     * @param event        The failed event
      * @param errorMessage The error message
-     * @param exception The exception (if any)
+     * @param exception    The exception (if any)
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    private void handleEventProcessingError(BatchIngestedEvent event, String errorMessage, Exception exception) {
+    @Async("riskCalculationTaskExecutor")
+    protected void handleEventProcessingError(BatchIngestedEvent event, String errorMessage, Exception exception) {
         try {
             String eventPayload = objectMapper.writeValueAsString(event);
             String stackTrace = exception != null ? getStackTrace(exception) : null;
 
             Map<String, String> metadata = Map.of(
-                "batchId", String.valueOf(event.getBatchId()),
-                "bankId", String.valueOf(event.getBankId()),
-                "s3Uri", String.valueOf(event.getS3Uri()),
-                "totalExposures", String.valueOf(event.getTotalExposures()),
-                "eventVersion", String.valueOf(event.getEventVersion())
+                    "batchId", String.valueOf(event.getBatchId()),
+                    "bankId", String.valueOf(event.getBankId()),
+                    "s3Uri", String.valueOf(event.getS3Uri()),
+                    "totalExposures", String.valueOf(event.getTotalExposures()),
+                    "eventVersion", String.valueOf(event.getEventVersion())
             );
 
             EventProcessingFailure failure = EventProcessingFailure.createWithMetadata(
-                event.getClass().getName(),
-                eventPayload,
-                metadata,
-                errorMessage,
-                stackTrace,
-                3 // maxRetries
+                    event.getClass().getName(),
+                    eventPayload,
+                    metadata,
+                    errorMessage,
+                    stackTrace,
+                    3 // maxRetries
             );
 
             Result<EventProcessingFailure> saveResult = failureRepository.save(failure);
@@ -199,7 +202,7 @@ public class BatchIngestedEventListener {
                 log.error("Failed to save event processing failure for batch: {}", event.getBatchId());
             } else {
                 log.info("Saved event processing failure for batch: {} with ID: {}",
-                    event.getBatchId(), failure.getId());
+                        event.getBatchId(), failure.getId());
             }
 
         } catch (Exception e) {

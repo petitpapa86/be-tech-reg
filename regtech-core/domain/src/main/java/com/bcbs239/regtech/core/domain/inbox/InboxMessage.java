@@ -49,7 +49,7 @@ public class InboxMessage {
                 .occurredOnUtc(Instant.now())
                 .updatedAt(Instant.now())
                 .correlationId(event.getCorrelationId())
-                .causationId(event.getCausationId().orElse(null))
+               // .causationId(event.getCausationId().orElse(""))
                 .build();
     }
 

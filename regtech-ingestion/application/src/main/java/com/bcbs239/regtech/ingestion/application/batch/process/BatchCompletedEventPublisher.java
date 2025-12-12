@@ -3,6 +3,7 @@ package com.bcbs239.regtech.ingestion.application.batch.process;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.ingestion.domain.batch.BatchCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,7 @@ public class BatchCompletedEventPublisher {
                     event.fileSizeBytes(),
                     event.completedAt()
             );
-            integrationEvent.setCausationId(event.getCorrelationId());
+            integrationEvent.setCausationId(Maybe.some(event.getCorrelationId()));
 
             // Publish to other bounded contexts
             ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())

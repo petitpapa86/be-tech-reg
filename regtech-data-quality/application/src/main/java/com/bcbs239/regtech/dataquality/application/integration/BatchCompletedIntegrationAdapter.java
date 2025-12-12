@@ -55,10 +55,11 @@ public class BatchCompletedIntegrationAdapter {
      * 
      * @param integrationEvent The batch completed integration event from the ingestion module
      */
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+   // @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    //@Transactional(propagation = Propagation.REQUIRES_NEW)
+    @EventListener
     public void onBatchCompletedIntegrationEvent(BatchCompletedIntegrationEvent integrationEvent) {
-        if (CorrelationContext.isOutboxReplay()) {
+        if (CorrelationContext.isInboxReplay()) {
             return;
         }
         log.info("🔔 BatchCompletedIntegrationAdapter received event; details={}", Map.of(
@@ -79,11 +80,12 @@ public class BatchCompletedIntegrationAdapter {
             integrationEvent.getCompletedAt()
         );
         batchIngestedEvent.setCorrelationId(integrationEvent.getCorrelationId());
-        batchIngestedEvent.setCausationId(integrationEvent.getCausationId().getValue());
+        batchIngestedEvent.setCausationId(integrationEvent.getCausationId());
 
         // Publish as replay so listener can detect and skip if it's a duplicate
         domainEventBus.publishEvent(batchIngestedEvent);
-        
+
+
         log.info("Published BatchIngestedEvent as replay for data-quality processing; details={}", Map.of(
             "eventId", batchIngestedEvent.getEventId(),
             "batchId", integrationEvent.getBatchId()

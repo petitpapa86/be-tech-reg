@@ -98,13 +98,13 @@ public class BatchIngestedEventListener {
         try {
             // Skip processing entirely if this is a replay (either inbox or outbox)
             // Events are processed once during initial dispatch, replays are for reliability only
-            if (CorrelationContext.isInboxReplay() || CorrelationContext.isOutboxReplay()) {
-                log.info("batch_ingested_event_replay_skip; details={}", Map.of(
-                        "batchId", event.getBatchId(),
-                        "reason", CorrelationContext.isInboxReplay() ? "inbox_replay_skipped" : "outbox_replay_skipped"
-                ));
-                return;
-            }
+//            if (CorrelationContext.isInboxReplay() || CorrelationContext.isOutboxReplay()) {
+//                log.info("batch_ingested_event_replay_skip; details={}", Map.of(
+//                        "batchId", event.getBatchId(),
+//                        "reason", CorrelationContext.isInboxReplay() ? "inbox_replay_skipped" : "outbox_replay_skipped"
+//                ));
+//                return;
+//            }
 
             // Event filtering
             if (!shouldProcessEvent(event)) {
@@ -125,7 +125,13 @@ public class BatchIngestedEventListener {
             }
 
             // Route event to appropriate handler
-            routeEvent(event);
+            ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
+                    .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
+                    //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
+                    .where(CorrelationContext.OUTBOX_REPLAY, false)
+                    .where(CorrelationContext.INBOX_REPLAY, true)
+                    .run(() -> routeEvent(event));
+
 
             totalEventsProcessed.incrementAndGet();
             log.info("batch_ingested_event_processed_successfully; details={}", Map.of(

@@ -2,10 +2,7 @@ package com.bcbs239.regtech.ingestion.domain.batch;
 
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
-import com.bcbs239.regtech.core.domain.shared.Entity;
-import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.shared.ErrorType;
-import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.*;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
 import com.bcbs239.regtech.ingestion.domain.batch.rules.BatchSpecifications;
@@ -171,7 +168,7 @@ public class IngestionBatch extends Entity {
         this.processingDurationMs = completedAt.toEpochMilli() - uploadedAt.toEpochMilli();
 
         BatchCompletedEvent batchCompletedEvent = new BatchCompletedEvent(batchId, bankId, s3Reference, totalExposures, fileMetadata.fileSizeBytes(), completedAt, CorrelationContext.correlationId());
-        batchCompletedEvent.setCausationId(causationId);
+        batchCompletedEvent.setCausationId(Maybe.some(causationId));
 
         addDomainEvent(batchCompletedEvent);
 

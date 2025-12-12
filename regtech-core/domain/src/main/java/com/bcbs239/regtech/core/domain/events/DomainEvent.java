@@ -36,8 +36,5 @@ public abstract class DomainEvent {
     }
 
     public abstract String eventType();
-    public void setCausationId(String causationId){
-        this.causationId = new Maybe.Some<>(causationId);
-    }
 }
 
