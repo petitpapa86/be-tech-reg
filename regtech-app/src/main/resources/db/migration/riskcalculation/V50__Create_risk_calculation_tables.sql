@@ -17,7 +17,8 @@ CREATE TABLE IF NOT EXISTS riskcalculation.batches (
     ingested_at TIMESTAMP NOT NULL,
     processed_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version BIGINT NOT NULL DEFAULT 0
 );
 
 CREATE INDEX idx_batches_report_date ON riskcalculation.batches(report_date);
@@ -110,6 +111,7 @@ CREATE TABLE IF NOT EXISTS riskcalculation.portfolio_analysis (
     -- Metadata
     analyzed_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version BIGINT NOT NULL DEFAULT 0,
     
     FOREIGN KEY (batch_id) REFERENCES riskcalculation.batches(batch_id) ON DELETE CASCADE
 );

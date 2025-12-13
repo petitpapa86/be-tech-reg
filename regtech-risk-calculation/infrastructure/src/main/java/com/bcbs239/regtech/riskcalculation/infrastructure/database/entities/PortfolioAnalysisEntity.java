@@ -129,6 +129,6 @@ public class PortfolioAnalysisEntity {
     @PrePersist
     protected void onCreate() {
         createdAt = Instant.now();
-        version = 0L;
+        // version = 0L;
     }
 }

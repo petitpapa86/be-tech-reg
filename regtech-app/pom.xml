@@ -171,6 +171,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        
+        <!-- Micrometer Tracing Test for testing tracing functionality -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-test</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <!-- ============================================================================ -->
         <!-- SPRING BOOT 4 OBSERVABILITY STACK -->

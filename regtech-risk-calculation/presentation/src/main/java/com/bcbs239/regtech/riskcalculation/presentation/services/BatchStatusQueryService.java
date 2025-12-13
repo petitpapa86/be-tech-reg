@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.presentation.services;
 
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.ProcessingState;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
@@ -60,14 +61,14 @@ public class BatchStatusQueryService {
         }
         
         // Get portfolio analysis if available (database query only)
-        Optional<PortfolioAnalysis> analysisOpt = portfolioAnalysisRepository.findByBatchId(batchId);
+        Maybe<PortfolioAnalysis> analysisMaybe = portfolioAnalysisRepository.findByBatchId(batchId);
         
-        if (analysisOpt.isEmpty()) {
+        if (analysisMaybe.isEmpty()) {
             // Batch exists but analysis not started
             return Optional.of(statusMapper.toPendingBatchStatusDTO(batchId));
         }
         
-        PortfolioAnalysis analysis = analysisOpt.get();
+        PortfolioAnalysis analysis = analysisMaybe.getValue();
         
         // Determine if results are available based on completion status
         // Results are available when calculation completes successfully
@@ -93,9 +94,10 @@ public class BatchStatusQueryService {
      * @return Optional containing the processing progress DTO if found
      */
     public Optional<ProcessingProgressDTO> getProcessingProgress(String batchId) {
-        return portfolioAnalysisRepository.findByBatchId(batchId)
+        Maybe<ProcessingProgressDTO> result = portfolioAnalysisRepository.findByBatchId(batchId)
             .map(PortfolioAnalysis::getProgress)
             .map(portfolioAnalysisMapper::toProcessingProgressDTO);
+        return result.isPresent() ? Optional.of(result.getValue()) : Optional.empty();
     }
     
     /**
@@ -116,9 +118,9 @@ public class BatchStatusQueryService {
      * @return true if the batch calculation is complete, false otherwise
      */
     public boolean isCalculationComplete(String batchId) {
-        return portfolioAnalysisRepository.findByBatchId(batchId)
-            .map(analysis -> analysis.getState() == ProcessingState.COMPLETED)
-            .orElse(false);
+        Maybe<Boolean> result = portfolioAnalysisRepository.findByBatchId(batchId)
+            .map(analysis -> analysis.getState() == ProcessingState.COMPLETED);
+        return result.orElse(false);
     }
     
     /**
@@ -128,9 +130,9 @@ public class BatchStatusQueryService {
      * @return true if the batch calculation has failed, false otherwise
      */
     public boolean hasCalculationFailed(String batchId) {
-        return portfolioAnalysisRepository.findByBatchId(batchId)
-            .map(analysis -> analysis.getState() == ProcessingState.FAILED)
-            .orElse(false);
+        Maybe<Boolean> result = portfolioAnalysisRepository.findByBatchId(batchId)
+            .map(analysis -> analysis.getState() == ProcessingState.FAILED);
+        return result.orElse(false);
     }
     
     /**

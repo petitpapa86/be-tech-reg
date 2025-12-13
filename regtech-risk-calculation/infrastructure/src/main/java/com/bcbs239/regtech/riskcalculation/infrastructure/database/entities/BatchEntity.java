@@ -69,7 +69,7 @@ public class BatchEntity {
         Instant now = Instant.now();
         createdAt = now;
         updatedAt = now;
-        version = 0L;
+        // version = 0L;
     }
     
     @PreUpdate

@@ -1,8 +1,16 @@
 package com.bcbs239.regtech.riskcalculation.application.calculation;
 
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO;
 import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
@@ -19,16 +27,10 @@ import com.bcbs239.regtech.riskcalculation.domain.services.ExposureProcessingSer
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
-import com.bcbs239.regtech.core.domain.shared.Maybe;
+
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import io.micrometer.observation.annotation.Observed;
-
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Command handler for calculating risk metrics.
@@ -130,9 +132,24 @@ public class CalculateRiskMetricsCommandHandler {
             // Complete batch
             batch.completeCalculation(storageResult.getValue().orElseThrow(), protectedExposures.size(), analysis.getTotalPortfolio());
             
+            // Check if portfolio analysis already exists (idempotency check)
+            Maybe<PortfolioAnalysis> existingAnalysis = portfolioAnalysisRepository.findByBatchId(batchId);
+            if (existingAnalysis.isPresent()) {
+                log.info("Portfolio analysis for batch {} already exists, skipping duplicate calculation", batchId);
+                return Result.success();
+            }
+            
             // Save batch and analysis (now in separate schema, no conflicts with other modules)
-            batchRepository.save(batch);
-            portfolioAnalysisRepository.save(analysis);
+//            Result<Void> finalBatchSaveResult = batchRepository.save(batch);
+//            if (finalBatchSaveResult.isFailure()) {
+//                log.warn("Failed to save completed batch {}: {}", batchId, finalBatchSaveResult.getError().orElse(null));
+//                // Continue anyway since calculation is complete
+//            }
+            Result<Void> portfolioSaveResult = portfolioAnalysisRepository.save(analysis);
+            if (portfolioSaveResult.isFailure()) {
+                log.warn("Failed to save portfolio analysis {}: {}", batchId, portfolioSaveResult.getError().orElse(null));
+                // Continue anyway since calculation is complete
+            }
 
             // Register entities and save events to outbox
             unitOfWork.registerEntity(batch);
@@ -181,7 +198,10 @@ public class CalculateRiskMetricsCommandHandler {
         batch.failCalculation("Failed to store calculation results: " + error.getMessage());
         
         batchRepository.save(batch);
-        portfolioAnalysisRepository.save(analysis);
+        Result<Void> portfolioSaveResult = portfolioAnalysisRepository.save(analysis);
+        if (portfolioSaveResult.isFailure()) {
+            log.warn("Failed to save portfolio analysis in failure path {}: {}", batch.getId().value(), portfolioSaveResult.getError().orElse(null));
+        }
         
         unitOfWork.registerEntity(batch);
         unitOfWork.registerEntity(analysis);

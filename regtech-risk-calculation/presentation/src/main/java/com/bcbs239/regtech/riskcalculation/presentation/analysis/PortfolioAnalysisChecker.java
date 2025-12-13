@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.presentation.analysis;
 
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.BreakdownDTO;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.ConcentrationIndicesDTO;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.PortfolioAnalysisResponseDTO;
@@ -36,7 +37,8 @@ public class PortfolioAnalysisChecker {
      */
     public Optional<PortfolioAnalysisResponseDTO> getPortfolioAnalysis(String batchId) {
         logger.debug("Retrieving portfolio analysis for batchId: {}", batchId);
-        return portfolioAnalysisQueryService.getPortfolioAnalysis(batchId);
+        Maybe<PortfolioAnalysisResponseDTO> result = portfolioAnalysisQueryService.getPortfolioAnalysis(batchId);
+        return result.isPresent() ? Optional.of(result.getValue()) : Optional.empty();
     }
     
     /**
@@ -47,7 +49,8 @@ public class PortfolioAnalysisChecker {
      */
     public Optional<ConcentrationIndicesDTO> getConcentrationIndices(String batchId) {
         logger.debug("Retrieving concentration indices for batchId: {}", batchId);
-        return portfolioAnalysisQueryService.getConcentrationIndices(batchId);
+        Maybe<ConcentrationIndicesDTO> result = portfolioAnalysisQueryService.getConcentrationIndices(batchId);
+        return result.isPresent() ? Optional.of(result.getValue()) : Optional.empty();
     }
     
     /**
@@ -59,6 +62,7 @@ public class PortfolioAnalysisChecker {
      */
     public Optional<BreakdownDTO> getBreakdownByType(String batchId, String type) {
         logger.debug("Retrieving breakdowns for batchId: {} with type filter: {}", batchId, type);
-        return portfolioAnalysisQueryService.getBreakdownByType(batchId, type);
+        Maybe<BreakdownDTO> result = portfolioAnalysisQueryService.getBreakdownByType(batchId, type);
+        return result.isPresent() ? Optional.of(result.getValue()) : Optional.empty();
     }
 }

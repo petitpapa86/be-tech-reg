@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.presentation.services;
 
+import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.BreakdownDTO;
@@ -36,9 +37,9 @@ public class PortfolioAnalysisQueryService {
      * Retrieves the complete portfolio analysis for a batch.
      * 
      * @param batchId the batch identifier
-     * @return Optional containing the portfolio analysis DTO if found
+     * @return Maybe containing the portfolio analysis DTO if found
      */
-    public Optional<PortfolioAnalysisResponseDTO> getPortfolioAnalysis(String batchId) {
+    public Maybe<PortfolioAnalysisResponseDTO> getPortfolioAnalysis(String batchId) {
         return portfolioAnalysisRepository.findByBatchId(batchId)
             .map(portfolioAnalysisMapper::toResponseDTO);
     }
@@ -47,9 +48,9 @@ public class PortfolioAnalysisQueryService {
      * Retrieves concentration indices for a batch.
      * 
      * @param batchId the batch identifier
-     * @return Optional containing the concentration indices DTO if found
+     * @return Maybe containing the concentration indices DTO if found
      */
-    public Optional<ConcentrationIndicesDTO> getConcentrationIndices(String batchId) {
+    public Maybe<ConcentrationIndicesDTO> getConcentrationIndices(String batchId) {
         return portfolioAnalysisRepository.findByBatchId(batchId)
             .map(analysis -> portfolioAnalysisMapper.toConcentrationIndicesDTO(
                 analysis.getGeographicHHI(),
@@ -61,9 +62,9 @@ public class PortfolioAnalysisQueryService {
      * Retrieves geographic breakdown for a batch.
      * 
      * @param batchId the batch identifier
-     * @return Optional containing the geographic breakdown DTO if found
+     * @return Maybe containing the geographic breakdown DTO if found
      */
-    public Optional<BreakdownDTO> getGeographicBreakdown(String batchId) {
+    public Maybe<BreakdownDTO> getGeographicBreakdown(String batchId) {
         return portfolioAnalysisRepository.findByBatchId(batchId)
             .map(PortfolioAnalysis::getGeographicBreakdown)
             .map(breakdown -> portfolioAnalysisMapper.toBreakdownDTO(breakdown, "GEOGRAPHIC"));
@@ -73,9 +74,9 @@ public class PortfolioAnalysisQueryService {
      * Retrieves sector breakdown for a batch.
      * 
      * @param batchId the batch identifier
-     * @return Optional containing the sector breakdown DTO if found
+     * @return Maybe containing the sector breakdown DTO if found
      */
-    public Optional<BreakdownDTO> getSectorBreakdown(String batchId) {
+    public Maybe<BreakdownDTO> getSectorBreakdown(String batchId) {
         return portfolioAnalysisRepository.findByBatchId(batchId)
             .map(PortfolioAnalysis::getSectorBreakdown)
             .map(breakdown -> portfolioAnalysisMapper.toBreakdownDTO(breakdown, "SECTOR"));
@@ -86,9 +87,9 @@ public class PortfolioAnalysisQueryService {
      * 
      * @param batchId the batch identifier
      * @param type the breakdown type ("GEOGRAPHIC" or "SECTOR"), null returns both
-     * @return Optional containing the requested breakdown DTO if found
+     * @return Maybe containing the requested breakdown DTO if found
      */
-    public Optional<BreakdownDTO> getBreakdownByType(String batchId, String type) {
+    public Maybe<BreakdownDTO> getBreakdownByType(String batchId, String type) {
         if (type == null) {
             // If no type specified, return geographic by default
             return getGeographicBreakdown(batchId);
@@ -97,7 +98,7 @@ public class PortfolioAnalysisQueryService {
         return switch (type.toUpperCase()) {
             case "GEOGRAPHIC" -> getGeographicBreakdown(batchId);
             case "SECTOR" -> getSectorBreakdown(batchId);
-            default -> Optional.empty();
+            default -> Maybe.none();
         };
     }
 }

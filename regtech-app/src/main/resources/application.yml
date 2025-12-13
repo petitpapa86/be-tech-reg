@@ -61,8 +61,8 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/regtech
     driver-class-name: org.postgresql.Driver
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:dracons86}
+    username: ${DB_USERNAME:myuser}
+    password: ${DB_PASSWORD:secret}
   
   jpa:
     hibernate:

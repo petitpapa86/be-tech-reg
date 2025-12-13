@@ -36,7 +36,7 @@ CREATE INDEX idx_ingestion_batches_completed_at ON ingestion.ingestion_batches(c
 
 -- Bank Info table - stores bank metadata
 CREATE TABLE IF NOT EXISTS ingestion.bank_info (
-    bank_id VARCHAR(20) PRIMARY KEY,
+    bank_id VARCHAR(50) PRIMARY KEY,
     bank_name VARCHAR(100) NOT NULL,
     bank_country VARCHAR(3) NOT NULL,
     bank_status VARCHAR(20) NOT NULL,
