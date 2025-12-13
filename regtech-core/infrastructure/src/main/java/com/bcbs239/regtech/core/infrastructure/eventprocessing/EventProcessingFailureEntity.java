@@ -14,7 +14,7 @@ import java.time.Instant;
 @Setter
 @Getter
 @Entity
-@Table(name = "event_processing_failures", indexes = {
+@Table(name = "event_processing_failures", schema = "core", indexes = {
     @Index(name = "idx_event_failures_retry", columnList = "next_retry_at, status"),
     @Index(name = "idx_event_failures_status", columnList = "status")
 })

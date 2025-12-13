@@ -73,6 +73,10 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_schema: public
         
+        # Schema management - let Flyway handle DDL (Requirement 3.2)
+        hbm2ddl:
+          auto: none  # Don't auto-create schema, Flyway manages migrations
+        
         # JDBC settings
         jdbc:
           lob:
@@ -125,10 +129,12 @@ spring:
     schemas:
       - public
       - regtech
+      - core
       - iam
       - billing
       - ingestion
       - dataquality
+      - riskcalculation
       - reportgeneration
   
   docker:

@@ -129,10 +129,12 @@ public class CalculateRiskMetricsCommandHandler {
 
             // Complete batch
             batch.completeCalculation(storageResult.getValue().orElseThrow(), protectedExposures.size(), analysis.getTotalPortfolio());
+            
+            // Save batch and analysis (now in separate schema, no conflicts with other modules)
             batchRepository.save(batch);
             portfolioAnalysisRepository.save(analysis);
 
-            // Save events
+            // Register entities and save events to outbox
             unitOfWork.registerEntity(batch);
             unitOfWork.registerEntity(analysis);
             unitOfWork.saveChanges();
@@ -177,7 +179,9 @@ public class CalculateRiskMetricsCommandHandler {
         log.error("Failed to store calculation results for batch: {}", batch.getId().value());
         
         batch.failCalculation("Failed to store calculation results: " + error.getMessage());
+        
         batchRepository.save(batch);
+        portfolioAnalysisRepository.save(analysis);
         
         unitOfWork.registerEntity(batch);
         unitOfWork.registerEntity(analysis);
@@ -198,7 +202,8 @@ public class CalculateRiskMetricsCommandHandler {
                 log.error("Failed to mark batch as failed: {}", batchId, ex);
             }
         }
-
+        
+        log.error("Unexpected error during risk calculation for batch: {}", batchId, e);
         performanceMetrics.recordBatchFailure(batchId, e.getMessage());
         return Result.failure(ErrorDetail.of("CALCULATION_FAILED", ErrorType.SYSTEM_ERROR,
             "Risk calculation failed: " + e.getMessage(), "calculation.failed"));

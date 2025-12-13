@@ -14,7 +14,7 @@ import java.time.Instant;
 @Setter
 @Getter
 @Entity
-@Table(name = "outbox_messages", indexes = {
+@Table(name = "outbox_messages", schema = "core", indexes = {
     @Index(name = "idx_outbox_messages_status", columnList = "status"),
     @Index(name = "idx_outbox_messages_occurred_on_utc", columnList = "occurred_on_utc"),
     @Index(name = "idx_outbox_messages_type", columnList = "type")

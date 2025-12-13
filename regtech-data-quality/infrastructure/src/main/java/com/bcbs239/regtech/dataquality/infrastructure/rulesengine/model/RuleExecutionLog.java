@@ -13,7 +13,7 @@ import java.util.Map;
  * Essential for compliance reporting and troubleshooting.</p>
  */
 @Entity
-@Table(name = "rule_execution_log")
+@Table(name = "rule_execution_log", schema = "dataquality")
 @Getter
 @Setter
 @NoArgsConstructor

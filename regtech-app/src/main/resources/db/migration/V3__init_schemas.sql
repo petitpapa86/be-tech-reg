@@ -2,6 +2,10 @@
 -- Initial migration to create all database schemas for the RegTech application
 -- This migration establishes the schema structure for all bounded contexts
 
+-- Core Schema
+-- Purpose: Core Infrastructure - stores outbox messages, inbox messages, and event processing failures for the transactional outbox pattern
+CREATE SCHEMA IF NOT EXISTS core;
+
 -- IAM Schema
 -- Purpose: Identity and Access Management - stores users, roles, permissions, authentication tokens, and bank assignments
 CREATE SCHEMA IF NOT EXISTS iam;

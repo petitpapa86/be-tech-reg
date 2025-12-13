@@ -13,7 +13,7 @@ import java.time.Instant;
 @Setter
 @Getter
 @Entity(name = "EventProcessingInboxMessageEntity")
-@Table(name = "inbox_messages", indexes = {
+@Table(name = "inbox_messages", schema = "core", indexes = {
     @Index(name = "idx_inbox_messages_status_received", columnList = "processing_status, received_at"),
     @Index(name = "idx_inbox_messages_event_type", columnList = "event_type"),
     @Index(name = "idx_inbox_messages_aggregate_id", columnList = "aggregate_id"),
