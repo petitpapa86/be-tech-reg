@@ -53,7 +53,7 @@ public class S3ReportStorageService implements IReportStorageService {
     @Value("${report-generation.s3.xbrl-prefix:reports/xbrl/}")
     private String xbrlPrefix;
     
-    @Value("${report-generation.fallback.local-path:/tmp/deferred-reports/}")
+    @Value("${report-generation.fallback.local-path:./data/deferred-reports/}")
     private String localFallbackPath;
 
     @Value("${risk-calculation.storage.local.base-path:./data/risk-calculations}")
@@ -182,14 +182,11 @@ public class S3ReportStorageService implements IReportStorageService {
      */
     private UploadResult uploadToLocalFallback(String content, String fileName, String type, Exception originalException) {
         try {
-            // Create fallback directory if it doesn't exist
-            Path fallbackDir = Paths.get(localFallbackPath);
-            if (!Files.exists(fallbackDir)) {
-                Files.createDirectories(fallbackDir);
-            }
+            Path fallbackDir = resolveFallbackDir();
             
             // Save file to local filesystem
-            Path filePath = fallbackDir.resolve(fileName);
+            String safeFileName = toSafeFileName(fileName, type);
+            Path filePath = fallbackDir.resolve(safeFileName);
             Files.writeString(filePath, content, StandardCharsets.UTF_8);
             
             long fileSize = Files.size(filePath);
@@ -208,7 +205,7 @@ public class S3ReportStorageService implements IReportStorageService {
             );
             
             log.info("Saved {} report to local fallback [fileName:{},path:{},size:{}]", 
-                    type.toUpperCase(), fileName, filePath.toAbsolutePath(), 
+                    type.toUpperCase(), safeFileName, filePath.toAbsolutePath(), 
                     FileSize.ofBytes(fileSize).toHumanReadable());
             
             return new UploadResult(localUri, FileSize.ofBytes(fileSize), presignedUrl);
@@ -218,6 +215,45 @@ public class S3ReportStorageService implements IReportStorageService {
                     type.toUpperCase(), fileName, e.getMessage(), e);
             throw new RuntimeException("Failed to save report to local fallback", e);
         }
+    }
+
+    private Path resolveFallbackDir() throws IOException {
+        String configured = localFallbackPath;
+        if (configured != null) {
+            configured = configured.trim();
+        }
+
+        Path dir;
+        if (configured == null || configured.isEmpty()) {
+            String tmp = System.getProperty("java.io.tmpdir");
+            if (tmp != null && !tmp.isBlank()) {
+                dir = Paths.get(tmp, "regtech", "deferred-reports");
+            } else {
+                dir = Paths.get(".", "data", "deferred-reports");
+            }
+        } else {
+            dir = Paths.get(configured);
+        }
+
+        Files.createDirectories(dir);
+        return dir;
+    }
+
+    private String toSafeFileName(String fileName, String type) {
+        String name = fileName == null ? "" : fileName.trim();
+        if (!name.isEmpty()) {
+            try {
+                name = Paths.get(name).getFileName().toString();
+            } catch (Exception ignored) {
+                // fall through
+            }
+        }
+
+        if (name.isEmpty()) {
+            return type + "_" + Instant.now().toEpochMilli() + ".txt";
+        }
+
+        return name;
     }
     
     /**

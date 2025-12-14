@@ -79,4 +79,17 @@ public enum ComplianceStatus {
             case NON_COMPLIANT -> "Non-compliant requiring immediate action";
         };
     }
+
+    /**
+     * Get human-readable short display name.
+     * Exposed for presentation layers (e.g., Thymeleaf: complianceStatus.displayName).
+     */
+    public String getDisplayName() {
+        return switch (this) {
+            case COMPLIANT -> "Compliant";
+            case LARGELY_COMPLIANT -> "Largely compliant";
+            case MATERIALLY_NON_COMPLIANT -> "Materially non-compliant";
+            case NON_COMPLIANT -> "Non-compliant";
+        };
+    }
 }
