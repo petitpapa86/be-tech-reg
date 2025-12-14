@@ -79,6 +79,14 @@ public class CalculateRiskMetricsCommandHandler {
                 log.info("Batch {} already exists, skipping duplicate calculation", batchId);
                 return Result.success();
             }
+
+            // Check if portfolio analysis already exists (idempotency check)
+            // Do this early so we don't perform work and then return before persisting outbox events.
+            Maybe<PortfolioAnalysis> existingAnalysis = portfolioAnalysisRepository.findByBatchId(batchId);
+            if (existingAnalysis.isPresent()) {
+                log.info("Portfolio analysis for batch {} already exists, skipping duplicate calculation", batchId);
+                return Result.success();
+            }
             
             // Download and parse batch data
             Result<String> downloadResult = fileStorageService.retrieveFile(command.getS3Uri());
@@ -96,6 +104,11 @@ public class CalculateRiskMetricsCommandHandler {
             if (batchSaveResult.isFailure()) {
                 return handleBatchSaveFailure(batchId, batchSaveResult);
             }
+
+            // Persist the "started" domain event immediately.
+            // This prevents losing events if a later step returns early (e.g., concurrent idempotency checks).
+            unitOfWork.registerEntity(batch);
+            unitOfWork.saveChanges();
 
             // Convert exposures using domain objects directly
             List<ExposureRecording> exposures = parsedData.batchData().exposures().stream()
@@ -129,13 +142,6 @@ public class CalculateRiskMetricsCommandHandler {
 
             // Complete batch
             batch.completeCalculation(storageResult.getValue().orElseThrow(), protectedExposures.size(), analysis.getTotalPortfolio());
-            
-            // Check if portfolio analysis already exists (idempotency check)
-            Maybe<PortfolioAnalysis> existingAnalysis = portfolioAnalysisRepository.findByBatchId(batchId);
-            if (existingAnalysis.isPresent()) {
-                log.info("Portfolio analysis for batch {} already exists, skipping duplicate calculation", batchId);
-                return Result.success();
-            }
             
             // Save batch and analysis (now in separate schema, no conflicts with other modules)
 //            Result<Void> finalBatchSaveResult = batchRepository.save(batch);

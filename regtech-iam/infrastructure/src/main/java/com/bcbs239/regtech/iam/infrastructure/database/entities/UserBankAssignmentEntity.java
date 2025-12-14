@@ -2,6 +2,8 @@ package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
 import com.bcbs239.regtech.iam.domain.users.User.BankAssignment;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -9,6 +11,8 @@ import java.util.UUID;
 /**
  * JPA Entity for user_bank_assignments table.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "user_bank_assignments", schema = "iam", indexes = {
     @Index(name = "idx_user_bank_assignments_user_id", columnList = "user_id"),
@@ -16,10 +20,11 @@ import java.util.UUID;
 })
 public class UserBankAssignmentEntity {
 
+    // Getters and setters
     @Id
-    @Column(name = "id", length = 255)
+    @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    private UUID id;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
@@ -68,23 +73,5 @@ public class UserBankAssignmentEntity {
         return new BankAssignment( bankId, role, assignedAt);
     }
 
-    // Getters and setters
-    public String getId() { return id; }
-    public void setId(String id) { this.id = id; }
-
-    public UUID getUserId() { return userId; }
-    public void setUserId(UUID userId) { this.userId = userId; }
-
-    public String getBankId() { return bankId; }
-    public void setBankId(String bankId) { this.bankId = bankId; }
-
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
-
-    public Instant getAssignedAt() { return assignedAt; }
-    public void setAssignedAt(Instant assignedAt) { this.assignedAt = assignedAt; }
-
-    public Long getVersion() { return version; }
-    public void setVersion(Long version) { this.version = version; }
 }
 

@@ -9,6 +9,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -103,7 +104,15 @@ public class CrossModuleEventBus implements IIntegrationEventBus, InitializingBe
 
     @Override
     public void publish(IntegrationEvent event) {
-        // Default integration event publishing delegates to synchronous publish so consumers (Inbox) see them reliably
+        // If a transaction is active, publish synchronously in the same thread so
+        // @TransactionalEventListener handlers can participate in the transaction lifecycle.
+        // If we publish on another thread (virtual/async), transactional listeners won't fire.
+        if (TransactionSynchronizationManager.isActualTransactionActive()) {
+            publishEventSynchronously(event);
+            return;
+        }
+
+        // No transaction active: publish asynchronously with capacity controls.
         publishEvent(event);
     }
 }
