@@ -174,7 +174,7 @@
                 <div class="summary-card">
                     <div class="summary-card-title">Sector Concentration</div>
                     <div class="summary-card-value" 
-                         th:text="${#numbers.formatDecimal(calculationResults.concentrationIndices.sectorHerfindahl.value(), 1, 2)}">
+                         th:text="${#numbers.formatDecimal(calculationResults.concentrationIndices.sectorHerfindahl, 1, 2)}">
                         0.25
                     </div>
                 </div>
@@ -230,7 +230,7 @@
                                 <td class="px-4 py-3 text-sm text-gray-900" th:text="${exposure.counterpartyName}">
                                     Counterparty Name
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-600 font-mono" th:text="${exposure.leiCode}">
+                                <td class="px-4 py-3 text-sm text-gray-600 font-mono" th:text="${exposure.leiCodeOrDefault}">
                                     LEI123456789
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600" th:text="${exposure.sectorCode}">
@@ -240,17 +240,17 @@
                                     IT
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-900 text-right" 
-                                    th:text="${exposure.exposureValueEur.toFormattedString()}">
+                                    th:text="${'€' + #numbers.formatDecimal(exposure.amountEur, 1, 2)}">
                                     €100,000
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-900 text-right font-semibold"
-                                    th:text="${#numbers.formatDecimal(exposure.percentageOfCapital.value(), 1, 2) + '%'}">
+                                    th:text="${#numbers.formatDecimal(exposure.percentageOfCapital, 1, 2) + '%'}">
                                     10.5%
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <span class="compliance-badge"
-                                          th:classappend="${exposure.percentageOfCapital.value() > 25.0 ? 'non-compliant' : 'compliant'}"
-                                          th:text="${exposure.percentageOfCapital.value() > 25.0 ? 'BREACH' : 'OK'}">
+                                          th:classappend="${exposure.exceedsLimit() ? 'non-compliant' : 'compliant'}"
+                                          th:text="${exposure.exceedsLimit() ? 'BREACH' : 'OK'}">
                                         OK
                                     </span>
                                 </td>

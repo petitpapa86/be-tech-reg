@@ -1,7 +1,10 @@
 package com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects;
 
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Locale;
 
 /**
  * Monetary amount in EUR currency
@@ -121,5 +124,20 @@ public record AmountEur(BigDecimal value) {
     @Override
     public String toString() {
         return "€" + value.toPlainString();
+    }
+
+    /**
+     * Presentation-friendly formatted string (e.g., €1,234.56).
+     * Intended for templates (Thymeleaf/SpringEL).
+     */
+    public String toFormattedString() {
+        NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
+        nf.setGroupingUsed(true);
+        nf.setMinimumFractionDigits(2);
+        nf.setMaximumFractionDigits(2);
+        if (nf instanceof DecimalFormat df) {
+            df.setRoundingMode(RoundingMode.HALF_UP);
+        }
+        return "€" + nf.format(value);
     }
 }
