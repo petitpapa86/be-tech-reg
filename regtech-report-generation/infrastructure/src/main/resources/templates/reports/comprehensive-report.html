@@ -13,6 +13,7 @@
     
     <style>
         @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             .no-print { display: none; }
             .page-break { page-break-before: always; }
         }
@@ -281,165 +282,545 @@
             </div>
         </section>
         
-        <!-- Data Quality Section -->
-        <section class="bg-white rounded-lg shadow-md p-6 mb-8 page-break">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">
-                ✅ Data Quality Assessment
-            </h2>
-            
-            <!-- Overall Score -->
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 mb-6">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Overall Quality Score</h3>
-                        <p class="text-sm text-gray-600">
-                            Based on <span th:text="${qualityResults.totalExposures}">100</span> exposures analyzed
-                        </p>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-5xl font-bold" 
-                             th:classappend="${qualityResults.overallScore >= 90 ? 'text-green-600' : 
-                                            qualityResults.overallScore >= 70 ? 'text-yellow-600' : 'text-red-600'}"
-                             th:text="${#numbers.formatDecimal(qualityResults.overallScore, 1, 1) + '%'}">
-                            95.0%
+        <!-- Data Quality Section (layout aligned to provided Italian Tailwind template) -->
+        <section class="page-break">
+
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <div class="border-b-4 border-purple-600 pb-4 mb-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                                RAPPORTO DATA QUALITY
+                            </h1>
+                            <p class="text-lg text-gray-600">
+                                BCBS 239 - Principi per l'aggregazione dei dati di rischio e l'informativa di rischio
+                            </p>
                         </div>
-                        <div class="text-lg font-semibold text-gray-700" 
-                             th:text="${'Grade: ' + qualityResults.overallGrade.name()}">
-                            Grade: A
+                        <div class="text-right">
+                            <div class="bg-purple-600 text-white px-4 py-2 rounded-lg">
+                                <p class="text-sm font-semibold">Data Riferimento</p>
+                                <p class="text-xl font-bold" th:text="${#temporals.format(metadata.reportingDate.value(), 'yyyy-MM-dd')}">2025-11-17</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <!-- Dimension Scores -->
-            <div class="mb-8">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Quality Dimensions</h3>
-                <div class="space-y-4">
-                    <div th:each="entry : ${qualityResults.dimensionScores}">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-sm font-medium text-gray-700" th:text="${entry.key.displayName}">
-                                Completeness
-                            </span>
-                            <span class="text-sm font-semibold" 
-                                  th:classappend="${entry.value >= 90 ? 'text-green-600' : 
-                                                  entry.value >= 70 ? 'text-yellow-600' : 'text-red-600'}"
-                                  th:text="${#numbers.formatDecimal(entry.value, 1, 1) + '%'}">
-                                95.0%
-                            </span>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 mb-2">BANCA</h3>
+                        <p class="text-xl font-bold text-gray-900" th:text="${metadata.bankName}">Banca Cooperativa Trentina SpA</p>
+                        <div class="mt-2 space-y-1">
+                            <p class="text-sm text-gray-600"><span class="font-semibold">Bank ID:</span> <span th:text="${metadata.bankId.value()}">daa4a072</span></p>
+                            <p class="text-sm text-gray-600"><span class="font-semibold">Report ID:</span>
+                                <span th:text="${'qr_' + metadata.batchId.value()}" class="font-mono">qr_4c28380f-5fc2-4034-bffd-4f21038c0391</span>
+                            </p>
+                            <p class="text-sm text-gray-600"><span class="font-semibold">Batch ID:</span> <span th:text="${qualityResults.batchId.value()}" class="font-mono">batch_20251117_221306_e86335e4</span></p>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-6">
-                            <div class="dimension-bar h-6 rounded-full flex items-center justify-end pr-2 text-white text-xs font-semibold"
-                                 th:classappend="${entry.value >= 90 ? 'bg-green-500' : 
-                                                entry.value >= 70 ? 'bg-yellow-500' : 'bg-red-500'}"
-                                 th:style="${'width: ' + entry.value + '%'}">
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 mb-2">STATO VALIDAZIONE</h3>
+                        <div class="space-y-2">
+                            <div class="bg-red-50 p-3 rounded border border-red-200">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-xs text-red-800 font-semibold">Stato Conformità</p>
+                                    <span class="px-3 py-1 text-xs font-bold rounded-full"
+                                          th:classappend="${qualityResults.complianceStatus.name() == 'COMPLIANT' ? ' bg-green-100 text-green-800' : ' bg-red-100 text-red-800'}"
+                                          th:text="${qualityResults.complianceStatus.name() == 'COMPLIANT' ? 'CONFORME' : 'NON CONFORME'}">
+                                        NON CONFORME
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bg-red-50 p-3 rounded border border-red-200">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-xs text-red-800 font-semibold">Livello di Attenzione</p>
+                                    <span class="px-3 py-1 text-xs font-bold rounded-full"
+                                          th:classappend="${qualityResults.attentionLevel.name() == 'LOW' ? ' bg-green-600 text-white' : qualityResults.attentionLevel.name() == 'MEDIUM' ? ' bg-yellow-600 text-white' : ' bg-red-600 text-white'}"
+                                          th:text="${qualityResults.attentionLevel.name() == 'CRITICAL' ? 'IMMEDIATO' : qualityResults.attentionLevel.name() == 'HIGH' ? 'ALTO' : qualityResults.attentionLevel.name() == 'MEDIUM' ? 'MEDIO' : 'BASSO'}">
+                                        IMMEDIATO
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded">
+                                <p class="text-xs text-gray-600">Tempo di Elaborazione</p>
+                                <p class="text-lg font-bold text-gray-900">1 ms</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
+
+            <!-- Overall Score -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Punteggio Complessivo
+                </h2>
+
+                <div class="grid grid-cols-5 gap-4 mb-6"
+                     th:with="validRate=${(qualityResults.totalExposures != null and qualityResults.totalExposures > 0) ? ((qualityResults.validExposures * 100.0) / qualityResults.totalExposures) : 0.0},
+                              errorRate=${(qualityResults.totalExposures != null and qualityResults.totalExposures > 0) ? ((qualityResults.totalErrors * 100.0) / qualityResults.totalExposures) : 0.0}">
+                    <div class="col-span-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-8 text-white">
+                        <p class="text-sm font-semibold opacity-90 mb-2">QUALITY SCORE</p>
+                        <div class="flex items-end space-x-4">
+                            <p class="text-6xl font-bold"><span th:text="${#numbers.formatDecimal(qualityResults.overallScore, 1, 1)}">46.0</span>%</p>
+                            <p class="text-4xl font-bold pb-2 opacity-90" th:text="${qualityResults.overallGrade.name()}">F</p>
+                        </div>
+                        <p class="text-xs mt-3 opacity-75 uppercase tracking-wide">POOR - Requires Immediate Action</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg p-6 text-white">
+                        <p class="text-sm font-semibold opacity-90">Esposizioni Totali</p>
+                        <p class="text-4xl font-bold mt-2" th:text="${qualityResults.totalExposures}">5</p>
+                        <p class="text-xs mt-2 opacity-75">Analizzate</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-6 text-white">
+                        <p class="text-sm font-semibold opacity-90">Esposizioni Valide</p>
+                        <p class="text-4xl font-bold mt-2" th:text="${qualityResults.validExposures}">0</p>
+                        <p class="text-xs mt-2 opacity-75"><span th:text="${#numbers.formatDecimal(validRate, 1, 1)}">0.0</span>% validation rate</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-red-600 to-red-700 rounded-lg p-6 text-white">
+                        <p class="text-sm font-semibold opacity-90">Errori Totali</p>
+                        <p class="text-4xl font-bold mt-2" th:text="${qualityResults.totalErrors}">16</p>
+                        <p class="text-xs mt-2 opacity-75"><span th:text="${#numbers.formatDecimal(errorRate, 1, 1)}">100.0</span>% error rate</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dimension Scores -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6"
+                 th:with="cpl=${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS)},
+                          acc=${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY)},
+                          con=${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).CONSISTENCY)},
+                          tim=${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).TIMELINESS)},
+                          uni=${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).UNIQUENESS)},
+                          val=${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).VALIDITY)},
+                          cplErr=${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS).count : 0},
+                          accErr=${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY).count : 0},
+                          conErr=${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).CONSISTENCY) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).CONSISTENCY).count : 0},
+                          timErr=${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).TIMELINESS) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).TIMELINESS).count : 0},
+                          uniErr=${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).UNIQUENESS) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).UNIQUENESS).count : 0},
+                          valErr=${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).VALIDITY) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).VALIDITY).count : 0}">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Punteggi per Dimensione di Qualità
+                </h2>
+
+                <div class="space-y-4">
+                    <!-- Completeness -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Completezza (Completeness)</h4>
+                                <p class="text-sm text-gray-600">Tutti i dati richiesti sono presenti e popolati</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-red-600" th:text="${#numbers.formatDecimal((cpl != null ? cpl : 0), 1, 1)} + '%'"><span>0.0%</span></span>
+                                <p class="text-xs text-red-600 font-semibold"><span th:text="${cplErr}">10</span> ERRORI</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-red-600 h-4 rounded-full" th:style="${'width: ' + (cpl != null ? cpl : 0) + '%'}" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Accuracy -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Accuratezza (Accuracy)</h4>
+                                <p class="text-sm text-gray-600">I dati riflettono correttamente la realtà</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-red-600" th:text="${#numbers.formatDecimal((acc != null ? acc : 0), 1, 1)} + '%'"><span>0.0%</span></span>
+                                <p class="text-xs text-red-600 font-semibold"><span th:text="${accErr}">5</span> ERRORI</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-red-600 h-4 rounded-full" th:style="${'width: ' + (acc != null ? acc : 0) + '%'}" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Consistency -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Coerenza (Consistency)</h4>
+                                <p class="text-sm text-gray-600">I dati sono uniformi tra diverse fonti e nel tempo</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-amber-600" th:text="${#numbers.formatDecimal((con != null ? con : 0), 1, 1)} + '%'"><span>80.0%</span></span>
+                                <p class="text-xs text-amber-600 font-semibold"><span th:text="${conErr}">1</span> ERRORE</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-amber-500 h-4 rounded-full" th:style="${'width: ' + (con != null ? con : 0) + '%'}" style="width: 80%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Timeliness -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Tempestività (Timeliness)</h4>
+                                <p class="text-sm text-gray-600">I dati sono aggiornati e disponibili quando necessari</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-green-600" th:text="${#numbers.formatDecimal((tim != null ? tim : 0), 1, 1)} + '%'"><span>100.0%</span></span>
+                                <p class="text-xs text-green-600 font-semibold"><span th:text="${timErr}">0</span> ERRORI</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-green-600 h-4 rounded-full" th:style="${'width: ' + (tim != null ? tim : 0) + '%'}" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Uniqueness -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Unicità (Uniqueness)</h4>
+                                <p class="text-sm text-gray-600">Non ci sono duplicazioni nei dati</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-green-600" th:text="${#numbers.formatDecimal((uni != null ? uni : 0), 1, 1)} + '%'"><span>100.0%</span></span>
+                                <p class="text-xs text-green-600 font-semibold"><span th:text="${uniErr}">0</span> ERRORI</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-green-600 h-4 rounded-full" th:style="${'width: ' + (uni != null ? uni : 0) + '%'}" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Validity -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Validità (Validity)</h4>
+                                <p class="text-sm text-gray-600">I dati rispettano le regole di business e i formati attesi</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-green-600" th:text="${#numbers.formatDecimal((val != null ? val : 0), 1, 1)} + '%'"><span>100.0%</span></span>
+                                <p class="text-xs text-green-600 font-semibold"><span th:text="${valErr}">0</span> ERRORI</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-green-600 h-4 rounded-full" th:style="${'width: ' + (val != null ? val : 0) + '%'}" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Error Distribution -->
-            <div class="mb-8" th:if="${qualityResults.totalErrors > 0}">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Error Distribution</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div th:each="entry : ${qualityResults.errorDistributionByDimension}" 
-                         class="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <div class="text-sm text-gray-600" th:text="${entry.key.displayName}">Dimension</div>
-                        <div class="text-2xl font-bold text-red-600" th:text="${entry.value.count}">10</div>
-                        <div class="text-xs text-gray-500" 
-                             th:text="${#numbers.formatDecimal(entry.value.percentage, 1, 1) + '% of total errors'}">
-                            25% of total errors
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6"
+                 th:with="cplCnt=${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS).count : 0},
+                          accCnt=${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY).count : 0},
+                          conCnt=${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).CONSISTENCY) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).CONSISTENCY).count : 0},
+                          maxCnt=${(cplCnt >= accCnt and cplCnt >= conCnt) ? cplCnt : (accCnt >= conCnt ? accCnt : conCnt)}">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Distribuzione Errori per Dimensione
+                </h2>
+
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="bg-red-50 rounded-lg p-6 border-2 border-red-200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-sm font-semibold text-red-800">COMPLETENESS</p>
+                                <p class="text-xs text-red-600 mt-1">Dimensione più problematica</p>
+                            </div>
+                            <span class="text-3xl font-bold text-red-600" th:text="${cplCnt}">10</span>
+                        </div>
+                        <div class="w-full bg-red-200 rounded-full h-3">
+                            <div class="bg-red-600 h-3 rounded-full"
+                                 th:style="${'width: ' + (maxCnt > 0 ? ((cplCnt * 100.0) / maxCnt) : 0) + '%'}" style="width: 100%"></div>
+                        </div>
+                        <p class="text-xs text-red-700 mt-2"><span th:text="${qualityResults.totalErrors > 0 ? #numbers.formatDecimal((cplCnt * 100.0) / qualityResults.totalErrors, 1, 1) : '0.0'}">62.5</span>% degli errori totali</p>
+                    </div>
+
+                    <div class="bg-orange-50 rounded-lg p-6 border-2 border-orange-200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-sm font-semibold text-orange-800">ACCURACY</p>
+                                <p class="text-xs text-orange-600 mt-1">Seconda dimensione critica</p>
+                            </div>
+                            <span class="text-3xl font-bold text-orange-600" th:text="${accCnt}">5</span>
+                        </div>
+                        <div class="w-full bg-orange-200 rounded-full h-3">
+                            <div class="bg-orange-600 h-3 rounded-full"
+                                 th:style="${'width: ' + (maxCnt > 0 ? ((accCnt * 100.0) / maxCnt) : 0) + '%'}" style="width: 50%"></div>
+                        </div>
+                        <p class="text-xs text-orange-700 mt-2"><span th:text="${qualityResults.totalErrors > 0 ? #numbers.formatDecimal((accCnt * 100.0) / qualityResults.totalErrors, 1, 1) : '0.0'}">31.3</span>% degli errori totali</p>
+                    </div>
+
+                    <div class="bg-yellow-50 rounded-lg p-6 border-2 border-yellow-200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-sm font-semibold text-yellow-800">CONSISTENCY</p>
+                                <p class="text-xs text-yellow-600 mt-1">Errori minori</p>
+                            </div>
+                            <span class="text-3xl font-bold text-yellow-600" th:text="${conCnt}">1</span>
+                        </div>
+                        <div class="w-full bg-yellow-200 rounded-full h-3">
+                            <div class="bg-yellow-600 h-3 rounded-full"
+                                 th:style="${'width: ' + (maxCnt > 0 ? ((conCnt * 100.0) / maxCnt) : 0) + '%'}" style="width: 10%"></div>
+                        </div>
+                        <p class="text-xs text-yellow-700 mt-2"><span th:text="${qualityResults.totalErrors > 0 ? #numbers.formatDecimal((conCnt * 100.0) / qualityResults.totalErrors, 1, 1) : '0.0'}">6.3</span>% degli errori totali</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quality Insights -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Analisi e Raccomandazioni
+                </h2>
+
+                <div class="space-y-4">
+                    <div class="bg-red-50 border-l-4 border-red-500 p-4">
+                        <div class="flex items-start">
+                            <span class="text-2xl mr-3">🚨</span>
+                            <div>
+                                <h4 class="font-bold text-red-900 mb-2">Situazione Critica - Azione Immediata Richiesta</h4>
+                                <p class="text-sm text-red-800 mb-2">
+                                    Il punteggio complessivo di qualità del <strong><span th:text="${#numbers.formatDecimal(qualityResults.overallScore, 0, 0)}">46</span>%</strong> indica una situazione critica che richiede
+                                    intervento immediato. Tutte le <span th:text="${qualityResults.totalExposures}">5</span> esposizioni analizzate presentano errori di validazione.
+                                </p>
+                                <p class="text-sm text-red-800">
+                                    <strong>Priorità:</strong> Affrontare immediatamente i problemi di completezza e accuratezza dei dati.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-orange-50 border-l-4 border-orange-500 p-4">
+                        <div class="flex items-start">
+                            <span class="text-2xl mr-3">📊</span>
+                            <div>
+                                <h4 class="font-bold text-orange-900 mb-2">Problemi di Completezza dei Dati</h4>
+                                <p class="text-sm text-orange-800 mb-2">
+                                    La dimensione <strong>Completeness</strong> mostra il punteggio più basso (<strong><span th:text="${#numbers.formatDecimal((qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS) != null ? qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS) : 0), 0, 0)}">0</span>%</strong>) con
+                                    <span th:text="${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS).count : 0}">10</span> errori identificati.
+                                    Questo indica che campi obbligatori mancano o non sono popolati correttamente.
+                                </p>
+                                <p class="text-sm text-orange-800">
+                                    <strong>Raccomandazione:</strong> Verificare i processi di data entry e assicurarsi che tutti i campi
+                                    obbligatori siano correttamente valorizzati nei sistemi di origine.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-amber-50 border-l-4 border-amber-500 p-4">
+                        <div class="flex items-start">
+                            <span class="text-2xl mr-3">🎯</span>
+                            <div>
+                                <h4 class="font-bold text-amber-900 mb-2">Problemi di Accuratezza</h4>
+                                <p class="text-sm text-amber-800 mb-2">
+                                    La dimensione <strong>Accuracy</strong> presenta anch'essa un punteggio dello <strong><span th:text="${#numbers.formatDecimal((qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY) != null ? qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY) : 0), 0, 0)}">0</span>%</strong> con
+                                    <span th:text="${qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY) != null ? qualityResults.errorDistributionByDimension.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY).count : 0}">5</span> errori.
+                                    I dati potrebbero non riflettere correttamente le informazioni effettive delle esposizioni.
+                                </p>
+                                <p class="text-sm text-amber-800">
+                                    <strong>Raccomandazione:</strong> Implementare controlli di riconciliazione tra i sistemi sorgente
+                                    e il data warehouse per garantire l'accuratezza delle informazioni.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-green-50 border-l-4 border-green-500 p-4">
+                        <div class="flex items-start">
+                            <span class="text-2xl mr-3">✅</span>
+                            <div>
+                                <h4 class="font-bold text-green-900 mb-2">Aspetti Positivi</h4>
+                                <p class="text-sm text-green-800 mb-2">
+                                    Le dimensioni <strong>Timeliness</strong>, <strong>Uniqueness</strong> e <strong>Validity</strong>
+                                    mostrano punteggi del 100%, indicando che:
+                                </p>
+                                <ul class="list-disc list-inside text-sm text-green-800 space-y-1 ml-4">
+                                    <li>I dati sono aggiornati e disponibili nei tempi richiesti</li>
+                                    <li>Non ci sono duplicazioni nei record</li>
+                                    <li>I formati dei dati rispettano le regole di validazione</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+                        <div class="flex items-start">
+                            <span class="text-2xl mr-3">📋</span>
+                            <div>
+                                <h4 class="font-bold text-blue-900 mb-2">Piano d'Azione Consigliato</h4>
+                                <p class="text-sm text-blue-800 mb-2"><strong>Breve Termine (1-2 settimane):</strong></p>
+                                <ul class="list-disc list-inside text-sm text-blue-800 space-y-1 ml-4 mb-3">
+                                    <li>Analisi dettagliata degli errori di completezza e accuratezza</li>
+                                    <li>Identificazione dei campi mancanti o errati</li>
+                                    <li>Correzione manuale delle esposizioni critiche</li>
+                                </ul>
+                                <p class="text-sm text-blue-800 mb-2"><strong>Medio Termine (1-3 mesi):</strong></p>
+                                <ul class="list-disc list-inside text-sm text-blue-800 space-y-1 ml-4 mb-3">
+                                    <li>Implementazione di controlli automatici nei sistemi sorgente</li>
+                                    <li>Sviluppo di processi di riconciliazione automatica</li>
+                                    <li>Formazione degli operatori sui requisiti di qualità</li>
+                                </ul>
+                                <p class="text-sm text-blue-800 mb-2"><strong>Lungo Termine (3-6 mesi):</strong></p>
+                                <ul class="list-disc list-inside text-sm text-blue-800 space-y-1 ml-4">
+                                    <li>Implementazione di data governance framework</li>
+                                    <li>Automazione completa dei controlli di qualità</li>
+                                    <li>Monitoraggio continuo e reporting automatico</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            
+
             <!-- BCBS 239 Compliance -->
-            <div class="bg-gray-50 rounded-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">BCBS 239 Compliance</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="flex items-center justify-between p-3 bg-white rounded border">
-                        <span class="text-sm font-medium text-gray-700">Principle 3: Accuracy</span>
-                        <span class="compliance-badge"
-                              th:classappend="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY) >= 90 ? 'compliant' : 'warning'}">
-                            <span th:text="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY) >= 90 ? 'COMPLIANT' : 'REVIEW'}">
-                                COMPLIANT
-                            </span>
-                        </span>
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6"
+                 th:with="acc=${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).ACCURACY)},
+                          cpl=${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS)},
+                          tim=${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).TIMELINESS)},
+                          ada=${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).CONSISTENCY)}">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Conformità BCBS 239
+                </h2>
+
+                <div class="space-y-4">
+                    <div class="bg-purple-50 border-l-4 border-purple-500 p-4">
+                        <h4 class="font-bold text-purple-900 mb-2">📘 Principi BCBS 239</h4>
+                        <p class="text-sm text-purple-800 mb-3">
+                            Il Basel Committee on Banking Supervision ha stabilito 14 principi fondamentali per l'aggregazione
+                            dei dati di rischio e l'informativa di rischio. I principi relativi alla qualità dei dati includono:
+                        </p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white p-3 rounded border border-purple-200">
+                                <p class="text-xs font-bold text-purple-900 mb-1">Principio 3: Accuratezza e Integrità</p>
+                                <p class="text-xs text-purple-800">I dati devono essere accurati e affidabili</p>
+                            </div>
+                            <div class="bg-white p-3 rounded border border-purple-200">
+                                <p class="text-xs font-bold text-purple-900 mb-1">Principio 4: Completezza</p>
+                                <p class="text-xs text-purple-800">I dati devono essere completi e disponibili</p>
+                            </div>
+                            <div class="bg-white p-3 rounded border border-purple-200">
+                                <p class="text-xs font-bold text-purple-900 mb-1">Principio 5: Tempestività</p>
+                                <p class="text-xs text-purple-800">I dati devono essere aggiornati e disponibili on-demand</p>
+                            </div>
+                            <div class="bg-white p-3 rounded border border-purple-200">
+                                <p class="text-xs font-bold text-purple-900 mb-1">Principio 6: Adattabilità</p>
+                                <p class="text-xs text-purple-800">I sistemi devono essere flessibili per nuove esigenze</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center justify-between p-3 bg-white rounded border">
-                        <span class="text-sm font-medium text-gray-700">Principle 4: Completeness</span>
-                        <span class="compliance-badge"
-                              th:classappend="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS) >= 90 ? 'compliant' : 'warning'}">
-                            <span th:text="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).COMPLETENESS) >= 90 ? 'COMPLIANT' : 'REVIEW'}">
-                                COMPLIANT
-                            </span>
-                        </span>
-                    </div>
-                    <div class="flex items-center justify-between p-3 bg-white rounded border">
-                        <span class="text-sm font-medium text-gray-700">Principle 5: Timeliness</span>
-                        <span class="compliance-badge"
-                              th:classappend="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).TIMELINESS) >= 90 ? 'compliant' : 'warning'}">
-                            <span th:text="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).TIMELINESS) >= 90 ? 'COMPLIANT' : 'REVIEW'}">
-                                COMPLIANT
-                            </span>
-                        </span>
-                    </div>
-                    <div class="flex items-center justify-between p-3 bg-white rounded border">
-                        <span class="text-sm font-medium text-gray-700">Principle 6: Integrity</span>
-                        <span class="compliance-badge"
-                              th:classappend="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).CONSISTENCY) >= 90 ? 'compliant' : 'warning'}">
-                            <span th:text="${qualityResults.dimensionScores.get(T(com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension).CONSISTENCY) >= 90 ? 'COMPLIANT' : 'REVIEW'}">
-                                COMPLIANT
-                            </span>
-                        </span>
-                    </div>
-                </div>
-            </div>
-        </section>
-        
-        <!-- Recommendations Section -->
-        <section class="bg-white rounded-lg shadow-md p-6 mb-8" th:if="${recommendations != null and !recommendations.isEmpty()}">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b pb-3">
-                💡 Quality Recommendations
-            </h2>
-            
-            <div th:each="recommendation : ${recommendations}">
-                <div class="recommendation-section" th:classappend="${recommendation.colorClass}">
-                    <div class="flex items-start">
-                        <div class="text-3xl mr-4" th:text="${recommendation.icon}">🚨</div>
-                        <div class="flex-1">
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2" th:text="${recommendation.title}">
-                                Recommendation Title
-                            </h3>
-                            <p class="text-sm text-gray-700 mb-3" th:utext="${recommendation.content}">
-                                Recommendation content
-                            </p>
-                            <ul class="list-disc list-inside space-y-1" th:if="${recommendation.bullets != null and !recommendation.bullets.isEmpty()}">
-                                <li class="text-sm text-gray-700" th:each="bullet : ${recommendation.bullets}" th:text="${bullet}">
-                                    Bullet point
-                                </li>
-                            </ul>
+
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-bold text-gray-900 mb-3">Valutazione Conformità per Principio</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700">Principio 3 - Accuratezza e Integrità</span>
+                                <span class="px-3 py-1 text-xs font-bold rounded-full"
+                                      th:classappend="${(acc != null and acc >= 90) ? ' bg-green-100 text-green-800' : ' bg-red-100 text-red-800'}"
+                                      th:text="${(acc != null and acc >= 90) ? 'CONFORME' : 'NON CONFORME'}">NON CONFORME</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700">Principio 4 - Completezza</span>
+                                <span class="px-3 py-1 text-xs font-bold rounded-full"
+                                      th:classappend="${(cpl != null and cpl >= 90) ? ' bg-green-100 text-green-800' : ' bg-red-100 text-red-800'}"
+                                      th:text="${(cpl != null and cpl >= 90) ? 'CONFORME' : 'NON CONFORME'}">NON CONFORME</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700">Principio 5 - Tempestività</span>
+                                <span class="px-3 py-1 text-xs font-bold rounded-full"
+                                      th:classappend="${(tim != null and tim >= 90) ? ' bg-green-100 text-green-800' : ' bg-red-100 text-red-800'}"
+                                      th:text="${(tim != null and tim >= 90) ? 'CONFORME' : 'NON CONFORME'}">CONFORME</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700">Principio 6 - Adattabilità</span>
+                                <span class="px-3 py-1 text-xs font-bold rounded-full"
+                                      th:classappend="${(ada != null and ada >= 90) ? ' bg-green-100 text-green-800' : (ada != null and ada >= 70) ? ' bg-yellow-100 text-yellow-800' : ' bg-red-100 text-red-800'}"
+                                      th:text="${(ada != null and ada >= 90) ? 'CONFORME' : (ada != null and ada >= 70) ? 'PARZIALE' : 'NON CONFORME'}">PARZIALE</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Technical Details -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Dettagli Tecnici
+                </h2>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-3">Informazioni Report</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Report ID:</span>
+                                <span class="font-mono text-gray-900" th:text="${'qr_' + metadata.batchId.value()}">qr_4c28380f-5fc2-4034...</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Batch ID:</span>
+                                <span class="font-mono text-gray-900" th:text="${qualityResults.batchId.value()}">batch_20251117_221306...</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Bank ID:</span>
+                                <span class="font-mono text-gray-900" th:text="${qualityResults.bankId.value()}">daa4a072</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Status:</span>
+                                <span class="font-semibold text-green-600">COMPLETED</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-semibold text-gray-700 mb-3">Metriche di Elaborazione</h4>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Tempo di Elaborazione:</span>
+                                <span class="font-semibold text-gray-900">1 ms</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Data Creazione:</span>
+                                <span class="font-semibold text-gray-900" th:text="${#temporals.format(qualityResults.timestamp, 'yyyy-MM-dd HH:mm:ss ''UTC''')}">2025-11-17 21:13:12 UTC</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Data Aggiornamento:</span>
+                                <span class="font-semibold text-gray-900" th:text="${#temporals.format(qualityResults.timestamp, 'yyyy-MM-dd HH:mm:ss ''UTC''')}">2025-11-17 21:13:12 UTC</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Details URI:</span>
+                                <span class="font-mono text-xs text-gray-900">s3://local/quality/...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-gray-100 rounded-lg p-6 text-center text-sm text-gray-600">
+                <p class="mb-2">
+                    <strong>Rapporto generato da BCBS 239 Data Quality Engine</strong> - Template v2024.1
+                </p>
+                <p>
+                    Generato il: <span th:text="${#temporals.format(metadata.generatedAt, 'dd/MM/yyyy')}">17/11/2025</span> alle ore <span th:text="${#temporals.format(metadata.generatedAt, 'HH:mm:ss')}">21:13:12</span>
+                </p>
+                <p class="mt-2 text-xs">
+                    Questo rapporto è stato generato automaticamente secondo i principi BCBS 239.
+                    Per informazioni sulla normativa: <a href="https://www.bis.org/publ/bcbs239.htm" class="text-blue-600 hover:underline">www.bis.org/publ/bcbs239.htm</a>
+                </p>
+            </div>
+
+            <!-- Print Button -->
+            <div class="mt-6 text-center no-print">
+                <button onclick="window.print()"
+                        class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-200">
+                    🖨️ Stampa Rapporto / Salva PDF
+                </button>
+            </div>
+
         </section>
-        
-        <!-- Footer -->
-        <footer class="bg-gray-100 rounded-lg p-6 text-center text-sm text-gray-600">
-            <p class="mb-2">
-                <span class="font-semibold">Report Generated:</span> 
-                <span th:text="${#temporals.format(metadata.generatedAt, 'dd/MM/yyyy HH:mm:ss')}">01/01/2024 10:00:00</span>
-            </p>
-            <p class="text-xs text-gray-500">
-                This report contains confidential information and is intended solely for authorized personnel. 
-                Unauthorized distribution or disclosure is strictly prohibited.
-            </p>
-            <p class="text-xs text-gray-500 mt-2">
-                Generated by RegTech BCBS 239 Compliance Platform
-            </p>
-        </footer>
         
     </div>
     
