@@ -3,19 +3,19 @@ package com.bcbs239.regtech.core.application.inbox;
 import com.bcbs239.regtech.core.application.eventprocessing.CoreIntegrationEventDeserializer;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
-import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.inbox.IInboxMessageRepository;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessage;
 import com.bcbs239.regtech.core.domain.inbox.InboxMessageStatus;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,12 +33,14 @@ public class ProcessInboxJob {
     private final ApplicationEventPublisher dispatcher;
     private final InboxOptions inboxOptions;
     private final CoreIntegrationEventDeserializer deserializer;
+    private final TransactionTemplate transactionTemplate;
 
-    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository, ApplicationEventPublisher dispatcher, InboxOptions inboxOptions, CoreIntegrationEventDeserializer deserializer) {
+    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository, ApplicationEventPublisher dispatcher, InboxOptions inboxOptions, CoreIntegrationEventDeserializer deserializer, PlatformTransactionManager transactionManager) {
         this.inboxMessageRepository = inboxMessageRepository;
         this.dispatcher = dispatcher;
         this.inboxOptions = inboxOptions;
         this.deserializer = deserializer;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
 
@@ -80,16 +82,19 @@ public class ProcessInboxJob {
             try {
                 logger.info("Publishing replayed integration event: {} (eventId={})", event.getClass().getSimpleName(), event.getEventId());
 
-                ScopedValue.where(CorrelationContext.CORRELATION_ID, message.getCorrelationId())
-                        .where(CorrelationContext.CAUSATION_ID, message.getCausationId())
-                        //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
-                        .where(CorrelationContext.OUTBOX_REPLAY, true)
-                        .where(CorrelationContext.INBOX_REPLAY, false)
-                        .run(() -> {
-                            dispatcher.publishEvent(event);
-                        });
+                transactionTemplate.executeWithoutResult(status -> {
+                    ScopedValue.where(CorrelationContext.CORRELATION_ID, message.getCorrelationId())
+                            .where(CorrelationContext.CAUSATION_ID, message.getCausationId())
+                            //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
+                            // This is an inbox replay: downstream handlers should PROCESS (exactly-once)
+                            // and upstream receivers should NOT persist back into the inbox.
+                            .where(CorrelationContext.OUTBOX_REPLAY, false)
+                            .where(CorrelationContext.INBOX_REPLAY, true)
+                            .run(() -> dispatcher.publishEvent(event));
 
-                inboxMessageRepository.markAsProcessed(message.getId(), Instant.now());
+                    inboxMessageRepository.markAsProcessed(message.getId(), Instant.now());
+                });
+
                 logger.info("Successfully processed inbox message {} and published event {}", message.getId(), event.getClass().getSimpleName());
             } catch (Exception e) {
                 inboxMessageRepository.markAsPermanentlyFailed(message.getId());

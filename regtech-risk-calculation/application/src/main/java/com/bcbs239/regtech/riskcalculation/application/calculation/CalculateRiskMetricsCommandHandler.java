@@ -102,6 +102,14 @@ public class CalculateRiskMetricsCommandHandler {
             batch = Batch.create(batchId, bankInfo, parsedData.batchData().exposures().size(), command.getS3Uri());
             Result<Void> batchSaveResult = batchRepository.save(batch);
             if (batchSaveResult.isFailure()) {
+                // Race/idempotency: another thread/process created the batch first.
+                // In that case, exit without doing any further work (especially writing results files).
+                if (batchSaveResult.getError().isPresent()
+                    && "BATCH_ALREADY_EXISTS".equals(batchSaveResult.getError().get().getCode())) {
+                    log.info("Batch {} already exists (detected during save), skipping duplicate calculation", batchId);
+                    return Result.success();
+                }
+
                 return handleBatchSaveFailure(batchId, batchSaveResult);
             }
 
@@ -143,12 +151,13 @@ public class CalculateRiskMetricsCommandHandler {
             // Complete batch
             batch.completeCalculation(storageResult.getValue().orElseThrow(), protectedExposures.size(), analysis.getTotalPortfolio());
             
-            // Save batch and analysis (now in separate schema, no conflicts with other modules)
-//            Result<Void> finalBatchSaveResult = batchRepository.save(batch);
-//            if (finalBatchSaveResult.isFailure()) {
-//                log.warn("Failed to save completed batch {}: {}", batchId, finalBatchSaveResult.getError().orElse(null));
-//                // Continue anyway since calculation is complete
-//            }
+            // Persist the completed batch metadata (status, processed_at, calculation_results_uri).
+            // Without this, the DB row can remain stuck in PROCESSING even though completion events are emitted.
+            Result<Void> finalBatchSaveResult = batchRepository.save(batch);
+            if (finalBatchSaveResult.isFailure()) {
+                log.warn("Failed to save completed batch {}: {}", batchId, finalBatchSaveResult.getError().orElse(null));
+                // Continue anyway since calculation is complete
+            }
             Result<Void> portfolioSaveResult = portfolioAnalysisRepository.save(analysis);
             if (portfolioSaveResult.isFailure()) {
                 log.warn("Failed to save portfolio analysis {}: {}", batchId, portfolioSaveResult.getError().orElse(null));

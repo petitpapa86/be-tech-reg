@@ -195,8 +195,13 @@ public class JpaBatchRepository implements BatchRepository {
         if (e.getMessage() != null && e.getMessage().contains("batches_pkey")) {
             log.debug("Duplicate batch_id detected: {} - This is expected in concurrent processing", 
                 batch.getId().value());
-            // Return success for idempotent operation - batch already exists
-            return Result.success();
+            // Signal to caller that the batch already exists so it can short-circuit work.
+            return Result.failure(ErrorDetail.of(
+                "BATCH_ALREADY_EXISTS",
+                ErrorType.BUSINESS_RULE_ERROR,
+                "Batch already exists: " + batch.getId().value(),
+                "batch.already.exists"
+            ));
         }
         
         log.error("Data integrity violation while saving batch aggregate: {}", batch.getId().value(), e);

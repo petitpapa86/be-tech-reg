@@ -13,11 +13,11 @@ import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Instant;
 import java.util.Map;
@@ -27,7 +27,6 @@ import java.util.Map;
  * Handles async processing with idempotency checking and error handling.
  * <p>
  * Features:
- * - Async processing using dedicated thread pool
  * - Idempotency checking to prevent duplicate processing
  * - Event filtering and validation
  * - Error handling with EventProcessingFailure repository
@@ -52,9 +51,11 @@ public class BatchCompletedIntegrationEventListener {
      *
      * @param event The batch ingested event from ingestion module
      */
-    @TransactionalEventListener
+    @EventListener
     public void handleBatchIngestedEvent(BatchCompletedIntegrationEvent event) {
-        if (CorrelationContext.isInboxReplay()) {
+        // Exactly-once: skip handling when the integration event is first published (outbox stage).
+        // Process only when the inbox job replays it.
+        if (CorrelationContext.isOutboxReplay() && !CorrelationContext.isInboxReplay()) {
             return;
         }
         log.info("Received BatchIngestedEvent for batch: {} from bank: {}, isInboxReplay: {}",
@@ -77,14 +78,30 @@ public class BatchCompletedIntegrationEventListener {
             }
 
             // Step 3: Create and execute risk calculation command
-            ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
-                    .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
-                    //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
-                    .where(CorrelationContext.OUTBOX_REPLAY, false)
-                    .where(CorrelationContext.INBOX_REPLAY, true)
-                    .run(() ->
-                        routeEvent(event)
-                    );
+            Result<CalculateRiskMetricsCommand> commandResult = CalculateRiskMetricsCommand.create(
+                    event.getBatchId(),
+                    event.getBankId(),
+                    event.getS3Uri(),
+                    event.getTotalExposures(),
+                    null // No correlation ID from ingestion event
+            );
+
+            if (commandResult.isFailure()) {
+                log.error("Failed to create CalculateRiskMetricsCommand for batch: {}", event.getBatchId());
+                handleEventProcessingError(event, commandResult.getError().get().getMessage(), null);
+                return;
+            }
+
+            // Step 4: Execute risk calculation
+            Result<Void> executionResult = commandHandler.handle(commandResult.getValue().get());
+
+            if (executionResult.isFailure()) {
+                log.error("Risk calculation failed for batch: {}", event.getBatchId());
+                handleEventProcessingError(event, executionResult.getError().get().getMessage(), null);
+                return;
+            }
+
+            log.info("Successfully processed BatchIngestedEvent for batch: {}", event.getBatchId());
 
 
         } catch (Exception e) {
@@ -92,34 +109,6 @@ public class BatchCompletedIntegrationEventListener {
                     event.getBatchId(), e);
             handleEventProcessingError(event, "Unexpected error: " + e.getMessage(), e);
         }
-    }
-
-    @Async("eventProcessingExecutor")
-    private void routeEvent(BatchCompletedIntegrationEvent event) {
-        Result<CalculateRiskMetricsCommand> commandResult = CalculateRiskMetricsCommand.create(
-                event.getBatchId(),
-                event.getBankId(),
-                event.getS3Uri(),
-                event.getTotalExposures(),
-                null // No correlation ID from ingestion event
-        );
-
-        if (commandResult.isFailure()) {
-            log.error("Failed to create CalculateRiskMetricsCommand for batch: {}", event.getBatchId());
-            handleEventProcessingError(event, commandResult.getError().get().getMessage(), null);
-            return;
-        }
-
-        // Step 4: Execute risk calculation
-        Result<Void> executionResult = commandHandler.handle(commandResult.getValue().get());
-
-        if (executionResult.isFailure()) {
-            log.error("Risk calculation failed for batch: {}", event.getBatchId());
-            handleEventProcessingError(event, executionResult.getError().get().getMessage(), null);
-            return;
-        }
-
-        log.info("Successfully processed BatchIngestedEvent for batch: {}", event.getBatchId());
     }
 
     /**
