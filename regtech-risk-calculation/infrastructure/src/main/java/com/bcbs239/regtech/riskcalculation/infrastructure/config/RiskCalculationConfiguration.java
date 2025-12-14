@@ -26,26 +26,27 @@ import java.util.concurrent.Executor;
 /**
  * Configuration class for Risk Calculation module
  * Provides async processing configuration, thread pool management, and scheduling support
- * 
+ *
  * <p>JPA 3.2 and Hibernate 7.x compatible configuration:
  * <ul>
  *   <li>Supports EntityManager injection with @PersistenceContext and @Inject</li>
  *   <li>Compatible with Hibernate ORM 7.1/7.2</li>
  *   <li>Uses Jakarta Persistence API (jakarta.persistence.*)</li>
  * </ul>
- * 
+ * <p>
  * Requirements: 2.1, 2.5
  */
 @Configuration
-@EnableAsync
-@EnableScheduling
+//@EnableAsync
+//@EnableScheduling
 @EnableConfigurationProperties({RiskCalculationProperties.class, CurrencyApiProperties.class})
 @EntityScan(basePackages = "com.bcbs239.regtech.riskcalculation.infrastructure.database.entities")
 @EnableJpaRepositories(basePackages = "com.bcbs239.regtech.riskcalculation.infrastructure.database.repositories")
 @org.springframework.context.annotation.ComponentScan(basePackages = {
-    "com.bcbs239.regtech.riskcalculation.application",
-    "com.bcbs239.regtech.riskcalculation.infrastructure",
-        "com.bcbs239.regtech.riskcalculation.infrastructure"
+        "com.bcbs239.regtech.riskcalculation.application",
+        "com.bcbs239.regtech.riskcalculation.infrastructure",
+        "com.bcbs239.regtech.riskcalculation.domain",
+        "com.bcbs239.regtech.riskcalculation.presentation"
 })
 @Slf4j
 public class RiskCalculationConfiguration {
@@ -79,11 +80,11 @@ public class RiskCalculationConfiguration {
     /**
      * Exposure classifier domain service bean.
      * Classifies exposures by geographic region and economic sector.
-     * 
+     * <p>
      * This domain service implements business rules for:
      * - Geographic classification (ITALY, EU_OTHER, NON_EUROPEAN)
      * - Sector classification (RETAIL_MORTGAGE, SOVEREIGN, CORPORATE, BANKING, OTHER)
-     * 
+     * <p>
      * Requirement 4.1-4.4: Geographic classification
      * Requirement 5.1-5.6: Sector classification
      */
@@ -96,19 +97,19 @@ public class RiskCalculationConfiguration {
     /**
      * Exposure processing domain service bean.
      * Orchestrates the exposure processing pipeline following DDD principles.
-     * 
+     * <p>
      * This domain service coordinates:
      * - Currency conversion to EUR
      * - Credit risk mitigation application
      * - Exposure classification by region and sector
-     * 
+     * <p>
      * Requirement 6.1: Exposure processing pipeline
      * Requirement 7.1: Risk calculation orchestration
      */
     @Bean
     public ExposureProcessingService exposureProcessingService(
-        ExchangeRateProvider exchangeRateProvider,
-        ExposureClassifier exposureClassifier
+            ExchangeRateProvider exchangeRateProvider,
+            ExposureClassifier exposureClassifier
     ) {
         log.info("Creating ExposureProcessingService domain service");
         return new ExposureProcessingService(exchangeRateProvider, exposureClassifier);
@@ -139,9 +140,9 @@ public class RiskCalculationConfiguration {
     @Bean
     public HttpClient httpClient() {
         return HttpClient.newBuilder()
-            .connectTimeout(Duration.ofMillis(currencyApiProperties.getTimeout()))
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+                .connectTimeout(Duration.ofMillis(currencyApiProperties.getTimeout()))
+                .followRedirects(HttpClient.Redirect.NORMAL)
+                .build();
     }
 
     // ObjectMapper bean removed - using the one from core infrastructure (loggingObjectMapper)
@@ -173,7 +174,7 @@ public class RiskCalculationConfiguration {
     @Configuration
     @Profile("development")
     static class DevelopmentConfiguration {
-        
+
         /**
          * Development-specific HTTP client with shorter timeouts
          */
@@ -181,9 +182,9 @@ public class RiskCalculationConfiguration {
         @Profile("development")
         public HttpClient devHttpClient(CurrencyApiProperties properties) {
             return HttpClient.newBuilder()
-                .connectTimeout(Duration.ofMillis(properties.getTimeout() / 2))
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build();
+                    .connectTimeout(Duration.ofMillis(properties.getTimeout() / 2))
+                    .followRedirects(HttpClient.Redirect.NORMAL)
+                    .build();
         }
     }
 
@@ -194,7 +195,7 @@ public class RiskCalculationConfiguration {
     @Configuration
     @Profile("production")
     static class ProductionConfiguration {
-        
+
         /**
          * Production-specific HTTP client with longer timeouts and connection pooling
          */
@@ -202,9 +203,9 @@ public class RiskCalculationConfiguration {
         @Profile("production")
         public HttpClient prodHttpClient(CurrencyApiProperties properties) {
             return HttpClient.newBuilder()
-                .connectTimeout(Duration.ofMillis(properties.getTimeout()))
-                .followRedirects(HttpClient.Redirect.NORMAL)
-                .build();
+                    .connectTimeout(Duration.ofMillis(properties.getTimeout()))
+                    .followRedirects(HttpClient.Redirect.NORMAL)
+                    .build();
         }
     }
 }
