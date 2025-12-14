@@ -59,7 +59,7 @@ spring:
   
   # Database configuration
   datasource:
-    url: jdbc:postgresql://localhost:5432/regtech
+    url: jdbc:postgresql://localhost:5433/regtech
     driver-class-name: org.postgresql.Driver
     username: ${DB_USERNAME:myuser}
     password: ${DB_PASSWORD:secret}
@@ -460,7 +460,7 @@ spring:
   
   # Development database settings
   datasource:
-    url: jdbc:postgresql://localhost:5432/regtech
+    url: jdbc:postgresql://localhost:5433/regtech
     username: ${DB_USERNAME:myuser}
     password: ${DB_PASSWORD:secret}
 
@@ -565,7 +565,7 @@ spring:
   
   # Production database settings (use environment variables)
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/regtech}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/regtech}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
 

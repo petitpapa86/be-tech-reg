@@ -270,7 +270,7 @@
                 <artifactId>flyway-maven-plugin</artifactId>
                 <version>11.7.2</version>
                 <configuration>
-                    <url>jdbc:postgresql://localhost:5432/regtech</url>
+                    <url>jdbc:postgresql://localhost:5433/regtech</url>
                     <user>${DB_USERNAME}</user>
                     <password>${DB_PASSWORD}</password>
                     <cleanDisabled>false</cleanDisabled>
