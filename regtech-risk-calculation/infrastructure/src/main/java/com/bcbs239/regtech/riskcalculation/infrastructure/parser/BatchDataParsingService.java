@@ -1,7 +1,9 @@
-package com.bcbs239.regtech.riskcalculation.domain.services;
+package com.bcbs239.regtech.riskcalculation.infrastructure.parser;
 
 import com.bcbs239.regtech.core.domain.shared.dto.BatchDataDTO;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.core.domain.shared.dto.ParsedBatchData;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchDataParsing;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +21,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 @Service
-public class BatchDataParsingService {
+public class BatchDataParsingService implements BatchDataParsing {
     
     private final ObjectMapper objectMapper;
     
@@ -88,14 +90,7 @@ public class BatchDataParsingService {
         
         // Additional validation rules can be added here
     }
-    
-    /**
-     * Value object containing parsed batch data and extracted bank info.
-     */
-    public record ParsedBatchData(
-        BatchDataDTO batchData,
-        BankInfo bankInfo
-    ) {}
+
     
     /**
      * Exception thrown when batch data parsing fails.

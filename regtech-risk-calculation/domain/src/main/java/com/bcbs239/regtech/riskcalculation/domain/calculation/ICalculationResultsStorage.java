@@ -1,7 +1,6 @@
-package com.bcbs239.regtech.riskcalculation.application.storage;
+package com.bcbs239.regtech.riskcalculation.domain.calculation;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.application.calculation.RiskCalculationResult;
 import com.fasterxml.jackson.databind.JsonNode;
 
 /**

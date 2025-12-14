@@ -2,15 +2,13 @@ package com.bcbs239.regtech.riskcalculation.presentation.services;
 
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.BreakdownDTO;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.ConcentrationIndicesDTO;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.PortfolioAnalysisResponseDTO;
 import com.bcbs239.regtech.riskcalculation.presentation.mappers.PortfolioAnalysisMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 /**
  * Query service for retrieving portfolio analysis data.

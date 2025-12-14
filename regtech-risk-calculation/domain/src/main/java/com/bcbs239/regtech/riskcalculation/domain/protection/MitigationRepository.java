@@ -1,6 +1,6 @@
-package com.bcbs239.regtech.riskcalculation.domain.persistence;
+package com.bcbs239.regtech.riskcalculation.domain.protection;
 
-import com.bcbs239.regtech.riskcalculation.domain.protection.RawMitigationData;
+import com.bcbs239.regtech.riskcalculation.domain.exposure.CalculationResultsDeserializationException;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
 
 import java.util.List;
@@ -83,7 +83,7 @@ public interface MitigationRepository {
      * @param jsonContent the JSON string containing mitigation data in calculation results format
      * @return list of RawMitigationData objects parsed from JSON
      * @throws IllegalArgumentException if JSON content is null, empty, or malformed
-     * @throws CalculationResultsDeserializationException 
+     * @throws CalculationResultsDeserializationException
      *         if JSON structure is invalid or required fields are missing
      * 
      * <p>Requirement: 5.5 - Provide methods to download and parse JSON files for mitigation details</p>

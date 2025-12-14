@@ -1,8 +1,7 @@
-package com.bcbs239.regtech.riskcalculation.domain.persistence;
+package com.bcbs239.regtech.riskcalculation.domain.analysis;
 
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 
 /**
  * Repository interface for PortfolioAnalysis aggregate

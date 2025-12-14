@@ -8,18 +8,15 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 
 import com.bcbs239.regtech.riskcalculation.application.calculation.CalculateRiskMetricsCommand;
 import com.bcbs239.regtech.riskcalculation.application.calculation.CalculateRiskMetricsCommandHandler;
-import com.bcbs239.regtech.riskcalculation.application.integration.events.BatchIngestedEvent;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Instant;

@@ -110,5 +110,9 @@
 			<artifactId>jqwik</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-risk-calculation-application</artifactId>
+        </dependency>
+    </dependencies>
 </project>

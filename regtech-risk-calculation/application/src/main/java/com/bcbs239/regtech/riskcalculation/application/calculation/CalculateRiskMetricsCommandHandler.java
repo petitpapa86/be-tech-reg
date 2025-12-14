@@ -4,6 +4,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.bcbs239.regtech.core.domain.shared.dto.ParsedBatchData;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.*;
+import com.bcbs239.regtech.riskcalculation.domain.shared.IPerformanceMetrics;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,19 +16,14 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO;
-import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
-import com.bcbs239.regtech.riskcalculation.application.storage.ICalculationResultsStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.Batch;
 import com.bcbs239.regtech.riskcalculation.domain.classification.ClassifiedExposure;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRecording;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
-import com.bcbs239.regtech.riskcalculation.domain.services.BatchDataParsingService;
 import com.bcbs239.regtech.riskcalculation.domain.services.ExposureProcessingService;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 
 import io.micrometer.observation.annotation.Observed;
@@ -58,10 +56,10 @@ public class CalculateRiskMetricsCommandHandler {
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
     private final BatchRepository batchRepository;
     private final IFileStorageService fileStorageService;
-    private final ICalculationResultsStorageService calculationResultsStorageService;
+    private final ICalculationResultsStorage calculationResultsStorageService;
     private final BaseUnitOfWork unitOfWork;
-    private final PerformanceMetrics performanceMetrics;
-    private final BatchDataParsingService batchDataParsingService;
+    private final IPerformanceMetrics performanceMetrics;
+    private final BatchDataParsing batchDataParsing;
     private final ExposureProcessingService exposureProcessingService;
 
     @Transactional
@@ -88,8 +86,8 @@ public class CalculateRiskMetricsCommandHandler {
                 return handleDownloadFailure(batchId, downloadResult);
             }
             
-            BatchDataParsingService.ParsedBatchData parsedData = 
-                batchDataParsingService.parseBatchData(downloadResult.getValue().orElse(""));
+            ParsedBatchData parsedData =
+                batchDataParsing.parseBatchData(downloadResult.getValue().orElse(""));
             BankInfo bankInfo = parsedData.bankInfo();
 
             // Create and save Batch aggregate
@@ -161,7 +159,7 @@ public class CalculateRiskMetricsCommandHandler {
 
             return Result.success();
 
-        } catch (BatchDataParsingService.BatchDataParsingException e) {
+        } catch (BatchDataParsingException e) {
             performanceMetrics.recordBatchFailure(batchId, e.getMessage());
             return Result.failure(ErrorDetail.of("BATCH_PARSING_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to parse batch data: " + e.getMessage(), "calculation.parsing.failed"));

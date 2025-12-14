@@ -1,6 +1,5 @@
-package com.bcbs239.regtech.riskcalculation.domain.persistence;
+package com.bcbs239.regtech.riskcalculation.domain.exposure;
 
-import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRecording;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
 
 import java.util.List;
@@ -18,34 +17,7 @@ import java.util.Optional;
  */
 public interface ExposureRepository {
     
-    /**
-     * Save a single exposure recording
-     * 
-     * @param exposure the exposure to save
-     * @param batchId the batch identifier this exposure belongs to
-     * @deprecated As of version 2.0, database persistence is deprecated. 
-     *             Exposure data is now stored in JSON files as the single source of truth.
-     *             This method will be removed in a future release.
-     *             Use JSON file storage via CalculationResultsStorageService instead.
-     *             Requirement: 5.1
-     */
-    @Deprecated(since = "2.0", forRemoval = true)
-    void save(ExposureRecording exposure, String batchId);
-    
-    /**
-     * Save multiple exposure recordings in a batch
-     * 
-     * @param exposures list of exposures to save
-     * @param batchId the batch identifier these exposures belong to
-     * @deprecated As of version 2.0, database persistence is deprecated. 
-     *             Exposure data is now stored in JSON files as the single source of truth.
-     *             This method will be removed in a future release.
-     *             Use JSON file storage via CalculationResultsStorageService instead.
-     *             Requirement: 5.1
-     */
-    @Deprecated(since = "2.0", forRemoval = true)
-    void saveAll(List<ExposureRecording> exposures, String batchId);
-    
+
     /**
      * Find an exposure by its unique identifier
      * 
@@ -76,7 +48,7 @@ public interface ExposureRepository {
      * @param jsonContent the JSON string containing exposure data in calculation results format
      * @return list of ExposureRecording objects parsed from JSON
      * @throws IllegalArgumentException if JSON content is null, empty, or malformed
-     * @throws CalculationResultsDeserializationException 
+     * @throws CalculationResultsDeserializationException
      *         if JSON structure is invalid or required fields are missing
      * 
      * <p>Requirement: 5.5 - Provide methods to download and parse JSON files for exposure details</p>

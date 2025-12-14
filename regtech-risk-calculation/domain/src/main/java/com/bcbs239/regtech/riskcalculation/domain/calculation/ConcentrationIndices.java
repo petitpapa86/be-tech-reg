@@ -1,11 +1,13 @@
 package com.bcbs239.regtech.riskcalculation.domain.calculation;
 
 import com.bcbs239.regtech.riskcalculation.domain.analysis.HHI;
+import lombok.Getter;
 
 /**
  * Value object representing concentration indices for portfolio analysis.
  * Contains Herfindahl-Hirschman Index (HHI) values for geographic and sector concentration.
  */
+@Getter
 public class ConcentrationIndices {
     private final HHI geographicHHI;
     private final HHI sectorHHI;
@@ -17,14 +19,6 @@ public class ConcentrationIndices {
 
     public static ConcentrationIndices of(HHI geographicHHI, HHI sectorHHI) {
         return new ConcentrationIndices(geographicHHI, sectorHHI);
-    }
-
-    public HHI getGeographicHHI() {
-        return geographicHHI;
-    }
-
-    public HHI getSectorHHI() {
-        return sectorHHI;
     }
 
     @Override

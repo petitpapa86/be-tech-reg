@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.riskcalculation.domain.services;
+package com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects;
 
 import java.util.Objects;
 

@@ -7,10 +7,9 @@ import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRecording;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.InstrumentId;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.InstrumentType;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.MonetaryAmount;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.CalculationResultsDeserializationException;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
+import com.bcbs239.regtech.riskcalculation.domain.exposure.CalculationResultsDeserializationException;
+import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRepository;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
-import com.bcbs239.regtech.riskcalculation.infrastructure.database.entities.ExposureEntity;
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.mappers.ExposureMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,34 +50,7 @@ public class JpaExposureRepository implements ExposureRepository {
         this.objectMapper = objectMapper;
     }
     
-    /**
-     * @deprecated Database persistence is deprecated. Use JSON file storage instead.
-     */
-    @Override
-    @Deprecated(since = "2.0", forRemoval = true)
-    @Transactional
-    public void save(ExposureRecording exposure, String batchId) {
-        log.warn("Using deprecated save() method. Database persistence will be removed in future release. " +
-                "Use JSON file storage via CalculationResultsStorageService instead.");
-        ExposureEntity entity = mapper.toEntity(exposure, batchId);
-        springDataRepository.save(entity);
-    }
-    
-    /**
-     * @deprecated Database persistence is deprecated. Use JSON file storage instead.
-     */
-    @Override
-    @Deprecated(since = "2.0", forRemoval = true)
-    @Transactional
-    public void saveAll(List<ExposureRecording> exposures, String batchId) {
-        log.warn("Using deprecated saveAll() method. Database persistence will be removed in future release. " +
-                "Use JSON file storage via CalculationResultsStorageService instead.");
-        List<ExposureEntity> entities = exposures.stream()
-            .map(exposure -> mapper.toEntity(exposure, batchId))
-            .collect(Collectors.toList());
-        springDataRepository.saveAll(entities);
-    }
-    
+
     @Override
     @Transactional(readOnly = true)
     public Optional<ExposureRecording> findById(ExposureId id) {

@@ -1,15 +1,14 @@
 package com.bcbs239.regtech.riskcalculation.application.calculation;
 
-import com.bcbs239.regtech.riskcalculation.domain.analysis.Breakdown;
-import com.bcbs239.regtech.riskcalculation.domain.analysis.HHI;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
-import com.bcbs239.regtech.riskcalculation.domain.analysis.Share;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.RiskCalculationResult;
 import com.bcbs239.regtech.riskcalculation.domain.classification.ClassifiedExposure;
 import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
 import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
 import com.bcbs239.regtech.riskcalculation.domain.shared.enums.GeographicRegion;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
+import com.bcbs239.regtech.riskcalculation.domain.storage.CalculationResultsJsonSerializer;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

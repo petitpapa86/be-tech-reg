@@ -4,12 +4,13 @@ import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
-import com.bcbs239.regtech.riskcalculation.application.storage.ICalculationResultsStorageService;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.ICalculationResultsStorage;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.Batch;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchRepository;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.RiskCalculationResult;
+import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRepository;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
@@ -61,7 +62,7 @@ class CalculateRiskMetricsCommandHandlerTest {
     private IFileStorageService fileStorageService;
 
     @Mock
-    private ICalculationResultsStorageService calculationResultsStorageService;
+    private ICalculationResultsStorage calculationResultsStorageService;
 
     @Mock
     private ExchangeRateProvider exchangeRateProvider;

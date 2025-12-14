@@ -3,6 +3,7 @@ package com.bcbs239.regtech.riskcalculation.infrastructure.config;
 import com.bcbs239.regtech.riskcalculation.domain.classification.ExposureClassifier;
 import com.bcbs239.regtech.riskcalculation.domain.services.ExposureProcessingService;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
+
 import com.bcbs239.regtech.riskcalculation.infrastructure.external.CurrencyApiExchangeRateProvider;
 import com.bcbs239.regtech.riskcalculation.infrastructure.external.CurrencyApiProperties;
 import com.bcbs239.regtech.riskcalculation.infrastructure.external.MockExchangeRateProvider;
@@ -43,7 +44,8 @@ import java.util.concurrent.Executor;
 @EnableJpaRepositories(basePackages = "com.bcbs239.regtech.riskcalculation.infrastructure.database.repositories")
 @org.springframework.context.annotation.ComponentScan(basePackages = {
     "com.bcbs239.regtech.riskcalculation.application",
-    "com.bcbs239.regtech.riskcalculation.infrastructure"
+    "com.bcbs239.regtech.riskcalculation.infrastructure",
+        "com.bcbs239.regtech.riskcalculation.infrastructure"
 })
 @Slf4j
 public class RiskCalculationConfiguration {

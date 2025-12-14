@@ -1,9 +1,7 @@
-package com.bcbs239.regtech.riskcalculation.domain.persistence;
+package com.bcbs239.regtech.riskcalculation.domain.calculation;
 
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.Batch;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchStatus;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 
 import java.util.List;

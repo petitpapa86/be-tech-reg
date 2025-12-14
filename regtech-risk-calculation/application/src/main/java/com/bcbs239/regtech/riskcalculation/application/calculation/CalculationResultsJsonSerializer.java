@@ -1,11 +1,14 @@
 package com.bcbs239.regtech.riskcalculation.application.calculation;
 
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.Breakdown;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.analysis.Share;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.CalculationResultsSerializationException;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.RiskCalculationResult;
 import com.bcbs239.regtech.riskcalculation.domain.protection.Mitigation;
 import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+
 import com.bcbs239.regtech.riskcalculation.domain.valuation.EurAmount;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

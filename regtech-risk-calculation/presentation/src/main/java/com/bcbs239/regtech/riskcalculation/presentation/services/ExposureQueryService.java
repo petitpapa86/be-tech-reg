@@ -1,10 +1,8 @@
 package com.bcbs239.regtech.riskcalculation.presentation.services;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.application.calculation.RiskCalculationResult;
-import com.bcbs239.regtech.riskcalculation.application.storage.ICalculationResultsStorageService;
-import com.bcbs239.regtech.riskcalculation.domain.classification.ClassifiedExposure;
-import com.bcbs239.regtech.riskcalculation.domain.classification.EconomicSector;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.RiskCalculationResult;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.ICalculationResultsStorage;
 import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.ClassifiedExposureDTO;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.PagedResponse;
@@ -31,11 +29,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ExposureQueryService {
     
-    private final ICalculationResultsStorageService storageService;
+    private final ICalculationResultsStorage storageService;
     private final ExposureMapper exposureMapper;
     
     public ExposureQueryService(
-        ICalculationResultsStorageService storageService,
+        ICalculationResultsStorage storageService,
         ExposureMapper exposureMapper
     ) {
         this.storageService = storageService;

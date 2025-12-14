@@ -1,12 +1,15 @@
-package com.bcbs239.regtech.riskcalculation.application.storage;
+package com.bcbs239.regtech.riskcalculation.infrastructure.filestorage;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.application.calculation.CalculationResultsDeserializationException;
+
 import com.bcbs239.regtech.riskcalculation.application.calculation.CalculationResultsJsonSerializer;
-import com.bcbs239.regtech.riskcalculation.application.calculation.CalculationResultsSerializationException;
-import com.bcbs239.regtech.riskcalculation.application.calculation.RiskCalculationResult;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.CalculationResultsSerializationException;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.ICalculationResultsStorage;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.RiskCalculationResult;
+import com.bcbs239.regtech.riskcalculation.domain.exposure.CalculationResultsDeserializationException;
+import com.bcbs239.regtech.riskcalculation.domain.storage.ICalculationResultsStorageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,10 +29,10 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class CalculationResultsStorageApplicationService implements ICalculationResultsStorageService {
+public class CalculationResultsStorageApplicationService implements ICalculationResultsStorage {
     
     private final CalculationResultsJsonSerializer jsonSerializer;
-    private final com.bcbs239.regtech.riskcalculation.domain.storage.ICalculationResultsStorageService domainStorageService;
+    private final ICalculationResultsStorageService domainStorageService;
     
     /**
      * Stores complete calculation results to file storage.
@@ -48,7 +51,7 @@ public class CalculationResultsStorageApplicationService implements ICalculation
      *         if results already exist for this batch
      */
     @Override
-    public Result<String> storeCalculationResults(RiskCalculationResult result) {
+    public Result<String> storeCalculationResults(com.bcbs239.regtech.riskcalculation.domain.calculation.RiskCalculationResult result) {
         String batchId = result.batchId();
         
         try {
@@ -81,7 +84,9 @@ public class CalculationResultsStorageApplicationService implements ICalculation
             ));
         }
     }
-    
+
+
+
     /**
      * Retrieves calculation results by batch ID.
      * Downloads the JSON file and deserializes it to RiskCalculationResult.

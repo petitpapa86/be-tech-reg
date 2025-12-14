@@ -6,16 +6,14 @@ import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.Batch;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchStatus;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchRepository;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ProcessingTimestamps;
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.entities.BatchEntity;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 

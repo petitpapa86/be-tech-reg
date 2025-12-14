@@ -4,7 +4,7 @@ import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationCompletedEvent;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationFailedEvent;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationStartedEvent;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ProcessingTimestamps;

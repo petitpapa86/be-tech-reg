@@ -1,5 +1,6 @@
-package com.bcbs239.regtech.riskcalculation.application.monitoring;
+package com.bcbs239.regtech.riskcalculation.infrastructure.monitoring;
 
+import com.bcbs239.regtech.riskcalculation.domain.shared.IPerformanceMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PerformanceMonitoringScheduler {
     
-    private final PerformanceMetrics performanceMetrics;
+    private final IPerformanceMetrics performanceMetrics;
     
     /**
      * Logs performance dashboard every 5 minutes.
@@ -22,7 +23,7 @@ public class PerformanceMonitoringScheduler {
      */
     @Scheduled(fixedRate = 300000) // 5 minutes
     public void logPerformanceDashboard() {
-        PerformanceMetrics.MetricsSnapshot snapshot = performanceMetrics.getSnapshot();
+        IPerformanceMetrics.MetricsSnapshot snapshot = performanceMetrics.getSnapshot();
         
         log.info("=== PERFORMANCE DASHBOARD ===");
         log.info("Total Batches Processed: {}", snapshot.totalBatchesProcessed());
@@ -53,7 +54,7 @@ public class PerformanceMonitoringScheduler {
      */
     @Scheduled(cron = "0 0 0 * * *") // Midnight every day
     public void resetThroughputWindow() {
-        PerformanceMetrics.MetricsSnapshot snapshot = performanceMetrics.getSnapshot();
+        IPerformanceMetrics.MetricsSnapshot snapshot = performanceMetrics.getSnapshot();
         
         log.info("=== DAILY THROUGHPUT REPORT ===");
         log.info("Batches Processed (24h): {}", snapshot.totalBatchesProcessed());

@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects;
+package com.bcbs239.regtech.core.domain.shared.valueobjects;
 
 import com.bcbs239.regtech.core.domain.shared.dto.BankInfoDTO;
 

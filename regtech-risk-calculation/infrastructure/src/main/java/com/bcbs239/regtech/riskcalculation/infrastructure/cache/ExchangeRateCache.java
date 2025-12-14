@@ -1,5 +1,6 @@
-package com.bcbs239.regtech.riskcalculation.domain.services;
+package com.bcbs239.regtech.riskcalculation.infrastructure.cache;
 
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.CurrencyPair;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateUnavailableException;

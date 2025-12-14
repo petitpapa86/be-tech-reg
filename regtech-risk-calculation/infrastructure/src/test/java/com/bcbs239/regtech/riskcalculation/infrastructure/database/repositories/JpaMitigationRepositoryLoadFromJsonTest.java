@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.infrastructure.database.repositories;
 
-import com.bcbs239.regtech.riskcalculation.domain.persistence.CalculationResultsDeserializationException;
+import com.bcbs239.regtech.riskcalculation.domain.exposure.CalculationResultsDeserializationException;
 import com.bcbs239.regtech.riskcalculation.domain.protection.MitigationType;
 import com.bcbs239.regtech.riskcalculation.domain.protection.RawMitigationData;
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.mappers.MitigationMapper;

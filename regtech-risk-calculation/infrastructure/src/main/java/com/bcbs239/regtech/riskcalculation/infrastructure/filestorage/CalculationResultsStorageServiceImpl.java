@@ -3,7 +3,7 @@ package com.bcbs239.regtech.riskcalculation.infrastructure.filestorage;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.BatchRepository;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchRepository;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.storage.CalculationResultsImmutabilityException;
 import com.bcbs239.regtech.riskcalculation.domain.storage.ICalculationResultsStorageService;

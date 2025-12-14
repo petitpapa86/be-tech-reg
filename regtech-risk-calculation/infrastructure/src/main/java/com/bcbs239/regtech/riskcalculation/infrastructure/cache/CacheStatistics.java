@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.riskcalculation.domain.services;
+package com.bcbs239.regtech.riskcalculation.infrastructure.cache;
 
 /**
  * Tracks statistics for the ExchangeRateCache to monitor performance.

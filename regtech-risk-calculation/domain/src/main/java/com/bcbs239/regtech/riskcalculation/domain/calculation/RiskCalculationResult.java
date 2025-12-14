@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.riskcalculation.application.calculation;
+package com.bcbs239.regtech.riskcalculation.domain.calculation;
 
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;

@@ -6,7 +6,7 @@ import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.*;
 import com.bcbs239.regtech.riskcalculation.domain.protection.MitigationType;
 import com.bcbs239.regtech.riskcalculation.domain.protection.RawMitigationData;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
 import org.springframework.stereotype.Component;
 

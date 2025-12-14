@@ -2,7 +2,7 @@ package com.bcbs239.regtech.riskcalculation.infrastructure.ingestion;
 
 import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRecording;
 import com.bcbs239.regtech.riskcalculation.domain.protection.RawMitigationData;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
 
 import java.time.Instant;

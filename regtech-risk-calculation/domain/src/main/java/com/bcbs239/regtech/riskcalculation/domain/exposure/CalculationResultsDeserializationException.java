@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.riskcalculation.domain.persistence;
+package com.bcbs239.regtech.riskcalculation.domain.exposure;
 
 import lombok.Getter;
 

@@ -3,6 +3,7 @@ package com.bcbs239.regtech.riskcalculation.domain.valuation;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.MonetaryAmount;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExchangeRate;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
+import lombok.Getter;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -19,11 +20,22 @@ import java.util.Objects;
  * 
  * Requirements: 2.1, 2.2, 2.3, 2.4
  */
+@Getter
 public class ExposureValuation {
     
     private final ExposureId exposureId;
+    /**
+     * -- GETTER --
+     *  Returns the original monetary amount (Requirement 2.3)
+     *  The original amount is preserved for audit purposes
+     */
     private final MonetaryAmount original;
     private final EurAmount converted;
+    /**
+     * -- GETTER --
+     *  Returns the exchange rate used for conversion (Requirement 2.4)
+     *  Includes the effective date for audit purposes
+     */
     private final ExchangeRate rateUsed;
     private final Instant valuedAt;
     
@@ -87,35 +99,7 @@ public class ExposureValuation {
     }
     
     // Getters
-    
-    public ExposureId getExposureId() {
-        return exposureId;
-    }
-    
-    /**
-     * Returns the original monetary amount (Requirement 2.3)
-     * The original amount is preserved for audit purposes
-     */
-    public MonetaryAmount getOriginal() {
-        return original;
-    }
-    
-    public EurAmount getConverted() {
-        return converted;
-    }
-    
-    /**
-     * Returns the exchange rate used for conversion (Requirement 2.4)
-     * Includes the effective date for audit purposes
-     */
-    public ExchangeRate getRateUsed() {
-        return rateUsed;
-    }
-    
-    public Instant getValuedAt() {
-        return valuedAt;
-    }
-    
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

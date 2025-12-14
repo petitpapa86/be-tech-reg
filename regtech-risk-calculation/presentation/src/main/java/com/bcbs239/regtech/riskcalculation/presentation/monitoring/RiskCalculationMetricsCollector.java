@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.riskcalculation.presentation.monitoring;
 
-import com.bcbs239.regtech.riskcalculation.application.monitoring.PerformanceMetrics;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.MitigationRepository;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
+import com.bcbs239.regtech.riskcalculation.domain.shared.IPerformanceMetrics;
+import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRepository;
+import com.bcbs239.regtech.riskcalculation.domain.protection.MitigationRepository;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysisRepository;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -23,13 +23,13 @@ public class RiskCalculationMetricsCollector {
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
     private final ExposureRepository exposureRepository;
     private final MitigationRepository mitigationRepository;
-    private final PerformanceMetrics performanceMetrics;
+    private final IPerformanceMetrics performanceMetrics;
     
     public RiskCalculationMetricsCollector(
             PortfolioAnalysisRepository portfolioAnalysisRepository,
             ExposureRepository exposureRepository,
             MitigationRepository mitigationRepository,
-            PerformanceMetrics performanceMetrics) {
+            IPerformanceMetrics performanceMetrics) {
         this.portfolioAnalysisRepository = portfolioAnalysisRepository;
         this.exposureRepository = exposureRepository;
         this.mitigationRepository = mitigationRepository;
@@ -76,7 +76,7 @@ public class RiskCalculationMetricsCollector {
      * Collects module-specific metrics from the PerformanceMetrics component.
      */
     private Map<String, Object> collectModuleMetrics() {
-        PerformanceMetrics.MetricsSnapshot snapshot = performanceMetrics.getSnapshot();
+        IPerformanceMetrics.MetricsSnapshot snapshot = performanceMetrics.getSnapshot();
         return snapshot.toMap();
     }
     
@@ -106,7 +106,7 @@ public class RiskCalculationMetricsCollector {
         metrics.put("mitigation", mitigationMetrics);
         
         // Calculation performance from PerformanceMetrics
-        PerformanceMetrics.MetricsSnapshot snapshot = performanceMetrics.getSnapshot();
+        IPerformanceMetrics.MetricsSnapshot snapshot = performanceMetrics.getSnapshot();
         Map<String, Object> calculationMetrics = new HashMap<>();
         calculationMetrics.put("averageCalculationTimeMs", snapshot.averageProcessingTimeMillis());
         calculationMetrics.put("totalExposuresProcessed", snapshot.totalExposuresProcessed());

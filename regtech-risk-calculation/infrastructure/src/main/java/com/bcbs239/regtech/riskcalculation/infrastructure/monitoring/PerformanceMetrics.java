@@ -1,5 +1,6 @@
-package com.bcbs239.regtech.riskcalculation.application.monitoring;
+package com.bcbs239.regtech.riskcalculation.infrastructure.monitoring;
 
+import com.bcbs239.regtech.riskcalculation.domain.shared.IPerformanceMetrics;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +17,7 @@ import java.util.concurrent.atomic.LongAdder;
  */
 @Component
 @Slf4j
-public class PerformanceMetrics {
+public class PerformanceMetrics implements IPerformanceMetrics {
     
     // Counters for batch processing
     private final LongAdder totalBatchesProcessed = new LongAdder();
@@ -38,6 +39,7 @@ public class PerformanceMetrics {
     /**
      * Records the start of a batch calculation.
      */
+    @Override
     public void recordBatchStart(String batchId) {
         batchStartTimes.put(batchId, System.currentTimeMillis());
         activeCalculations.increment();
@@ -49,6 +51,7 @@ public class PerformanceMetrics {
     /**
      * Records the successful completion of a batch calculation.
      */
+    @Override
     public void recordBatchSuccess(String batchId, int exposureCount) {
         Long startTime = batchStartTimes.remove(batchId);
         if (startTime != null) {
@@ -72,6 +75,7 @@ public class PerformanceMetrics {
     /**
      * Records a failed batch calculation.
      */
+    @Override
     public void recordBatchFailure(String batchId, String errorMessage) {
         Long startTime = batchStartTimes.remove(batchId);
         if (startTime != null) {
@@ -88,6 +92,7 @@ public class PerformanceMetrics {
     /**
      * Gets the current metrics snapshot.
      */
+    @Override
     public MetricsSnapshot getSnapshot() {
         long totalBatches = totalBatchesProcessed.sum();
         long totalFailed = totalBatchesFailed.sum();
@@ -120,6 +125,7 @@ public class PerformanceMetrics {
     /**
      * Resets the throughput tracking window.
      */
+    @Override
     public void resetThroughputWindow() {
         lastResetTime = Instant.now();
         batchesSinceLastReset.reset();
@@ -129,6 +135,7 @@ public class PerformanceMetrics {
     /**
      * Gets the processing time for a specific batch.
      */
+    @Override
     public Long getBatchProcessingTime(String batchId) {
         return batchProcessingTimes.get(batchId);
     }
@@ -137,6 +144,7 @@ public class PerformanceMetrics {
      * Clears old batch processing times to prevent memory leaks.
      * Should be called periodically to clean up completed batches.
      */
+    @Override
     public void cleanupOldBatchTimes(int keepLastN) {
         if (batchProcessingTimes.size() > keepLastN) {
             // Keep only the most recent N entries
@@ -150,33 +158,5 @@ public class PerformanceMetrics {
                 keepLastN, batchProcessingTimes.size() - keepLastN);
         }
     }
-    
-    /**
-     * Snapshot of current metrics.
-     */
-    public record MetricsSnapshot(
-        long totalBatchesProcessed,
-        long totalBatchesFailed,
-        long totalExposuresProcessed,
-        double averageProcessingTimeMillis,
-        double errorRatePercent,
-        long activeCalculations,
-        double throughputPerHour,
-        double averageExposuresPerBatch,
-        Instant timestamp
-    ) {
-        public Map<String, Object> toMap() {
-            return Map.of(
-                "totalBatchesProcessed", totalBatchesProcessed,
-                "totalBatchesFailed", totalBatchesFailed,
-                "totalExposuresProcessed", totalExposuresProcessed,
-                "averageProcessingTimeMillis", averageProcessingTimeMillis,
-                "errorRatePercent", errorRatePercent,
-                "activeCalculations", activeCalculations,
-                "throughputPerHour", throughputPerHour,
-                "averageExposuresPerBatch", averageExposuresPerBatch,
-                "timestamp", timestamp.toString()
-            );
-        }
-    }
+
 }

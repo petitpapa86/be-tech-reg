@@ -461,8 +461,8 @@ spring:
   # Development database settings
   datasource:
     url: jdbc:postgresql://localhost:5432/regtech
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:dracons86}
+    username: ${DB_USERNAME:myuser}
+    password: ${DB_PASSWORD:secret}
 
 # Development logging settings
 logging:

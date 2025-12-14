@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.riskcalculation.presentation.monitoring;
 
-import com.bcbs239.regtech.riskcalculation.domain.persistence.ExposureRepository;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.MitigationRepository;
-import com.bcbs239.regtech.riskcalculation.domain.persistence.PortfolioAnalysisRepository;
+import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRepository;
+import com.bcbs239.regtech.riskcalculation.domain.protection.MitigationRepository;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysisRepository;
 import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import com.bcbs239.regtech.riskcalculation.domain.valuation.ExchangeRateProvider;
 import org.slf4j.Logger;
