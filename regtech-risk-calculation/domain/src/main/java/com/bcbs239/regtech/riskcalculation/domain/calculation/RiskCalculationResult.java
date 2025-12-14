@@ -2,7 +2,7 @@ package com.bcbs239.regtech.riskcalculation.application.calculation;
 
 import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysis;
 import com.bcbs239.regtech.riskcalculation.domain.protection.ProtectedExposure;
-import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BankInfo;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 
 import java.time.Instant;
 import java.util.List;

@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.riskcalculation.application.monitoring;
 
-import com.bcbs239.regtech.riskcalculation.domain.services.ExposureProcessingService;
+import com.bcbs239.regtech.riskcalculation.application.ExposureProcessingService;
 
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;

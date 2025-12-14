@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.riskcalculation.domain.persistence;
 
+import lombok.Getter;
+
 /**
  * Exception thrown when deserialization of JSON to calculation results fails.
  * This exception is part of the domain layer to support file-first architecture
@@ -7,6 +9,7 @@ package com.bcbs239.regtech.riskcalculation.domain.persistence;
  * 
  * Requirement: 7.4 - Handle CalculationResultsDeserializationException for deserialization errors
  */
+@Getter
 public class CalculationResultsDeserializationException extends RuntimeException {
     
     private final String jsonContent;
@@ -25,8 +28,5 @@ public class CalculationResultsDeserializationException extends RuntimeException
         super(message, cause);
         this.jsonContent = jsonContent;
     }
-    
-    public String getJsonContent() {
-        return jsonContent;
-    }
+
 }

@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode;
  * 
  * Requirements: 1.3, 1.4, 4.3, 8.3
  */
-public interface ICalculationResultsStorageService {
+public interface ICalculationResultsStorage {
     
     /**
      * Stores complete calculation results to file storage.
