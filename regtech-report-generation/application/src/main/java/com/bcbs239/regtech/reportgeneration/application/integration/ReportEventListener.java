@@ -75,6 +75,9 @@ public class ReportEventListener {
     
     // Event processing tracking
     private final Set<String> processedEvents = ConcurrentHashMap.newKeySet();
+
+    private static final String EVENT_KEY_CALCULATION = "CALC";
+    private static final String EVENT_KEY_QUALITY = "QUALITY";
     
     // Statistics
     private final AtomicInteger totalCalculationEventsReceived = new AtomicInteger(0);
@@ -134,7 +137,7 @@ public class ReportEventListener {
             }
             
             // Idempotency check
-            if (!ensureIdempotency(batchId)) {
+            if (!ensureIdempotency(eventKey(EVENT_KEY_CALCULATION, batchId), batchId)) {
                 log.info("batch_calculation_event_already_processed; details={}", Map.of(
                         "batchId", batchId
                 ));
@@ -198,7 +201,7 @@ public class ReportEventListener {
             }
             
             // Idempotency check
-            if (!ensureIdempotency(batchId)) {
+            if (!ensureIdempotency(eventKey(EVENT_KEY_QUALITY, batchId), batchId)) {
                 log.info("batch_quality_event_already_processed; details={}", Map.of(
                         "batchId", batchId
                 ));
@@ -370,9 +373,9 @@ public class ReportEventListener {
      * @param batchId the batch identifier
      * @return true if should process, false if already processed
      */
-    private boolean ensureIdempotency(String batchId) {
+    private boolean ensureIdempotency(String processingKey, String batchId) {
         // Check if event is already being processed
-        if (processedEvents.contains(batchId)) {
+        if (processedEvents.contains(processingKey)) {
             return false;
         }
         
@@ -382,14 +385,19 @@ public class ReportEventListener {
                     "batchId", batchId,
                     "status", "COMPLETED"
             ));
-            processedEvents.add(batchId);
+            processedEvents.add(eventKey(EVENT_KEY_CALCULATION, batchId));
+            processedEvents.add(eventKey(EVENT_KEY_QUALITY, batchId));
             return false;
         }
         
         // Mark as being processed
-        processedEvents.add(batchId);
+        processedEvents.add(processingKey);
         
         return true;
+    }
+
+    private static String eventKey(String eventType, String batchId) {
+        return eventType + ":" + batchId;
     }
     
     /**
@@ -505,7 +513,14 @@ public class ReportEventListener {
         }
         
         // Remove from processed set to allow retry
-        processedEvents.remove(batchId);
+        if (event instanceof BatchCalculationCompletedIntegrationEvent) {
+            processedEvents.remove(eventKey(EVENT_KEY_CALCULATION, batchId));
+        } else if (event instanceof BatchQualityCompletedIntegrationEvent) {
+            processedEvents.remove(eventKey(EVENT_KEY_QUALITY, batchId));
+        } else {
+            processedEvents.remove(eventKey(EVENT_KEY_CALCULATION, batchId));
+            processedEvents.remove(eventKey(EVENT_KEY_QUALITY, batchId));
+        }
     }
     
     /**
