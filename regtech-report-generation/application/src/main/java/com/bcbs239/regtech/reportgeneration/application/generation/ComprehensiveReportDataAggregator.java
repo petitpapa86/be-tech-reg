@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -54,7 +55,7 @@ public class ComprehensiveReportDataAggregator {
             
             // Fetch both data sources
             CalculationResults calculationResults = fetchCalculationData(calculationEvent);
-            QualityResults qualityResults = fetchQualityData(qualityEvent);
+            QualityResults qualityResults = fetchQualityData(qualityEvent, calculationEvent.getBankId());
             
             // Validate data consistency
             validateDataConsistency(calculationResults, qualityResults);
@@ -141,6 +142,10 @@ public class ComprehensiveReportDataAggregator {
      * Requirements: 3.2, 3.4
      */
     public QualityResults fetchQualityData(QualityEventData event) {
+        return fetchQualityData(event, null);
+    }
+
+    private QualityResults fetchQualityData(QualityEventData event, String canonicalBankId) {
         Timer.Sample sample = Timer.start(meterRegistry);
         
         try {
@@ -149,7 +154,7 @@ public class ComprehensiveReportDataAggregator {
             String jsonContent = reportStorageService.fetchQualityData(event.getBatchId(), event.getResultFileUri());
             
             // Parse JSON and map to domain object
-            QualityResults results = mapQualityJson(jsonContent, event);
+            QualityResults results = mapQualityJson(jsonContent, event, canonicalBankId);
             
             log.debug("Successfully fetched quality data for batch: {}", event.getBatchId());
             
@@ -226,32 +231,69 @@ public class ComprehensiveReportDataAggregator {
     private CalculationResults mapCalculationJson(String jsonContent, CalculationEventData event) {
         try {
             JsonNode root = objectMapper.readTree(jsonContent);
-            
-            // Extract basic fields
-            String batchId = root.path("batchId").asText();
-            String bankId = root.path("bankId").asText();
-            String bankName = root.path("bankName").asText();
-            String reportingDateStr = root.path("reportingDate").asText();
-            
-            // Parse reporting date
-            LocalDate reportingDate = LocalDate.parse(reportingDateStr, DateTimeFormatter.ISO_LOCAL_DATE);
-            
-            // Extract financial data
-            BigDecimal tierOneCapital = new BigDecimal(root.path("tierOneCapital").asText());
-            int totalExposures = root.path("totalExposures").asInt();
-            BigDecimal totalAmount = new BigDecimal(root.path("totalAmount").asText());
-            int limitBreaches = root.path("limitBreaches").asInt();
-            
-            // Extract exposures
-            List<CalculatedExposure> exposures = mapExposures(root.path("exposures"));
-            
-            // Extract breakdowns
-            GeographicBreakdown geographicBreakdown = mapGeographicBreakdown(root.path("geographicBreakdown"));
-            SectorBreakdown sectorBreakdown = mapSectorBreakdown(root.path("sectorBreakdown"));
-            ConcentrationIndices concentrationIndices = mapConcentrationIndices(root.path("concentrationIndices"));
-            
-            // Extract timestamps
-            ProcessingTimestamps timestamps = mapProcessingTimestamps(root.path("processingTimestamps"));
+
+            // Detect risk-calculation v1 schema (snake_case)
+            boolean isRiskSchema = root.hasNonNull("format_version") || root.hasNonNull("batch_id") || root.hasNonNull("calculated_at");
+
+            String batchId;
+            String bankId;
+            String bankName;
+            LocalDate reportingDate;
+            BigDecimal tierOneCapital;
+            int totalExposures;
+            BigDecimal totalAmount;
+            int limitBreaches;
+            List<CalculatedExposure> exposures;
+            GeographicBreakdown geographicBreakdown;
+            SectorBreakdown sectorBreakdown;
+            ConcentrationIndices concentrationIndices;
+            ProcessingTimestamps timestamps;
+
+            if (isRiskSchema) {
+                batchId = firstNonBlank(root.path("batch_id").asText(), event.getBatchId());
+
+                JsonNode bankInfo = root.path("bank_info");
+                bankId = firstNonBlank(event.getBankId(), bankInfo.path("abi_code").asText());
+                bankName = firstNonBlank(bankInfo.path("bank_name").asText(), "Unknown Bank");
+
+                Instant calculatedAt = parseInstantRequired(root.path("calculated_at").asText(), "calculated_at");
+                reportingDate = calculatedAt.atZone(ZoneOffset.UTC).toLocalDate();
+
+                // Not present in current risk output; keep non-null for domain invariants
+                tierOneCapital = safeBigDecimal(bankInfo.path("tier_one_capital"), BigDecimal.ZERO);
+
+                JsonNode summary = root.path("summary");
+                totalExposures = summary.path("total_exposures").asInt(root.path("calculated_exposures").isArray() ? root.path("calculated_exposures").size() : 0);
+                totalAmount = safeBigDecimal(summary.path("total_amount_eur"), BigDecimal.ZERO);
+                limitBreaches = summary.path("limit_breaches").asInt(0);
+
+                // Current risk output does not contain enough counterparty + regulatory metadata for CalculatedExposure.
+                exposures = List.of();
+
+                geographicBreakdown = mapGeographicBreakdownFromRisk(summary.path("geographic_breakdown"));
+                sectorBreakdown = mapSectorBreakdownFromRisk(summary.path("sector_breakdown"));
+                concentrationIndices = mapConcentrationIndicesFromRisk(summary.path("concentration_indices"));
+                timestamps = new ProcessingTimestamps(calculatedAt, null, null, calculatedAt, null);
+            } else {
+                // Legacy (camelCase) schema
+                batchId = firstNonBlank(root.path("batchId").asText(), event.getBatchId());
+                bankId = firstNonBlank(root.path("bankId").asText(), event.getBankId());
+                bankName = root.path("bankName").asText();
+
+                String reportingDateStr = root.path("reportingDate").asText();
+                reportingDate = parseLocalDateRequired(reportingDateStr, "reportingDate");
+
+                tierOneCapital = safeBigDecimal(root.path("tierOneCapital"), null);
+                totalExposures = root.path("totalExposures").asInt();
+                totalAmount = safeBigDecimal(root.path("totalAmount"), null);
+                limitBreaches = root.path("limitBreaches").asInt();
+
+                exposures = mapExposures(root.path("exposures"));
+                geographicBreakdown = mapGeographicBreakdown(root.path("geographicBreakdown"));
+                sectorBreakdown = mapSectorBreakdown(root.path("sectorBreakdown"));
+                concentrationIndices = mapConcentrationIndices(root.path("concentrationIndices"));
+                timestamps = mapProcessingTimestamps(root.path("processingTimestamps"));
+            }
             
             return new CalculationResults(
                 BatchId.of(batchId),
@@ -278,7 +320,7 @@ public class ComprehensiveReportDataAggregator {
     /**
      * Map quality JSON to domain object
      */
-    private QualityResults mapQualityJson(String jsonContent, QualityEventData event) {
+    private QualityResults mapQualityJson(String jsonContent, QualityEventData event, String canonicalBankId) {
         try {
             JsonNode root = objectMapper.readTree(jsonContent);
             
@@ -290,7 +332,7 @@ public class ComprehensiveReportDataAggregator {
 
             String bankId = root.path("bankId").asText();
             if (bankId == null || bankId.isBlank()) {
-                bankId = event.getBankId();
+                bankId = (canonicalBankId != null && !canonicalBankId.isBlank()) ? canonicalBankId : event.getBankId();
             }
             String timestampStr = root.path("timestamp").asText();
             Instant timestamp = Instant.parse(timestampStr);
@@ -432,7 +474,9 @@ public class ComprehensiveReportDataAggregator {
         if (node.isArray()) {
             node.forEach(exposureNode -> {
                 String exposureId = exposureNode.path("exposureId").asText();
-                boolean valid = exposureNode.path("valid").asBoolean();
+                boolean valid = exposureNode.has("valid")
+                        ? exposureNode.path("valid").asBoolean()
+                        : exposureNode.path("isValid").asBoolean();
                 
                 List<QualityResults.ValidationError> errors = new ArrayList<>();
                 JsonNode errorsNode = exposureNode.path("errors");
@@ -453,5 +497,123 @@ public class ComprehensiveReportDataAggregator {
         }
         
         return results;
+    }
+
+    private static String firstNonBlank(String... candidates) {
+        if (candidates == null) {
+            return "";
+        }
+        for (String candidate : candidates) {
+            if (candidate != null && !candidate.isBlank()) {
+                return candidate;
+            }
+        }
+        return "";
+    }
+
+    private static BigDecimal safeBigDecimal(JsonNode node, BigDecimal defaultValue) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            if (defaultValue != null) {
+                return defaultValue;
+            }
+            throw new IllegalArgumentException("Missing required numeric value");
+        }
+
+        if (node.isNumber()) {
+            return node.decimalValue();
+        }
+
+        String text = node.asText();
+        if (text == null || text.isBlank()) {
+            if (defaultValue != null) {
+                return defaultValue;
+            }
+            throw new IllegalArgumentException("Missing required numeric value");
+        }
+        return new BigDecimal(text);
+    }
+
+    private static LocalDate parseLocalDateRequired(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Missing required date field: " + fieldName);
+        }
+
+        // Allow ISO date or ISO instant/offset datetime (use first 10 chars)
+        String normalized = value.trim();
+        if (normalized.length() >= 10 && normalized.charAt(4) == '-' && normalized.charAt(7) == '-') {
+            normalized = normalized.substring(0, 10);
+        }
+
+        return LocalDate.parse(normalized, DateTimeFormatter.ISO_LOCAL_DATE);
+    }
+
+    private static Instant parseInstantRequired(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Missing required timestamp field: " + fieldName);
+        }
+        return Instant.parse(value);
+    }
+
+    private GeographicBreakdown mapGeographicBreakdownFromRisk(JsonNode breakdownNode) {
+        if (breakdownNode == null || breakdownNode.isMissingNode() || !breakdownNode.isObject()) {
+            return mapGeographicBreakdown(objectMapper.createObjectNode());
+        }
+
+        JsonNode italy = breakdownNode.path("italy");
+        JsonNode euOther = breakdownNode.path("eu_other");
+        JsonNode nonEuropean = breakdownNode.path("non_european");
+
+        return new GeographicBreakdown(
+            AmountEur.of(safeBigDecimal(italy.path("amount_eur"), BigDecimal.ZERO)),
+            safeBigDecimal(italy.path("percentage"), BigDecimal.ZERO),
+            0,
+            AmountEur.of(safeBigDecimal(euOther.path("amount_eur"), BigDecimal.ZERO)),
+            safeBigDecimal(euOther.path("percentage"), BigDecimal.ZERO),
+            0,
+            AmountEur.of(safeBigDecimal(nonEuropean.path("amount_eur"), BigDecimal.ZERO)),
+            safeBigDecimal(nonEuropean.path("percentage"), BigDecimal.ZERO),
+            0
+        );
+    }
+
+    private SectorBreakdown mapSectorBreakdownFromRisk(JsonNode breakdownNode) {
+        if (breakdownNode == null || breakdownNode.isMissingNode() || !breakdownNode.isObject()) {
+            return mapSectorBreakdown(objectMapper.createObjectNode());
+        }
+
+        JsonNode retailMortgage = breakdownNode.path("retail_mortgage");
+        JsonNode sovereign = breakdownNode.path("sovereign");
+        JsonNode corporate = breakdownNode.path("corporate");
+        JsonNode banking = breakdownNode.path("banking");
+        JsonNode other = breakdownNode.path("other");
+
+        return new SectorBreakdown(
+            AmountEur.of(safeBigDecimal(retailMortgage.path("amount_eur"), BigDecimal.ZERO)),
+            safeBigDecimal(retailMortgage.path("percentage"), BigDecimal.ZERO),
+            0,
+            AmountEur.of(safeBigDecimal(sovereign.path("amount_eur"), BigDecimal.ZERO)),
+            safeBigDecimal(sovereign.path("percentage"), BigDecimal.ZERO),
+            0,
+            AmountEur.of(safeBigDecimal(corporate.path("amount_eur"), BigDecimal.ZERO)),
+            safeBigDecimal(corporate.path("percentage"), BigDecimal.ZERO),
+            0,
+            AmountEur.of(safeBigDecimal(banking.path("amount_eur"), BigDecimal.ZERO)),
+            safeBigDecimal(banking.path("percentage"), BigDecimal.ZERO),
+            0,
+            AmountEur.of(safeBigDecimal(other.path("amount_eur"), BigDecimal.ZERO)),
+            safeBigDecimal(other.path("percentage"), BigDecimal.ZERO),
+            0
+        );
+    }
+
+    private ConcentrationIndices mapConcentrationIndicesFromRisk(JsonNode node) {
+        if (node == null || node.isMissingNode() || !node.isObject()) {
+            return mapConcentrationIndices(objectMapper.createObjectNode());
+        }
+
+        return new ConcentrationIndices(
+            safeBigDecimal(node.path("herfindahl_geographic"), BigDecimal.ZERO),
+            safeBigDecimal(node.path("herfindahl_sector"), BigDecimal.ZERO)
+        );
     }
 }
