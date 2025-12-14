@@ -44,7 +44,7 @@ public interface IReportStorageService {
      * @param batchId The batch identifier
      * @return JSON content as string
      */
-    String fetchCalculationData(String batchId);
+    String fetchCalculationData(String batchId, String resultFileUri);
     
     /**
      * Fetch quality data from storage by batch ID.
@@ -52,7 +52,7 @@ public interface IReportStorageService {
      * @param batchId The batch identifier
      * @return JSON content as string
      */
-    String fetchQualityData(String batchId);
+    String fetchQualityData(String batchId, String s3ReferenceUri);
     
     /**
      * Result object containing upload information.

@@ -107,7 +107,7 @@ public class ComprehensiveReportDataAggregator {
         try {
             log.debug("Fetching calculation data for batch: {}", event.getBatchId());
             
-            String jsonContent = reportStorageService.fetchCalculationData(event.getBatchId());
+            String jsonContent = reportStorageService.fetchCalculationData(event.getBatchId(), event.getResultFileUri());
             
             // Parse JSON and map to domain object
             CalculationResults results = mapCalculationJson(jsonContent, event);
@@ -146,7 +146,7 @@ public class ComprehensiveReportDataAggregator {
         try {
             log.debug("Fetching quality data for batch: {}", event.getBatchId());
             
-            String jsonContent = reportStorageService.fetchQualityData(event.getBatchId());
+            String jsonContent = reportStorageService.fetchQualityData(event.getBatchId(), event.getResultFileUri());
             
             // Parse JSON and map to domain object
             QualityResults results = mapQualityJson(jsonContent, event);
@@ -284,7 +284,14 @@ public class ComprehensiveReportDataAggregator {
             
             // Extract basic fields
             String batchId = root.path("batchId").asText();
+            if (batchId == null || batchId.isBlank()) {
+                batchId = event.getBatchId();
+            }
+
             String bankId = root.path("bankId").asText();
+            if (bankId == null || bankId.isBlank()) {
+                bankId = event.getBankId();
+            }
             String timestampStr = root.path("timestamp").asText();
             Instant timestamp = Instant.parse(timestampStr);
             

@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.reportgeneration.infrastructure.filestorage;
 
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
+import com.bcbs239.regtech.core.infrastructure.filestorage.S3Utils;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.FileSize;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.PresignedUrl;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.S3Uri;
@@ -11,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.Document;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
@@ -25,6 +28,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,6 +55,12 @@ public class S3ReportStorageService implements IReportStorageService {
     
     @Value("${report-generation.fallback.local-path:/tmp/deferred-reports/}")
     private String localFallbackPath;
+
+    @Value("${risk-calculation.storage.local.base-path:./data/risk-calculations}")
+    private String riskCalculationLocalBasePath;
+
+    @Value("${data-quality.storage.local.base-path:./data/quality}")
+    private String dataQualityLocalBasePath;
     
     private static final Duration PRESIGNED_URL_EXPIRATION = Duration.ofHours(1);
     
@@ -227,16 +237,110 @@ public class S3ReportStorageService implements IReportStorageService {
     }
     
     @Override
-    public String fetchCalculationData(String batchId) {
-        // TODO: Implement fetching calculation data from S3
-        log.warn("fetchCalculationData not yet implemented for batchId: {}", batchId);
-        throw new UnsupportedOperationException("fetchCalculationData not yet implemented");
+    public String fetchCalculationData(String batchId, String resultFileUri) {
+        if (resultFileUri == null || resultFileUri.isBlank()) {
+            throw new IllegalArgumentException("resultFileUri cannot be null/blank for batchId=" + batchId);
+        }
+
+        log.info("Fetching calculation data [batchId:{},uri:{}]", batchId, resultFileUri);
+        return readTextFromUri(resultFileUri);
     }
     
     @Override
-    public String fetchQualityData(String batchId) {
-        // TODO: Implement fetching quality data from S3
-        log.warn("fetchQualityData not yet implemented for batchId: {}", batchId);
-        throw new UnsupportedOperationException("fetchQualityData not yet implemented");
+    public String fetchQualityData(String batchId, String s3ReferenceUri) {
+        if (s3ReferenceUri == null || s3ReferenceUri.isBlank()) {
+            throw new IllegalArgumentException("s3ReferenceUri cannot be null/blank for batchId=" + batchId);
+        }
+
+        log.info("Fetching quality data [batchId:{},uri:{}]", batchId, s3ReferenceUri);
+        return readTextFromUri(s3ReferenceUri);
+    }
+
+    private String readTextFromUri(String uri) {
+        try {
+            // 1) Local file URI
+            if (uri.startsWith("file://")) {
+                Path path = Paths.get(parseFileUri(uri));
+                return Files.readString(path, StandardCharsets.UTF_8);
+            }
+
+            // 2) Raw local path
+            if (looksLikeLocalPath(uri)) {
+                Path path = Paths.get(uri);
+                return Files.readString(path, StandardCharsets.UTF_8);
+            }
+
+            // 3) S3 URI
+            var parsed = S3Utils.parseS3Uri(uri).orElse(null);
+            if (parsed == null) {
+                throw new IllegalArgumentException("Unsupported URI format: " + uri);
+            }
+
+            // Special-case: some modules use s3://local/<key> even in local mode.
+            if ("local".equalsIgnoreCase(parsed.bucket())) {
+                Path localPath = resolveLocalBucketPath(parsed.key());
+                return Files.readString(localPath, StandardCharsets.UTF_8);
+            }
+
+            try (ResponseInputStream<GetObjectResponse> stream = coreS3Service.getObjectStream(parsed.bucket(), parsed.key())) {
+                return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            }
+
+        } catch (IOException e) {
+            throw new RuntimeException("Failed reading URI content: " + uri + " (" + e.getMessage() + ")", e);
+        }
+    }
+
+    private Path resolveLocalBucketPath(String key) throws IOException {
+        // Try several plausible base directories.
+        ArrayList<Path> candidates = new ArrayList<>();
+        if (dataQualityLocalBasePath != null && !dataQualityLocalBasePath.isBlank()) {
+            candidates.add(Paths.get(dataQualityLocalBasePath).resolve(key));
+        }
+        if (riskCalculationLocalBasePath != null && !riskCalculationLocalBasePath.isBlank()) {
+            candidates.add(Paths.get(riskCalculationLocalBasePath).resolve(key));
+        }
+        if (localFallbackPath != null && !localFallbackPath.isBlank()) {
+            candidates.add(Paths.get(localFallbackPath).resolve(key));
+        }
+        candidates.add(Paths.get("./data").resolve(key));
+        candidates.add(Paths.get(key));
+
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) {
+                return candidate;
+            }
+        }
+
+        throw new IOException("Unable to resolve local-bucket key to a file. key=" + key + ", tried=" + candidates);
+    }
+
+    private boolean looksLikeLocalPath(String uri) {
+        // Absolute Windows path: C:\... or C:/...
+        if (uri.length() >= 3 && Character.isLetter(uri.charAt(0)) && uri.charAt(1) == ':' && (uri.charAt(2) == '\\' || uri.charAt(2) == '/')) {
+            return true;
+        }
+        // Relative path heuristics
+        return uri.startsWith("./") || uri.startsWith("../") || uri.startsWith(".\\") || uri.startsWith("..\\");
+    }
+
+    /**
+     * Parses a file URI to extract the file path, handling Windows file:///C:/... format.
+     */
+    private String parseFileUri(String uri) {
+        String path = uri;
+        if (uri.startsWith("file://")) {
+            path = uri.substring(7);
+            // Windows: file:///C:/path -> /C:/path -> C:/path
+            if (path.startsWith("/") && path.length() > 2 && path.charAt(2) == ':') {
+                path = path.substring(1);
+            }
+        }
+        try {
+            path = java.net.URLDecoder.decode(path, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            log.warn("Failed to URL decode file path, using as-is [path:{},error:{}]", path, e.getMessage());
+        }
+        return path;
     }
 }
