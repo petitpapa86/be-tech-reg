@@ -13,9 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,20 +30,17 @@ public class ProcessInboxJob {
     private final ApplicationEventPublisher dispatcher;
     private final InboxOptions inboxOptions;
     private final CoreIntegrationEventDeserializer deserializer;
-    private final TransactionTemplate transactionTemplate;
 
-    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository, ApplicationEventPublisher dispatcher, InboxOptions inboxOptions, CoreIntegrationEventDeserializer deserializer, PlatformTransactionManager transactionManager) {
+    public ProcessInboxJob(IInboxMessageRepository inboxMessageRepository, ApplicationEventPublisher dispatcher, InboxOptions inboxOptions, CoreIntegrationEventDeserializer deserializer) {
         this.inboxMessageRepository = inboxMessageRepository;
         this.dispatcher = dispatcher;
         this.inboxOptions = inboxOptions;
         this.deserializer = deserializer;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
 
     // Use the configured Duration from InboxOptions (bean) and convert to millis via SpEL
     @Scheduled(fixedDelayString = "#{@inboxOptions.getPollInterval().toMillis()}")
-    @Transactional
     public void processInboxMessages() {
         List<InboxMessage> pendingMessages = inboxMessageRepository.findByProcessingStatusOrderByReceivedAt(InboxMessageStatus.PENDING);
 
@@ -82,18 +76,18 @@ public class ProcessInboxJob {
             try {
                 logger.info("Publishing replayed integration event: {} (eventId={})", event.getClass().getSimpleName(), event.getEventId());
 
-                transactionTemplate.executeWithoutResult(status -> {
-                    ScopedValue.where(CorrelationContext.CORRELATION_ID, message.getCorrelationId())
-                            .where(CorrelationContext.CAUSATION_ID, message.getCausationId())
-                            //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
-                            // This is an inbox replay: downstream handlers should PROCESS (exactly-once)
-                            // and upstream receivers should NOT persist back into the inbox.
-                            .where(CorrelationContext.OUTBOX_REPLAY, false)
-                            .where(CorrelationContext.INBOX_REPLAY, true)
-                            .run(() -> dispatcher.publishEvent(event));
+                // Important: do NOT publish under the same transaction as inbox state updates.
+                // If a downstream listener marks the transaction rollback-only (or throws), we can
+                // end up reprocessing the same inbox message repeatedly (and re-creating files).
+                ScopedValue.where(CorrelationContext.CORRELATION_ID, message.getCorrelationId())
+                        .where(CorrelationContext.CAUSATION_ID, message.getCausationId())
+                        // This is an inbox replay: downstream handlers should PROCESS (exactly-once)
+                        // and upstream receivers should NOT persist back into the inbox.
+                        .where(CorrelationContext.OUTBOX_REPLAY, false)
+                        .where(CorrelationContext.INBOX_REPLAY, true)
+                        .run(() -> dispatcher.publishEvent(event));
 
-                    inboxMessageRepository.markAsProcessed(message.getId(), Instant.now());
-                });
+                inboxMessageRepository.markAsProcessed(message.getId(), Instant.now());
 
                 logger.info("Successfully processed inbox message {} and published event {}", message.getId(), event.getClass().getSimpleName());
             } catch (Exception e) {

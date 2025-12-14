@@ -42,8 +42,11 @@ public class JpaBatchRepository implements BatchRepository {
     @Transactional
     public Result<Void> save(Batch batch) {
         try {
-            // CREATE new entity (assume batch doesn't exist, handler checks)
-            BatchEntity entity = new BatchEntity();
+            // Upsert: update existing row if present, otherwise insert.
+            // This is required because the same Batch aggregate is saved multiple times
+            // (created -> processing, then completed/failed).
+            BatchEntity entity = springDataRepository.findById(batch.getId().value())
+                .orElseGet(BatchEntity::new);
 
             // Let the aggregate populate the entity (Tell, don't ask)
             batch.populateEntity(entity);
