@@ -2,8 +2,10 @@ package com.bcbs239.regtech.billing.application.integration;
 
 import com.bcbs239.regtech.core.domain.events.DomainEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.UserRegisteredIntegrationEvent;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -19,14 +21,11 @@ import java.util.Map;
  * - Avoid circular dependencies on integration events
  */
 @Component("billingUserRegisteredIntegrationAdapter")
+@RequiredArgsConstructor
 public class UserRegisteredIntegrationAdapter {
 
-    private final DomainEventBus domainEventBus;
+    private final ApplicationEventPublisher domainEventBus;
     private static final Logger log = LoggerFactory.getLogger(UserRegisteredIntegrationAdapter.class);
-
-    public UserRegisteredIntegrationAdapter(DomainEventBus domainEventBus) {
-        this.domainEventBus = domainEventBus;
-    }
 
     @EventListener
     public void onIntegrationEvent(UserRegisteredIntegrationEvent integrationEvent) {
@@ -49,7 +48,7 @@ public class UserRegisteredIntegrationAdapter {
         );
 
         // Publish as replay so existing billing handlers receive it
-        domainEventBus.publishAsReplay(billingEvent);
+        domainEventBus.publishEvent(billingEvent);
 
         log.info("Published BillingUserRegisteredEvent to domain event bus; details={}", Map.of(
                 "eventType", "BILLING_EVENT_PUBLISHED",

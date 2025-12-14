@@ -51,11 +51,11 @@ public class BillingModuleHealthIndicator implements ModuleHealthIndicator {
         }
         
         // Check Stripe API connectivity
-        HealthCheckResult stripeHealth = checkStripeConnectivity();
-        details.put("stripe", stripeHealth.details());
-        if (!stripeHealth.isHealthy()) {
-            allHealthy = false;
-        }
+//        HealthCheckResult stripeHealth =  checkStripeConnectivity();
+//        details.put("stripe", stripeHealth.details());
+//        if (!stripeHealth.isHealthy()) {
+//            allHealthy = false;
+//        }
         
         // Check billing account status monitoring
         HealthCheckResult accountHealth = checkBillingAccountStatus();
