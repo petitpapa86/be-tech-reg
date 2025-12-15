@@ -2,6 +2,7 @@ package com.bcbs239.regtech.reportgeneration.infrastructure.templates;
 
 import com.bcbs239.regtech.reportgeneration.domain.generation.*;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.AmountEur;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -10,12 +11,14 @@ import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Implementation of HtmlReportGenerator using Thymeleaf template engine.
@@ -121,6 +124,9 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
             context.setVariable("qualityResults", qualityResults);
             context.setVariable("recommendations", recommendations);
             context.setVariable("metadata", metadata);
+
+            // Quality-insights view model (rules-as-code rendered client-side)
+            context.setVariable("qualityInsightsData", prepareQualityInsightsData(qualityResults));
             
             // Add chart data
             context.setVariable("sectorChartData", prepareSectorChartData(calculationResults));
@@ -316,6 +322,44 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
         return name.substring(0, maxLength - 3) + "...";
     }
 
+    private Map<String, Object> prepareQualityInsightsData(QualityResults qualityResults) {
+        Map<String, Object> data = new HashMap<>();
+        if (qualityResults == null) {
+            return data;
+        }
+
+        data.put("overallScore", qualityResults.getOverallScore() != null ? qualityResults.getOverallScore().doubleValue() : 0.0);
+        data.put("totalExposures", qualityResults.getTotalExposures() != null ? qualityResults.getTotalExposures() : 0);
+        data.put("validExposures", qualityResults.getValidExposures() != null ? qualityResults.getValidExposures() : 0);
+        data.put("errorCount", qualityResults.getTotalErrors() != null ? qualityResults.getTotalErrors() : 0);
+
+        List<Map<String, Object>> dimensions = new ArrayList<>();
+        Map<QualityDimension, BigDecimal> dimensionScores = qualityResults.getDimensionScores();
+        Map<QualityDimension, QualityResults.ErrorDimensionSummary> errorDistribution = qualityResults.getErrorDistributionByDimension();
+
+        if (dimensionScores != null && !dimensionScores.isEmpty()) {
+            dimensionScores.entrySet().stream()
+                .sorted(Comparator.comparing(e -> e.getKey().name()))
+                .forEach(entry -> {
+                    Map<String, Object> dim = new HashMap<>();
+                    String name = entry.getKey().name();
+                    BigDecimal score = entry.getValue();
+                    int errorCount = 0;
+                    if (errorDistribution != null && errorDistribution.get(entry.getKey()) != null) {
+                        errorCount = errorDistribution.get(entry.getKey()).getCount();
+                    }
+
+                    dim.put("name", name);
+                    dim.put("score", score != null ? score.doubleValue() : 0.0);
+                    dim.put("errorCount", errorCount);
+                    dimensions.add(dim);
+                });
+        }
+
+        data.put("dimensions", dimensions);
+        return data;
+    }
+
     private record RiskSectorRow(
         String label,
         int count,
@@ -354,7 +398,7 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
             SectorBreakdown breakdown = results.sectorBreakdown();
             int totalExposures = results.totalExposures();
 
-            return List.of(
+            return Stream.of(
                 new RiskSectorRow(
                     getSectorDisplayName("retail_mortgage"),
                     breakdown.retailMortgageCount() > 0 ? breakdown.retailMortgageCount() : estimateCount(breakdown.retailMortgageAmount().value(), totalAmount, totalExposures),
@@ -395,7 +439,7 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
                     safePercent(breakdown.otherAmount().value(), capital),
                     riskThemeForSector("other", getSectorDisplayName("other"))
                 )
-            ).stream()
+            )
                 .filter(row -> row.amountEur() != null && row.amountEur().compareTo(BigDecimal.ZERO) > 0)
                 .sorted(Comparator.comparing(RiskSectorRow::amountEur).reversed())
                 .collect(Collectors.toList());
