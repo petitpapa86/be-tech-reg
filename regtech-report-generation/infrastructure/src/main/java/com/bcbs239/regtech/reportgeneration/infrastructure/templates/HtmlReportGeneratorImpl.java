@@ -238,9 +238,20 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
         List<BigDecimal> values = topExposures.stream()
             .map(CalculatedExposure::amountEur)
             .collect(Collectors.toList());
+
+        // Provide sectors + limit flags so the template can apply semantic color rules.
+        List<String> sectors = topExposures.stream()
+            .map(exposure -> getSectorDisplayName(exposure.sectorCode()))
+            .collect(Collectors.toList());
+
+        List<Boolean> limitExceeded = topExposures.stream()
+            .map(CalculatedExposure::exceedsLimit)
+            .collect(Collectors.toList());
         
         chartData.put("labels", labels);
         chartData.put("values", values);
+        chartData.put("sectors", sectors);
+        chartData.put("limitExceeded", limitExceeded);
         
         return chartData;
     }
