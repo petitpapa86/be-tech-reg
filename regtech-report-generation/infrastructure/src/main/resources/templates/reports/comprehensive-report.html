@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprehensive Risk Analysis Report</title>
+    <title>BCBS 239 - Rapporto Comprensivo di Rischio e Qualità</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,83 +17,62 @@
             .no-print { display: none; }
             .page-break { page-break-before: always; }
         }
-        
-        .quality-badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-weight: bold;
-            font-size: 1.25rem;
-        }
-        
-        .quality-badge.grade-a { background-color: #10b981; color: white; }
-        .quality-badge.grade-b { background-color: #84cc16; color: white; }
-        .quality-badge.grade-c { background-color: #eab308; color: white; }
-        .quality-badge.grade-d { background-color: #f97316; color: white; }
-        .quality-badge.grade-e { background-color: #ef4444; color: white; }
-        .quality-badge.grade-f { background-color: #dc2626; color: white; }
-        
-        .compliance-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 0.25rem;
-            font-size: 0.875rem;
-            font-weight: 600;
-        }
-        
-        .compliance-badge.compliant { background-color: #10b981; color: white; }
-        .compliance-badge.non-compliant { background-color: #ef4444; color: white; }
-        .compliance-badge.warning { background-color: #f59e0b; color: white; }
-        
-        .summary-card {
-            background: white;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        }
-        
-        .summary-card-title {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin-bottom: 0.5rem;
-        }
-        
-        .summary-card-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #111827;
-        }
-        
-        .dimension-bar {
-            height: 1.5rem;
-            border-radius: 0.25rem;
-            transition: width 0.3s ease;
-        }
-        
-        .recommendation-section {
-            border-left: 4px solid;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            background: #f9fafb;
-            border-radius: 0.25rem;
-        }
-        
-        .recommendation-section.red { border-color: #ef4444; }
-        .recommendation-section.yellow { border-color: #f59e0b; }
-        .recommendation-section.green { border-color: #10b981; }
-        .recommendation-section.blue { border-color: #3b82f6; }
     </style>
 </head>
 <body class="bg-gray-50">
     <div class="max-w-7xl mx-auto p-8">
 
-        <!-- Risk / Large Exposures (Italian layout) -->
-        <section>
+        <!-- ============================================ -->
+        <!-- COVER PAGE -->
+        <!-- ============================================ -->
+        <section class="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-700 rounded-lg shadow-2xl p-12 mb-8 text-white no-print">
+            <div class="text-center">
+                <div class="mb-8">
+                    <div class="inline-block bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 mb-4">
+                        <span class="text-sm font-semibold tracking-wider">BCBS 239 COMPLIANCE PLATFORM</span>
+                    </div>
+                </div>
+
+                <h1 class="text-5xl font-bold mb-4">Rapporto Comprensivo</h1>
+                <h2 class="text-3xl font-light mb-8">Grandi Rischi &amp; Data Quality</h2>
+
+                <div class="border-t border-white/30 my-8"></div>
+
+                <div class="grid grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                        <p class="text-sm opacity-75 mb-1">Banca</p>
+                        <p class="text-xl font-bold" th:text="${metadata.bankName}">Banca</p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                        <p class="text-sm opacity-75 mb-1">Data Riferimento</p>
+                        <p class="text-xl font-bold" th:text="${#temporals.format(metadata.reportingDate.value(), 'yyyy-MM-dd')}">2025-12-15</p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                        <p class="text-sm opacity-75 mb-1">Report ID</p>
+                        <p class="text-lg font-mono" th:text="${metadata.batchId.value()}">batch_20251215</p>
+                    </div>
+                </div>
+
+                <div class="text-sm opacity-75">
+                    <p>Generato automaticamente da BCBS 239 Process Engine</p>
+                    <p class="mt-1">Conforme a Circolare Banca d'Italia n. 285/2013</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- SECTION 1: LARGE EXPOSURES (GRANDI RISCHI) -->
+        <!-- ============================================ -->
+
+        <section class="mb-12">
             <!-- Header -->
             <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
                 <div class="border-b-4 border-blue-600 pb-4 mb-6">
                     <div class="flex justify-between items-start">
                         <div>
+                            <div class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold mb-3">
+                                SEZIONE 1
+                            </div>
                             <h1 class="text-3xl font-bold text-gray-900 mb-2">
                                 RAPPORTO GRANDI RISCHI
                             </h1>
@@ -116,7 +95,7 @@
                         <p class="text-xl font-bold text-gray-900" th:text="${metadata.bankName}">Banca</p>
                         <div class="mt-2 space-y-1">
                             <p class="text-sm text-gray-600"><span class="font-semibold">Codice ABI:</span> <span th:text="${metadata.bankId.value()}">08081</span></p>
-                            <p class="text-sm text-gray-600"><span class="font-semibold">Report ID:</span> <span class="font-mono" th:text="${metadata.batchId.value()}">report_id</span></p>
+                            <p class="text-sm text-gray-600"><span class="font-semibold">Report ID:</span> <span class="font-mono text-xs" th:text="${metadata.batchId.value()}">report_id</span></p>
                             <p class="text-sm text-gray-600"><span class="font-semibold">Generato:</span> <span th:text="${#temporals.format(metadata.generatedAt, 'dd/MM/yyyy HH:mm:ss')}">01/01/2024 10:00:00</span></p>
                         </div>
                     </div>
@@ -283,52 +262,6 @@
                 </div>
             </div>
 
-            <!-- Large Exposures Table -->
-            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
-                    Dettaglio Grandi Esposizioni
-                </h2>
-
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">N.</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Controparte</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Settore</th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Importo (EUR)</th>
-                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">% Capitale</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr th:each="exposure,stat : ${calculationResults.largeExposures}" class="hover:bg-gray-50">
-                                <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900" th:text="${stat.index + 1}">1</td>
-                                <td class="px-4 py-4 text-sm text-gray-900">
-                                    <div class="font-semibold" th:text="${exposure.counterpartyName}">CONTROPARTE</div>
-                                    <div class="text-xs text-gray-500 font-mono" th:text="${exposure.leiCodeOrDefault}">LEI</div>
-                                </td>
-                                <td class="px-4 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full border"
-                                        th:with="sectorUp=${#strings.toUpperCase(exposure.sectorCode)}"
-                                        th:classappend="${(sectorUp.contains('INSURANCE') or sectorUp.contains('ASSIC') or sectorUp == 'S.128') ? ' bg-purple-100 text-purple-800 border-purple-600' : (sectorUp.contains('BANK') or sectorUp.contains('BANCA') or sectorUp.startsWith('S.12')) ? ' bg-green-100 text-green-800 border-green-600' : (sectorUp.contains('CORPORATE') or sectorUp.contains('IMPRES') or sectorUp == 'S.11') ? ' bg-blue-100 text-blue-800 border-blue-600' : ' bg-gray-100 text-gray-800 border-gray-600'}"
-                                          th:text="${exposure.sectorCode}">S.11</span>
-                                </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-medium text-gray-900"
-                                    th:text="${'€ ' + #numbers.formatDecimal(exposure.amountEur, 1, 2)}">€ 0.00</td>
-                                <td class="px-4 py-4 whitespace-nowrap text-sm text-right font-bold text-gray-900"
-                                    th:text="${#numbers.formatDecimal(exposure.percentageOfCapital, 1, 2) + '%'}">0.00%</td>
-                                <td class="px-4 py-4 whitespace-nowrap text-center">
-                                    <span class="inline-flex items-center px-3 py-1 text-xs font-bold rounded-full border"
-                                          th:classappend="${exposure.exceedsLimit ? ' bg-red-100 text-red-800 border-red-600' : ' bg-green-100 text-green-800 border-green-600'}"
-                                          th:text="${exposure.exceedsLimit ? 'LIMITE SUPERATO' : 'CONFORME'}">CONFORME</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
             <!-- Compliance Notes -->
             <div class="bg-white rounded-lg shadow-lg p-8 mb-6"
                  th:with="eligible=${calculationResults.tierOneCapital.toFormattedString()}">
@@ -359,7 +292,7 @@
                             Le seguenti esenzioni possono essere applicate secondo la normativa:
                         </p>
                         <ul class="list-disc list-inside text-sm text-green-800 space-y-1">
-                            <li>Titoli di Stato (esenti da limite)</li>
+                            <li>Titoli di Stato italiani (esenti da limite)</li>
                             <li>Covered bond con garanzia statale (limite 500%)</li>
                             <li>Esposizioni verso enti creditizi della stessa rete</li>
                         </ul>
@@ -367,10 +300,11 @@
                 </div>
             </div>
         </section>
-            </div>
-        </section>
-        
-        <!-- Data Quality Section (layout aligned to provided Italian Tailwind template) -->
+
+        <!-- ============================================ -->
+        <!-- SECTION 2: DATA QUALITY -->
+        <!-- ============================================ -->
+
         <section class="page-break">
 
             <!-- Header -->
@@ -378,6 +312,9 @@
                 <div class="border-b-4 border-purple-600 pb-4 mb-6">
                     <div class="flex justify-between items-start">
                         <div>
+                            <div class="inline-block bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-bold mb-3">
+                                SEZIONE 2
+                            </div>
                             <h1 class="text-3xl font-bold text-gray-900 mb-2">
                                 RAPPORTO DATA QUALITY
                             </h1>
@@ -420,9 +357,11 @@
                                     </span>
                                 </div>
                             </div>
-                            <div class="bg-red-50 p-3 rounded border border-red-200">
+                            <div class="p-3 rounded border"
+                                 th:classappend="${qualityResults.attentionLevel.name() == 'LOW' ? ' bg-green-50 border-green-200' : qualityResults.attentionLevel.name() == 'MEDIUM' ? ' bg-yellow-50 border-yellow-200' : ' bg-red-50 border-red-200'}">
                                 <div class="flex justify-between items-center">
-                                    <p class="text-xs text-red-800 font-semibold">Livello di Attenzione</p>
+                                    <p class="text-xs font-semibold"
+                                       th:classappend="${qualityResults.attentionLevel.name() == 'LOW' ? ' text-green-800' : qualityResults.attentionLevel.name() == 'MEDIUM' ? ' text-yellow-800' : ' text-red-800'}">Livello di Attenzione</p>
                                     <span class="px-3 py-1 text-xs font-bold rounded-full"
                                           th:classappend="${qualityResults.attentionLevel.name() == 'LOW' ? ' bg-green-600 text-white' : qualityResults.attentionLevel.name() == 'MEDIUM' ? ' bg-yellow-600 text-white' : ' bg-red-600 text-white'}"
                                           th:text="${qualityResults.attentionLevel.name() == 'CRITICAL' ? 'IMMEDIATO' : qualityResults.attentionLevel.name() == 'HIGH' ? 'ALTO' : qualityResults.attentionLevel.name() == 'MEDIUM' ? 'MEDIO' : 'BASSO'}">
@@ -448,16 +387,20 @@
                 <div class="grid grid-cols-5 gap-4 mb-6"
                      th:with="validRate=${(qualityResults.totalExposures != null and qualityResults.totalExposures > 0) ? ((qualityResults.validExposures * 100.0) / qualityResults.totalExposures) : 0.0},
                               errorRate=${(qualityResults.totalExposures != null and qualityResults.totalExposures > 0) ? ((qualityResults.totalErrors * 100.0) / qualityResults.totalExposures) : 0.0}">
-                    <div class="col-span-2 bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-8 text-white">
+                    <div class="col-span-2 bg-gradient-to-br rounded-lg p-8 text-white"
+                         th:with="g=${qualityResults.overallGrade.name()}"
+                         th:classappend="${g == 'A' ? ' from-green-500 to-green-600' : g == 'B' ? ' from-amber-500 to-amber-600' : g == 'C' ? ' from-yellow-500 to-yellow-600' : g == 'D' ? ' from-orange-500 to-orange-600' : ' from-red-500 to-red-600'}">
                         <p class="text-sm font-semibold opacity-90 mb-2">QUALITY SCORE</p>
                         <div class="flex items-end space-x-4">
                             <p class="text-6xl font-bold"><span th:text="${#numbers.formatDecimal(qualityResults.overallScore, 1, 1)}">46.0</span>%</p>
                             <p class="text-4xl font-bold pb-2 opacity-90" th:text="${qualityResults.overallGrade.name()}">F</p>
                         </div>
-                        <p class="text-xs mt-3 opacity-75 uppercase tracking-wide">POOR - Requires Immediate Action</p>
+                        <p class="text-xs mt-3 opacity-75 uppercase tracking-wide"
+                           th:with="g=${qualityResults.overallGrade.name()}"
+                           th:text="${g == 'A' ? 'EXCELLENT - Industry Leading' : g == 'B' ? 'GOOD - Minor Improvements Needed' : g == 'C' ? 'ACCEPTABLE - Some Improvements Needed' : g == 'D' ? 'WEAK - Requires Action' : 'POOR - Requires Immediate Action'}">GOOD - Minor Improvements Needed</p>
                     </div>
 
-                    <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg p-6 text-white">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
                         <p class="text-sm font-semibold opacity-90">Esposizioni Totali</p>
                         <p class="text-4xl font-bold mt-2" th:text="${qualityResults.totalExposures}">5</p>
                         <p class="text-xs mt-2 opacity-75">Analizzate</p>
@@ -469,7 +412,7 @@
                         <p class="text-xs mt-2 opacity-75"><span th:text="${#numbers.formatDecimal(validRate, 1, 1)}">0.0</span>% validation rate</p>
                     </div>
 
-                    <div class="bg-gradient-to-br from-red-600 to-red-700 rounded-lg p-6 text-white">
+                    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white">
                         <p class="text-sm font-semibold opacity-90">Errori Totali</p>
                         <p class="text-4xl font-bold mt-2" th:text="${qualityResults.totalErrors}">16</p>
                         <p class="text-xs mt-2 opacity-75"><span th:text="${#numbers.formatDecimal(errorRate, 1, 1)}">100.0</span>% error rate</p>
@@ -736,82 +679,32 @@
                 </div>
             </div>
 
-            <!-- Technical Details -->
-            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
-                    Dettagli Tecnici
-                </h2>
-
-                <div class="grid grid-cols-2 gap-6">
-                    <div>
-                        <h4 class="font-semibold text-gray-700 mb-3">Informazioni Report</h4>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Report ID:</span>
-                                <span class="font-mono text-gray-900" th:text="${'qr_' + metadata.batchId.value()}">qr_4c28380f-5fc2-4034...</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Batch ID:</span>
-                                <span class="font-mono text-gray-900" th:text="${qualityResults.batchId.value()}">batch_20251117_221306...</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Bank ID:</span>
-                                <span class="font-mono text-gray-900" th:text="${qualityResults.bankId.value()}">daa4a072</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Status:</span>
-                                <span class="font-semibold text-green-600">COMPLETED</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h4 class="font-semibold text-gray-700 mb-3">Metriche di Elaborazione</h4>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Tempo di Elaborazione:</span>
-                                <span class="font-semibold text-gray-900">1 ms</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Data Creazione:</span>
-                                <span class="font-semibold text-gray-900" th:text="${#temporals.format(qualityResults.timestamp, 'yyyy-MM-dd HH:mm:ss ''UTC''')}">2025-11-17 21:13:12 UTC</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Data Aggiornamento:</span>
-                                <span class="font-semibold text-gray-900" th:text="${#temporals.format(qualityResults.timestamp, 'yyyy-MM-dd HH:mm:ss ''UTC''')}">2025-11-17 21:13:12 UTC</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Details URI:</span>
-                                <span class="font-mono text-xs text-gray-900">s3://local/quality/...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="bg-gray-100 rounded-lg p-6 text-center text-sm text-gray-600">
-                <p class="mb-2">
-                    <strong>Rapporto generato da BCBS 239 Data Quality Engine</strong> - Template v2024.1
-                </p>
-                <p>
-                    Generato il: <span th:text="${#temporals.format(metadata.generatedAt, 'dd/MM/yyyy')}">17/11/2025</span> alle ore <span th:text="${#temporals.format(metadata.generatedAt, 'HH:mm:ss')}">21:13:12</span>
-                </p>
-                <p class="mt-2 text-xs">
-                    Questo rapporto è stato generato automaticamente secondo i principi BCBS 239.
-                    Per informazioni sulla normativa: <a href="https://www.bis.org/publ/bcbs239.htm" class="text-blue-600 hover:underline">www.bis.org/publ/bcbs239.htm</a>
-                </p>
-            </div>
-
-            <!-- Print Button -->
-            <div class="mt-6 text-center no-print">
-                <button onclick="window.print()"
-                        class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-200">
-                    🖨️ Stampa Rapporto / Salva PDF
-                </button>
-            </div>
-
         </section>
+
+        <!-- ============================================ -->
+        <!-- FOOTER -->
+        <!-- ============================================ -->
+
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-8 text-center text-white shadow-lg">
+            <p class="text-lg font-bold mb-2">Rapporto generato da BCBS 239 Process Engine</p>
+            <p class="mb-4">
+                Template v2024.1 • Generato il <span th:text="${#temporals.format(metadata.generatedAt, 'dd/MM/yyyy')}">15/12/2025</span> alle ore <span th:text="${#temporals.format(metadata.generatedAt, 'HH:mm:ss')}">12:15:46</span>
+            </p>
+            <div class="border-t border-white/30 my-4"></div>
+            <p class="text-sm opacity-90">Conforme a Circolare n. 285 di Banca d'Italia e Principi BCBS 239</p>
+            <p class="text-xs mt-2 opacity-75">
+                Per informazioni: <a href="https://www.bancaditalia.it" class="underline hover:no-underline">www.bancaditalia.it</a> •
+                <a href="https://www.bis.org/publ/bcbs239.htm" class="underline hover:no-underline">www.bis.org/publ/bcbs239.htm</a>
+            </p>
+        </div>
+
+        <!-- Print Button -->
+        <div class="mt-8 text-center no-print">
+            <button onclick="window.print()"
+                    class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-12 rounded-lg shadow-lg transition duration-200 transform hover:scale-105">
+                🖨️ Stampa Rapporto Completo / Salva PDF
+            </button>
+        </div>
         
     </div>
     

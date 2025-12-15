@@ -329,9 +329,9 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
         }
 
         data.put("overallScore", qualityResults.getOverallScore() != null ? qualityResults.getOverallScore().doubleValue() : 0.0);
-        data.put("totalExposures", qualityResults.getTotalExposures() != null ? qualityResults.getTotalExposures() : 0);
-        data.put("validExposures", qualityResults.getValidExposures() != null ? qualityResults.getValidExposures() : 0);
-        data.put("errorCount", qualityResults.getTotalErrors() != null ? qualityResults.getTotalErrors() : 0);
+        data.put("totalExposures", Optional.ofNullable(qualityResults.getTotalExposures()).orElse(0));
+        data.put("validExposures", Optional.ofNullable(qualityResults.getValidExposures()).orElse(0));
+        data.put("errorCount", Optional.ofNullable(qualityResults.getTotalErrors()).orElse(0));
 
         List<Map<String, Object>> dimensions = new ArrayList<>();
         Map<QualityDimension, BigDecimal> dimensionScores = qualityResults.getDimensionScores();
@@ -470,20 +470,13 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
     }
 
     private boolean shouldUseSectorBreakdownFallback(CalculationResults results) {
-        if (results == null) {
-            return false;
-        }
-
-        if (results.exposures() == null || results.exposures().isEmpty()) {
+        if (results.exposures().isEmpty()) {
             return true;
         }
 
         // If exposures exist but sector codes are not informative, prefer the summary breakdown.
         boolean allPlaceholder = results.exposures().stream().allMatch(e -> {
             String code = e.sectorCode();
-            if (code == null) {
-                return true;
-            }
             String normalized = code.trim().toLowerCase();
             return normalized.isBlank() || normalized.equals("other") || normalized.equals("unknown") || normalized.equals("n/a");
         });
@@ -493,10 +486,6 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
         }
 
         SectorBreakdown breakdown = results.sectorBreakdown();
-        if (breakdown == null) {
-            return false;
-        }
-
         BigDecimal sum = breakdown.getTotalAmount().value();
         return sum.compareTo(BigDecimal.ZERO) > 0;
     }
@@ -524,16 +513,12 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
                 String sectorLabel = getSectorDisplayName(exposure.sectorCode());
                 boolean limitExceeded = exposure.exceedsLimit();
 
-                String theme;
-                if (rank == 1) {
-                    theme = "rank1";
-                } else if (rank == 2) {
-                    theme = "rank2";
-                } else if (rank == 3) {
-                    theme = "rank3";
-                } else {
-                    theme = riskThemeForSector(exposure.sectorCode(), sectorLabel);
-                }
+                String theme = switch (rank) {
+                    case 1 -> "rank1";
+                    case 2 -> "rank2";
+                    case 3 -> "rank3";
+                    default -> riskThemeForSector(exposure.sectorCode(), sectorLabel);
+                };
 
                 return new RiskTopExposureCard(
                     rank,
