@@ -75,10 +75,18 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
             Optional<QualityReportEntity> existingByBatch = jpaRepository.findByBatchId(report.getBatchId().value());
             
             if (existingByBatch.isPresent()) {
-                // Report already exists for this batch - return it instead of creating duplicate
-                logger.debug("Quality report already exists for batch: {} - returning existing report: {}", 
-                    report.getBatchId().value(), existingByBatch.get().getReportId());
-                return Result.success(mapper.toDomain(existingByBatch.get()));
+                // Report already exists for this batch - update it (upsert) instead of returning stale data.
+                // Without this, the initial IN_PROGRESS row never gets populated with scores/counts/errors.
+                QualityReportEntity existingEntity = existingByBatch.get();
+                updateEntityFromDomain(existingEntity, report);
+
+                QualityReportEntity savedEntity = jpaRepository.save(existingEntity);
+                QualityReport savedReport = mapper.toDomain(savedEntity);
+
+                logger.debug("Successfully updated existing quality report: {} for batch: {}",
+                    savedEntity.getReportId(), report.getBatchId().value());
+
+                return Result.success(savedReport);
             }
             
             // No existing report for this batch - create new one

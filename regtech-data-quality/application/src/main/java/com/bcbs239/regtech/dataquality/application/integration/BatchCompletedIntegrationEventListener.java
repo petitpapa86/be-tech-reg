@@ -117,7 +117,7 @@ public class BatchCompletedIntegrationEventListener {
 
             // Route event to appropriate handler
             ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
-                    .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
+                   // .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
                     //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
                     .where(CorrelationContext.OUTBOX_REPLAY, false)
                     .where(CorrelationContext.INBOX_REPLAY, true)

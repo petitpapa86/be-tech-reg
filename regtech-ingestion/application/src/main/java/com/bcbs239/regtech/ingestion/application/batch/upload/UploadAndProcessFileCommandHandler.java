@@ -3,8 +3,6 @@ package com.bcbs239.regtech.ingestion.application.batch.upload;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommand;
-import com.bcbs239.regtech.ingestion.application.batch.process.ProcessBatchCommandHandler;
 import com.bcbs239.regtech.ingestion.application.common.TemporaryFileStorageService;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.IBankInfoRepository;
@@ -19,10 +17,11 @@ import com.bcbs239.regtech.ingestion.domain.file.FileSize;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -40,7 +39,7 @@ public class UploadAndProcessFileCommandHandler {
     private final IIngestionBatchRepository ingestionBatchRepository;
     private final IBankInfoRepository bankInfoRepository;
     private final TemporaryFileStorageService temporaryFileStorage;
-    private final ProcessBatchCommandHandler processBatchCommandHandler;
+    private final AsyncBatchProcessor asyncBatchProcessor;
     private final ApplicationEventPublisher eventPublisher;
     private static final Logger log = LoggerFactory.getLogger(UploadAndProcessFileCommandHandler.class);
 
@@ -48,12 +47,12 @@ public class UploadAndProcessFileCommandHandler {
             IIngestionBatchRepository ingestionBatchRepository,
             IBankInfoRepository bankInfoRepository,
             TemporaryFileStorageService temporaryFileStorage,
-            ProcessBatchCommandHandler processBatchCommandHandler,
+            AsyncBatchProcessor asyncBatchProcessor,
             ApplicationEventPublisher eventPublisher) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.bankInfoRepository = bankInfoRepository;
         this.temporaryFileStorage = temporaryFileStorage;
-        this.processBatchCommandHandler = processBatchCommandHandler;
+        this.asyncBatchProcessor = asyncBatchProcessor;
         this.eventPublisher = eventPublisher;
     }
 
@@ -99,38 +98,63 @@ public class UploadAndProcessFileCommandHandler {
 
                 Result<IngestionBatch> saveResult = ingestionBatchRepository.save(batch);
                 if (saveResult.isFailure()) {
+                    // No async processing will run; cleanup temp file now.
+                    temporaryFileStorage.removeFile(tempFileKey);
                     return Result.failure(saveResult.getError().orElse(
                             ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR,
                                 "Failed to save batch record", "database.error")
                     ));
                 }
 
-                // Start async batch processing
-                CompletableFuture<Result<Void>> processFuture = processBatchWithTempFile(batchId, tempFileKey);
+                // Start batch processing asynchronously AFTER the upload transaction commits.
+                // This avoids the "UnexpectedRollbackException" pattern where an exception is caught
+                // inside a @Transactional method, leaving the transaction marked rollback-only.
+                Runnable startProcessing = () -> {
+                    CompletableFuture<Result<Void>> processFuture = asyncBatchProcessor.processBatchWithTempFile(batchId, tempFileKey);
 
-                // Handle async processing completion (fire and forget)
-                processFuture.whenComplete((processResult, throwable) -> {
-                    if (throwable != null) {
-                        log.error("Async batch processing failed with exception; details={}", Map.of("batchId", batchId.value()), throwable);
-                        publishProcessingFailureEvent(batchId, bankId, command.fileName(), throwable.getMessage(), "EXCEPTION", tempFileKey);
-                    } else if (processResult != null && processResult.isFailure()) {
-                        ErrorDetail error = processResult.getError().orElse(null);
-                        String errorMessage = error != null ? error.getMessage() : "Unknown error";
-                        String errorType = error != null ? error.getErrorType().name() : "UNKNOWN";
-                        log.info("Async batch processing failed; details={}", Map.of("batchId", batchId.value(), "error", errorMessage));
-                        publishProcessingFailureEvent(batchId, bankId, command.fileName(), errorMessage, errorType, tempFileKey);
-                    } else {
-                        log.info("Async batch processing completed successfully; details={}", Map.of("batchId", batchId.value()));
-                    }
-                });
+                    // Handle async processing completion (fire and forget)
+                    processFuture.whenComplete((processResult, throwable) -> {
+                        try {
+                            if (throwable != null) {
+                                log.error("Async batch processing failed with exception; details={}", Map.of("batchId", batchId.value()), throwable);
+                                publishProcessingFailureEvent(batchId, bankId, command.fileName(), throwable.getMessage(), "EXCEPTION", tempFileKey);
+                            } else if (processResult != null && processResult.isFailure()) {
+                                ErrorDetail error = processResult.getError().orElse(null);
+                                String errorMessage = error != null ? error.getMessage() : "Unknown error";
+                                String errorType = error != null ? error.getErrorType().name() : "UNKNOWN";
+                                log.info("Async batch processing failed; details={}", Map.of("batchId", batchId.value(), "error", errorMessage));
+                                publishProcessingFailureEvent(batchId, bankId, command.fileName(), errorMessage, errorType, tempFileKey);
+                            } else {
+                                log.info("Async batch processing completed successfully; details={}", Map.of("batchId", batchId.value()));
+                            }
+                        } finally {
+                            // IMPORTANT: cleanup temp file only after processing completes
+                            temporaryFileStorage.removeFile(tempFileKey);
+                        }
+                    });
+                };
+
+                if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            startProcessing.run();
+                        }
+                    });
+                } else {
+                    startProcessing.run();
+                }
 
                 long duration = System.currentTimeMillis() - startTime;
                 log.info("Upload completed, batch processing started asynchronously; details={}", Map.of("batchId", batchId.value(), "bankId", bankId.value(), "duration", duration));
 
                 return Result.success(batchId);
 
-            } finally {
+            } catch (Exception e) {
+                // If anything fails after storing the temp file but before async processing is scheduled,
+                // ensure we cleanup the temp file.
                 temporaryFileStorage.removeFile(tempFileKey);
+                throw e;
             }
 
         } catch (Exception e) {
@@ -212,24 +236,6 @@ public class UploadAndProcessFileCommandHandler {
         );
 
         return Result.success(fileMetadata);
-    }
-
-    @Async
-    private CompletableFuture<Result<Void>> processBatchWithTempFile(BatchId batchId, String tempFileKey) {
-        try {
-            ProcessBatchCommand processCommand = new ProcessBatchCommand(
-                batchId,
-                tempFileKey
-            );
-
-            Result<Void> processResult = processBatchCommandHandler.handle(processCommand);
-            return CompletableFuture.completedFuture(processResult);
-
-        } catch (Exception e) {
-            log.error("Failed to process batch with temporary file; details={}", Map.of("errorMessage", e.getMessage()), e);
-            return CompletableFuture.completedFuture(Result.failure(ErrorDetail.of("PROCESS_ERROR", ErrorType.SYSTEM_ERROR,
-                "Failed to process batch: " + e.getMessage(), "batch.process.error")));
-        }
     }
 
     private String calculateMD5ChecksumFromBytes(byte[] data) {

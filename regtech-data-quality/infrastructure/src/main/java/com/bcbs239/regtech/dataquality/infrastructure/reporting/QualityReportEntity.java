@@ -39,7 +39,9 @@ public class QualityReportEntity {
     private String batchId;
 
     @Column(name = "bank_id", nullable = false, length = 255)
-    private String bankId;    @Enumerated(EnumType.STRING)
+    private String bankId;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private QualityStatus status;
     
