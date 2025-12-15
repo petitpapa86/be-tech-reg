@@ -4,6 +4,7 @@ import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.SpelExpressionEvaluator;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
@@ -88,6 +89,21 @@ class DataQualityRulesServiceTest {
         // Backwards-compatible aliases
         assertTrue(ctx.containsKey("exposure_id"), "Context should keep exposure_id alias");
         assertEquals(exposure.exposureId(), ctx.get("exposure_id"));
+
+        // Prove DB-style SpEL rules actually evaluate correctly
+        SpelExpressionEvaluator evaluator = new SpelExpressionEvaluator();
+        assertTrue(
+            evaluator.evaluateBoolean("#exposureId != null && !#exposureId.trim().isEmpty()", ctx),
+            "#exposureId rule should pass when exposure_id is provided"
+        );
+        assertTrue(
+            evaluator.evaluateBoolean("#productType != null && !#productType.trim().isEmpty()", ctx),
+            "#productType rule should pass when product_type is provided"
+        );
+        assertTrue(
+            evaluator.evaluateBoolean("#exposure_id != null && !#exposure_id.trim().isEmpty()", ctx),
+            "snake_case #exposure_id rule should still pass"
+        );
     }
     
     // ====================================================================
