@@ -30,8 +30,8 @@ public class SpelExpressionEvaluator implements ExpressionEvaluator {
         try {
             Object result = evaluate(expression, context);
             
-            if (result instanceof Boolean) {
-                return (Boolean) result;
+            if (result instanceof Boolean boolResult) {
+                return boolResult;
             }
             
             // Convert truthy values
