@@ -5,6 +5,7 @@ import lombok.NonNull;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 /**
@@ -94,6 +95,33 @@ public record CalculationResults(
         return exposures.stream()
             .filter(exposure -> exposure.percentageOfCapital().compareTo(new BigDecimal("25")) > 0)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Get top exposures by EUR amount (descending).
+     */
+    public List<CalculatedExposure> getTopExposures(int limit) {
+        if (limit <= 0) {
+            return List.of();
+        }
+        return exposures.stream()
+            .sorted(Comparator.comparing(CalculatedExposure::amountEur).reversed())
+            .limit(limit)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Convenience getter for templates.
+     */
+    public List<CalculatedExposure> getTop10Exposures() {
+        return getTopExposures(10);
+    }
+
+    /**
+     * Convenience getter for templates.
+     */
+    public int getLargeExposuresCount() {
+        return getLargeExposures().size();
     }
     
     /**

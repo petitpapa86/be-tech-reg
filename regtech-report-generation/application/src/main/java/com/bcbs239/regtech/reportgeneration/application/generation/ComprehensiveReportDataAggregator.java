@@ -267,8 +267,24 @@ public class ComprehensiveReportDataAggregator {
                 totalAmount = safeBigDecimal(summary.path("total_amount_eur"), BigDecimal.ZERO);
                 limitBreaches = summary.path("limit_breaches").asInt(0);
 
-                // Current risk output does not contain enough counterparty + regulatory metadata for CalculatedExposure.
-                exposures = List.of();
+                exposures = mapExposuresFromRisk(root, tierOneCapital, totalAmount);
+
+                // Prefer explicit summary value, but fall back to computed breaches when missing
+                if (limitBreaches <= 0 && !exposures.isEmpty()) {
+                    limitBreaches = (int) exposures.stream().filter(e -> !e.compliant()).count();
+                }
+
+                // If total amount is missing, fall back to sum of exposures
+                if (totalAmount.compareTo(BigDecimal.ZERO) <= 0 && !exposures.isEmpty()) {
+                    totalAmount = exposures.stream()
+                        .map(CalculatedExposure::amountEur)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                }
+
+                // If total exposures is missing/zero, fall back to mapped exposures size
+                if (totalExposures <= 0 && !exposures.isEmpty()) {
+                    totalExposures = exposures.size();
+                }
 
                 geographicBreakdown = mapGeographicBreakdownFromRisk(summary.path("geographic_breakdown"));
                 sectorBreakdown = mapSectorBreakdownFromRisk(summary.path("sector_breakdown"));
@@ -315,6 +331,157 @@ public class ComprehensiveReportDataAggregator {
             log.error("Failed to parse calculation JSON", e);
             throw new DataAggregationException("Failed to parse calculation JSON", e);
         }
+    }
+
+    private List<CalculatedExposure> mapExposuresFromRisk(JsonNode root, BigDecimal tierOneCapital, BigDecimal totalAmountEur) {
+        JsonNode exposuresNode = root.path("calculated_exposures");
+        if (!exposuresNode.isArray()) {
+            exposuresNode = root.path("exposures");
+        }
+
+        if (!exposuresNode.isArray()) {
+            return List.of();
+        }
+
+        BigDecimal capital = tierOneCapital == null ? BigDecimal.ZERO : tierOneCapital;
+        BigDecimal total = totalAmountEur == null ? BigDecimal.ZERO : totalAmountEur;
+
+        List<CalculatedExposure> exposures = new ArrayList<>();
+        exposuresNode.forEach(node -> {
+            String exposureId = firstNonBlank(node.path("exposure_id").asText(), node.path("exposureId").asText());
+
+            String counterpartyName = firstNonBlank(
+                node.path("counterparty_name").asText(),
+                node.path("client_name").asText(),
+                node.path("counterparty_ref").asText(),
+                exposureId.isBlank() ? "Unknown" : ("Exposure " + exposureId)
+            );
+
+            Optional<String> leiCode = Optional.ofNullable(firstNonBlank(node.path("lei_code").asText(), node.path("leiCode").asText()))
+                .filter(s -> !s.isBlank());
+
+            String identifierType;
+            if (leiCode.isPresent()) {
+                identifierType = "LEI";
+            } else if (!firstNonBlank(node.path("counterparty_ref").asText(), node.path("counterpartyRef").asText()).isBlank()) {
+                identifierType = "REF";
+            } else if (!exposureId.isBlank()) {
+                identifierType = "EXPOSURE_ID";
+            } else {
+                identifierType = "NAME";
+            }
+
+            String countryCode = firstNonBlank(
+                node.path("country").asText(),
+                node.path("country_code").asText(),
+                node.path("countryCode").asText(),
+                "N/A"
+            );
+
+            String sectorCode = firstNonBlank(
+                node.path("economic_sector").asText(),
+                node.path("sector").asText(),
+                node.path("sector_category").asText(),
+                node.path("sectorCode").asText(),
+                "other"
+            );
+
+            Optional<String> rating = Optional.ofNullable(firstNonBlank(node.path("rating").asText(), node.path("credit_rating").asText()))
+                .filter(s -> !s.isBlank());
+
+            BigDecimal originalAmount = safeBigDecimal(firstNumberNode(node,
+                "original_amount",
+                "originalAmount",
+                "gross_exposure_eur",
+                "grossExposureEur",
+                "net_exposure_eur",
+                "netExposureEur",
+                "eur_amount",
+                "amount_eur"
+            ), BigDecimal.ZERO);
+
+            String originalCurrency = firstNonBlank(node.path("original_currency").asText(), node.path("originalCurrency").asText(), "EUR");
+
+            BigDecimal amountEur = safeBigDecimal(firstNumberNode(node,
+                "amount_eur",
+                "eur_amount",
+                "net_exposure_eur",
+                "gross_exposure_eur",
+                "amountEur",
+                "netExposureEur",
+                "grossExposureEur"
+            ), BigDecimal.ZERO);
+
+            BigDecimal amountAfterCrm = safeBigDecimal(firstNumberNode(node,
+                "amount_after_crm_eur",
+                "amountAfterCrm",
+                "mitigated_amount_eur",
+                "mitigatedAmountEur",
+                "net_exposure_eur",
+                "netExposureEur",
+                "amount_eur",
+                "eur_amount"
+            ), amountEur);
+
+            BigDecimal pctCapital;
+            if (capital.compareTo(BigDecimal.ZERO) > 0) {
+                pctCapital = safePercent(amountAfterCrm, capital);
+            } else if (total.compareTo(BigDecimal.ZERO) > 0) {
+                // best-effort fallback when eligible capital is not present in the risk JSON
+                pctCapital = safePercent(amountAfterCrm, total);
+            } else {
+                pctCapital = BigDecimal.ZERO;
+            }
+
+            boolean compliant = pctCapital.compareTo(new BigDecimal("25")) <= 0;
+
+            exposures.add(new CalculatedExposure(
+                counterpartyName,
+                leiCode,
+                identifierType,
+                countryCode,
+                sectorCode,
+                rating,
+                originalAmount,
+                originalCurrency,
+                amountEur,
+                amountAfterCrm,
+                BigDecimal.ZERO,
+                amountAfterCrm,
+                pctCapital,
+                compliant
+            ));
+        });
+
+        return exposures;
+    }
+
+    private static JsonNode firstNumberNode(JsonNode node, String... fieldNames) {
+        if (node == null || fieldNames == null) {
+            return null;
+        }
+        for (String field : fieldNames) {
+            if (field == null || field.isBlank()) {
+                continue;
+            }
+            JsonNode v = node.path(field);
+            if (!v.isMissingNode() && !v.isNull() && !(v.isTextual() && v.asText().isBlank())) {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    private static BigDecimal safePercent(BigDecimal numerator, BigDecimal denominator) {
+        if (numerator == null || denominator == null) {
+            return BigDecimal.ZERO;
+        }
+        if (denominator.compareTo(BigDecimal.ZERO) <= 0) {
+            return BigDecimal.ZERO;
+        }
+        return numerator
+            .multiply(BigDecimal.valueOf(100))
+            .divide(denominator, 2, java.math.RoundingMode.HALF_UP);
     }
     
     /**
