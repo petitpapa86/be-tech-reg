@@ -168,22 +168,25 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
     private RuleContext createContextFromExposure(ExposureRecord exposure) {
         Map<String, Object> data = new HashMap<>();
         
-        // Map exposure fields to context
-        data.put("exposure_id", exposure.exposureId());
+        // Map exposure fields to context.
+        // DB rules use SpEL variables like #exposureId, #productType, etc.
+        // Keep snake_case aliases for backwards compatibility.
+        putAliases(data, "exposureId", "exposure_id", exposure.exposureId());
         data.put("amount", exposure.amount());
         data.put("currency", exposure.currency());
         data.put("country", exposure.country());
         data.put("sector", exposure.sector());
-        data.put("counterparty_id", exposure.counterpartyId());
-        data.put("counterparty_type", exposure.counterpartyType());
-        data.put("lei_code", exposure.leiCode());
-        data.put("product_type", exposure.productType());
-        data.put("internal_rating", exposure.internalRating());
-        data.put("risk_category", exposure.riskCategory());
-        data.put("reporting_date", exposure.reportingDate());
-        data.put("valuation_date", exposure.valuationDate());
-        data.put("maturity_date", exposure.maturityDate());
-        data.put("reference_number", exposure.referenceNumber());
+        putAliases(data, "counterpartyId", "counterparty_id", exposure.counterpartyId());
+        putAliases(data, "counterpartyType", "counterparty_type", exposure.counterpartyType());
+        putAliases(data, "leiCode", "lei_code", exposure.leiCode());
+        putAliases(data, "productType", "product_type", exposure.productType());
+        putAliases(data, "internalRating", "internal_rating", exposure.internalRating());
+        putAliases(data, "riskCategory", "risk_category", exposure.riskCategory());
+        putAliases(data, "riskWeight", "risk_weight", exposure.riskWeight());
+        putAliases(data, "reportingDate", "reporting_date", exposure.reportingDate());
+        putAliases(data, "valuationDate", "valuation_date", exposure.valuationDate());
+        putAliases(data, "maturityDate", "maturity_date", exposure.maturityDate());
+        putAliases(data, "referenceNumber", "reference_number", exposure.referenceNumber());
         
         // Add helper flags
         data.put("is_corporate_exposure", exposure.isCorporateExposure());
@@ -192,8 +195,14 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
         // Add entity metadata for exemption checking
         data.put("entity_type", "EXPOSURE");
         data.put("entity_id", exposure.exposureId());
+        data.put("entityId", exposure.exposureId());
         
         return new DefaultRuleContext(data);
+    }
+
+    private void putAliases(Map<String, Object> map, String camelCaseKey, String snakeCaseKey, Object value) {
+        map.put(camelCaseKey, value);
+        map.put(snakeCaseKey, value);
     }
     
     /**

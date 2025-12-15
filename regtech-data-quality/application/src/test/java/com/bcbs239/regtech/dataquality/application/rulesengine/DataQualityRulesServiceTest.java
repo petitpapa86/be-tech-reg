@@ -57,6 +57,38 @@ class DataQualityRulesServiceTest {
             exemptionRepository
         );
     }
+
+    @Test
+    @DisplayName("Should expose camelCase variables for DB SpEL rules")
+    void shouldExposeCamelCaseVariablesForDbSpelRules() {
+        // Arrange
+        ExposureRecord exposure = createTestExposure();
+        BusinessRule rule = createTestRule("RULE_001", true);
+
+        when(ruleRepository.findByEnabledTrue()).thenReturn(Collections.singletonList(rule));
+        when(rulesEngine.executeRule(eq("RULE_001"), any(RuleContext.class)))
+            .thenReturn(RuleExecutionResult.success("RULE_001"));
+        when(exemptionRepository.findActiveExemptions(anyString(), anyString(), anyString(), any(LocalDate.class)))
+            .thenReturn(Collections.emptyList());
+
+        ArgumentCaptor<RuleContext> contextCaptor = ArgumentCaptor.forClass(RuleContext.class);
+
+        // Act
+        service.validateConfigurableRules(exposure);
+
+        // Assert
+        verify(rulesEngine).executeRule(eq("RULE_001"), contextCaptor.capture());
+        RuleContext ctx = contextCaptor.getValue();
+
+        assertTrue(ctx.containsKey("exposureId"), "Context should contain exposureId for #exposureId rules");
+        assertEquals(exposure.exposureId(), ctx.get("exposureId"));
+        assertTrue(ctx.containsKey("productType"), "Context should contain productType for #productType rules");
+        assertEquals(exposure.productType(), ctx.get("productType"));
+
+        // Backwards-compatible aliases
+        assertTrue(ctx.containsKey("exposure_id"), "Context should keep exposure_id alias");
+        assertEquals(exposure.exposureId(), ctx.get("exposure_id"));
+    }
     
     // ====================================================================
     // Tests for Rule Enable/Disable Functionality (Task 6)

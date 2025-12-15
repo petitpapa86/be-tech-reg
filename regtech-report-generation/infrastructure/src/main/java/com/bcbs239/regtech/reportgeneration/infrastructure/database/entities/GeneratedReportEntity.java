@@ -68,14 +68,14 @@ public class GeneratedReportEntity {
     private String xbrlPresignedUrl;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "xbrl_validation_status", length = 20)
+    @Column(name = "xbrl_validation_status", length = 50)
     private XbrlValidationStatus xbrlValidationStatus;
 
     @Column(name = "overall_quality_score", precision = 5, scale = 2)
     private java.math.BigDecimal overallQualityScore;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "compliance_status", length = 20)
+    @Column(name = "compliance_status", length = 50)
     private ComplianceStatus complianceStatus;
 
     @Column(name = "generated_at", nullable = false)
