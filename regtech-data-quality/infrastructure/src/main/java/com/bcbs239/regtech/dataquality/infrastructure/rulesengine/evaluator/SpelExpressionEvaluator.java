@@ -11,6 +11,9 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Spring Expression Language (SpEL) implementation of ExpressionEvaluator.
  * 
@@ -99,17 +102,71 @@ public class SpelExpressionEvaluator implements ExpressionEvaluator {
      * @return SpEL evaluation context
      */
     private EvaluationContext createEvaluationContext(RuleContext context) {
-        StandardEvaluationContext evalContext = new StandardEvaluationContext();
-        
-        // Add all context variables to the evaluation context
-        if (context != null && context.getAllData() != null) {
-            context.getAllData().forEach(evalContext::setVariable);
-        }
+        AliasAwareEvaluationContext evalContext = new AliasAwareEvaluationContext(context);
         
         // Register custom functions if needed
         registerCustomFunctions(evalContext);
         
         return evalContext;
+    }
+
+    /**
+     * Evaluation context that resolves variables in a tolerant way:
+     * - Case-insensitive
+     * - Underscore-insensitive (snake_case vs camelCase)
+     *
+     * This avoids duplicating variables (and Map entries) in the rule context.
+     */
+    private static final class AliasAwareEvaluationContext extends StandardEvaluationContext {
+
+        private final Map<String, Object> normalizedVariables;
+
+        private AliasAwareEvaluationContext(RuleContext ruleContext) {
+            this.normalizedVariables = new HashMap<>();
+
+            if (ruleContext == null || ruleContext.getAllData() == null) {
+                return;
+            }
+
+            // Register original variables (exact matches)
+            ruleContext.getAllData().forEach(this::setVariable);
+
+            // Build a normalized index for tolerant lookups
+            for (Map.Entry<String, Object> entry : ruleContext.getAllData().entrySet()) {
+                if (entry.getKey() == null) {
+                    continue;
+                }
+                if (entry.getValue() == null) {
+                    continue;
+                }
+                String normalizedKey = normalizeVariableName(entry.getKey());
+                // Preserve first-seen to keep behavior deterministic if collisions exist.
+                normalizedVariables.putIfAbsent(normalizedKey, entry.getValue());
+            }
+        }
+
+        @Override
+        public Object lookupVariable(String name) {
+            Object direct = super.lookupVariable(name);
+            if (direct != null || name == null) {
+                return direct;
+            }
+
+            return normalizedVariables.get(normalizeVariableName(name));
+        }
+
+        private static String normalizeVariableName(String name) {
+            // Normalize variable names so exposure_id, exposureId, exposure_Id all match.
+            // Keep only letters/digits and lowercase.
+            StringBuilder sb = new StringBuilder(name.length());
+            for (int i = 0; i < name.length(); i++) {
+                char c = name.charAt(i);
+                if (Character.isLetterOrDigit(c)) {
+                    sb.append(Character.toLowerCase(c));
+                }
+            }
+            return sb.toString();
+        }
     }
     
     /**
@@ -160,3 +217,4 @@ public class SpelExpressionEvaluator implements ExpressionEvaluator {
         return java.time.LocalDate.now();
     }
 }
+

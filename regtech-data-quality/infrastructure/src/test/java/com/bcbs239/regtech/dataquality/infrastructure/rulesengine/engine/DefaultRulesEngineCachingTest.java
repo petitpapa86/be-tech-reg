@@ -1,5 +1,8 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine;
 
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExecutionLogEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleParameterEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository;
@@ -55,9 +58,8 @@ class DefaultRulesEngineCachingTest {
     
     @BeforeEach
     void setUp() {
-        // Mock execution log save to return the log (cast to avoid ambiguity)
-        when(((com.bcbs239.regtech.dataquality.rulesengine.repository.RuleExecutionLogRepository) executionLogRepository)
-            .save(any(RuleExecutionLog.class)))
+        // Mock execution log save to return the entity
+        when(executionLogRepository.save(any(RuleExecutionLogEntity.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
     }
     
@@ -73,7 +75,7 @@ class DefaultRulesEngineCachingTest {
             expressionEvaluator, true, 300
         );
         
-        BusinessRule rule = createTestRule("RULE_001", "#amount > 0");
+        BusinessRuleEntity rule = createTestRule("RULE_001", "#amount > 0");
         when(ruleRepository.findById("RULE_001")).thenReturn(Optional.of(rule));
         when(expressionEvaluator.evaluateBoolean(anyString(), any(RuleContext.class)))
             .thenReturn(true);
@@ -100,7 +102,7 @@ class DefaultRulesEngineCachingTest {
             expressionEvaluator, false, 300
         );
         
-        BusinessRule rule = createTestRule("RULE_001", "#amount > 0");
+        BusinessRuleEntity rule = createTestRule("RULE_001", "#amount > 0");
         when(ruleRepository.findById("RULE_001")).thenReturn(Optional.of(rule));
         when(expressionEvaluator.evaluateBoolean(anyString(), any(RuleContext.class)))
             .thenReturn(true);
@@ -127,7 +129,7 @@ class DefaultRulesEngineCachingTest {
             expressionEvaluator, true, 1
         );
         
-        BusinessRule rule = createTestRule("RULE_001", "#amount > 0");
+        BusinessRuleEntity rule = createTestRule("RULE_001", "#amount > 0");
         when(ruleRepository.findById("RULE_001")).thenReturn(Optional.of(rule));
         when(ruleRepository.findByEnabledTrue()).thenReturn(List.of(rule));
         when(expressionEvaluator.evaluateBoolean(anyString(), any(RuleContext.class)))
@@ -157,11 +159,11 @@ class DefaultRulesEngineCachingTest {
         );
         
         // Initial rule with parameter value 100
-        BusinessRule rule1 = createTestRuleWithParameter("RULE_001", "#amount > #threshold", 
+        BusinessRuleEntity rule1 = createTestRuleWithParameter("RULE_001", "#amount > #threshold", 
             "threshold", "100");
         
         // Updated rule with parameter value 200
-        BusinessRule rule2 = createTestRuleWithParameter("RULE_001", "#amount > #threshold", 
+        BusinessRuleEntity rule2 = createTestRuleWithParameter("RULE_001", "#amount > #threshold", 
             "threshold", "200");
         
         when(ruleRepository.findById("RULE_001"))
@@ -196,7 +198,7 @@ class DefaultRulesEngineCachingTest {
             expressionEvaluator, true, 300
         );
         
-        BusinessRule rule = createTestRule("RULE_001", "#amount > 0");
+        BusinessRuleEntity rule = createTestRule("RULE_001", "#amount > 0");
         when(ruleRepository.findById("RULE_001")).thenReturn(Optional.of(rule));
         when(expressionEvaluator.evaluateBoolean(anyString(), any(RuleContext.class)))
             .thenReturn(true);
@@ -223,7 +225,7 @@ class DefaultRulesEngineCachingTest {
             expressionEvaluator, true, 300
         );
         
-        BusinessRule rule = createTestRule("RULE_001", "#amount > 0");
+        BusinessRuleEntity rule = createTestRule("RULE_001", "#amount > 0");
         when(ruleRepository.findById("RULE_001")).thenReturn(Optional.of(rule));
         when(expressionEvaluator.evaluateBoolean(anyString(), any(RuleContext.class)))
             .thenReturn(true);
@@ -254,7 +256,7 @@ class DefaultRulesEngineCachingTest {
             expressionEvaluator, true, 300
         );
         
-        BusinessRule rule = createTestRule("RULE_001", "#amount > 0");
+        BusinessRuleEntity rule = createTestRule("RULE_001", "#amount > 0");
         when(ruleRepository.findById("RULE_001")).thenReturn(Optional.of(rule));
         when(expressionEvaluator.evaluateBoolean(anyString(), any(RuleContext.class)))
             .thenReturn(true);
@@ -274,8 +276,8 @@ class DefaultRulesEngineCachingTest {
     // Helper Methods
     // ====================================================================
     
-    private BusinessRule createTestRule(String ruleId, String businessLogic) {
-        return BusinessRule.builder()
+    private BusinessRuleEntity createTestRule(String ruleId, String businessLogic) {
+        return BusinessRuleEntity.builder()
             .ruleId(ruleId)
             .ruleCode(ruleId)
             .regulationId("TEST_REG")
@@ -293,9 +295,9 @@ class DefaultRulesEngineCachingTest {
             .build();
     }
     
-    private BusinessRule createTestRuleWithParameter(String ruleId, String businessLogic, 
+    private BusinessRuleEntity createTestRuleWithParameter(String ruleId, String businessLogic, 
                                                      String paramName, String paramValue) {
-        BusinessRule rule = BusinessRule.builder()
+        BusinessRuleEntity rule = BusinessRuleEntity.builder()
             .ruleId(ruleId)
             .ruleCode(ruleId)
             .regulationId("TEST_REG")
@@ -312,11 +314,12 @@ class DefaultRulesEngineCachingTest {
             .exemptions(new ArrayList<>())
             .build();
         
-        RuleParameter parameter = RuleParameter.builder()
+        RuleParameterEntity parameter = RuleParameterEntity.builder()
             .rule(rule)
             .parameterName(paramName)
             .parameterValue(paramValue)
             .parameterType(ParameterType.NUMERIC)
+            .dataType("NUMERIC")
             .description("Test parameter")
             .build();
         

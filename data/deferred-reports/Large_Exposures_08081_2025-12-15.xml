@@ -5,33 +5,7 @@
     <xbrli:entity>
       <xbrli:identifier scheme="http://www.eba.europa.eu">08081</xbrli:identifier>
       <xbrli:segment>
-        <xbrli:explicitMember dimension="eba:CP">eba:Exposure_EXP_002_2024</xbrli:explicitMember>
-        <xbrli:explicitMember dimension="eba:CT">eba:N/A</xbrli:explicitMember>
-        <xbrli:explicitMember dimension="eba:SC">eba:other</xbrli:explicitMember>
-      </xbrli:segment>
-    </xbrli:entity>
-    <xbrli:period>
-      <xbrli:instant>2025-12-15</xbrli:instant>
-    </xbrli:period>
-  </xbrli:context>
-  <xbrli:context id="ctx_1">
-    <xbrli:entity>
-      <xbrli:identifier scheme="http://www.eba.europa.eu">08081</xbrli:identifier>
-      <xbrli:segment>
-        <xbrli:explicitMember dimension="eba:CP">eba:Exposure_EXP_004_2024</xbrli:explicitMember>
-        <xbrli:explicitMember dimension="eba:CT">eba:N/A</xbrli:explicitMember>
-        <xbrli:explicitMember dimension="eba:SC">eba:other</xbrli:explicitMember>
-      </xbrli:segment>
-    </xbrli:entity>
-    <xbrli:period>
-      <xbrli:instant>2025-12-15</xbrli:instant>
-    </xbrli:period>
-  </xbrli:context>
-  <xbrli:context id="ctx_2">
-    <xbrli:entity>
-      <xbrli:identifier scheme="http://www.eba.europa.eu">08081</xbrli:identifier>
-      <xbrli:segment>
-        <xbrli:explicitMember dimension="eba:CP">eba:Exposure_EXP_006_2024</xbrli:explicitMember>
+        <xbrli:explicitMember dimension="eba:CP">eba:Exposure_EXP_001_2024</xbrli:explicitMember>
         <xbrli:explicitMember dimension="eba:CT">eba:N/A</xbrli:explicitMember>
         <xbrli:explicitMember dimension="eba:SC">eba:other</xbrli:explicitMember>
       </xbrli:segment>
@@ -46,34 +20,14 @@
   <xbrli:unit id="pure">
     <xbrli:measure>xbrli:pure</xbrli:measure>
   </xbrli:unit>
-  <eba:LE1_CounterpartyName contextRef="ctx_0">Exposure EXP_002_2024</eba:LE1_CounterpartyName>
+  <eba:LE1_CounterpartyName contextRef="ctx_0">Exposure EXP_001_2024</eba:LE1_CounterpartyName>
   <eba:LE1_IdentifierType contextRef="ctx_0">CONCAT</eba:LE1_IdentifierType>
   <eba:LE1_AlternateIdentifier contextRef="ctx_0">EXPOSURE_ID</eba:LE1_AlternateIdentifier>
   <eba:LE1_CountryCode contextRef="ctx_0">N/A</eba:LE1_CountryCode>
   <eba:LE1_SectorCode contextRef="ctx_0">other</eba:LE1_SectorCode>
-  <eba:LE1_CounterpartyName contextRef="ctx_1">Exposure EXP_004_2024</eba:LE1_CounterpartyName>
-  <eba:LE1_IdentifierType contextRef="ctx_1">CONCAT</eba:LE1_IdentifierType>
-  <eba:LE1_AlternateIdentifier contextRef="ctx_1">EXPOSURE_ID</eba:LE1_AlternateIdentifier>
-  <eba:LE1_CountryCode contextRef="ctx_1">N/A</eba:LE1_CountryCode>
-  <eba:LE1_SectorCode contextRef="ctx_1">other</eba:LE1_SectorCode>
-  <eba:LE1_CounterpartyName contextRef="ctx_2">Exposure EXP_006_2024</eba:LE1_CounterpartyName>
-  <eba:LE1_IdentifierType contextRef="ctx_2">CONCAT</eba:LE1_IdentifierType>
-  <eba:LE1_AlternateIdentifier contextRef="ctx_2">EXPOSURE_ID</eba:LE1_AlternateIdentifier>
-  <eba:LE1_CountryCode contextRef="ctx_2">N/A</eba:LE1_CountryCode>
-  <eba:LE1_SectorCode contextRef="ctx_2">other</eba:LE1_SectorCode>
-  <eba:LE2_OriginalExposure contextRef="ctx_0" unitRef="EUR">450000.00</eba:LE2_OriginalExposure>
-  <eba:LE2_ExposureAfterCRM contextRef="ctx_0" unitRef="EUR">450000.00</eba:LE2_ExposureAfterCRM>
+  <eba:LE2_OriginalExposure contextRef="ctx_0" unitRef="EUR">240000.00</eba:LE2_OriginalExposure>
+  <eba:LE2_ExposureAfterCRM contextRef="ctx_0" unitRef="EUR">240000.00</eba:LE2_ExposureAfterCRM>
   <eba:LE2_TradingBookPortion contextRef="ctx_0" unitRef="EUR">0.00</eba:LE2_TradingBookPortion>
-  <eba:LE2_NonTradingBookPortion contextRef="ctx_0" unitRef="EUR">450000.00</eba:LE2_NonTradingBookPortion>
-  <eba:LE2_PercentageOfCapital contextRef="ctx_0" unitRef="pure">0.1540</eba:LE2_PercentageOfCapital>
-  <eba:LE2_OriginalExposure contextRef="ctx_1" unitRef="EUR">700000.00</eba:LE2_OriginalExposure>
-  <eba:LE2_ExposureAfterCRM contextRef="ctx_1" unitRef="EUR">700000.00</eba:LE2_ExposureAfterCRM>
-  <eba:LE2_TradingBookPortion contextRef="ctx_1" unitRef="EUR">0.00</eba:LE2_TradingBookPortion>
-  <eba:LE2_NonTradingBookPortion contextRef="ctx_1" unitRef="EUR">700000.00</eba:LE2_NonTradingBookPortion>
-  <eba:LE2_PercentageOfCapital contextRef="ctx_1" unitRef="pure">0.2395</eba:LE2_PercentageOfCapital>
-  <eba:LE2_OriginalExposure contextRef="ctx_2" unitRef="EUR">850000.00</eba:LE2_OriginalExposure>
-  <eba:LE2_ExposureAfterCRM contextRef="ctx_2" unitRef="EUR">850000.00</eba:LE2_ExposureAfterCRM>
-  <eba:LE2_TradingBookPortion contextRef="ctx_2" unitRef="EUR">0.00</eba:LE2_TradingBookPortion>
-  <eba:LE2_NonTradingBookPortion contextRef="ctx_2" unitRef="EUR">850000.00</eba:LE2_NonTradingBookPortion>
-  <eba:LE2_PercentageOfCapital contextRef="ctx_2" unitRef="pure">0.2909</eba:LE2_PercentageOfCapital>
+  <eba:LE2_NonTradingBookPortion contextRef="ctx_0" unitRef="EUR">240000.00</eba:LE2_NonTradingBookPortion>
+  <eba:LE2_PercentageOfCapital contextRef="ctx_0" unitRef="pure">1.0000</eba:LE2_PercentageOfCapital>
 </xbrli:xbrl>

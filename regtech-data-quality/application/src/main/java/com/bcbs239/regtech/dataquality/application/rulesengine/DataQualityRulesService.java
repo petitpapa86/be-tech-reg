@@ -407,24 +407,23 @@ public class DataQualityRulesService {
         Map<String, Object> data = new HashMap<>();
         
         // Map exposure fields to context.
-        // DB rules use SpEL variables like #exposureId, #productType, etc.
-        // Keep snake_case aliases for backwards compatibility.
-        putAliasesIfNotNull(data, "exposureId", "exposure_id", exposure.exposureId());
+        // Keep ONE canonical key per field. SpEL evaluator resolves snake_case/camelCase aliases.
+        putIfNotNull(data, "exposure_id", exposure.exposureId());
         putIfNotNull(data, "amount", exposure.amount());
         putIfNotNull(data, "currency", exposure.currency());
         putIfNotNull(data, "country", exposure.country());
         putIfNotNull(data, "sector", exposure.sector());
-        putAliasesIfNotNull(data, "counterpartyId", "counterparty_id", exposure.counterpartyId());
-        putAliasesIfNotNull(data, "counterpartyType", "counterparty_type", exposure.counterpartyType());
-        putAliasesIfNotNull(data, "leiCode", "lei_code", exposure.leiCode());
-        putAliasesIfNotNull(data, "productType", "product_type", exposure.productType());
-        putAliasesIfNotNull(data, "internalRating", "internal_rating", exposure.internalRating());
-        putAliasesIfNotNull(data, "riskCategory", "risk_category", exposure.riskCategory());
-        putAliasesIfNotNull(data, "riskWeight", "risk_weight", exposure.riskWeight());
-        putAliasesIfNotNull(data, "reportingDate", "reporting_date", exposure.reportingDate());
-        putAliasesIfNotNull(data, "valuationDate", "valuation_date", exposure.valuationDate());
-        putAliasesIfNotNull(data, "maturityDate", "maturity_date", exposure.maturityDate());
-        putAliasesIfNotNull(data, "referenceNumber", "reference_number", exposure.referenceNumber());
+        putIfNotNull(data, "counterparty_id", exposure.counterpartyId());
+        putIfNotNull(data, "counterparty_type", exposure.counterpartyType());
+        putIfNotNull(data, "lei_code", exposure.leiCode());
+        putIfNotNull(data, "product_type", exposure.productType());
+        putIfNotNull(data, "internal_rating", exposure.internalRating());
+        putIfNotNull(data, "risk_category", exposure.riskCategory());
+        putIfNotNull(data, "risk_weight", exposure.riskWeight());
+        putIfNotNull(data, "reporting_date", exposure.reportingDate());
+        putIfNotNull(data, "valuation_date", exposure.valuationDate());
+        putIfNotNull(data, "maturity_date", exposure.maturityDate());
+        putIfNotNull(data, "reference_number", exposure.referenceNumber());
         
         // Add helper flags
         data.put("is_corporate_exposure", exposure.isCorporateExposure());
@@ -433,21 +432,8 @@ public class DataQualityRulesService {
         // Add entity metadata for exemption checking
         data.put("entity_type", "EXPOSURE");
         putIfNotNull(data, "entity_id", exposure.exposureId());
-        putIfNotNull(data, "entityId", exposure.exposureId());
         
         return new DefaultRuleContext(data);
-    }
-
-    /**
-     * Adds the same value under both camelCase and snake_case keys.
-     * This lets inputs and DB rules evolve independently.
-     */
-    private void putAliasesIfNotNull(Map<String, Object> map, String camelCaseKey, String snakeCaseKey, Object value) {
-        if (value == null) {
-            return;
-        }
-        map.put(camelCaseKey, value);
-        map.put(snakeCaseKey, value);
     }
     
     /**

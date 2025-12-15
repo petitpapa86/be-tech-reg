@@ -4,8 +4,10 @@ import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.SpelExpressionEvaluator;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.*;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.IRuleExecutionLogRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.IRuleExemptionRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.IRuleViolationRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,16 +37,16 @@ class DataQualityRulesServiceTest {
     private RulesEngine rulesEngine;
     
     @Mock(lenient = true)
-    private BusinessRuleRepository ruleRepository;
+    private IBusinessRuleRepository ruleRepository;
     
     @Mock(lenient = true)
-    private RuleViolationRepository violationRepository;
+    private IRuleViolationRepository violationRepository;
     
     @Mock(lenient = true)
-    private RuleExecutionLogRepository executionLogRepository;
+    private IRuleExecutionLogRepository executionLogRepository;
     
     @Mock(lenient = true)
-    private RuleExemptionRepository exemptionRepository;
+    private IRuleExemptionRepository exemptionRepository;
     
     private DataQualityRulesService service;
     
@@ -60,11 +62,11 @@ class DataQualityRulesServiceTest {
     }
 
     @Test
-    @DisplayName("Should expose camelCase variables for DB SpEL rules")
-    void shouldExposeCamelCaseVariablesForDbSpelRules() {
+    @DisplayName("Should create canonical rule context keys")
+    void shouldCreateCanonicalRuleContextKeys() {
         // Arrange
         ExposureRecord exposure = createTestExposure();
-        BusinessRule rule = createTestRule("RULE_001", true);
+        BusinessRuleDto rule = createTestRule("RULE_001", true);
 
         when(ruleRepository.findByEnabledTrue()).thenReturn(Collections.singletonList(rule));
         when(rulesEngine.executeRule(eq("RULE_001"), any(RuleContext.class)))
@@ -81,29 +83,15 @@ class DataQualityRulesServiceTest {
         verify(rulesEngine).executeRule(eq("RULE_001"), contextCaptor.capture());
         RuleContext ctx = contextCaptor.getValue();
 
-        assertTrue(ctx.containsKey("exposureId"), "Context should contain exposureId for #exposureId rules");
-        assertEquals(exposure.exposureId(), ctx.get("exposureId"));
-        assertTrue(ctx.containsKey("productType"), "Context should contain productType for #productType rules");
-        assertEquals(exposure.productType(), ctx.get("productType"));
-
-        // Backwards-compatible aliases
-        assertTrue(ctx.containsKey("exposure_id"), "Context should keep exposure_id alias");
+        // Canonical context keys (single representation)
+        assertTrue(ctx.containsKey("exposure_id"), "Context should contain exposure_id");
         assertEquals(exposure.exposureId(), ctx.get("exposure_id"));
+        assertTrue(ctx.containsKey("product_type"), "Context should contain product_type");
+        assertEquals(exposure.productType(), ctx.get("product_type"));
 
-        // Prove DB-style SpEL rules actually evaluate correctly
-        SpelExpressionEvaluator evaluator = new SpelExpressionEvaluator();
-        assertTrue(
-            evaluator.evaluateBoolean("#exposureId != null && !#exposureId.trim().isEmpty()", ctx),
-            "#exposureId rule should pass when exposure_id is provided"
-        );
-        assertTrue(
-            evaluator.evaluateBoolean("#productType != null && !#productType.trim().isEmpty()", ctx),
-            "#productType rule should pass when product_type is provided"
-        );
-        assertTrue(
-            evaluator.evaluateBoolean("#exposure_id != null && !#exposure_id.trim().isEmpty()", ctx),
-            "snake_case #exposure_id rule should still pass"
-        );
+        // Ensure we don't duplicate keys (performance)
+        assertTrue(!ctx.containsKey("exposureId"), "Context should not contain exposureId (no duplication)");
+        assertTrue(!ctx.containsKey("productType"), "Context should not contain productType (no duplication)");
     }
     
     // ====================================================================
@@ -116,8 +104,8 @@ class DataQualityRulesServiceTest {
         // Arrange
         ExposureRecord exposure = createTestExposure();
         
-        BusinessRule enabledRule1 = createTestRule("RULE_001", true);
-        BusinessRule enabledRule2 = createTestRule("RULE_002", true);
+        BusinessRuleDto enabledRule1 = createTestRule("RULE_001", true);
+        BusinessRuleDto enabledRule2 = createTestRule("RULE_002", true);
         
         when(ruleRepository.findByEnabledTrue()).thenReturn(Arrays.asList(enabledRule1, enabledRule2));
         when(rulesEngine.executeRule(anyString(), any(RuleContext.class)))
@@ -132,7 +120,7 @@ class DataQualityRulesServiceTest {
         // Assert
         verify(ruleRepository).findByEnabledTrue();
         verify(rulesEngine, times(2)).executeRule(anyString(), any(RuleContext.class));
-        verify(executionLogRepository, times(2)).save(any(RuleExecutionLog.class));
+        verify(executionLogRepository, times(2)).save(any(RuleExecutionLogDto.class));
     }
     
     @Test
@@ -142,7 +130,7 @@ class DataQualityRulesServiceTest {
         ExposureRecord exposure = createTestExposure();
         
         // Only enabled rules should be returned by the repository
-        BusinessRule enabledRule = createTestRule("RULE_ENABLED", true);
+        BusinessRuleDto enabledRule = createTestRule("RULE_ENABLED", true);
         
         when(ruleRepository.findByEnabledTrue()).thenReturn(Collections.singletonList(enabledRule));
         when(rulesEngine.executeRule(eq("RULE_ENABLED"), any(RuleContext.class)))
@@ -157,7 +145,7 @@ class DataQualityRulesServiceTest {
         verify(ruleRepository).findByEnabledTrue();
         verify(rulesEngine, times(1)).executeRule(eq("RULE_ENABLED"), any(RuleContext.class));
         verify(rulesEngine, never()).executeRule(eq("RULE_DISABLED"), any(RuleContext.class));
-        verify(executionLogRepository, times(1)).save(any(RuleExecutionLog.class));
+        verify(executionLogRepository, times(1)).save(any(RuleExecutionLogDto.class));
     }
     
     @Test
@@ -166,9 +154,9 @@ class DataQualityRulesServiceTest {
         // Arrange
         ExposureRecord exposure = createTestExposure();
         
-        BusinessRule rule1 = createTestRule("COMPLETENESS_AMOUNT", true);
-        BusinessRule rule2 = createTestRule("ACCURACY_POSITIVE_AMOUNT", true);
-        BusinessRule rule3 = createTestRule("VALIDITY_CURRENCY", true);
+        BusinessRuleDto rule1 = createTestRule("COMPLETENESS_AMOUNT", true);
+        BusinessRuleDto rule2 = createTestRule("ACCURACY_POSITIVE_AMOUNT", true);
+        BusinessRuleDto rule3 = createTestRule("VALIDITY_CURRENCY", true);
         
         when(ruleRepository.findByEnabledTrue()).thenReturn(Arrays.asList(rule1, rule2, rule3));
         when(rulesEngine.executeRule(anyString(), any(RuleContext.class)))
@@ -184,7 +172,7 @@ class DataQualityRulesServiceTest {
         // Assert
         verify(ruleRepository).findByEnabledTrue();
         verify(rulesEngine, times(3)).executeRule(anyString(), any(RuleContext.class));
-        verify(executionLogRepository, times(3)).save(any(RuleExecutionLog.class));
+        verify(executionLogRepository, times(3)).save(any(RuleExecutionLogDto.class));
     }
     
     @Test
@@ -194,9 +182,9 @@ class DataQualityRulesServiceTest {
         ExposureRecord exposure = createTestExposure();
         
         // Multiple rules validating the same field (amount)
-        BusinessRule rule1 = createTestRule("ACCURACY_POSITIVE_AMOUNT", true);
-        BusinessRule rule2 = createTestRule("ACCURACY_REASONABLE_AMOUNT", true);
-        BusinessRule rule3 = createTestRule("COMPLETENESS_AMOUNT_REQUIRED", true);
+        BusinessRuleDto rule1 = createTestRule("ACCURACY_POSITIVE_AMOUNT", true);
+        BusinessRuleDto rule2 = createTestRule("ACCURACY_REASONABLE_AMOUNT", true);
+        BusinessRuleDto rule3 = createTestRule("COMPLETENESS_AMOUNT_REQUIRED", true);
         
         // Create violations for each rule
         RuleViolation violation1 = createTestViolation("ACCURACY_POSITIVE_AMOUNT", "amount", "Amount must be positive");
@@ -220,7 +208,7 @@ class DataQualityRulesServiceTest {
         assertEquals(2, errors.size(), "Should have 2 violations from 2 failed rules");
         verify(rulesEngine, times(3)).executeRule(anyString(), any(RuleContext.class));
         verify(violationRepository, times(2)).save(any(RuleViolation.class));
-        verify(executionLogRepository, times(3)).save(any(RuleExecutionLog.class));
+        verify(executionLogRepository, times(3)).save(any(RuleExecutionLogDto.class));
         
         // Verify both violations are for the same field
         assertTrue(errors.stream().allMatch(e -> "amount".equals(e.fieldName())));
@@ -241,7 +229,7 @@ class DataQualityRulesServiceTest {
         assertTrue(errors.isEmpty());
         verify(ruleRepository).findByEnabledTrue();
         verify(rulesEngine, never()).executeRule(anyString(), any(RuleContext.class));
-        verify(executionLogRepository, never()).save(any(RuleExecutionLog.class));
+        verify(executionLogRepository, never()).save(any(RuleExecutionLogDto.class));
     }
     
     @Test
@@ -251,8 +239,8 @@ class DataQualityRulesServiceTest {
         ExposureRecord exposure = createTestExposure();
         
         // Repository should only return enabled rules
-        BusinessRule enabledRule1 = createTestRule("RULE_ENABLED_1", true);
-        BusinessRule enabledRule2 = createTestRule("RULE_ENABLED_2", true);
+        BusinessRuleDto enabledRule1 = createTestRule("RULE_ENABLED_1", true);
+        BusinessRuleDto enabledRule2 = createTestRule("RULE_ENABLED_2", true);
         
         when(ruleRepository.findByEnabledTrue()).thenReturn(Arrays.asList(enabledRule1, enabledRule2));
         when(rulesEngine.executeRule(anyString(), any(RuleContext.class)))
@@ -277,8 +265,8 @@ class DataQualityRulesServiceTest {
         // Arrange
         ExposureRecord exposure = createTestExposure();
         
-        BusinessRule rule1 = createTestRule("RULE_001", true);
-        BusinessRule rule2 = createTestRule("RULE_002", true);
+        BusinessRuleDto rule1 = createTestRule("RULE_001", true);
+        BusinessRuleDto rule2 = createTestRule("RULE_002", true);
         
         when(ruleRepository.findByEnabledTrue()).thenReturn(Arrays.asList(rule1, rule2));
         when(rulesEngine.executeRule(anyString(), any(RuleContext.class)))
@@ -287,7 +275,7 @@ class DataQualityRulesServiceTest {
         when(exemptionRepository.findActiveExemptions(anyString(), anyString(), anyString(), any(LocalDate.class)))
             .thenReturn(Collections.emptyList());
         
-        ArgumentCaptor<RuleExecutionLog> logCaptor = ArgumentCaptor.forClass(RuleExecutionLog.class);
+        ArgumentCaptor<RuleExecutionLogDto> logCaptor = ArgumentCaptor.forClass(RuleExecutionLogDto.class);
         
         // Act
         service.validateConfigurableRules(exposure);
@@ -295,12 +283,12 @@ class DataQualityRulesServiceTest {
         // Assert
         verify(executionLogRepository, times(2)).save(logCaptor.capture());
         
-        List<RuleExecutionLog> logs = logCaptor.getAllValues();
+        List<RuleExecutionLogDto> logs = logCaptor.getAllValues();
         assertEquals(2, logs.size());
-        assertEquals("RULE_001", logs.get(0).getRuleId());
-        assertEquals("RULE_002", logs.get(1).getRuleId());
-        assertEquals(ExecutionResult.SUCCESS, logs.get(0).getExecutionResult());
-        assertEquals(ExecutionResult.SUCCESS, logs.get(1).getExecutionResult());
+        assertEquals("RULE_001", logs.get(0).ruleId());
+        assertEquals("RULE_002", logs.get(1).ruleId());
+        assertEquals(ExecutionResult.SUCCESS, logs.get(0).executionResult());
+        assertEquals(ExecutionResult.SUCCESS, logs.get(1).executionResult());
     }
     
     @Test
@@ -309,7 +297,7 @@ class DataQualityRulesServiceTest {
         // Arrange
         ExposureRecord exposure = createTestExposure();
         
-        BusinessRule rule = createTestRule("ACCURACY_POSITIVE_AMOUNT", true);
+        BusinessRuleDto rule = createTestRule("ACCURACY_POSITIVE_AMOUNT", true);
         RuleViolation violation = createTestViolation("ACCURACY_POSITIVE_AMOUNT", "amount", "Amount must be positive");
         
         RuleExecutionResult result = RuleExecutionResult.failure("ACCURACY_POSITIVE_AMOUNT", Collections.singletonList(violation));
@@ -327,7 +315,7 @@ class DataQualityRulesServiceTest {
         assertEquals("ACCURACY_POSITIVE_AMOUNT", errors.get(0).code());
         assertEquals("amount", errors.get(0).fieldName());
         verify(violationRepository).save(violation);
-        verify(executionLogRepository).save(any(RuleExecutionLog.class));
+        verify(executionLogRepository).save(any(RuleExecutionLogDto.class));
     }
     
     // ====================================================================
@@ -338,42 +326,41 @@ class DataQualityRulesServiceTest {
         return ExposureRecord.builder()
             .exposureId("EXP-001")
             .counterpartyId("CP-123")
-            .amount(BigDecimal.valueOf(1000000))
+            .amount(BigDecimal.valueOf(1_000_000))
             .currency("USD")
             .country("USA")
             .sector("Financial")
             .counterpartyType("Bank")
             .productType("Loan")
-            .leiCode("LEI123456789")
+            .leiCode("5493001KJTIIGC8Y1R12")
             .internalRating("A")
             .riskCategory("Low")
             .riskWeight(BigDecimal.valueOf(0.5))
             .reportingDate(LocalDate.now())
-            .valuationDate(LocalDate.now())
-            .maturityDate(LocalDate.now().plusYears(1))
-            .referenceNumber("REF-001")
             .build();
     }
-    
-    private BusinessRule createTestRule(String ruleId, boolean enabled) {
-        return BusinessRule.builder()
-            .ruleId(ruleId)
-            .regulationId("REG-001")
-            .ruleName("Test Rule " + ruleId)
-            .ruleCode(ruleId)
-            .description("Test rule description")
-            .ruleType(RuleType.ACCURACY)
-            .ruleCategory("TEST")
-            .severity(Severity.MEDIUM)
-            .businessLogic("#amount > 0")
-            .executionOrder(100)
-            .effectiveDate(LocalDate.now().minusDays(30))
-            .expirationDate(null)
-            .enabled(enabled)
-            .createdAt(Instant.now())
-            .updatedAt(Instant.now())
-            .createdBy("SYSTEM")
-            .build();
+
+    private BusinessRuleDto createTestRule(String ruleId, boolean enabled) {
+        return new BusinessRuleDto(
+            ruleId,
+            "REG-001",
+            null,
+            "Test Rule " + ruleId,
+            ruleId,
+            "Test rule description",
+            RuleType.ACCURACY,
+            "TEST",
+            Severity.MEDIUM,
+            "#amount > 0",
+            100,
+            LocalDate.now().minusDays(30),
+            null,
+            enabled,
+            Collections.emptyList(),
+            Instant.now(),
+            Instant.now(),
+            "SYSTEM"
+        );
     }
     
     private RuleViolation createTestViolation(String ruleId, String fieldName, String description) {
@@ -381,16 +368,15 @@ class DataQualityRulesServiceTest {
         details.put("field", fieldName);
         
         return RuleViolation.builder()
-            .violationId(null) // Will be auto-generated by database
             .ruleId(ruleId)
             .executionId(1L)
             .entityType("EXPOSURE")
             .entityId("EXP-001")
             .violationType(ruleId)
             .violationDescription(description)
-            .violationDetails(details)
             .severity(Severity.MEDIUM)
             .detectedAt(Instant.now())
+            .violationDetails(details)
             .build();
     }
 }

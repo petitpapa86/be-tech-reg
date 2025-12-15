@@ -217,6 +217,7 @@ public class QualityReport extends Entity {
         }
         
         this.scores = qualityScores;
+        this.qualityGrade = qualityScores.grade();
         this.updatedAt = Instant.now();
         
         addDomainEvent(new QualityScoresCalculatedEvent(
@@ -287,6 +288,10 @@ public class QualityReport extends Entity {
                 "quality.report.details.not.stored"
             ));
         }
+
+        if (this.qualityGrade == null) {
+            this.qualityGrade = this.scores.grade();
+        }
         
         this.status = QualityStatus.COMPLETED;
         this.processingEndTime = Instant.now();
@@ -299,7 +304,7 @@ public class QualityReport extends Entity {
         this.updatedAt = Instant.now();
         
         addDomainEvent(new QualityValidationCompletedEvent(
-            reportId, batchId, bankId, scores,qualityGrade, detailsReference, updatedAt
+            reportId, batchId, bankId, scores, qualityGrade, detailsReference, updatedAt
         ));
         
         return Result.success();

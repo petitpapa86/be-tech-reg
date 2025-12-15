@@ -1,13 +1,12 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
-import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
+import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
-import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityCompletedEvent;
-import com.bcbs239.regtech.dataquality.application.integration.events.BatchQualityFailedEvent;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
+import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
@@ -26,6 +25,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -42,7 +42,7 @@ class ValidateBatchQualityCommandHandlerTest {
     private S3StorageService s3StorageService;
     
     @Mock
-    private IIntegrationEventBus eventBus;
+    private BaseUnitOfWork unitOfWork;
     
     @Mock
     private com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService rulesService;
@@ -58,13 +58,17 @@ class ValidateBatchQualityCommandHandlerTest {
         handler = new ValidateBatchQualityCommandHandler(
             qualityReportRepository,
             s3StorageService,
-            eventBus,
-            rulesService
+            rulesService,
+            unitOfWork
         );
         
         testBatchId = BatchId.of("batch_batch-123");
         testBankId = BankId.of("bank-456");
         testS3Uri = "s3://bucket/path/data.json";
+
+        // Default: no configurable rule violations
+        lenient().when(rulesService.validateConfigurableRules(any(ExposureRecord.class)))
+            .thenReturn(Collections.emptyList());
     }
     
     @Test
@@ -81,7 +85,7 @@ class ValidateBatchQualityCommandHandlerTest {
         List<ExposureRecord> exposures = createTestExposures(10);
         S3Reference s3Reference = S3Reference.of("bucket", "results/report.json", "v1");
         
-        when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(false);
+        when(qualityReportRepository.findByBatchId(testBatchId)).thenReturn(Optional.empty());
         when(qualityReportRepository.save(any(QualityReport.class)))
             .thenAnswer(invocation -> Result.success(invocation.getArgument(0)));
         when(s3StorageService.downloadExposures(eq(testS3Uri), eq(10)))
@@ -97,7 +101,8 @@ class ValidateBatchQualityCommandHandlerTest {
         verify(qualityReportRepository, times(2)).save(any(QualityReport.class));
         verify(s3StorageService).downloadExposures(testS3Uri, 10);
         verify(s3StorageService).storeDetailedResults(eq(testBatchId), any(ValidationResult.class), anyMap());
-        verify(eventBus).publish(any(BatchQualityCompletedEvent.class));
+        verify(unitOfWork).registerEntity(any(QualityReport.class));
+        verify(unitOfWork).saveChanges();
     }
     
     @Test
@@ -111,17 +116,20 @@ class ValidateBatchQualityCommandHandlerTest {
             0
         );
         
-        when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(true);
+        QualityReport existing = QualityReport.createForBatch(testBatchId, testBankId);
+        existing.setStatus(QualityStatus.COMPLETED);
+        when(qualityReportRepository.findByBatchId(testBatchId)).thenReturn(Optional.of(existing));
         
         // Act
         Result<Void> result = handler.handle(command);
         
         // Assert
         assertTrue(result.isSuccess());
-        verify(qualityReportRepository).existsByBatchId(testBatchId);
+        verify(qualityReportRepository).findByBatchId(testBatchId);
         verify(qualityReportRepository, never()).save(any());
         verify(s3StorageService, never()).downloadExposures(anyString());
-        verify(eventBus, never()).publish(any());
+        verify(unitOfWork, never()).registerEntity(any());
+        verify(unitOfWork, never()).saveChanges();
     }
     
     @Test
@@ -135,7 +143,7 @@ class ValidateBatchQualityCommandHandlerTest {
             0
         );
         
-        when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(false);
+        when(qualityReportRepository.findByBatchId(testBatchId)).thenReturn(Optional.empty());
         when(qualityReportRepository.save(any(QualityReport.class)))
             .thenAnswer(invocation -> Result.success(invocation.getArgument(0)));
         when(s3StorageService.downloadExposures(testS3Uri))
@@ -149,7 +157,8 @@ class ValidateBatchQualityCommandHandlerTest {
         assertTrue(result.isFailure());
         assertEquals("S3_DOWNLOAD_ERROR", result.getError().map(e -> e.getCode()).orElse(null));
         verify(s3StorageService).downloadExposures(testS3Uri);
-        verify(eventBus).publish(any(BatchQualityFailedEvent.class));
+        verify(unitOfWork).registerEntity(any(QualityReport.class));
+        verify(unitOfWork).saveChanges();
     }
     
     @Test
@@ -165,7 +174,7 @@ class ValidateBatchQualityCommandHandlerTest {
         
         List<ExposureRecord> exposures = createTestExposures(5);
         
-        when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(false);
+        when(qualityReportRepository.findByBatchId(testBatchId)).thenReturn(Optional.empty());
         when(qualityReportRepository.save(any(QualityReport.class)))
             .thenAnswer(invocation -> Result.success(invocation.getArgument(0)));
         when(s3StorageService.downloadExposures(testS3Uri))
@@ -180,7 +189,8 @@ class ValidateBatchQualityCommandHandlerTest {
         // Assert
         assertTrue(result.isFailure());
         assertEquals("S3_STORAGE_ERROR", result.getError().map(e -> e.getCode()).orElse(null));
-        verify(eventBus).publish(any(BatchQualityFailedEvent.class));
+        verify(unitOfWork).registerEntity(any(QualityReport.class));
+        verify(unitOfWork).saveChanges();
     }
     
     @Test
@@ -194,7 +204,7 @@ class ValidateBatchQualityCommandHandlerTest {
             0
         );
         
-        when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(false);
+        when(qualityReportRepository.findByBatchId(testBatchId)).thenReturn(Optional.empty());
         when(qualityReportRepository.save(any(QualityReport.class)))
             .thenReturn(Result.failure("SAVE_ERROR", ErrorType.SYSTEM_ERROR, 
                 "Failed to save report", "repository.save"));
@@ -221,7 +231,7 @@ class ValidateBatchQualityCommandHandlerTest {
         List<ExposureRecord> exposures = createTestExposures(20);
         S3Reference s3Reference = S3Reference.of("bucket", "results/report.json", "v1");
         
-        when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(false);
+        when(qualityReportRepository.findByBatchId(testBatchId)).thenReturn(Optional.empty());
         when(qualityReportRepository.save(any(QualityReport.class)))
             .thenAnswer(invocation -> Result.success(invocation.getArgument(0)));
         when(s3StorageService.downloadExposures(eq(testS3Uri), eq(20)))
@@ -251,7 +261,7 @@ class ValidateBatchQualityCommandHandlerTest {
         List<ExposureRecord> exposures = createTestExposures(15);
         S3Reference s3Reference = S3Reference.of("bucket", "results/report.json", "v1");
         
-        when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(false);
+        when(qualityReportRepository.findByBatchId(testBatchId)).thenReturn(Optional.empty());
         when(qualityReportRepository.save(any(QualityReport.class)))
             .thenAnswer(invocation -> Result.success(invocation.getArgument(0)));
         when(s3StorageService.downloadExposures(testS3Uri))
@@ -269,8 +279,8 @@ class ValidateBatchQualityCommandHandlerTest {
     }
     
     @Test
-    @DisplayName("Should publish BatchQualityCompletedEvent with correct data")
-    void shouldPublishCompletedEventWithCorrectData() {
+    @DisplayName("Should persist domain events via UnitOfWork on success")
+    void shouldPersistDomainEventsViaUnitOfWorkOnSuccess() {
         // Arrange
         ValidateBatchQualityCommand command = ValidateBatchQualityCommand.of(
             testBatchId,
@@ -282,7 +292,7 @@ class ValidateBatchQualityCommandHandlerTest {
         List<ExposureRecord> exposures = createTestExposures(10);
         S3Reference s3Reference = S3Reference.of("bucket", "results/report.json", "v1");
         
-        when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(false);
+        when(qualityReportRepository.findByBatchId(testBatchId)).thenReturn(Optional.empty());
         when(qualityReportRepository.save(any(QualityReport.class)))
             .thenAnswer(invocation -> Result.success(invocation.getArgument(0)));
         when(s3StorageService.downloadExposures(testS3Uri))
@@ -290,25 +300,18 @@ class ValidateBatchQualityCommandHandlerTest {
         when(s3StorageService.storeDetailedResults(eq(testBatchId), any(ValidationResult.class), anyMap()))
             .thenReturn(Result.success(s3Reference));
         
-        ArgumentCaptor<BatchQualityCompletedEvent> eventCaptor = 
-            ArgumentCaptor.forClass(BatchQualityCompletedEvent.class);
-        
         // Act
         Result<Void> result = handler.handle(command);
         
         // Assert
         assertTrue(result.isSuccess());
-        verify(eventBus).publish(eventCaptor.capture());
-        
-        BatchQualityCompletedEvent event = eventCaptor.getValue();
-        assertEquals(testBatchId, event.getBatchId());
-        assertEquals(testBankId, event.getBankId());
-        assertNotNull(event.getQualityScores());
+        verify(unitOfWork).registerEntity(any(QualityReport.class));
+        verify(unitOfWork).saveChanges();
     }
     
     @Test
-    @DisplayName("Should publish BatchQualityFailedEvent on validation failure")
-    void shouldPublishFailedEventOnValidationFailure() {
+    @DisplayName("Should persist domain events via UnitOfWork on failure")
+    void shouldPersistDomainEventsViaUnitOfWorkOnFailure() {
         // Arrange
         ValidateBatchQualityCommand command = ValidateBatchQualityCommand.of(
             testBatchId,
@@ -317,27 +320,20 @@ class ValidateBatchQualityCommandHandlerTest {
             0
         );
         
-        when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(false);
+        when(qualityReportRepository.findByBatchId(testBatchId)).thenReturn(Optional.empty());
         when(qualityReportRepository.save(any(QualityReport.class)))
             .thenAnswer(invocation -> Result.success(invocation.getArgument(0)));
         when(s3StorageService.downloadExposures(testS3Uri))
             .thenReturn(Result.failure("DOWNLOAD_ERROR", ErrorType.SYSTEM_ERROR, 
                 "Download failed", "s3.download"));
         
-        ArgumentCaptor<BatchQualityFailedEvent> eventCaptor = 
-            ArgumentCaptor.forClass(BatchQualityFailedEvent.class);
-        
         // Act
         Result<Void> result = handler.handle(command);
         
         // Assert
         assertTrue(result.isFailure());
-        verify(eventBus).publish(eventCaptor.capture());
-        
-        BatchQualityFailedEvent event = eventCaptor.getValue();
-        assertEquals(testBatchId, event.getBatchId());
-        assertEquals(testBankId, event.getBankId());
-        assertNotNull(event.getErrorMessage());
+        verify(unitOfWork).registerEntity(any(QualityReport.class));
+        verify(unitOfWork).saveChanges();
     }
     
     @Test
@@ -355,7 +351,7 @@ class ValidateBatchQualityCommandHandlerTest {
         
         S3Reference s3Reference = S3Reference.of("bucket", "results/report.json", "v1");
         
-        when(qualityReportRepository.existsByBatchId(testBatchId)).thenReturn(false);
+        when(qualityReportRepository.findByBatchId(testBatchId)).thenReturn(Optional.empty());
         when(qualityReportRepository.save(any(QualityReport.class)))
             .thenAnswer(invocation -> Result.success(invocation.getArgument(0)));
         when(s3StorageService.downloadExposures(testS3Uri))
@@ -368,7 +364,8 @@ class ValidateBatchQualityCommandHandlerTest {
         
         // Assert
         assertTrue(result.isSuccess(), "Empty exposure list should be handled successfully with score of 0");
-        verify(eventBus).publish(any(BatchQualityCompletedEvent.class));
+        verify(unitOfWork).registerEntity(any(QualityReport.class));
+        verify(unitOfWork).saveChanges();
     }
     
     // Helper methods
