@@ -52,6 +52,9 @@ public class S3ReportStorageService implements IReportStorageService {
     
     @Value("${report-generation.s3.xbrl-prefix:reports/xbrl/}")
     private String xbrlPrefix;
+
+    @Value("${report-generation.s3.enabled:true}")
+    private boolean s3Enabled;
     
     @Value("${report-generation.fallback.local-path:./data/deferred-reports/}")
     private String localFallbackPath;
@@ -76,6 +79,11 @@ public class S3ReportStorageService implements IReportStorageService {
     @CircuitBreaker(name = "s3-upload", fallbackMethod = "uploadHtmlToLocalFallback")
     @Override
     public UploadResult uploadHtmlReport(String htmlContent, String fileName, Map<String, String> metadata) {
+        if (!s3Enabled) {
+            log.info("S3 upload disabled - saving HTML report locally [fileName:{}]", fileName);
+            return uploadToLocalFallback(htmlContent, fileName, "html", new IllegalStateException("S3 upload disabled"));
+        }
+
         log.info("Uploading HTML report to S3 [fileName:{},bucket:{}]", fileName, bucketName);
         
         try {
@@ -117,6 +125,18 @@ public class S3ReportStorageService implements IReportStorageService {
     @CircuitBreaker(name = "s3-upload", fallbackMethod = "uploadXbrlToLocalFallback")
     @Override
     public UploadResult uploadXbrlReport(Document xbrlDocument, String fileName, Map<String, String> metadata) {
+        if (!s3Enabled) {
+            log.info("S3 upload disabled - saving XBRL report locally [fileName:{}]", fileName);
+            try {
+                String xmlContent = documentToString(xbrlDocument);
+                return uploadToLocalFallback(xmlContent, fileName, "xbrl", new IllegalStateException("S3 upload disabled"));
+            } catch (Exception e) {
+                log.error("Failed to convert XBRL document to string for local save [fileName:{},error:{}]",
+                        fileName, e.getMessage(), e);
+                throw new RuntimeException("Failed to save XBRL to local fallback", e);
+            }
+        }
+
         log.info("Uploading XBRL report to S3 [fileName:{},bucket:{}]", fileName, bucketName);
         
         try {

@@ -8,6 +8,8 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,6 +130,118 @@ public class QualityResults {
             .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
             .limit(limit)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Number of invalid exposures (total - valid).
+     */
+    public int getInvalidExposures() {
+        if (totalExposures == null || validExposures == null) {
+            return 0;
+        }
+        return Math.max(0, totalExposures - validExposures);
+    }
+
+    /**
+     * Validation rate in percent (0-100).
+     */
+    public BigDecimal getValidationRatePercent() {
+        if (totalExposures == null || totalExposures <= 0 || validExposures == null) {
+            return BigDecimal.ZERO;
+        }
+        return BigDecimal.valueOf(validExposures)
+            .multiply(BigDecimal.valueOf(100))
+            .divide(BigDecimal.valueOf(totalExposures), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Invalid exposure rate in percent (0-100).
+     */
+    public BigDecimal getInvalidRatePercent() {
+        if (totalExposures == null || totalExposures <= 0) {
+            return BigDecimal.ZERO;
+        }
+        return BigDecimal.valueOf(getInvalidExposures())
+            .multiply(BigDecimal.valueOf(100))
+            .divide(BigDecimal.valueOf(totalExposures), 2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Presentation model for the "Distribuzione Errori per Dimensione" cards.
+     */
+    public record ErrorDimensionCard(
+        String code,
+        String subtitle,
+        int count,
+        BigDecimal percentageOfTotal,
+        int widthPercent,
+        String theme
+    ) {}
+
+    /**
+     * Returns the top 3 dimensions by error count, including theme assignment matching the UI (red/orange/yellow).
+     *
+     * Note: If fewer than 3 dimensions have errors, remaining cards are filled with zero-count dimensions.
+     */
+    public List<ErrorDimensionCard> getTopErrorDimensionCards() {
+        Map<QualityDimension, ErrorDimensionSummary> distribution = getErrorDistributionByDimension();
+
+        List<QualityDimension> dimensions = new ArrayList<>(List.of(QualityDimension.values()));
+        dimensions.sort(Comparator.comparingInt((QualityDimension d) -> {
+            ErrorDimensionSummary summary = distribution.get(d);
+            return summary != null ? summary.getCount() : 0;
+        }).reversed());
+
+        List<QualityDimension> top3 = dimensions.stream().limit(3).collect(Collectors.toList());
+
+        int maxCount = top3.stream()
+            .mapToInt(d -> {
+                ErrorDimensionSummary summary = distribution.get(d);
+                return summary != null ? summary.getCount() : 0;
+            })
+            .max()
+            .orElse(0);
+
+        List<String> themes = List.of("red", "orange", "yellow");
+        List<ErrorDimensionCard> cards = new ArrayList<>();
+
+        for (int i = 0; i < top3.size(); i++) {
+            QualityDimension dim = top3.get(i);
+            ErrorDimensionSummary summary = distribution.get(dim);
+            int count = summary != null ? summary.getCount() : 0;
+
+            BigDecimal pct = BigDecimal.ZERO;
+            if (totalErrors != null && totalErrors > 0) {
+                pct = BigDecimal.valueOf(count)
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(BigDecimal.valueOf(totalErrors), 2, RoundingMode.HALF_UP);
+            }
+
+            int width = 0;
+            if (maxCount > 0) {
+                width = (int) Math.round((count * 100.0) / maxCount);
+            }
+
+            String subtitle;
+            if (count == 0) {
+                subtitle = "Nessun errore rilevato";
+            } else if (count == maxCount) {
+                subtitle = "Dimensione più problematica";
+            } else {
+                subtitle = "Criticità rilevate";
+            }
+
+            cards.add(new ErrorDimensionCard(
+                dim.name(),
+                subtitle,
+                count,
+                pct,
+                Math.max(0, Math.min(100, width)),
+                themes.get(i)
+            ));
+        }
+
+        return cards;
     }
 
     /**

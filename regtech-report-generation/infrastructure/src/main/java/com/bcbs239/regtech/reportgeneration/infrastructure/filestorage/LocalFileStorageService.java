@@ -48,6 +48,9 @@ public class LocalFileStorageService {
     
     @Value("${report-generation.fallback.max-retry-attempts:5}")
     private int maxRetryAttempts;
+
+    @Value("${report-generation.s3.enabled:true}")
+    private boolean s3Enabled;
     
     /**
      * Save HTML content to local filesystem for deferred upload.
@@ -110,6 +113,11 @@ public class LocalFileStorageService {
     @Scheduled(fixedDelayString = "${report-generation.fallback.retry-interval-minutes:30}000", 
                initialDelayString = "${report-generation.fallback.retry-interval-minutes:30}000")
     public void retryDeferredUploads() {
+        if (!s3Enabled) {
+            log.debug("S3 upload disabled - skipping deferred upload retry job");
+            return;
+        }
+
         log.info("Starting deferred upload retry job [fallbackPath:{}]", localFallbackPath);
         
         try {

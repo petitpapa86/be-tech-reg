@@ -161,6 +161,10 @@ report-generation:
   # Use development S3 bucket (Requirement 3.3, 3.4)
   s3:
     bucket: risk-analysis-dev
+    enabled: false
+
+  fallback:
+    local-path: ./data/deferred-reports/
   
   # Use local filesystem for data retrieval in development
   file-paths:
