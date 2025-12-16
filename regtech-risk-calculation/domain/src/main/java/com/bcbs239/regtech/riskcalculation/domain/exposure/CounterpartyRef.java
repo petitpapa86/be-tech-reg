@@ -13,8 +13,6 @@ public record CounterpartyRef(
     String name,
     Optional<String> leiCode
 ) {
-
-    private static final String LEI_PATTERN = "^[A-Za-z0-9]{20}$";
     
     public CounterpartyRef {
         Objects.requireNonNull(counterpartyId, "Counterparty ID cannot be null");
@@ -26,16 +24,6 @@ public record CounterpartyRef(
         }
         if (name.trim().isEmpty()) {
             throw new IllegalArgumentException("Counterparty name cannot be empty");
-        }
-
-        // If provided, LEI must be exactly 20 alphanumeric characters.
-        leiCode = leiCode
-            .map(String::trim)
-            .filter(v -> !v.isEmpty())
-            .map(String::toUpperCase);
-
-        if (leiCode.isPresent() && !leiCode.get().matches(LEI_PATTERN)) {
-            throw new IllegalArgumentException("LEI code must be exactly 20 alphanumeric characters");
         }
     }
     

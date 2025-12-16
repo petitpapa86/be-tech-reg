@@ -15,8 +15,7 @@ public record BankInfo(
 ) {
 
     private static final int MAX_ABI_CODE_LENGTH = 10;
-    private static final int MAX_LEI_CODE_LENGTH = 20;
-    private static final String LEI_PATTERN = "^[A-Za-z0-9]{20}$";
+    private static final int MAX_LEI_CODE_LENGTH = 50;
     
     public BankInfo {
         Objects.requireNonNull(bankName, "Bank name cannot be null");
@@ -38,17 +37,19 @@ public record BankInfo(
         }
 
         // Defensive validation: keep persisted representations within DB constraints.
-        // (Some modules store abi_code VARCHAR(10) and lei_code VARCHAR(20).)
+        // (Some modules store abi_code VARCHAR(10) and lei_code VARCHAR(50).)
         if (abiCode.trim().length() > MAX_ABI_CODE_LENGTH) {
             throw new IllegalArgumentException(
                 "ABI code must be at most " + MAX_ABI_CODE_LENGTH + " characters"
             );
         }
 
-        // LEI format: exactly 20 alphanumeric characters.
-        // (Enforced here to prevent downstream DB failures and keep value consistent across modules.)
-        if (leiCode.length() != MAX_LEI_CODE_LENGTH || !leiCode.matches(LEI_PATTERN)) {
-            throw new IllegalArgumentException("LEI code must be exactly 20 alphanumeric characters");
+        // LEI format validation is handled by data-quality rules (e.g. "Valid LEI Format").
+        // Here we only enforce a max length to avoid DB overflow.
+        if (leiCode.length() > MAX_LEI_CODE_LENGTH) {
+            throw new IllegalArgumentException(
+                "LEI code must be at most " + MAX_LEI_CODE_LENGTH + " characters"
+            );
         }
     }
     

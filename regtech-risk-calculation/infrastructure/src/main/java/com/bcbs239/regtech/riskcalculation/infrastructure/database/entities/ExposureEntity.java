@@ -41,7 +41,7 @@ public class ExposureEntity {
     @Column(name = "counterparty_name", nullable = false, length = 255)
     private String counterpartyName;
     
-    @Column(name = "counterparty_lei", length = 20)
+    @Column(name = "counterparty_lei", length = 50)
     private String counterpartyLei;
     
     // Monetary amounts

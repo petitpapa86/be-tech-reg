@@ -33,7 +33,7 @@ public class BatchEntity {
     @Column(name = "abi_code", nullable = false, length = 10)
     private String abiCode;
     
-    @Column(name = "lei_code", nullable = false, length = 20)
+    @Column(name = "lei_code", nullable = false, length = 50)
     private String leiCode;
     
     @Column(name = "report_date", nullable = false)
