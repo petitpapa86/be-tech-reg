@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.dataquality.rulesengine.evaluator;
+package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator;
 
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 

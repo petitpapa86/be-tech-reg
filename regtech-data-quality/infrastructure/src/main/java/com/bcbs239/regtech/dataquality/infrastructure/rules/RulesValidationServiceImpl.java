@@ -169,27 +169,27 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
         Map<String, Object> data = new HashMap<>();
         
         // Map exposure fields to context.
-        // Keep ONE canonical key per field. SpEL evaluator resolves snake_case/camelCase aliases.
-        data.put("exposure_id", exposure.exposureId());
+        // Performance note: keep ONE canonical key per field (no aliasing / normalization).
+        data.put("exposureId", exposure.exposureId());
         data.put("amount", exposure.amount());
         data.put("currency", exposure.currency());
         data.put("country", exposure.country());
         data.put("sector", exposure.sector());
-        data.put("counterparty_id", exposure.counterpartyId());
-        data.put("counterparty_type", exposure.counterpartyType());
-        data.put("lei_code", exposure.leiCode());
-        data.put("product_type", exposure.productType());
-        data.put("internal_rating", exposure.internalRating());
-        data.put("risk_category", exposure.riskCategory());
-        data.put("risk_weight", exposure.riskWeight());
-        data.put("reporting_date", exposure.reportingDate());
-        data.put("valuation_date", exposure.valuationDate());
-        data.put("maturity_date", exposure.maturityDate());
-        data.put("reference_number", exposure.referenceNumber());
+        data.put("counterpartyId", exposure.counterpartyId());
+        data.put("counterpartyType", exposure.counterpartyType());
+        data.put("leiCode", exposure.leiCode());
+        data.put("productType", exposure.productType());
+        data.put("internalRating", exposure.internalRating());
+        data.put("riskCategory", exposure.riskCategory());
+        data.put("riskWeight", exposure.riskWeight());
+        data.put("reportingDate", exposure.reportingDate());
+        data.put("valuationDate", exposure.valuationDate());
+        data.put("maturityDate", exposure.maturityDate());
+        data.put("referenceNumber", exposure.referenceNumber());
         
         // Add helper flags
-        data.put("is_corporate_exposure", exposure.isCorporateExposure());
-        data.put("is_term_exposure", exposure.isTermExposure());
+        data.put("isCorporateExposure", exposure.isCorporateExposure());
+        data.put("isTermExposure", exposure.isTermExposure());
         
         // Add entity metadata for exemption checking
         data.put("entity_type", "EXPOSURE");

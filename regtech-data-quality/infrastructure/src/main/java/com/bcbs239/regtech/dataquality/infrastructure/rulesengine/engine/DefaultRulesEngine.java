@@ -5,14 +5,12 @@ import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleE
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleParameterEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
-import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluationException;
-import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluator;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluationException;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
@@ -314,7 +312,7 @@ public class DefaultRulesEngine implements RulesEngine {
             entityType = "EXPOSURE";
         }
         if (entityId == null) {
-            entityId = context.get("exposure_id", String.class);
+            entityId = context.get("exposureId", String.class);
         }
         
         // Use sanitized context to avoid JSONB serialization issues
@@ -387,9 +385,9 @@ public class DefaultRulesEngine implements RulesEngine {
         
         // Include only essential fields that are safe to serialize
         String[] essentialFields = {
-            "entity_type", "entity_id", "exposure_id", "counterparty_id",
-            "amount", "currency", "country", "product_type", "lei_code",
-            "reference_number", "is_corporate_exposure", "is_term_exposure"
+            "entity_type", "entity_id", "exposureId", "counterpartyId",
+            "amount", "currency", "country", "productType", "leiCode",
+            "referenceNumber", "isCorporateExposure", "isTermExposure"
         };
         
         for (String field : essentialFields) {

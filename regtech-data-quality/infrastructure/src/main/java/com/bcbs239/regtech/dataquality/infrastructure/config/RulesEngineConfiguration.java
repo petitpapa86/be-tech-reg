@@ -5,7 +5,7 @@ import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.Default
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
-import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluator;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

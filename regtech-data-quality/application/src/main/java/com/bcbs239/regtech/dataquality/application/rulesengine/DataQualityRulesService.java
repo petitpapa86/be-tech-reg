@@ -450,27 +450,27 @@ public class DataQualityRulesService {
         Map<String, Object> data = new HashMap<>();
         
         // Map exposure fields to context.
-        // Keep ONE canonical key per field. SpEL evaluator resolves snake_case/camelCase aliases.
-        putIfNotNull(data, "exposure_id", exposure.exposureId());
+        // Performance note: keep ONE canonical key per field (no aliasing / normalization).
+        putIfNotNull(data, "exposureId", exposure.exposureId());
         putIfNotNull(data, "amount", exposure.amount());
         putIfNotNull(data, "currency", exposure.currency());
         putIfNotNull(data, "country", exposure.country());
         putIfNotNull(data, "sector", exposure.sector());
-        putIfNotNull(data, "counterparty_id", exposure.counterpartyId());
-        putIfNotNull(data, "counterparty_type", exposure.counterpartyType());
-        putIfNotNull(data, "lei_code", exposure.leiCode());
-        putIfNotNull(data, "product_type", exposure.productType());
-        putIfNotNull(data, "internal_rating", exposure.internalRating());
-        putIfNotNull(data, "risk_category", exposure.riskCategory());
-        putIfNotNull(data, "risk_weight", exposure.riskWeight());
-        putIfNotNull(data, "reporting_date", exposure.reportingDate());
-        putIfNotNull(data, "valuation_date", exposure.valuationDate());
-        putIfNotNull(data, "maturity_date", exposure.maturityDate());
-        putIfNotNull(data, "reference_number", exposure.referenceNumber());
+        putIfNotNull(data, "counterpartyId", exposure.counterpartyId());
+        putIfNotNull(data, "counterpartyType", exposure.counterpartyType());
+        putIfNotNull(data, "leiCode", exposure.leiCode());
+        putIfNotNull(data, "productType", exposure.productType());
+        putIfNotNull(data, "internalRating", exposure.internalRating());
+        putIfNotNull(data, "riskCategory", exposure.riskCategory());
+        putIfNotNull(data, "riskWeight", exposure.riskWeight());
+        putIfNotNull(data, "reportingDate", exposure.reportingDate());
+        putIfNotNull(data, "valuationDate", exposure.valuationDate());
+        putIfNotNull(data, "maturityDate", exposure.maturityDate());
+        putIfNotNull(data, "referenceNumber", exposure.referenceNumber());
         
         // Add helper flags
-        data.put("is_corporate_exposure", exposure.isCorporateExposure());
-        data.put("is_term_exposure", exposure.isTermExposure());
+        data.put("isCorporateExposure", exposure.isCorporateExposure());
+        data.put("isTermExposure", exposure.isTermExposure());
         
         // Add entity metadata for exemption checking
         data.put("entity_type", "EXPOSURE");

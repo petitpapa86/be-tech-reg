@@ -403,34 +403,12 @@ public class S3StorageServiceImpl implements S3StorageService {
      * Parse a single exposure record from JSON node.
      */
     private ExposureRecord parseExposureRecord(JsonNode node) {
-        // Support both field naming conventions (camelCase and snake_case)
+        // Require canonical camelCase field names for performance.
         String exposureId = getTextValue(node, "exposureId");
-        if (exposureId == null || exposureId.isEmpty()) {
-            exposureId = getTextValue(node, "exposure_id");
-        }
-        
         String counterpartyId = getTextValue(node, "counterpartyId");
-        if (counterpartyId == null || counterpartyId.isEmpty()) {
-            counterpartyId = getTextValue(node, "borrower_id");
-        }
-        
         String leiCode = getTextValue(node, "leiCode");
-        if (leiCode == null || leiCode.isEmpty()) {
-            leiCode = getTextValue(node, "counterparty_lei");
-        }
-        
         String country = getTextValue(node, "country");
-        if (country == null || country.isEmpty()) {
-            country = getTextValue(node, "country_code");
-            if (country == null || country.isEmpty()) {
-                country = getTextValue(node, "borrower_country");
-            }
-        }
-        
         String productType = getTextValue(node, "productType");
-        if (productType == null || productType.isEmpty()) {
-            productType = getTextValue(node, "loan_type");
-        }
         
         // Try to get amount from various fields
         java.math.BigDecimal amount = null;

@@ -128,11 +128,11 @@ public class LocalStorageServiceImpl implements S3StorageService {
     }
 
     private ExposureRecord parseExposureRecord(JsonNode node) {
-        String exposureId = getTextValue(node, "exposureId", "exposure_id");
-        String counterpartyId = getTextValue(node, "counterpartyId", "borrower_id");
-        String leiCode = getTextValue(node, "leiCode", "counterparty_lei");
-        String country = getTextValue(node, "country", "country_code", "borrower_country");
-        String productType = getTextValue(node, "productType", "loan_type");
+        String exposureId = getTextValue(node, "exposureId");
+        String counterpartyId = getTextValue(node, "counterpartyId");
+        String leiCode = getTextValue(node, "leiCode");
+        String country = getTextValue(node, "country");
+        String productType = getTextValue(node, "productType");
         
         java.math.BigDecimal amount = null;
         if (node.has("amount")) {
