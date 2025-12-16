@@ -52,8 +52,7 @@ public class RulesEngineConfiguration {
      * </ul>
      * 
      * @param ruleRepository Repository for loading rules
-     * @param executionLogRepository Repository for logging executions
-     * @param violationRepository Repository for storing violations
+         * @param auditPersistenceService Persists execution logs/violations in isolated transactions
      * @param expressionEvaluator Evaluator for SpEL expressions
      * @param properties Data quality configuration properties
      * @return Configured RulesEngine instance
@@ -61,8 +60,7 @@ public class RulesEngineConfiguration {
     @Bean
     public RulesEngine rulesEngine(
             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository ruleRepository,
-            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository executionLogRepository,
-            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository violationRepository,
+             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.RulesEngineAuditPersistenceService auditPersistenceService,
             ExpressionEvaluator expressionEvaluator,
             DataQualityProperties properties) {
         
@@ -75,8 +73,7 @@ public class RulesEngineConfiguration {
         
         return new DefaultRulesEngine(
             ruleRepository,
-            executionLogRepository,
-            violationRepository,
+            auditPersistenceService,
             expressionEvaluator,
             cacheEnabled,
             cacheTtl

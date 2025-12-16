@@ -284,7 +284,7 @@ class CalculateRiskMetricsCommandHandlerTest {
                   "bank_info": {
                     "bank_name": "Test Bank",
                     "abi_code": "12345",
-                    "lei_code": "LEI123",
+                                                                                "lei_code": "LEI12345678901234567",
                     "report_date": "2024-09-12",
                     "total_exposures": 0
                   },

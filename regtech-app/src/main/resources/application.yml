@@ -67,6 +67,28 @@ spring:
     driver-class-name: org.postgresql.Driver
     username: ${DB_USERNAME:myuser}
     password: ${DB_PASSWORD:secret}
+
+    # Connection pool (HikariCP)
+    # Spring Boot uses HikariCP by default when it's on the classpath; these settings make it explicit and tunable.
+    hikari:
+      pool-name: regtech-hikari
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:20}
+      minimum-idle: ${DB_POOL_MIN_IDLE:5}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:30000}
+      validation-timeout: ${DB_POOL_VALIDATION_TIMEOUT_MS:5000}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:600000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
+      register-mbeans: true
+
+      # Optional diagnostics / "GC"-style housekeeping:
+      # - leak-detection-threshold: logs a warning if a connection is not returned in time (0 disables).
+      # - keepalive-time: helps keep NAT/proxies from killing idle connections (0 disables).
+      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:0}
+      keepalive-time: ${DB_POOL_KEEPALIVE_MS:0}
+      data-source-properties:
+        # Improves JDBC batching behavior for PostgreSQL.
+        reWriteBatchedInserts: true
+        ApplicationName: regtech
   
   jpa:
     hibernate:

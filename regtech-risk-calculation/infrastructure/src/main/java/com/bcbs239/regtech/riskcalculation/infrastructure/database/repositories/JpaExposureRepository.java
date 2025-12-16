@@ -169,7 +169,7 @@ public class JpaExposureRepository implements ExposureRepository {
             CounterpartyRef.of(
                 "UNKNOWN", // Counterparty ID not in JSON
                 "Unknown Counterparty", // Counterparty name not in JSON
-                "UNKNOWN" // LEI not in JSON
+                "UNKNOWN0000000000000" // LEI not in JSON (20 alphanumeric chars)
             ),
             MonetaryAmount.of(grossExposureEur, "EUR"), // JSON stores EUR amounts
             ExposureClassification.of(

@@ -19,7 +19,12 @@ import java.util.Map;
 @Builder
 public class RuleViolationEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(
+        name = "rule_violations_violation_id_seq_gen",
+        sequenceName = "dataquality.rule_violations_violation_id_seq",
+        allocationSize = 20
+    )
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "rule_violations_violation_id_seq_gen")
     @Column(name = "violation_id")
     private Long violationId;
     

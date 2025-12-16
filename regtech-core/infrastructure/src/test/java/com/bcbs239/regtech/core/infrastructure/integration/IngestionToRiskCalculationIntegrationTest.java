@@ -188,7 +188,7 @@ class IngestionToRiskCalculationIntegrationTest {
         );
 
         BatchDataDTO dto = new BatchDataDTO(
-            new BankInfoDTO("Bank", "123", "LEI123", LocalDate.parse("2024-01-01"), 1),
+            new BankInfoDTO("Bank", "123", "LEI12345678901234567", LocalDate.parse("2024-01-01"), 1),
             List.of(exposure),
             List.of()
         );

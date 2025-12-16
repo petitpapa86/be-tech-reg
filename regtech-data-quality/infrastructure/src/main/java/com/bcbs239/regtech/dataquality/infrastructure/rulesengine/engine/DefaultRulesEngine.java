@@ -48,8 +48,7 @@ public class DefaultRulesEngine implements RulesEngine {
     private static final Logger log = LoggerFactory.getLogger(DefaultRulesEngine.class);
     
     private final BusinessRuleRepository ruleRepository;
-    private final RuleExecutionLogRepository executionLogRepository;
-    private final RuleViolationRepository violationRepository;
+    private final RulesEngineAuditPersistenceService auditPersistenceService;
     private final ExpressionEvaluator expressionEvaluator;
     
     // Cache configuration
@@ -85,14 +84,12 @@ public class DefaultRulesEngine implements RulesEngine {
      */
     public DefaultRulesEngine(
             BusinessRuleRepository ruleRepository,
-            RuleExecutionLogRepository executionLogRepository,
-            RuleViolationRepository violationRepository,
+            RulesEngineAuditPersistenceService auditPersistenceService,
             ExpressionEvaluator expressionEvaluator,
             boolean cacheEnabled,
             int cacheTtlSeconds) {
         this.ruleRepository = ruleRepository;
-        this.executionLogRepository = executionLogRepository;
-        this.violationRepository = violationRepository;
+        this.auditPersistenceService = auditPersistenceService;
         this.expressionEvaluator = expressionEvaluator;
         this.cacheEnabled = cacheEnabled;
         this.cacheTtlSeconds = cacheTtlSeconds;
@@ -141,12 +138,17 @@ public class DefaultRulesEngine implements RulesEngine {
                 
                 // Create violation with execution ID (if logging succeeded)
                 RuleViolationEntity violation = createViolation(rule, context);
-                if (execLog != null) {
-                    violation.setExecutionId(execLog.getExecutionId());
+                if (execLog == null) {
+                    // Execution logging is best-effort. If it failed, don't block rule execution
+                    // by attempting to persist a violation with a missing foreign key.
+                    RuleViolation domainViolation = toDomainViolation(violation);
+                    return RuleExecutionResult.failure(ruleId, List.of(domainViolation));
                 }
-                
-                // Save violation
-                violationRepository.save(violation);
+
+                violation.setExecutionId(execLog.getExecutionId());
+
+                // Save violation (best-effort, isolated transaction)
+                auditPersistenceService.saveViolationBestEffort(violation);
                 
                 // Convert to domain violation for result
                 RuleViolation domainViolation = toDomainViolation(violation);
@@ -372,16 +374,8 @@ public class DefaultRulesEngine implements RulesEngine {
             .contextData(sanitizedContext)
             .errorMessage(errorMessage)
             .build();
-        
-        try {
-            return executionLogRepository.save(ruleExecLog);
-        } catch (Exception e) {
-            log.warn("Failed to save rule execution log for rule {}: {}. Logging is best-effort, continuing execution.", 
-                rule.getRuleId(), e.getMessage());
-            // Don't retry - just log the failure and return null
-            // Rule execution should continue even if logging fails
-            return null;
-        }
+
+        return auditPersistenceService.saveExecutionLogBestEffort(ruleExecLog);
     }
     
     /**

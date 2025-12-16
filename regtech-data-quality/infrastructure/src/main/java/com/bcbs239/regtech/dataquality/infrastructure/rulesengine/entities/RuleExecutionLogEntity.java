@@ -18,7 +18,12 @@ import java.util.Map;
 @Builder
 public class RuleExecutionLogEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(
+        name = "rule_execution_log_execution_id_seq_gen",
+        sequenceName = "dataquality.rule_execution_log_execution_id_seq",
+        allocationSize = 20
+    )
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "rule_execution_log_execution_id_seq_gen")
     @Column(name = "execution_id")
     private Long executionId;
     

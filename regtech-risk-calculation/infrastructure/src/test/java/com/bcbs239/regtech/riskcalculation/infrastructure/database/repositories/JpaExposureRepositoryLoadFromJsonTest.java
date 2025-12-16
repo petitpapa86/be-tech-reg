@@ -50,7 +50,7 @@ class JpaExposureRepositoryLoadFromJsonTest {
               "bank_info": {
                 "bank_name": "Test Bank",
                 "abi_code": "12345",
-                "lei_code": "LEI123"
+                "lei_code": "LEI12345678901234567"
               },
               "summary": {
                 "total_exposures": 2,

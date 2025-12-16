@@ -76,7 +76,7 @@ public class BatchDataParsingService implements BatchDataParsing {
             return bankInfo;
         } else {
             log.warn("No bank_info found in batch data, using default");
-            return BankInfo.of("Unknown", "00000", "UNKNOWN");
+            return BankInfo.of("Unknown", "00000", "UNKNOWN0000000000000");
         }
     }
     

@@ -11,6 +11,7 @@ import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -133,6 +134,7 @@ public class DataQualityRulesService {
      * @param exposure The exposure record to validate
      * @return List of validation errors from rules engine
      */
+    @Transactional
     public List<ValidationError> validateConfigurableRules(ExposureRecord exposure) {
         long validationStartTime = System.currentTimeMillis();
         

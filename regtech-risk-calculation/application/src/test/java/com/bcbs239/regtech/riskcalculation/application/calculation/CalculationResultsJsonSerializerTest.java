@@ -65,7 +65,7 @@ class CalculationResultsJsonSerializerTest {
         assertThat(bankInfoNode).isNotNull();
         assertThat(bankInfoNode.get("bank_name").asText()).isEqualTo("Test Bank");
         assertThat(bankInfoNode.get("abi_code").asText()).isEqualTo("08081");
-        assertThat(bankInfoNode.get("lei_code").asText()).isEqualTo("LEI123456789");
+        assertThat(bankInfoNode.get("lei_code").asText()).isEqualTo("LEI12345678901234567");
         
         // Requirement 10.3: Verify summary section with totals and breakdowns
         JsonNode summaryNode = rootNode.get("summary");
@@ -115,7 +115,7 @@ class CalculationResultsJsonSerializerTest {
                 "bank_info": {
                     "bank_name": "Another Bank",
                     "abi_code": "08082",
-                    "lei_code": "LEI987654321"
+                    "lei_code": "LEI98765432109876543"
                 },
                 "summary": {
                     "total_exposures": 1,
@@ -150,7 +150,7 @@ class CalculationResultsJsonSerializerTest {
         assertThat(result.batchId()).isEqualTo("batch_test_002");
         assertThat(result.bankInfo().bankName()).isEqualTo("Another Bank");
         assertThat(result.bankInfo().abiCode()).isEqualTo("08082");
-        assertThat(result.bankInfo().leiCode()).isEqualTo("LEI987654321");
+        assertThat(result.bankInfo().leiCode()).isEqualTo("LEI98765432109876543");
         assertThat(result.calculatedExposures()).hasSize(1);
         assertThat(result.analysis()).isNotNull();
         assertThat(result.analysis().getTotalPortfolio().value()).isEqualByComparingTo("800000.0");
@@ -223,7 +223,7 @@ class CalculationResultsJsonSerializerTest {
     // Helper method to create sample calculation result
     private RiskCalculationResult createSampleCalculationResult() {
         String batchId = "batch_test_001";
-        BankInfo bankInfo = BankInfo.of("Test Bank", "08081", "LEI123456789");
+        BankInfo bankInfo = BankInfo.of("Test Bank", "08081", "LEI12345678901234567");
         
         // Create exposures
         List<ProtectedExposure> exposures = new ArrayList<>();
