@@ -458,6 +458,13 @@ regtech:
     timeout: 30000  # 30 seconds
     retry-attempts: 3
 
+  # Risk calculation configuration
+  risk-calculation:
+    processing:
+      # Cap in-flight exposure processing tasks. Keep this below DB_POOL_MAX_SIZE to avoid
+      # exhausting JDBC connections when other modules also use the pool.
+      max-in-flight: ${RISK_CALCULATION_MAX_IN_FLIGHT:8}
+
 # Inbox processing configuration (bound to InboxOptions)
 inbox:
   poll-interval: 5s  # Poll interval as a Spring Duration

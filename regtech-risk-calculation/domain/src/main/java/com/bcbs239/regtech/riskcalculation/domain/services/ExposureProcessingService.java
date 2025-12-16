@@ -40,6 +40,7 @@ public class ExposureProcessingService {
     
     private final ExchangeRateProvider exchangeRateProvider;
     private final ExposureClassifier exposureClassifier;
+    private final int maxInFlight;
     
     public ExposureProcessingService(
         ExchangeRateProvider exchangeRateProvider,
@@ -47,6 +48,23 @@ public class ExposureProcessingService {
     ) {
         this.exchangeRateProvider = exchangeRateProvider;
         this.exposureClassifier = exposureClassifier;
+        this.maxInFlight = defaultMaxInFlight();
+    }
+
+    public ExposureProcessingService(
+        ExchangeRateProvider exchangeRateProvider,
+        ExposureClassifier exposureClassifier,
+        int maxInFlight
+    ) {
+        this.exchangeRateProvider = exchangeRateProvider;
+        this.exposureClassifier = exposureClassifier;
+        this.maxInFlight = maxInFlight > 0 ? maxInFlight : defaultMaxInFlight();
+    }
+
+    private static int defaultMaxInFlight() {
+        // Keep a conservative default. This should be configured to stay below the JDBC pool size
+        // (and below any nested transactional work like best-effort auditing).
+        return Math.max(1, Math.min(Runtime.getRuntime().availableProcessors(), 8));
     }
     
     /**
@@ -76,8 +94,8 @@ public class ExposureProcessingService {
 
         // For large batches, process exposures concurrently.
         // Virtual threads keep memory usage reasonable while allowing bounded parallelism.
-        int maxInFlight = Math.max(1, Math.min(Runtime.getRuntime().availableProcessors() * 2, 32));
-        boolean useParallel = exposures.size() >= Math.max(2_000, maxInFlight * 8);
+        int boundedMaxInFlight = Math.max(1, this.maxInFlight);
+        boolean useParallel = exposures.size() >= Math.max(2_000, boundedMaxInFlight * 8);
 
         List<ProcessedExposure> processed;
         if (!useParallel) {
@@ -93,7 +111,7 @@ public class ExposureProcessingService {
                 int submitted = 0;
                 int completed = 0;
 
-                while (submitted - completed < maxInFlight && submitted < exposures.size()) {
+                while (submitted - completed < boundedMaxInFlight && submitted < exposures.size()) {
                     int index = submitted;
                     ExposureRecording exposure = exposures.get(index);
                     completion.submit(() -> new IndexedProcessedExposure(index, processExposure(exposure, mitigationsByExposure)));

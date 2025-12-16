@@ -9,6 +9,7 @@ import com.bcbs239.regtech.riskcalculation.infrastructure.external.CurrencyApiPr
 import com.bcbs239.regtech.riskcalculation.infrastructure.external.MockExchangeRateProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.context.annotation.Bean;
@@ -109,10 +110,11 @@ public class RiskCalculationConfiguration {
     @Bean
     public ExposureProcessingService exposureProcessingService(
             ExchangeRateProvider exchangeRateProvider,
-            ExposureClassifier exposureClassifier
+            ExposureClassifier exposureClassifier,
+            @Value("${regtech.risk-calculation.processing.max-in-flight:${RISK_CALCULATION_MAX_IN_FLIGHT:8}}") int maxInFlight
     ) {
         log.info("Creating ExposureProcessingService domain service");
-        return new ExposureProcessingService(exchangeRateProvider, exposureClassifier);
+        return new ExposureProcessingService(exchangeRateProvider, exposureClassifier, maxInFlight);
     }
 
     /**

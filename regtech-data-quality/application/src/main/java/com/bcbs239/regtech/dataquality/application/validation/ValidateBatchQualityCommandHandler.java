@@ -16,6 +16,7 @@ import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import io.micrometer.core.annotation.Timed;
@@ -63,17 +64,25 @@ public class ValidateBatchQualityCommandHandler {
     private final S3StorageService s3StorageService;
     private final DataQualityRulesService rulesService;
     private final BaseUnitOfWork unitOfWork;
+
+    private final int hikariMaxPoolSize;
+    private final int configuredMaxInFlight;
     
     public ValidateBatchQualityCommandHandler(
         IQualityReportRepository qualityReportRepository,
         S3StorageService s3StorageService,
         DataQualityRulesService rulesService,
-        BaseUnitOfWork unitOfWork
+        BaseUnitOfWork unitOfWork,
+        @Value("${spring.datasource.hikari.maximum-pool-size:20}") int hikariMaxPoolSize,
+        @Value("${dataquality.validation.max-in-flight:0}") int configuredMaxInFlight
     ) {
         this.qualityReportRepository = qualityReportRepository;
         this.s3StorageService = s3StorageService;
         this.rulesService = rulesService;
         this.unitOfWork = unitOfWork;
+
+        this.hikariMaxPoolSize = Math.max(1, hikariMaxPoolSize);
+        this.configuredMaxInFlight = Math.max(0, configuredMaxInFlight);
     }
     
     /**
@@ -166,8 +175,14 @@ public class ValidateBatchQualityCommandHandler {
         Map<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>(Math.max(16, exposures.size()));
 
         // For large batches, run exposure validations concurrently.
-        // Virtual threads keep memory usage reasonable while still allowing bounded parallelism.
-        int maxInFlight = Math.max(1, Math.min(Runtime.getRuntime().availableProcessors() * 2, 32));
+        // IMPORTANT: each validation can temporarily require *two* connections (outer validation TX + REQUIRES_NEW audit writes).
+        // If we allow too many in-flight tasks, Hikari will exhaust and we'll see JDBCConnectionException timeouts.
+        int cpuBoundMax = Math.max(1, Math.min(Runtime.getRuntime().availableProcessors() * 2, 32));
+        int requestedMaxInFlight = (configuredMaxInFlight > 0) ? configuredMaxInFlight : cpuBoundMax;
+        int reservedConnections = 2; // leave room for the handler TX + misc repository calls
+        int connectionBudgetForWorkers = Math.max(1, hikariMaxPoolSize - reservedConnections);
+        int safeMaxInFlightFromPool = Math.max(1, connectionBudgetForWorkers / 2);
+        int maxInFlight = Math.max(1, Math.min(requestedMaxInFlight, safeMaxInFlightFromPool));
         boolean useParallel = exposures.size() >= Math.max(1_000, maxInFlight * 4);
 
         if (!useParallel) {
@@ -176,7 +191,13 @@ public class ValidateBatchQualityCommandHandler {
                 exposureResults.put(exposure.exposureId(), result);
             }
         } else {
-            logger.debug("Validating {} exposures in parallel (virtual threads), maxInFlight={}", exposures.size(), maxInFlight);
+            logger.debug(
+                "Validating {} exposures in parallel (virtual threads), maxInFlight={} (hikariMaxPoolSize={}, configuredMaxInFlight={})",
+                exposures.size(),
+                maxInFlight,
+                hikariMaxPoolSize,
+                configuredMaxInFlight
+            );
 
             try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
                 var completion = new ExecutorCompletionService<ExposureValidationResult>(executor);
