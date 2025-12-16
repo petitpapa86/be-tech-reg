@@ -8,6 +8,6 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface SpringDataUserBankAssignmentRepository extends JpaRepository<UserBankAssignmentEntity, String> {
+public interface SpringDataUserBankAssignmentRepository extends JpaRepository<UserBankAssignmentEntity, UUID> {
     List<UserBankAssignmentEntity> findByUserId(UUID userId);
 }

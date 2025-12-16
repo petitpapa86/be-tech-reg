@@ -1,0 +1,1 @@
+{"totalExposures":1,"totalErrors":0,"batchErrors":[],"validExposures":1,"dimensionScores":{"timeliness":100.0,"uniqueness":100.0,"accuracy":100.0,"completeness":100.0,"validity":100.0,"consistency":100.0},"exposureResults":[{"isValid":true,"exposureId":"EXP_001_2024","errorCount":0}],"timestamp":"2025-12-16T22:20:32.517439800Z"}
