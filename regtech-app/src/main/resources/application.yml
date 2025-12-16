@@ -143,8 +143,6 @@ spring:
     baseline-on-migrate: true  # For existing databases with tables already created
     baseline-version: 0
     out-of-order: true  # Allow out-of-order migrations
-    validate-on-migrate: false  # Temporarily disable validation to clean up schema history
-    ignore-migration-patterns: "V1__Create_Inbox_Tables"  # Temporarily skip problematic migrations
     locations:
       - classpath:db/migration
       - classpath:db/migration/common

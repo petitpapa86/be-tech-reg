@@ -56,25 +56,25 @@ CREATE TABLE IF NOT EXISTS dataquality.quality_error_summaries (
 );
 
 -- Indexes for quality_reports
-CREATE INDEX idx_quality_reports_batch_id ON dataquality.quality_reports (batch_id);
-CREATE INDEX idx_quality_reports_bank_id ON dataquality.quality_reports (bank_id);
-CREATE INDEX idx_quality_reports_status ON dataquality.quality_reports (status);
-CREATE INDEX idx_quality_reports_bank_status ON dataquality.quality_reports (bank_id, status);
-CREATE INDEX idx_quality_reports_created_at ON dataquality.quality_reports (created_at);
-CREATE INDEX idx_quality_reports_overall_score ON dataquality.quality_reports (overall_score);
-CREATE INDEX idx_quality_reports_compliance_status ON dataquality.quality_reports (compliance_status);
+CREATE INDEX IF NOT EXISTS idx_quality_reports_batch_id ON dataquality.quality_reports (batch_id);
+CREATE INDEX IF NOT EXISTS idx_quality_reports_bank_id ON dataquality.quality_reports (bank_id);
+CREATE INDEX IF NOT EXISTS idx_quality_reports_status ON dataquality.quality_reports (status);
+CREATE INDEX IF NOT EXISTS idx_quality_reports_bank_status ON dataquality.quality_reports (bank_id, status);
+CREATE INDEX IF NOT EXISTS idx_quality_reports_created_at ON dataquality.quality_reports (created_at);
+CREATE INDEX IF NOT EXISTS idx_quality_reports_overall_score ON dataquality.quality_reports (overall_score);
+CREATE INDEX IF NOT EXISTS idx_quality_reports_compliance_status ON dataquality.quality_reports (compliance_status);
 
 -- Indexes for quality_error_summaries
-CREATE INDEX idx_error_summaries_batch_id ON dataquality.quality_error_summaries (batch_id);
-CREATE INDEX idx_error_summaries_batch_dimension ON dataquality.quality_error_summaries (batch_id, dimension);
-CREATE INDEX idx_error_summaries_batch_severity ON dataquality.quality_error_summaries (batch_id, severity);
-CREATE INDEX idx_error_summaries_rule_code ON dataquality.quality_error_summaries (rule_code);
-CREATE INDEX idx_error_summaries_dimension ON dataquality.quality_error_summaries (dimension);
-CREATE INDEX idx_error_summaries_severity ON dataquality.quality_error_summaries (severity);
-CREATE INDEX idx_error_summaries_bank_id ON dataquality.quality_error_summaries (bank_id);
-CREATE INDEX idx_error_summaries_bank_dimension ON dataquality.quality_error_summaries (bank_id, dimension);
-CREATE INDEX idx_error_summaries_created_at ON dataquality.quality_error_summaries (created_at);
-CREATE INDEX idx_error_summaries_error_count ON dataquality.quality_error_summaries (error_count);
+CREATE INDEX IF NOT EXISTS idx_error_summaries_batch_id ON dataquality.quality_error_summaries (batch_id);
+CREATE INDEX IF NOT EXISTS idx_error_summaries_batch_dimension ON dataquality.quality_error_summaries (batch_id, dimension);
+CREATE INDEX IF NOT EXISTS idx_error_summaries_batch_severity ON dataquality.quality_error_summaries (batch_id, severity);
+CREATE INDEX IF NOT EXISTS idx_error_summaries_rule_code ON dataquality.quality_error_summaries (rule_code);
+CREATE INDEX IF NOT EXISTS idx_error_summaries_dimension ON dataquality.quality_error_summaries (dimension);
+CREATE INDEX IF NOT EXISTS idx_error_summaries_severity ON dataquality.quality_error_summaries (severity);
+CREATE INDEX IF NOT EXISTS idx_error_summaries_bank_id ON dataquality.quality_error_summaries (bank_id);
+CREATE INDEX IF NOT EXISTS idx_error_summaries_bank_dimension ON dataquality.quality_error_summaries (bank_id, dimension);
+CREATE INDEX IF NOT EXISTS idx_error_summaries_created_at ON dataquality.quality_error_summaries (created_at);
+CREATE INDEX IF NOT EXISTS idx_error_summaries_error_count ON dataquality.quality_error_summaries (error_count);
 
 -- Comments for documentation
 COMMENT ON TABLE dataquality.quality_reports IS 'Quality validation reports for ingested batches';

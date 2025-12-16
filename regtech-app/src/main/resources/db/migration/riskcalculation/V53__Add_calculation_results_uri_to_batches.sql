@@ -4,10 +4,10 @@
 
 -- Add calculation_results_uri column to batches table
 ALTER TABLE riskcalculation.batches 
-ADD COLUMN calculation_results_uri VARCHAR(500);
+ADD COLUMN IF NOT EXISTS calculation_results_uri VARCHAR(500);
 
 -- Add index on calculation_results_uri for URI lookups
-CREATE INDEX idx_batches_results_uri 
+CREATE INDEX IF NOT EXISTS idx_batches_results_uri 
 ON riskcalculation.batches(calculation_results_uri);
 
 -- Add comment to document the column purpose

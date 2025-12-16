@@ -11,6 +11,11 @@
     <name>regtech-app</name>
     <description>Application orchestration module for Regtech</description>
 
+    <properties>
+        <!-- Default local DB (non-docker). Override with -Dflyway.url=... if needed. -->
+        <flyway.url>jdbc:postgresql://localhost:5432/regtech</flyway.url>
+    </properties>
+
     <dependencies>
         <!-- Domain Modules -->
         <dependency>
@@ -270,10 +275,13 @@
                 <artifactId>flyway-maven-plugin</artifactId>
                 <version>11.7.2</version>
                 <configuration>
-                    <url>jdbc:postgresql://localhost:5433/regtech</url>
+                    <!-- Local developer DB (non-docker): override via -Dflyway.url=... if needed -->
+                    <url>${flyway.url}</url>
                     <user>${DB_USERNAME}</user>
                     <password>${DB_PASSWORD}</password>
                     <cleanDisabled>false</cleanDisabled>
+                    <!-- Matches regtech-app Spring Boot config (application.yml) -->
+                    <outOfOrder>true</outOfOrder>
                     <schemas>
                         <schema>public</schema>
                         <schema>iam</schema>
@@ -284,7 +292,12 @@
                         <schema>reportgeneration</schema>
                     </schemas>
                     <locations>
+                        <!-- Consolidated migrations live under regtech-app/src/main/resources/db/migration/** -->
                         <location>filesystem:src/main/resources/db/migration</location>
+
+                        <!-- Keep only migrations that were historically applied from module services -->
+                        <location>filesystem:../regtech-core/infrastructure/src/main/resources/db/migration</location>
+                        <location>filesystem:../regtech-iam/infrastructure/src/main/resources/db/migration</location>
                     </locations>
                     <!-- No ignoreMigrationPatterns required (handled via migration renumbering) -->
                 </configuration>
