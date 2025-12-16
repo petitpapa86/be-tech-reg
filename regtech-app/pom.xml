@@ -286,6 +286,7 @@
                     <locations>
                         <location>filesystem:src/main/resources/db/migration</location>
                     </locations>
+                    <!-- No ignoreMigrationPatterns required (handled via migration renumbering) -->
                 </configuration>
                 <dependencies>
                     <dependency>
@@ -303,3 +304,5 @@
         </plugins>
     </build>
 </project>
+
+
