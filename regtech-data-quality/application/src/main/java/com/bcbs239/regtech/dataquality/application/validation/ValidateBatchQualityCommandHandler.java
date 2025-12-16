@@ -25,6 +25,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Command handler for validating batch quality using proper DDD approach.
@@ -81,7 +86,7 @@ public class ValidateBatchQualityCommandHandler {
         // Validate command parameters
         command.validate();
         
-        logger.info("Starting quality validation for batch {} from bank {}", 
+        logger.info("Quality validation started: batchId={}, bankId={}", 
             command.batchId().value(), command.bankId().value());
         
         // Check if report already exists and is completed (idempotency)
@@ -90,8 +95,8 @@ public class ValidateBatchQualityCommandHandler {
             QualityReport existing = existingReport.get();
             // Only skip if already completed or failed - let in-progress reports continue
             if (existing.getStatus().name().equals("COMPLETED") || existing.getStatus().name().equals("FAILED")) {
-                logger.info("Quality report already {} for batch {}, skipping", 
-                    existing.getStatus(), command.batchId().value());
+                logger.info("Quality validation skipped: batchId={}, status={}", 
+                    command.batchId().value(), existing.getStatus());
                 return Result.success();
             }
             logger.debug("Quality report exists but status is {}, will process", existing.getStatus());
@@ -119,14 +124,16 @@ public class ValidateBatchQualityCommandHandler {
             }
             report = saveResult.getValueOrThrow();
         } catch (Exception e) {
-            logger.warn("Exception during initial quality report creation for batch {}: {}", 
-                command.batchId().value(), e.getMessage());
             // Check if report was created by another thread despite the exception
             Optional<QualityReport> retryCheck = qualityReportRepository.findByBatchId(command.batchId());
             if (retryCheck.isPresent()) {
-                logger.debug("Report exists after exception, another thread succeeded for batch {}", command.batchId().value());
+                logger.debug("Quality report exists after exception during creation; assuming concurrent creation for batchId={}", 
+                    command.batchId().value());
                 return Result.success();
             }
+
+            logger.warn("Exception during initial quality report creation for batchId={}: {}", 
+                command.batchId().value(), e.getMessage());
             throw e;
         }
         
@@ -138,7 +145,7 @@ public class ValidateBatchQualityCommandHandler {
             : s3StorageService.downloadExposures(command.s3Uri());
         
         Result<List<ExposureRecord>> exposuresResult = downloadResult.map(exposures -> {
-            logger.info("Successfully downloaded {} exposures for batch {}", 
+            logger.debug("Downloaded {} exposures for batchId={}", 
                 exposures.size(), command.batchId().value());
             return exposures;
         });
@@ -156,27 +163,76 @@ public class ValidateBatchQualityCommandHandler {
         
         // Application layer orchestrates infrastructure (Rules Engine)
         // Validate each exposure using the Rules Engine
-        Map<String, ExposureValidationResult> exposureResults = new HashMap<>();
-        for (ExposureRecord exposure : exposures) {
-            List<ValidationError> errors = rulesService.validateConfigurableRules(exposure);
-            
-            // Group errors by dimension
-            Map<QualityDimension, List<ValidationError>> dimensionErrors = new HashMap<>();
-            for (QualityDimension dimension : QualityDimension.values()) {
-                dimensionErrors.put(dimension, new ArrayList<>());
+        Map<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>(Math.max(16, exposures.size()));
+
+        // For large batches, run exposure validations concurrently.
+        // Virtual threads keep memory usage reasonable while still allowing bounded parallelism.
+        int maxInFlight = Math.max(1, Math.min(Runtime.getRuntime().availableProcessors() * 2, 32));
+        boolean useParallel = exposures.size() >= Math.max(1_000, maxInFlight * 4);
+
+        if (!useParallel) {
+            for (ExposureRecord exposure : exposures) {
+                ExposureValidationResult result = validateSingleExposure(exposure);
+                exposureResults.put(exposure.exposureId(), result);
             }
-            for (ValidationError error : errors) {
-                dimensionErrors.get(error.dimension()).add(error);
+        } else {
+            logger.debug("Validating {} exposures in parallel (virtual threads), maxInFlight={}", exposures.size(), maxInFlight);
+
+            try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                var completion = new ExecutorCompletionService<ExposureValidationResult>(executor);
+
+                int submitted = 0;
+                int completed = 0;
+                var iterator = exposures.iterator();
+
+                // Prime the pump with up to maxInFlight tasks
+                while (submitted - completed < maxInFlight && iterator.hasNext()) {
+                    ExposureRecord exposure = iterator.next();
+                    completion.submit(() -> validateSingleExposure(exposure));
+                    submitted++;
+                }
+
+                while (completed < exposures.size()) {
+                    Future<ExposureValidationResult> future = completion.take();
+                    ExposureValidationResult result = future.get();
+                    exposureResults.put(result.exposureId(), result);
+                    completed++;
+
+                    // Keep a bounded number of tasks in flight
+                    if (iterator.hasNext()) {
+                        ExposureRecord next = iterator.next();
+                        completion.submit(() -> validateSingleExposure(next));
+                        submitted++;
+                    }
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                logger.error("Batch quality validation interrupted for batch {}", command.batchId().value(), e);
+                markReportAsFailed(report, "Quality validation interrupted");
+                return Result.failure(
+                    ErrorDetail.of(
+                        "DATA_QUALITY_VALIDATION_INTERRUPTED",
+                        com.bcbs239.regtech.core.domain.shared.ErrorType.SYSTEM_ERROR,
+                        "Quality validation interrupted",
+                        "dataquality.validation.interrupted"
+                    )
+                );
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause == null) {
+                    cause = e;
+                }
+                logger.error("Batch quality validation failed for batch {}: {}", command.batchId().value(), cause.getMessage(), cause);
+                markReportAsFailed(report, "Quality validation failed: " + cause.getMessage());
+                return Result.failure(
+                    ErrorDetail.of(
+                        "DATA_QUALITY_VALIDATION_FAILED",
+                        com.bcbs239.regtech.core.domain.shared.ErrorType.SYSTEM_ERROR,
+                        "Quality validation failed: " + cause.getMessage(),
+                        "dataquality.validation.failed"
+                    )
+                );
             }
-            
-            ExposureValidationResult result = ExposureValidationResult.builder()
-                .exposureId(exposure.exposureId())
-                .errors(errors)
-                .dimensionErrors(dimensionErrors)
-                .isValid(errors.isEmpty())
-                .build();
-            
-            exposureResults.put(exposure.exposureId(), result);
         }
         
         // Batch-level validation (if needed in the future)
@@ -197,7 +253,8 @@ public class ValidateBatchQualityCommandHandler {
         
         QualityScores scores = report.getScores(); // Scores calculated by aggregate
         
-        logger.info("Quality validation completed: {}/{} exposures valid, {} total errors, Overall score: {}", 
+        logger.info("Quality validation completed: batchId={}, validExposures={}/{}, totalErrors={}, overallScore={}", 
+            command.batchId().value(),
             validation.validExposures(), validation.totalExposures(), validation.allErrors().size(),
             scores.overallScore());
         
@@ -216,7 +273,7 @@ public class ValidateBatchQualityCommandHandler {
         
         Result<S3Reference> s3Result = s3StorageService.storeDetailedResults(command.batchId(), validation, metadata)
             .map(reference -> {
-                logger.info("Detailed results stored in S3: {}", reference.uri());
+                logger.debug("Detailed results stored in S3: {}", reference.uri());
                 return reference;
             });
         
@@ -264,10 +321,27 @@ public class ValidateBatchQualityCommandHandler {
         unitOfWork.saveChanges();
         
         // Finalize workflow with logging
-        logger.info("Successfully completed quality validation for batch {} with overall score: {}", 
-            command.batchId().value(), scores.overallScore());
-        
         return Result.success();
+    }
+
+    private ExposureValidationResult validateSingleExposure(ExposureRecord exposure) {
+        List<ValidationError> errors = rulesService.validateConfigurableRules(exposure);
+
+        // Group errors by dimension
+        Map<QualityDimension, List<ValidationError>> dimensionErrors = new HashMap<>();
+        for (QualityDimension dimension : QualityDimension.values()) {
+            dimensionErrors.put(dimension, new ArrayList<>());
+        }
+        for (ValidationError error : errors) {
+            dimensionErrors.get(error.dimension()).add(error);
+        }
+
+        return ExposureValidationResult.builder()
+            .exposureId(exposure.exposureId())
+            .errors(errors)
+            .dimensionErrors(dimensionErrors)
+            .isValid(errors.isEmpty())
+            .build();
     }
     
     private void markReportAsFailed(QualityReport report, String errorMessage) {

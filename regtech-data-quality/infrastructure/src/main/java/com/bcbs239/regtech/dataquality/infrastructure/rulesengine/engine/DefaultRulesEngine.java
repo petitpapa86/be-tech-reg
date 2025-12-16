@@ -97,7 +97,7 @@ public class DefaultRulesEngine implements RulesEngine {
         this.cacheEnabled = cacheEnabled;
         this.cacheTtlSeconds = cacheTtlSeconds;
         
-        log.info("DefaultRulesEngine initialized with caching: enabled={}, ttl={}s", 
+        log.debug("DefaultRulesEngine initialized with caching: enabled={}, ttl={}s", 
             cacheEnabled, cacheTtlSeconds);
     }
     
@@ -455,7 +455,7 @@ public class DefaultRulesEngine implements RulesEngine {
         
         // Check if cache needs refresh
         if (isCacheExpired()) {
-            log.info("Cache TTL expired, refreshing rule cache");
+            log.debug("Cache TTL expired, refreshing rule cache");
             refreshCache();
         }
         
@@ -472,6 +472,10 @@ public class DefaultRulesEngine implements RulesEngine {
         log.debug("Rule {} not in cache, loading from database", ruleId);
         BusinessRuleEntity rule = ruleRepository.findById(ruleId)
             .orElseThrow(() -> new IllegalArgumentException("Rule not found: " + ruleId));
+
+        // IMPORTANT: cached entities are detached once the transaction ends.
+        // Initialize lazy collections now to avoid LazyInitializationException later.
+        initializeForCaching(rule);
         
         // Add to cache
         ruleCache.put(ruleId, new CachedRule(rule, Instant.now()));
@@ -525,6 +529,8 @@ public class DefaultRulesEngine implements RulesEngine {
             // Populate cache with fresh rules
             Instant loadTime = Instant.now();
             for (BusinessRuleEntity rule : activeRules) {
+                // Ensure detached-safe cached entities (see initializeForCaching)
+                initializeForCaching(rule);
                 ruleCache.put(rule.getRuleId(), new CachedRule(rule, loadTime));
             }
             
@@ -532,7 +538,7 @@ public class DefaultRulesEngine implements RulesEngine {
             lastCacheRefresh = loadTime;
             
             long refreshTime = System.currentTimeMillis() - startTime;
-            log.info("Rule cache refreshed: oldSize={}, newSize={}, refreshTime={}ms", 
+            log.debug("Rule cache refreshed: oldSize={}, newSize={}, refreshTime={}ms", 
                 oldSize, ruleCache.size(), refreshTime);
             
         } catch (Exception e) {
@@ -548,9 +554,23 @@ public class DefaultRulesEngine implements RulesEngine {
      * Useful for testing or administrative operations.
      */
     public void clearCache() {
-        log.info("Manually clearing rule cache");
+        log.debug("Manually clearing rule cache");
         ruleCache.clear();
         lastCacheRefresh = Instant.now();
+    }
+
+    /**
+     * Proactively refreshes the rule cache now (if caching is enabled).
+     *
+     * This is useful when other components (e.g., DTO caches) refresh their view
+     * of rules and we want the engine cache to be consistent immediately.
+     */
+    @Transactional
+    public void refreshCacheNow() {
+        if (!cacheEnabled) {
+            return;
+        }
+        refreshCache();
     }
     
     /**
@@ -567,5 +587,12 @@ public class DefaultRulesEngine implements RulesEngine {
             java.time.Duration.between(lastCacheRefresh, Instant.now()).getSeconds());
         stats.put("cacheExpired", isCacheExpired());
         return stats;
+    }
+
+    private void initializeForCaching(BusinessRuleEntity rule) {
+        // Touch lazy collections while still attached to an open session.
+        // These are used during rule execution (parameters) and exemption checks.
+        rule.getParameters().size();
+        rule.getExemptions().size();
     }
 }

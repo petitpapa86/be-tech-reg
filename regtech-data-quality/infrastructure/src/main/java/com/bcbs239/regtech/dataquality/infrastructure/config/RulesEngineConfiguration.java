@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Configuration for the Rules Engine feature with caching support.
@@ -89,77 +88,14 @@ public class RulesEngineConfiguration {
      */
     @Bean
     public IBusinessRuleRepository businessRuleRepositoryAdapter(
-            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository infraRepo) {
-        return new IBusinessRuleRepository() {
-            @Override
-            public List<BusinessRuleDto> findByEnabledTrue() {
-                return infraRepo.findByEnabledTrue().stream()
-                    .map(this::toDto)
-                    .toList();
-            }
-            
-            @Override
-            public Optional<BusinessRuleDto> findByRuleCode(String ruleCode) {
-                return infraRepo.findByRuleCode(ruleCode).map(this::toDto);
-            }
-            
-            @Override
-            public List<BusinessRuleDto> findByRuleTypeAndEnabledTrueOrderByExecutionOrder(RuleType ruleType) {
-                return infraRepo.findByRuleTypeAndEnabledTrueOrderByExecutionOrder(ruleType).stream()
-                    .map(this::toDto)
-                    .toList();
-            }
-            
-            @Override
-            public List<BusinessRuleDto> findByRuleCategoryAndEnabledTrue(String category) {
-                return infraRepo.findByRuleCategoryAndEnabledTrue(category).stream()
-                    .map(this::toDto)
-                    .toList();
-            }
-            
-            @Override
-            public List<BusinessRuleDto> findActiveRules(LocalDate date) {
-                return infraRepo.findActiveRules(date).stream()
-                    .map(this::toDto)
-                    .toList();
-            }
-            
-            private BusinessRuleDto toDto(com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity entity) {
-                return new BusinessRuleDto(
-                    entity.getRuleId(),
-                    entity.getRegulationId(),
-                    entity.getTemplateId(),
-                    entity.getRuleName(),
-                    entity.getRuleCode(),
-                    entity.getDescription(),
-                    entity.getRuleType(),
-                    entity.getRuleCategory(),
-                    entity.getSeverity(),
-                    entity.getBusinessLogic(),
-                    entity.getExecutionOrder(),
-                    entity.getEffectiveDate(),
-                    entity.getExpirationDate(),
-                    entity.getEnabled(),
-                    entity.getParameters().stream()
-                        .map(p -> new RuleParameterDto(
-                            p.getParameterId(),
-                            p.getParameterName(),
-                            p.getParameterValue(),
-                            p.getParameterType(),
-                            p.getDataType(),
-                            p.getUnit(),
-                            p.getMinValue(),
-                            p.getMaxValue(),
-                            p.getDescription(),
-                            p.getIsConfigurable()
-                        ))
-                        .toList(),
-                    entity.getCreatedAt(),
-                    entity.getUpdatedAt(),
-                    entity.getCreatedBy()
-                );
-            }
-        };
+            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository infraRepo,
+            DefaultRulesEngine rulesEngine,
+            DataQualityProperties properties) {
+
+        boolean cacheEnabled = properties.getRulesEngine().isCacheEnabled();
+        int cacheTtl = properties.getRulesEngine().getCacheTtl();
+
+        return new BusinessRuleRepositoryAdapter(infraRepo, rulesEngine, cacheEnabled, cacheTtl);
     }
     
     /**

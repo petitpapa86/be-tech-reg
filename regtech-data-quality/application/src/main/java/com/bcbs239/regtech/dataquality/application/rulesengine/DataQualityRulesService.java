@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Bridge service that connects the validation pipeline with the Rules Engine
@@ -37,6 +39,13 @@ import java.util.*;
 @Slf4j
 @Service
 public class DataQualityRulesService {
+
+    // Rate-limit slow warnings to avoid log spam on very large batches.
+    private static final long SLOW_RULE_WARN_MIN_INTERVAL_MS = 60_000;
+    private static final long SLOW_VALIDATION_WARN_MIN_INTERVAL_MS = 60_000;
+
+    private final ConcurrentHashMap<String, Long> lastSlowRuleWarnAtMsByRuleId = new ConcurrentHashMap<>();
+    private final AtomicLong lastSlowValidationWarnAtMs = new AtomicLong(0);
     
     private final RulesEngine rulesEngine;
     private final IBusinessRuleRepository ruleRepository;
@@ -102,7 +111,7 @@ public class DataQualityRulesService {
         this.logViolations = logViolations;
         this.logSummary = logSummary;
         
-        log.info("DataQualityRulesService initialized with logging configuration: " +
+        log.debug("DataQualityRulesService initialized with logging configuration: " +
                 "logExecutions={}, logViolations={}, logSummary={}, warnThresholdMs={}, maxExecutionTimeMs={}",
             logExecutions, logViolations, logSummary, warnThresholdMs, maxExecutionTimeMs);
     }
@@ -137,7 +146,7 @@ public class DataQualityRulesService {
         }
         
         // Requirement 6.1: Log rule execution count at start
-        log.info("Starting Rules Engine validation for exposure {} with {} active rules", 
+        log.debug("Starting Rules Engine validation for exposure {} with {} active rules", 
             exposure.exposureId(), rules.size());
         
         // Create rule context from exposure
@@ -182,8 +191,10 @@ public class DataQualityRulesService {
                 
                 // Requirement 6.5: Emit warnings for slow rule execution
                 if (ruleExecutionTime > warnThresholdMs) {
-                    log.warn("Slow rule execution detected: rule={}, exposureId={}, executionTime={}ms, threshold={}ms", 
-                        rule.ruleId(), exposure.exposureId(), ruleExecutionTime, warnThresholdMs);
+                    if (shouldLogSlowRuleWarn(rule.ruleId())) {
+                        log.warn("Slow rule execution detected: rule={}, exposureId={}, executionTime={}ms, threshold={}ms", 
+                            rule.ruleId(), exposure.exposureId(), ruleExecutionTime, warnThresholdMs);
+                    }
                 }
                 
                 // Requirement 6.1: Log individual rule execution
@@ -217,7 +228,7 @@ public class DataQualityRulesService {
                     
                     // Requirement 6.2: Log violation details with exposure ID
                     if (logViolations) {
-                        log.info("Rule {} violated for exposure {}: {} violation(s) detected", 
+                        log.debug("Rule {} violated for exposure {}: {} violation(s) detected", 
                             rule.ruleId(), exposure.exposureId(), violationCount);
                     }
                     
@@ -275,7 +286,7 @@ public class DataQualityRulesService {
         
         // Requirement 6.4: Log summary statistics after validation
         if (logSummary) {
-            log.info("Rules Engine validation completed for exposure {}: " +
+            log.debug("Rules Engine validation completed for exposure {}: " +
                     "totalRules={}, executed={}, skipped={}, failed={}, errored={}, " +
                     "totalViolations={}, totalTime={}ms, avgRuleTime={}ms, slowestRule={} ({}ms)",
                 exposure.exposureId(),
@@ -294,17 +305,47 @@ public class DataQualityRulesService {
         
         // Requirement 6.5: Emit warning if overall validation is slow
         if (totalValidationTime > maxExecutionTimeMs) {
-            log.warn("Slow validation detected for exposure {}: totalTime={}ms, threshold={}ms, " +
-                    "rulesExecuted={}, avgRuleTime={}ms",
-                exposure.exposureId(),
-                totalValidationTime,
-                maxExecutionTimeMs,
-                rulesExecuted,
-                rulesExecuted > 0 ? totalRuleExecutionTime / rulesExecuted : 0
-            );
+            if (shouldLogSlowValidationWarn()) {
+                log.warn("Slow validation detected for exposure {}: totalTime={}ms, threshold={}ms, " +
+                        "rulesExecuted={}, avgRuleTime={}ms",
+                    exposure.exposureId(),
+                    totalValidationTime,
+                    maxExecutionTimeMs,
+                    rulesExecuted,
+                    rulesExecuted > 0 ? totalRuleExecutionTime / rulesExecuted : 0
+                );
+            }
         }
         
         return errors;
+    }
+
+    private boolean shouldLogSlowRuleWarn(String ruleId) {
+        if (ruleId == null) {
+            return true;
+        }
+
+        long now = System.currentTimeMillis();
+        Long last = lastSlowRuleWarnAtMsByRuleId.get(ruleId);
+        if (last == null) {
+            return lastSlowRuleWarnAtMsByRuleId.putIfAbsent(ruleId, now) == null;
+        }
+
+        if (now - last < SLOW_RULE_WARN_MIN_INTERVAL_MS) {
+            return false;
+        }
+
+        // Best-effort CAS update
+        return lastSlowRuleWarnAtMsByRuleId.replace(ruleId, last, now);
+    }
+
+    private boolean shouldLogSlowValidationWarn() {
+        long now = System.currentTimeMillis();
+        long last = lastSlowValidationWarnAtMs.get();
+        if (now - last < SLOW_VALIDATION_WARN_MIN_INTERVAL_MS) {
+            return false;
+        }
+        return lastSlowValidationWarnAtMs.compareAndSet(last, now);
     }
     
     /**
@@ -499,10 +540,6 @@ public class DataQualityRulesService {
     /**
      * Gets the rule type from the business rule DTO.
      */
-    private RuleType getRuleType(BusinessRuleDto rule) {
-        return rule.ruleType();
-    }
-    
     /**
      * Maps Rules Engine Severity to ValidationError ErrorSeverity.
      * 
@@ -623,7 +660,7 @@ public class DataQualityRulesService {
             if (!activeExemptions.isEmpty()) {
                 // Log exemption details for audit trail
                 for (RuleExemptionDto exemption : activeExemptions) {
-                    log.info("Active exemption found: exemptionId={}, ruleId={}, entityType={}, entityId={}, " +
+                    log.debug("Active exemption found: exemptionId={}, ruleId={}, entityType={}, entityId={}, " +
                             "exemptionType={}, effectiveDate={}, expirationDate={}, approvedBy={}, reason={}", 
                         exemption.exemptionId(),
                         ruleId,

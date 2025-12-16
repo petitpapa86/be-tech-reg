@@ -11,6 +11,10 @@ import com.bcbs239.regtech.riskcalculation.domain.valuation.ExposureValuation;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 /**
@@ -66,10 +70,63 @@ public class ExposureProcessingService {
         List<ExposureRecording> exposures,
         Map<String, List<CreditRiskMitigationDTO>> mitigationsByExposure
     ) {
-        // Use stream to declaratively process each exposure through the pipeline
-        List<ProcessedExposure> processed = exposures.stream()
-            .map(exposure -> processExposure(exposure, mitigationsByExposure))
-            .collect(Collectors.toList());
+        if (exposures == null || exposures.isEmpty()) {
+            return new ProcessingResult(List.of(), List.of());
+        }
+
+        // For large batches, process exposures concurrently.
+        // Virtual threads keep memory usage reasonable while allowing bounded parallelism.
+        int maxInFlight = Math.max(1, Math.min(Runtime.getRuntime().availableProcessors() * 2, 32));
+        boolean useParallel = exposures.size() >= Math.max(2_000, maxInFlight * 8);
+
+        List<ProcessedExposure> processed;
+        if (!useParallel) {
+            processed = exposures.stream()
+                .map(exposure -> processExposure(exposure, mitigationsByExposure))
+                .collect(Collectors.toList());
+        } else {
+            ProcessedExposure[] results = new ProcessedExposure[exposures.size()];
+
+            try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                var completion = new ExecutorCompletionService<IndexedProcessedExposure>(executor);
+
+                int submitted = 0;
+                int completed = 0;
+
+                while (submitted - completed < maxInFlight && submitted < exposures.size()) {
+                    int index = submitted;
+                    ExposureRecording exposure = exposures.get(index);
+                    completion.submit(() -> new IndexedProcessedExposure(index, processExposure(exposure, mitigationsByExposure)));
+                    submitted++;
+                }
+
+                while (completed < exposures.size()) {
+                    Future<IndexedProcessedExposure> future = completion.take();
+                    IndexedProcessedExposure indexed = future.get();
+                    results[indexed.index] = indexed.processed;
+                    completed++;
+
+                    if (submitted < exposures.size()) {
+                        int index = submitted;
+                        ExposureRecording exposure = exposures.get(index);
+                        completion.submit(() -> new IndexedProcessedExposure(index, processExposure(exposure, mitigationsByExposure)));
+                        submitted++;
+                    }
+                }
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Exposure processing interrupted", e);
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause == null) {
+                    cause = e;
+                }
+                throw new IllegalStateException("Exposure processing failed: " + cause.getMessage(), cause);
+            }
+
+            processed = java.util.Arrays.asList(results);
+        }
         
         // Extract the results
         List<ProtectedExposure> protectedExposures = processed.stream()
@@ -81,6 +138,16 @@ public class ExposureProcessingService {
             .collect(Collectors.toList());
         
         return new ProcessingResult(protectedExposures, classifiedExposures);
+    }
+
+    private static final class IndexedProcessedExposure {
+        final int index;
+        final ProcessedExposure processed;
+
+        private IndexedProcessedExposure(int index, ProcessedExposure processed) {
+            this.index = index;
+            this.processed = processed;
+        }
     }
     
     /**
