@@ -87,6 +87,9 @@ logs/
 log/
 spring.log
 catalina.out
+gc.log
+gc.log.*
+gc_*.log
 
 ### H2 Database ###
 *.db
