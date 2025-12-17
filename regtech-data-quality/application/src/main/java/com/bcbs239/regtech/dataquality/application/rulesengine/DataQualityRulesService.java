@@ -1,23 +1,40 @@
 package com.bcbs239.regtech.dataquality.application.rulesengine;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
-
-import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.ExecutionResult;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.IRuleExecutionLogRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.IRuleExemptionRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.IRuleViolationRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.ParameterType;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLogDto;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExemptionDto;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.Severity;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Bridge service that connects the validation pipeline with the Rules Engine
@@ -136,6 +153,19 @@ public class DataQualityRulesService {
      */
     @Transactional
     public List<ValidationError> validateConfigurableRules(ExposureRecord exposure) {
+        ValidationResultsDto results = validateConfigurableRulesNoPersist(exposure);
+        persistValidationResults(results);
+        return results.validationErrors();
+    }
+
+    /**
+     * Validates configurable rules WITHOUT database writes.
+     * Returns results for persistence later (e.g., batch insertion).
+     *
+     * <p>Designed for parallel processing: worker threads perform pure computation,
+     * and the caller persists once after all validations complete.</p>
+     */
+    public ValidationResultsDto validateConfigurableRulesNoPersist(ExposureRecord exposure) {
         long validationStartTime = System.currentTimeMillis();
         
         // Get all active rules (all enabled rules, not just DATA_QUALITY type)
@@ -144,7 +174,12 @@ public class DataQualityRulesService {
         if (rules.isEmpty()) {
             log.debug("No configurable rules found, skipping validation for exposure {}", 
                 exposure.exposureId());
-            return Collections.emptyList();
+            return new ValidationResultsDto(
+                exposure.exposureId(),
+                List.of(),
+                List.of(),
+                List.of()
+            );
         }
         
         // Requirement 6.1: Log rule execution count at start
@@ -155,6 +190,8 @@ public class DataQualityRulesService {
         RuleContext context = createContextFromExposure(exposure);
         
         List<ValidationError> errors = new ArrayList<>();
+        List<RuleViolation> violations = new ArrayList<>();
+        List<RuleExecutionLogDto> executionLogs = new ArrayList<>();
         
         // Statistics tracking for summary (Requirement 6.4)
         int rulesExecuted = 0;
@@ -236,8 +273,8 @@ public class DataQualityRulesService {
                     
                     // Convert rule violations to ValidationErrors
                     for (RuleViolation violation : result.getViolations()) {
-                        // Persist violation
-                        violationRepository.save(violation);
+                        // Collect violations (do not persist here)
+                        violations.add(violation);
                         
                         // Requirement 6.2: Log detailed violation information
                         if (logViolations) {
@@ -280,7 +317,7 @@ public class DataQualityRulesService {
                     executionTime, 
                     errorMessage
                 );
-                executionLogRepository.save(executionLog);
+                executionLogs.add(executionLog);
             }
         }
         
@@ -319,7 +356,89 @@ public class DataQualityRulesService {
             }
         }
         
-        return errors;
+        return new ValidationResultsDto(
+            exposure.exposureId(),
+            errors,
+            violations,
+            executionLogs
+        );
+    }
+
+    /**
+     * Batch-persist validation results.
+     * Call this AFTER parallel validation is complete.
+     */
+    @Transactional
+    public void batchPersistValidationResults(List<ValidationResultsDto> allResults) {
+        if (allResults == null || allResults.isEmpty()) {
+            log.debug("No validation results to persist");
+            return;
+        }
+
+        log.info("Batch-persisting validation results for {} exposures", allResults.size());
+
+        List<RuleViolation> allViolations = new ArrayList<>();
+        List<RuleExecutionLogDto> allExecutionLogs = new ArrayList<>();
+
+        for (ValidationResultsDto result : allResults) {
+            if (result == null) {
+                continue;
+            }
+            if (result.ruleViolations() != null && !result.ruleViolations().isEmpty()) {
+                allViolations.addAll(result.ruleViolations());
+            }
+            if (result.executionLogs() != null && !result.executionLogs().isEmpty()) {
+                allExecutionLogs.addAll(result.executionLogs());
+            }
+        }
+
+        log.debug(
+            "Collected {} violations and {} execution logs from {} exposures",
+            allViolations.size(),
+            allExecutionLogs.size(),
+            allResults.size()
+        );
+
+        // IMPORTANT: execution logs must be persisted BEFORE violations.
+        // `rule_violations.execution_id` has a NOT NULL FK to `rule_execution_log.execution_id`.
+        if (!allExecutionLogs.isEmpty()) {
+            executionLogRepository.saveAll(allExecutionLogs);
+            executionLogRepository.flush();
+        }
+
+        if (!allViolations.isEmpty()) {
+            violationRepository.saveAll(allViolations);
+        }
+
+        // Always flush (and let adapters clear any thread-scoped mapping).
+        violationRepository.flush();
+    }
+
+    private void persistValidationResults(ValidationResultsDto results) {
+        if (results == null) {
+            return;
+        }
+
+        // IMPORTANT: execution logs must be persisted BEFORE violations.
+        // `rule_violations.execution_id` has a NOT NULL FK to `rule_execution_log.execution_id`.
+
+        List<RuleExecutionLogDto> executionLogs = results.executionLogs();
+        if (executionLogs != null) {
+            for (RuleExecutionLogDto executionLog : executionLogs) {
+                executionLogRepository.save(executionLog);
+            }
+            executionLogRepository.flush();
+        }
+
+        List<RuleViolation> violations = results.ruleViolations();
+        if (violations != null) {
+            for (RuleViolation violation : violations) {
+                violationRepository.save(violation);
+            }
+        }
+
+        // Flush even if there were no violations, to allow adapters to clear any thread-scoped mapping.
+        violationRepository.flush();
     }
 
     private boolean shouldLogSlowRuleWarn(String ruleId) {

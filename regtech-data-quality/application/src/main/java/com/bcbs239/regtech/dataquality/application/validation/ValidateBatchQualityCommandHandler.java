@@ -5,6 +5,7 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
+import com.bcbs239.regtech.dataquality.application.rulesengine.ValidationResultsDto;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
@@ -173,21 +174,24 @@ public class ValidateBatchQualityCommandHandler {
         // Application layer orchestrates infrastructure (Rules Engine)
         // Validate each exposure using the Rules Engine
         Map<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>(Math.max(16, exposures.size()));
+        List<ValidationResultsDto> allValidationResults = new ArrayList<>(exposures.size());
 
         // For large batches, run exposure validations concurrently.
-        // IMPORTANT: each validation can temporarily require *two* connections (outer validation TX + REQUIRES_NEW audit writes).
-        // If we allow too many in-flight tasks, Hikari will exhaust and we'll see JDBCConnectionException timeouts.
+        // Worker tasks perform rule execution + mapping only; persistence is done once after all validations complete.
         int cpuBoundMax = Math.max(1, Math.min(Runtime.getRuntime().availableProcessors() * 2, 32));
         int requestedMaxInFlight = (configuredMaxInFlight > 0) ? configuredMaxInFlight : cpuBoundMax;
         int reservedConnections = 2; // leave room for the handler TX + misc repository calls
         int connectionBudgetForWorkers = Math.max(1, hikariMaxPoolSize - reservedConnections);
-        int safeMaxInFlightFromPool = Math.max(1, connectionBudgetForWorkers / 2);
+        int safeMaxInFlightFromPool = Math.max(1, connectionBudgetForWorkers);
         int maxInFlight = Math.max(1, Math.min(requestedMaxInFlight, safeMaxInFlightFromPool));
         boolean useParallel = exposures.size() >= Math.max(1_000, maxInFlight * 4);
 
         if (!useParallel) {
             for (ExposureRecord exposure : exposures) {
-                ExposureValidationResult result = validateSingleExposure(exposure);
+                ValidationResultsDto validationResults = validateSingleExposureNoPersist(exposure);
+                allValidationResults.add(validationResults);
+
+                ExposureValidationResult result = createExposureValidationResult(validationResults);
                 exposureResults.put(exposure.exposureId(), result);
             }
         } else {
@@ -200,7 +204,7 @@ public class ValidateBatchQualityCommandHandler {
             );
 
             try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-                var completion = new ExecutorCompletionService<ExposureValidationResult>(executor);
+                var completion = new ExecutorCompletionService<ValidationResultsDto>(executor);
 
                 int submitted = 0;
                 int completed = 0;
@@ -209,20 +213,23 @@ public class ValidateBatchQualityCommandHandler {
                 // Prime the pump with up to maxInFlight tasks
                 while (submitted - completed < maxInFlight && iterator.hasNext()) {
                     ExposureRecord exposure = iterator.next();
-                    completion.submit(() -> validateSingleExposure(exposure));
+                    completion.submit(() -> validateSingleExposureNoPersist(exposure));
                     submitted++;
                 }
 
                 while (completed < exposures.size()) {
-                    Future<ExposureValidationResult> future = completion.take();
-                    ExposureValidationResult result = future.get();
+                    Future<ValidationResultsDto> future = completion.take();
+                    ValidationResultsDto validationResults = future.get();
+                    allValidationResults.add(validationResults);
+
+                    ExposureValidationResult result = createExposureValidationResult(validationResults);
                     exposureResults.put(result.exposureId(), result);
                     completed++;
 
                     // Keep a bounded number of tasks in flight
                     if (iterator.hasNext()) {
                         ExposureRecord next = iterator.next();
-                        completion.submit(() -> validateSingleExposure(next));
+                        completion.submit(() -> validateSingleExposureNoPersist(next));
                         submitted++;
                     }
                 }
@@ -255,6 +262,10 @@ public class ValidateBatchQualityCommandHandler {
                 );
             }
         }
+
+        // Persist rule violations/execution logs once after validation completes.
+        // This avoids per-worker database writes/transactions.
+        rulesService.batchPersistValidationResults(allValidationResults);
 
         // Batch-level validation (if needed in the future)
         List<ValidationError> batchErrors = new ArrayList<>();
@@ -345,8 +356,12 @@ public class ValidateBatchQualityCommandHandler {
         return Result.success();
     }
 
-    private ExposureValidationResult validateSingleExposure(ExposureRecord exposure) {
-        List<ValidationError> errors = rulesService.validateConfigurableRules(exposure);
+    private ValidationResultsDto validateSingleExposureNoPersist(ExposureRecord exposure) {
+        return rulesService.validateConfigurableRulesNoPersist(exposure);
+    }
+
+    private ExposureValidationResult createExposureValidationResult(ValidationResultsDto validationResults) {
+        List<ValidationError> errors = validationResults.validationErrors();
 
         // Group errors by dimension
         Map<QualityDimension, List<ValidationError>> dimensionErrors = new HashMap<>();
@@ -358,7 +373,7 @@ public class ValidateBatchQualityCommandHandler {
         }
 
         return ExposureValidationResult.builder()
-            .exposureId(exposure.exposureId())
+            .exposureId(validationResults.exposureId())
             .errors(errors)
             .dimensionErrors(dimensionErrors)
             .isValid(errors.isEmpty())

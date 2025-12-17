@@ -2,7 +2,10 @@ package com.bcbs239.regtech.dataquality.infrastructure.config;
 
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExecutionLogEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExemptionRepository;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineBatchLinkContext;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
@@ -12,8 +15,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.time.LocalDate;
-import java.util.List;
 
 /**
  * Configuration for the Rules Engine feature with caching support.
@@ -122,6 +123,7 @@ public class RulesEngineConfiguration {
             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository violationRepository,
             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository executionLogRepository,
             RuleExemptionRepository exemptionRepository,
+            RulesEngineBatchLinkContext linkContext,
             DataQualityProperties properties) {
         
         DataQualityProperties.RulesEngineProperties.LoggingProperties logging = 
@@ -136,26 +138,183 @@ public class RulesEngineConfiguration {
         log.info("  - Warn threshold: {}ms", performance.getWarnThresholdMs());
         log.info("  - Max execution time: {}ms", performance.getMaxExecutionTimeMs());
         
-        // Create stub implementations for other repositories (they're not used yet)
-        IRuleViolationRepository violationRepoAdapter = new IRuleViolationRepository() {
-            @Override
-            public void save(RuleViolation violation) {
-                // Stub - not used by DataQualityRulesService yet
-            }
-        };
         IRuleExecutionLogRepository executionLogRepoAdapter = new IRuleExecutionLogRepository() {
             @Override
             public void save(RuleExecutionLogDto executionLog) {
-                // Stub - not used by DataQualityRulesService yet
+                if (executionLog == null) {
+                    return;
+                }
+                RuleExecutionLogEntity entity = RuleExecutionLogEntity.builder()
+                    .ruleId(executionLog.ruleId())
+                    .executionTimestamp(executionLog.executionTimestamp())
+                    .entityType(executionLog.entityType())
+                    .entityId(executionLog.entityId())
+                    .executionResult(executionLog.executionResult())
+                    .violationCount(executionLog.violationCount())
+                    .executionTimeMs(executionLog.executionTimeMs())
+                    .contextData(executionLog.contextData())
+                    .errorMessage(executionLog.errorMessage())
+                    .executedBy(executionLog.executedBy())
+                    .build();
+
+                RuleExecutionLogEntity saved = executionLogRepository.save(entity);
+                if (saved != null) {
+                    linkContext.putExecutionId(saved.getRuleId(), saved.getEntityType(), saved.getEntityId(), saved.getExecutionId());
+                }
             }
-        };
-        IRuleExemptionRepository exemptionRepoAdapter = new IRuleExemptionRepository() {
+
             @Override
-            public List<RuleExemptionDto> findActiveExemptions(String ruleId, String entityType, String entityId, LocalDate currentDate) {
-                // Stub - not used by DataQualityRulesService yet
-                return List.of();
+            public void saveAll(Iterable<RuleExecutionLogDto> executionLogs) {
+                if (executionLogs == null) {
+                    return;
+                }
+
+                // New batch: clear mapping for this thread/request.
+                linkContext.clear();
+
+                java.util.List<RuleExecutionLogEntity> entities = new java.util.ArrayList<>();
+                for (RuleExecutionLogDto executionLog : executionLogs) {
+                    if (executionLog == null) {
+                        continue;
+                    }
+                    entities.add(
+                        RuleExecutionLogEntity.builder()
+                            .ruleId(executionLog.ruleId())
+                            .executionTimestamp(executionLog.executionTimestamp())
+                            .entityType(executionLog.entityType())
+                            .entityId(executionLog.entityId())
+                            .executionResult(executionLog.executionResult())
+                            .violationCount(executionLog.violationCount())
+                            .executionTimeMs(executionLog.executionTimeMs())
+                            .contextData(executionLog.contextData())
+                            .errorMessage(executionLog.errorMessage())
+                            .executedBy(executionLog.executedBy())
+                            .build()
+                    );
+                }
+
+                if (entities.isEmpty()) {
+                    return;
+                }
+
+                java.util.List<RuleExecutionLogEntity> saved = executionLogRepository.saveAll(entities);
+                for (RuleExecutionLogEntity e : saved) {
+                    if (e == null) {
+                        continue;
+                    }
+                    linkContext.putExecutionId(e.getRuleId(), e.getEntityType(), e.getEntityId(), e.getExecutionId());
+                }
+            }
+
+            @Override
+            public void flush() {
+                executionLogRepository.flush();
             }
         };
+
+        IRuleViolationRepository violationRepoAdapter = new IRuleViolationRepository() {
+            @Override
+            public void save(RuleViolation violation) {
+                if (violation == null) {
+                    return;
+                }
+                Long executionId = violation.executionId();
+                if (executionId == null) {
+                    executionId = linkContext.getExecutionId(violation.ruleId(), violation.entityType(), violation.entityId());
+                }
+                if (executionId == null) {
+                    throw new IllegalStateException(
+                        "Missing executionId for violation (ruleId=" + violation.ruleId() + ", entityType=" + violation.entityType() + ", entityId=" + violation.entityId() + ")"
+                    );
+                }
+
+                RuleViolationEntity entity = RuleViolationEntity.builder()
+                    .ruleId(violation.ruleId())
+                    .executionId(executionId)
+                    .entityType(violation.entityType())
+                    .entityId(violation.entityId())
+                    .violationType(violation.violationType())
+                    .violationDescription(violation.violationDescription())
+                    .severity(violation.severity())
+                    .detectedAt(violation.detectedAt())
+                    .violationDetails(violation.violationDetails())
+                    .resolutionStatus(violation.resolutionStatus())
+                    .build();
+
+                violationRepository.save(entity);
+            }
+
+            @Override
+            public void saveAll(Iterable<RuleViolation> violations) {
+                if (violations == null) {
+                    return;
+                }
+
+                java.util.List<RuleViolationEntity> entities = new java.util.ArrayList<>();
+                for (RuleViolation violation : violations) {
+                    if (violation == null) {
+                        continue;
+                    }
+                    Long executionId = violation.executionId();
+                    if (executionId == null) {
+                        executionId = linkContext.getExecutionId(violation.ruleId(), violation.entityType(), violation.entityId());
+                    }
+                    if (executionId == null) {
+                        throw new IllegalStateException(
+                            "Missing executionId for violation (ruleId=" + violation.ruleId() + ", entityType=" + violation.entityType() + ", entityId=" + violation.entityId() + ")"
+                        );
+                    }
+
+                    entities.add(
+                        RuleViolationEntity.builder()
+                            .ruleId(violation.ruleId())
+                            .executionId(executionId)
+                            .entityType(violation.entityType())
+                            .entityId(violation.entityId())
+                            .violationType(violation.violationType())
+                            .violationDescription(violation.violationDescription())
+                            .severity(violation.severity())
+                            .detectedAt(violation.detectedAt())
+                            .violationDetails(violation.violationDetails())
+                            .resolutionStatus(violation.resolutionStatus())
+                            .build()
+                    );
+                }
+
+                if (!entities.isEmpty()) {
+                    violationRepository.saveAll(entities);
+                }
+            }
+
+            @Override
+            public void flush() {
+                try {
+                    violationRepository.flush();
+                } finally {
+                    // Avoid leaking mappings across requests.
+                    linkContext.clear();
+                }
+            }
+        };
+
+        IRuleExemptionRepository exemptionRepoAdapter = (ruleId, entityType, entityId, currentDate) ->
+            exemptionRepository.findActiveExemptions(ruleId, entityType, entityId, currentDate)
+                .stream()
+                .map(e -> new RuleExemptionDto(
+                    e.getExemptionId(),
+                    e.getRule() != null ? e.getRule().getRuleId() : ruleId,
+                    e.getEntityType(),
+                    e.getEntityId(),
+                    e.getExemptionReason(),
+                    e.getExemptionType(),
+                    e.getApprovedBy(),
+                    e.getApprovalDate(),
+                    e.getEffectiveDate(),
+                    e.getExpirationDate(),
+                    e.getConditions(),
+                    e.getCreatedAt()
+                ))
+                .toList();
         
         return new DataQualityRulesService(
             rulesEngine,
