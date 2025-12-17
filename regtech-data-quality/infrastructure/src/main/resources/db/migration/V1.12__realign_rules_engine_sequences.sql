@@ -31,8 +31,11 @@ BEGIN
       FROM dataquality.rule_execution_log;
 
       IF max_execution_id IS NULL THEN
-        -- Empty table: restart at 1
-        PERFORM setval('dataquality.rule_execution_log_execution_id_seq', 1, false);
+        -- Empty table:
+        -- With Hibernate pooled sequence optimizer (allocationSize=20), if the first sequence value is 1,
+        -- Hibernate can generate a first block containing negative IDs.
+        -- Make nextval() return 20 so the first generated block is 1..20.
+        PERFORM setval('dataquality.rule_execution_log_execution_id_seq', 20, false);
       ELSE
         -- Non-empty table: make nextval() return a value > current max
         PERFORM setval('dataquality.rule_execution_log_execution_id_seq', max_execution_id, true);
@@ -55,7 +58,8 @@ BEGIN
       FROM dataquality.rule_violations;
 
       IF max_violation_id IS NULL THEN
-        PERFORM setval('dataquality.rule_violations_violation_id_seq', 1, false);
+        -- See note above: avoid negative IDs on first pooled block.
+        PERFORM setval('dataquality.rule_violations_violation_id_seq', 20, false);
       ELSE
         PERFORM setval('dataquality.rule_violations_violation_id_seq', max_violation_id, true);
       END IF;
