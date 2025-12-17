@@ -370,6 +370,17 @@ public class DataQualityRulesService {
      */
     @Transactional
     public void batchPersistValidationResults(List<ValidationResultsDto> allResults) {
+        batchPersistValidationResults(null, allResults);
+    }
+
+    /**
+     * Batch-persist validation results for a specific batch.
+     *
+     * <p>If {@code batchId} is non-null, repository adapters may populate the underlying
+     * {@code batch_id} column for both execution logs and violations.</p>
+     */
+    @Transactional
+    public void batchPersistValidationResults(String batchId, List<ValidationResultsDto> allResults) {
         if (allResults == null || allResults.isEmpty()) {
             log.debug("No validation results to persist");
             return;
@@ -399,15 +410,15 @@ public class DataQualityRulesService {
             allResults.size()
         );
 
-        // IMPORTANT: execution logs must be persisted BEFORE violations.
-        // `rule_violations.execution_id` has a NOT NULL FK to `rule_execution_log.execution_id`.
+        // NOTE: execution_id is now optional (nullable). We still persist logs first to preserve
+        // prior semantics and because adapters may build best-effort links for diagnostics.
         if (!allExecutionLogs.isEmpty()) {
-            executionLogRepository.saveAll(allExecutionLogs);
+            executionLogRepository.saveAllForBatch(batchId, allExecutionLogs);
             executionLogRepository.flush();
         }
 
         if (!allViolations.isEmpty()) {
-            violationRepository.saveAll(allViolations);
+            violationRepository.saveAllForBatch(batchId, allViolations);
         }
 
         // Always flush (and let adapters clear any thread-scoped mapping).

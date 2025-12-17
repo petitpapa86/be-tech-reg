@@ -31,8 +31,11 @@ public class RuleViolationEntity {
     @Column(name = "rule_id", nullable = false, length = 100)
     private String ruleId;
     
-    @Column(name = "execution_id", nullable = false)
+    @Column(name = "execution_id")
     private Long executionId;
+
+    @Column(name = "batch_id", length = 100)
+    private String batchId;
     
     @Column(name = "entity_type", nullable = false, length = 50)
     private String entityType;

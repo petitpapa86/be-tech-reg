@@ -6,6 +6,7 @@ import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleE
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineBatchLinkContext;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineJdbcBatchInserter;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
@@ -124,6 +125,7 @@ public class RulesEngineConfiguration {
             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository executionLogRepository,
             RuleExemptionRepository exemptionRepository,
             RulesEngineBatchLinkContext linkContext,
+            RulesEngineJdbcBatchInserter jdbcBatchInserter,
             DataQualityProperties properties) {
         
         DataQualityProperties.RulesEngineProperties.LoggingProperties logging = 
@@ -187,6 +189,7 @@ public class RulesEngineConfiguration {
                             .violationCount(executionLog.violationCount())
                             .executionTimeMs(executionLog.executionTimeMs())
                             .contextData(executionLog.contextData())
+                            .batchId(null)
                             .errorMessage(executionLog.errorMessage())
                             .executedBy(executionLog.executedBy())
                             .build()
@@ -207,6 +210,28 @@ public class RulesEngineConfiguration {
             }
 
             @Override
+            public void saveAllForBatch(String batchId, Iterable<RuleExecutionLogDto> executionLogs) {
+                if (executionLogs == null) {
+                    return;
+                }
+
+                // New batch: clear mapping for this thread/request.
+                linkContext.clear();
+
+                // Fast path: JDBC batch insert (doesn't require returning generated IDs).
+                java.util.List<RuleExecutionLogDto> dtoList = new java.util.ArrayList<>();
+                for (RuleExecutionLogDto executionLog : executionLogs) {
+                    if (executionLog != null) {
+                        dtoList.add(executionLog);
+                    }
+                }
+                if (!dtoList.isEmpty()) {
+                    jdbcBatchInserter.insertExecutionLogs(batchId, dtoList);
+                }
+                return;
+            }
+
+            @Override
             public void flush() {
                 executionLogRepository.flush();
             }
@@ -218,15 +243,11 @@ public class RulesEngineConfiguration {
                 if (violation == null) {
                     return;
                 }
-                Long executionId = violation.executionId();
-                if (executionId == null) {
-                    executionId = linkContext.getExecutionId(violation.ruleId(), violation.entityType(), violation.entityId());
-                }
-                if (executionId == null) {
-                    throw new IllegalStateException(
-                        "Missing executionId for violation (ruleId=" + violation.ruleId() + ", entityType=" + violation.entityType() + ", entityId=" + violation.entityId() + ")"
-                    );
-                }
+                Long executionId = normalizeExecutionId(
+                    violation.executionId() != null
+                        ? violation.executionId()
+                        : linkContext.getExecutionId(violation.ruleId(), violation.entityType(), violation.entityId())
+                );
 
                 RuleViolationEntity entity = RuleViolationEntity.builder()
                     .ruleId(violation.ruleId())
@@ -255,20 +276,17 @@ public class RulesEngineConfiguration {
                     if (violation == null) {
                         continue;
                     }
-                    Long executionId = violation.executionId();
-                    if (executionId == null) {
-                        executionId = linkContext.getExecutionId(violation.ruleId(), violation.entityType(), violation.entityId());
-                    }
-                    if (executionId == null) {
-                        throw new IllegalStateException(
-                            "Missing executionId for violation (ruleId=" + violation.ruleId() + ", entityType=" + violation.entityType() + ", entityId=" + violation.entityId() + ")"
-                        );
-                    }
+                    Long executionId = normalizeExecutionId(
+                        violation.executionId() != null
+                            ? violation.executionId()
+                            : linkContext.getExecutionId(violation.ruleId(), violation.entityType(), violation.entityId())
+                    );
 
                     entities.add(
                         RuleViolationEntity.builder()
                             .ruleId(violation.ruleId())
                             .executionId(executionId)
+                            .batchId(null)
                             .entityType(violation.entityType())
                             .entityId(violation.entityId())
                             .violationType(violation.violationType())
@@ -283,6 +301,24 @@ public class RulesEngineConfiguration {
 
                 if (!entities.isEmpty()) {
                     violationRepository.saveAll(entities);
+                }
+            }
+
+            @Override
+            public void saveAllForBatch(String batchId, Iterable<RuleViolation> violations) {
+                if (violations == null) {
+                    return;
+                }
+
+                // Fast path: JDBC batch insert.
+                java.util.List<RuleViolation> vList = new java.util.ArrayList<>();
+                for (RuleViolation v : violations) {
+                    if (v != null) {
+                        vList.add(v);
+                    }
+                }
+                if (!vList.isEmpty()) {
+                    jdbcBatchInserter.insertViolations(batchId, vList);
                 }
             }
 
@@ -328,5 +364,10 @@ public class RulesEngineConfiguration {
             logging.isLogViolations(),
             logging.isLogSummary()
         );
+    }
+
+    // execution_id is now optional (nullable). Treat non-positive IDs as unset.
+    private static Long normalizeExecutionId(Long executionId) {
+        return (executionId != null && executionId > 0) ? executionId : null;
     }
 }

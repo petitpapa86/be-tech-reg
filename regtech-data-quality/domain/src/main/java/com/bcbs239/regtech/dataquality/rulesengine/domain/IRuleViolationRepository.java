@@ -24,6 +24,16 @@ public interface IRuleViolationRepository {
     }
 
     /**
+     * Saves rule violations in batch with an optional batch id.
+     *
+     * <p>Implementations may use this to populate the persistence-layer {@code batch_id} column.
+     * Default implementation delegates to {@link #saveAll(Iterable)}.</p>
+     */
+    default void saveAllForBatch(String batchId, Iterable<RuleViolation> violations) {
+        saveAll(violations);
+    }
+
+    /**
      * Flushes pending writes (optional).
      */
     default void flush() {

@@ -265,7 +265,7 @@ public class ValidateBatchQualityCommandHandler {
 
         // Persist rule violations/execution logs once after validation completes.
         // This avoids per-worker database writes/transactions.
-        rulesService.batchPersistValidationResults(allValidationResults);
+        rulesService.batchPersistValidationResults(command.batchId().value(), allValidationResults);
 
         // Batch-level validation (if needed in the future)
         List<ValidationError> batchErrors = new ArrayList<>();

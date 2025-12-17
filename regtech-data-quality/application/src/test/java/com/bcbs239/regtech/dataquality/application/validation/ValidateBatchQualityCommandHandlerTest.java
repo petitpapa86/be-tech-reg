@@ -12,6 +12,7 @@ import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
+import com.bcbs239.regtech.dataquality.application.rulesengine.ValidationResultsDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,7 +60,9 @@ class ValidateBatchQualityCommandHandlerTest {
             qualityReportRepository,
             s3StorageService,
             rulesService,
-            unitOfWork
+            unitOfWork,
+            20,
+            0
         );
         
         testBatchId = BatchId.of("batch_batch-123");
@@ -69,6 +72,18 @@ class ValidateBatchQualityCommandHandlerTest {
         // Default: no configurable rule violations
         lenient().when(rulesService.validateConfigurableRules(any(ExposureRecord.class)))
             .thenReturn(Collections.emptyList());
+
+        // Default: no-persist path returns an empty result per exposure
+        lenient().when(rulesService.validateConfigurableRulesNoPersist(any(ExposureRecord.class)))
+            .thenAnswer(invocation -> {
+                ExposureRecord exposure = invocation.getArgument(0);
+                return new ValidationResultsDto(
+                    exposure.exposureId(),
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    Collections.emptyList()
+                );
+            });
     }
     
     @Test

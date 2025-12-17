@@ -50,9 +50,12 @@ public class RuleExecutionLog {
     @Column(name = "execution_time_ms")
     private Long executionTimeMs;
     
-    @Column(name = "context_data", columnDefinition = "JSONB")
+    @Column(name = "context_json", columnDefinition = "JSONB")
     @Convert(converter = JsonbConverter.class)
     private Map<String, Object> contextData;
+
+    @Column(name = "batch_id", length = 100)
+    private String batchId;
     
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
