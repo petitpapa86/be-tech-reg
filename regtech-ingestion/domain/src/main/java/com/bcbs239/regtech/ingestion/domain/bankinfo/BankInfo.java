@@ -28,8 +28,8 @@ public record BankInfo(
         if (bankName.trim().isEmpty()) {
             throw new IllegalArgumentException("Bank name cannot be empty");
         }
-        if (bankCountry.length() != 3) {
-            throw new IllegalArgumentException("Bank country must be a 3-character ISO code");
+        if (bankCountry.length() != 2) {
+            throw new IllegalArgumentException("Bank country must be a 2-character ISO code");
         }
     }
     
