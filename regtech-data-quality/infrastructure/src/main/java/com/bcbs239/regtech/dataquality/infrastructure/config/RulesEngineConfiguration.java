@@ -1,6 +1,9 @@
 package com.bcbs239.regtech.dataquality.infrastructure.config;
 
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
+import com.bcbs239.regtech.dataquality.application.rulesengine.RuleExecutionLogRepository;
+import com.bcbs239.regtech.dataquality.application.rulesengine.RuleExecutionService;
+import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExecutionLogEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
@@ -15,6 +18,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 
 /**
@@ -60,7 +65,7 @@ public class RulesEngineConfiguration {
      * @return Configured RulesEngine instance
      */
     @Bean
-    public RulesEngine rulesEngine(
+    public DefaultRulesEngine rulesEngine(
             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository ruleRepository,
              com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.RulesEngineAuditPersistenceService auditPersistenceService,
             ExpressionEvaluator expressionEvaluator,
@@ -119,13 +124,12 @@ public class RulesEngineConfiguration {
      */
     @Bean
     public DataQualityRulesService dataQualityRulesService(
-            RulesEngine rulesEngine,
             IBusinessRuleRepository ruleRepositoryAdapter,
             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository violationRepository,
             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository executionLogRepository,
-            RuleExemptionRepository exemptionRepository,
             RulesEngineBatchLinkContext linkContext,
             RulesEngineJdbcBatchInserter jdbcBatchInserter,
+            RuleExecutionService ruleExecutionService,
             DataQualityProperties properties) {
         
         DataQualityProperties.RulesEngineProperties.LoggingProperties logging = 
@@ -140,7 +144,7 @@ public class RulesEngineConfiguration {
         log.info("  - Warn threshold: {}ms", performance.getWarnThresholdMs());
         log.info("  - Max execution time: {}ms", performance.getMaxExecutionTimeMs());
         
-        IRuleExecutionLogRepository executionLogRepoAdapter = new IRuleExecutionLogRepository() {
+        RuleExecutionLogRepository executionLogRepoAdapter = new RuleExecutionLogRepository() {
             @Override
             public void save(RuleExecutionLogDto executionLog) {
                 if (executionLog == null) {
@@ -166,51 +170,7 @@ public class RulesEngineConfiguration {
             }
 
             @Override
-            public void saveAll(Iterable<RuleExecutionLogDto> executionLogs) {
-                if (executionLogs == null) {
-                    return;
-                }
-
-                // New batch: clear mapping for this thread/request.
-                linkContext.clear();
-
-                java.util.List<RuleExecutionLogEntity> entities = new java.util.ArrayList<>();
-                for (RuleExecutionLogDto executionLog : executionLogs) {
-                    if (executionLog == null) {
-                        continue;
-                    }
-                    entities.add(
-                        RuleExecutionLogEntity.builder()
-                            .ruleId(executionLog.ruleId())
-                            .executionTimestamp(executionLog.executionTimestamp())
-                            .entityType(executionLog.entityType())
-                            .entityId(executionLog.entityId())
-                            .executionResult(executionLog.executionResult())
-                            .violationCount(executionLog.violationCount())
-                            .executionTimeMs(executionLog.executionTimeMs())
-                            .contextData(executionLog.contextData())
-                            .batchId(null)
-                            .errorMessage(executionLog.errorMessage())
-                            .executedBy(executionLog.executedBy())
-                            .build()
-                    );
-                }
-
-                if (entities.isEmpty()) {
-                    return;
-                }
-
-                java.util.List<RuleExecutionLogEntity> saved = executionLogRepository.saveAll(entities);
-                for (RuleExecutionLogEntity e : saved) {
-                    if (e == null) {
-                        continue;
-                    }
-                    linkContext.putExecutionId(e.getRuleId(), e.getEntityType(), e.getEntityId(), e.getExecutionId());
-                }
-            }
-
-            @Override
-            public void saveAllForBatch(String batchId, Iterable<RuleExecutionLogDto> executionLogs) {
+            public void saveAllForBatch(String batchId, List<RuleExecutionLogDto> executionLogs) {
                 if (executionLogs == null) {
                     return;
                 }
@@ -237,7 +197,7 @@ public class RulesEngineConfiguration {
             }
         };
 
-        IRuleViolationRepository violationRepoAdapter = new IRuleViolationRepository() {
+        RuleViolationRepository violationRepoAdapter = new RuleViolationRepository() {
             @Override
             public void save(RuleViolation violation) {
                 if (violation == null) {
@@ -266,46 +226,7 @@ public class RulesEngineConfiguration {
             }
 
             @Override
-            public void saveAll(Iterable<RuleViolation> violations) {
-                if (violations == null) {
-                    return;
-                }
-
-                java.util.List<RuleViolationEntity> entities = new java.util.ArrayList<>();
-                for (RuleViolation violation : violations) {
-                    if (violation == null) {
-                        continue;
-                    }
-                    Long executionId = normalizeExecutionId(
-                        violation.executionId() != null
-                            ? violation.executionId()
-                            : linkContext.getExecutionId(violation.ruleId(), violation.entityType(), violation.entityId())
-                    );
-
-                    entities.add(
-                        RuleViolationEntity.builder()
-                            .ruleId(violation.ruleId())
-                            .executionId(executionId)
-                            .batchId(null)
-                            .entityType(violation.entityType())
-                            .entityId(violation.entityId())
-                            .violationType(violation.violationType())
-                            .violationDescription(violation.violationDescription())
-                            .severity(violation.severity())
-                            .detectedAt(violation.detectedAt())
-                            .violationDetails(violation.violationDetails())
-                            .resolutionStatus(violation.resolutionStatus())
-                            .build()
-                    );
-                }
-
-                if (!entities.isEmpty()) {
-                    violationRepository.saveAll(entities);
-                }
-            }
-
-            @Override
-            public void saveAllForBatch(String batchId, Iterable<RuleViolation> violations) {
+            public void saveAllForBatch(String batchId, List<RuleViolation> violations) {
                 if (violations == null) {
                     return;
                 }
@@ -333,7 +254,17 @@ public class RulesEngineConfiguration {
             }
         };
 
-        IRuleExemptionRepository exemptionRepoAdapter = (ruleId, entityType, entityId, currentDate) ->
+        return new DataQualityRulesService(
+            ruleRepositoryAdapter,
+            violationRepoAdapter,
+            executionLogRepoAdapter,
+            ruleExecutionService
+        );
+    }
+
+    @Bean
+    public IRuleExemptionRepository ruleExemptionRepositoryAdapter(RuleExemptionRepository exemptionRepository) {
+        return (ruleId, entityType, entityId, currentDate) ->
             exemptionRepository.findActiveExemptions(ruleId, entityType, entityId, currentDate)
                 .stream()
                 .map(e -> new RuleExemptionDto(
@@ -351,19 +282,6 @@ public class RulesEngineConfiguration {
                     e.getCreatedAt()
                 ))
                 .toList();
-        
-        return new DataQualityRulesService(
-            rulesEngine,
-            ruleRepositoryAdapter,
-            violationRepoAdapter,
-            executionLogRepoAdapter,
-            exemptionRepoAdapter,
-            performance.getWarnThresholdMs(),
-            performance.getMaxExecutionTimeMs(),
-            logging.isLogExecutions(),
-            logging.isLogViolations(),
-            logging.isLogSummary()
-        );
     }
 
     // execution_id is now optional (nullable). Treat non-positive IDs as unset.

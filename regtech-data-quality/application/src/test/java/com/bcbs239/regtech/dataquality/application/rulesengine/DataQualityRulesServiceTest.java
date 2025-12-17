@@ -1,5 +1,163 @@
 package com.bcbs239.regtech.dataquality.application.rulesengine;
 
+import com.bcbs239.regtech.dataquality.application.validation.ValidationExecutionStats;
+import com.bcbs239.regtech.dataquality.application.validation.ValidationResults;
+import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.ExecutionResult;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLogDto;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.Severity;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("DataQualityRulesService")
+class DataQualityRulesServiceRefactorTest {
+
+    @Mock
+    private IBusinessRuleRepository ruleRepository;
+
+    @Mock
+    private RuleViolationRepository violationRepository;
+
+    @Mock
+    private RuleExecutionLogRepository executionLogRepository;
+
+    @Mock
+    private RuleExecutionService ruleExecutionService;
+
+    private DataQualityRulesService service;
+
+    @BeforeEach
+    void setUp() {
+        service = new DataQualityRulesService(
+            ruleRepository,
+            violationRepository,
+            executionLogRepository,
+            ruleExecutionService
+        );
+    }
+
+    @Test
+    @DisplayName("validateNoPersist fetches enabled rules and delegates")
+    void validateNoPersistFetchesEnabledRulesAndDelegates() {
+        ExposureRecord exposure = ExposureRecord.builder().exposureId("EXP-1").productType("SWAP").build();
+        List<BusinessRuleDto> rules = List.of(testRule("R-1"));
+        ValidationResults expected = new ValidationResults(
+            exposure.exposureId(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            new ValidationExecutionStats()
+        );
+
+        when(ruleRepository.findByEnabledTrue()).thenReturn(rules);
+        when(ruleExecutionService.execute(exposure, rules)).thenReturn(expected);
+
+        ValidationResults actual = service.validateNoPersist(exposure);
+
+        assertSame(expected, actual);
+        verify(ruleRepository).findByEnabledTrue();
+        verify(ruleExecutionService).execute(exposure, rules);
+    }
+
+    @Test
+    @DisplayName("validateConfigurableRules persists logs before violations")
+    void validateConfigurableRulesPersistsLogsBeforeViolations() {
+        ExposureRecord exposure = ExposureRecord.builder().exposureId("EXP-2").productType("SWAP").build();
+        List<BusinessRuleDto> rules = List.of(testRule("R-2"));
+
+        RuleExecutionLogDto log = RuleExecutionLogDto.builder()
+            .ruleId("R-2")
+            .executionTimestamp(Instant.now())
+            .entityType("EXPOSURE")
+            .entityId(exposure.exposureId())
+            .executionResult(ExecutionResult.SUCCESS)
+            .violationCount(1)
+            .executionTimeMs(12L)
+            .contextData(Map.of())
+            .executedBy("test")
+            .build();
+
+        RuleViolation violation = RuleViolation.builder()
+            .ruleId("R-2")
+            .executionId(null)
+            .entityType("EXPOSURE")
+            .entityId(exposure.exposureId())
+            .violationType("TEST")
+            .violationDescription("test violation")
+            .severity(Severity.HIGH)
+            .build();
+
+        List<ValidationError> errors = Collections.emptyList();
+        ValidationResults results = new ValidationResults(
+            exposure.exposureId(),
+            errors,
+            List.of(violation),
+            List.of(log),
+            new ValidationExecutionStats()
+        );
+
+        when(ruleRepository.findByEnabledTrue()).thenReturn(rules);
+        when(ruleExecutionService.execute(exposure, rules)).thenReturn(results);
+
+        List<ValidationError> returned = service.validateConfigurableRules(exposure);
+
+        assertSame(errors, returned);
+
+        InOrder inOrder = inOrder(executionLogRepository, violationRepository);
+        inOrder.verify(executionLogRepository).save(log);
+        inOrder.verify(executionLogRepository).flush();
+        inOrder.verify(violationRepository).save(violation);
+        inOrder.verify(violationRepository).flush();
+    }
+
+    private static BusinessRuleDto testRule(String ruleId) {
+        return new BusinessRuleDto(
+            ruleId,
+            "REG-1",
+            "TPL-1",
+            "Rule " + ruleId,
+            ruleId,
+            "",
+            RuleType.DATA_QUALITY,
+            "",
+            Severity.MEDIUM,
+            "",
+            1,
+            LocalDate.now().minusDays(1),
+            null,
+            true,
+            Collections.emptyList(),
+            Instant.now(),
+            Instant.now(),
+            "test"
+        );
+    }
+}
+
+/*
+
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
@@ -27,165 +185,247 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
-@DisplayName("DataQualityRulesService Unit Tests")
-class DataQualityRulesServiceTest {
-
-    @Mock(lenient = true)
+    @Mock
     private RulesEngine rulesEngine;
-    
-    @Mock(lenient = true)
+
+    @Mock
     private IBusinessRuleRepository ruleRepository;
-    
-    @Mock(lenient = true)
+
+    @Mock
     private IRuleViolationRepository violationRepository;
-    
-    @Mock(lenient = true)
+
+    @Mock
     private IRuleExecutionLogRepository executionLogRepository;
-    
-    @Mock(lenient = true)
+
+    @Mock
     private IRuleExemptionRepository exemptionRepository;
-    
+
+    @Mock
+    private RuleExecutionService ruleExecutionService;
+
     private DataQualityRulesService service;
-    
+
     @BeforeEach
-    void setUp() {
+    @Mock
         service = new DataQualityRulesService(
-            rulesEngine,
             ruleRepository,
             violationRepository,
             executionLogRepository,
-            exemptionRepository
+            ruleExecutionService
+        );
+            ruleRepository,
+
+    @Test
+    @DisplayName("validateNoPersist fetches enabled rules and delegates")
+    void validateNoPersistFetchesEnabledRulesAndDelegates() {
+        ExposureRecord exposure = ExposureRecord.builder().exposureId("EXP-1").productType("SWAP").build();
+        List<BusinessRuleDto> rules = List.of(testRule("R-1"));
+        ValidationResults expected = new ValidationResults(
+            exposure.exposureId(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            new ValidationExecutionStats()
+        );
+
+        when(ruleRepository.findByEnabledTrue()).thenReturn(rules);
+        when(ruleExecutionService.execute(exposure, rules)).thenReturn(expected);
+
+        ValidationResults actual = service.validateNoPersist(exposure);
+
+        assertSame(expected, actual);
+        verify(ruleRepository).findByEnabledTrue();
+        verify(ruleExecutionService).execute(exposure, rules);
+    }
+
+    @Test
+    @DisplayName("validateConfigurableRules persists logs before violations")
+    void validateConfigurableRulesPersistsLogsBeforeViolations() {
+        ExposureRecord exposure = ExposureRecord.builder().exposureId("EXP-2").productType("SWAP").build();
+        List<BusinessRuleDto> rules = List.of(testRule("R-2"));
+
+        RuleExecutionLogDto log = RuleExecutionLogDto.builder()
+            .ruleId("R-2")
+            .executionTimestamp(Instant.now())
+            .entityType("EXPOSURE")
+            .entityId(exposure.exposureId())
+            .executionResult(ExecutionResult.SUCCESS)
+            .violationCount(1)
+            .executionTimeMs(12L)
+            .contextData(Map.of())
+            .executedBy("test")
+            .build();
+
+        RuleViolation violation = RuleViolation.builder()
+            .ruleId("R-2")
+            .executionId(null)
+            .entityType("EXPOSURE")
+            .entityId(exposure.exposureId())
+            .violationType("TEST")
+            .violationDescription("test violation")
+            .severity(Severity.HIGH)
+            .build();
+
+        List<ValidationError> errors = Collections.emptyList();
+        ValidationResults results = new ValidationResults(
+            exposure.exposureId(),
+            errors,
+            List.of(violation),
+            List.of(log),
+            new ValidationExecutionStats()
+        );
+
+        when(ruleRepository.findByEnabledTrue()).thenReturn(rules);
+        when(ruleExecutionService.execute(exposure, rules)).thenReturn(results);
+
+        List<ValidationError> returned = service.validateConfigurableRules(exposure);
+
+        assertSame(errors, returned);
+
+        InOrder inOrder = inOrder(executionLogRepository, violationRepository);
+        inOrder.verify(executionLogRepository).save(log);
+        inOrder.verify(executionLogRepository).flush();
+        inOrder.verify(violationRepository).save(violation);
+        inOrder.verify(violationRepository).flush();
+    }
+
+    private static BusinessRuleDto testRule(String ruleId) {
+        return new BusinessRuleDto(
+            ruleId,
+            "REG-1",
+            "TPL-1",
+            "Rule " + ruleId,
+            ruleId,
+            "",
+            RuleType.DATA_QUALITY,
+            "",
+            Severity.MEDIUM,
+            "",
+            1,
+            LocalDate.now().minusDays(1),
+            null,
+            true,
+            Collections.emptyList(),
+            Instant.now(),
+            Instant.now(),
+            "test"
+        );
+    }
+            violationRepository,
+            executionLogRepository,
+            ruleExecutionService
         );
     }
 
     @Test
-    @DisplayName("Should create canonical rule context keys")
-    void shouldCreateCanonicalRuleContextKeys() {
-        // Arrange
+    @DisplayName("validateNoPersist delegates to RuleExecutionService")
+    void validateNoPersistDelegatesToRuleExecutionService() {
         ExposureRecord exposure = createTestExposure();
-        BusinessRuleDto rule = createTestRule("RULE_001", true);
+        List<BusinessRuleDto> rules = List.of(createTestRule("RULE_001"));
+        ValidationResults expected = new ValidationResults(
+            exposure.exposureId(),
+            List.of(),
+            List.of(),
+            List.of(),
+            new ValidationExecutionStats()
+        );
 
-        when(ruleRepository.findByEnabledTrue()).thenReturn(Collections.singletonList(rule));
-        when(rulesEngine.executeRule(eq("RULE_001"), any(RuleContext.class)))
-            .thenReturn(RuleExecutionResult.success("RULE_001"));
-        when(exemptionRepository.findActiveExemptions(anyString(), anyString(), anyString(), any(LocalDate.class)))
-            .thenReturn(Collections.emptyList());
+        when(ruleRepository.findByEnabledTrue()).thenReturn(rules);
+        when(ruleExecutionService.execute(eq(exposure), eq(rules))).thenReturn(expected);
 
-        ArgumentCaptor<RuleContext> contextCaptor = ArgumentCaptor.forClass(RuleContext.class);
+        ValidationResults actual = service.validateNoPersist(exposure);
 
-        // Act
-        service.validateConfigurableRules(exposure);
-
-        // Assert
-        verify(rulesEngine).executeRule(eq("RULE_001"), contextCaptor.capture());
-        RuleContext ctx = contextCaptor.getValue();
-
-        // Canonical context keys (single representation)
-        assertTrue(ctx.containsKey("exposure_id"), "Context should contain exposure_id");
-        assertEquals(exposure.exposureId(), ctx.get("exposure_id"));
-        assertTrue(ctx.containsKey("product_type"), "Context should contain product_type");
-        assertEquals(exposure.productType(), ctx.get("product_type"));
-
-        // Ensure we don't duplicate keys (performance)
-        assertTrue(!ctx.containsKey("exposureId"), "Context should not contain exposureId (no duplication)");
-        assertTrue(!ctx.containsKey("productType"), "Context should not contain productType (no duplication)");
-    }
-    
-    // ====================================================================
-    // Tests for Rule Enable/Disable Functionality (Task 6)
-    // ====================================================================
-    
-    @Test
-    @DisplayName("Should load only enabled rules")
-    void shouldLoadOnlyEnabledRules() {
-        // Arrange
-        ExposureRecord exposure = createTestExposure();
-        
-        BusinessRuleDto enabledRule1 = createTestRule("RULE_001", true);
-        BusinessRuleDto enabledRule2 = createTestRule("RULE_002", true);
-        
-        when(ruleRepository.findByEnabledTrue()).thenReturn(Arrays.asList(enabledRule1, enabledRule2));
-        when(rulesEngine.executeRule(anyString(), any(RuleContext.class)))
-            .thenReturn(RuleExecutionResult.success("RULE_001"))
-            .thenReturn(RuleExecutionResult.success("RULE_002"));
-        when(exemptionRepository.findActiveExemptions(anyString(), anyString(), anyString(), any(LocalDate.class)))
-            .thenReturn(Collections.emptyList());
-        
-        // Act
-        List<ValidationError> errors = service.validateConfigurableRules(exposure);
-        
-        // Assert
+        assertEquals(expected, actual);
         verify(ruleRepository).findByEnabledTrue();
-        verify(rulesEngine, times(2)).executeRule(anyString(), any(RuleContext.class));
-        verify(executionLogRepository, times(2)).save(any(RuleExecutionLogDto.class));
+        verify(ruleExecutionService).execute(eq(exposure), eq(rules));
     }
-    
+
     @Test
-    @DisplayName("Should skip disabled rules during validation")
-    void shouldSkipDisabledRules() {
-        // Arrange
+    @DisplayName("validateConfigurableRules persists execution logs then violations")
+    void validateConfigurableRulesPersistsLogsThenViolations() {
         ExposureRecord exposure = createTestExposure();
-        
-        // Only enabled rules should be returned by the repository
-        BusinessRuleDto enabledRule = createTestRule("RULE_ENABLED", true);
-        
-        when(ruleRepository.findByEnabledTrue()).thenReturn(Collections.singletonList(enabledRule));
-        when(rulesEngine.executeRule(eq("RULE_ENABLED"), any(RuleContext.class)))
-            .thenReturn(RuleExecutionResult.success("RULE_ENABLED"));
-        when(exemptionRepository.findActiveExemptions(anyString(), anyString(), anyString(), any(LocalDate.class)))
-            .thenReturn(Collections.emptyList());
-        
-        // Act
+        BusinessRuleDto rule = createTestRule("RULE_001");
+
+        RuleExecutionLogDto log = RuleExecutionLogDto.builder()
+            .ruleId("RULE_001")
+            .entityType("EXPOSURE")
+            .entityId(exposure.exposureId())
+            .executionResult(ExecutionResult.SUCCESS)
+            .executionTimeMs(10L)
+            .violationCount(1)
+            .contextData(Map.of())
+            .build();
+
+        RuleViolation violation = RuleViolation.builder()
+            .ruleId("RULE_001")
+            .entityType("EXPOSURE")
+            .entityId(exposure.exposureId())
+            .violationType("TEST")
+            .violationDescription("test")
+            .severity(Severity.MEDIUM)
+            .detectedAt(Instant.now())
+            .violationDetails(Map.of())
+            .build();
+
+        ValidationError error = new ValidationError(
+            exposure.exposureId(),
+            "RULE_001",
+            "TEST",
+            "test",
+            "ACCURACY"
+        );
+
+        when(ruleRepository.findByEnabledTrue()).thenReturn(List.of(rule));
+        when(ruleExecutionService.execute(eq(exposure), eq(List.of(rule)))).thenReturn(
+            new ValidationResults(
+                exposure.exposureId(),
+                List.of(error),
+                List.of(violation),
+                List.of(log),
+                new ValidationExecutionStats()
+            )
+        );
+
         List<ValidationError> errors = service.validateConfigurableRules(exposure);
+
+        assertEquals(1, errors.size());
+
+        InOrder inOrder = inOrder(executionLogRepository, violationRepository);
+        inOrder.verify(executionLogRepository).save(any(RuleExecutionLogDto.class));
+        inOrder.verify(executionLogRepository).flush();
+        inOrder.verify(violationRepository).save(any(RuleViolation.class));
+        inOrder.verify(violationRepository).flush();
         
-        // Assert
-        verify(ruleRepository).findByEnabledTrue();
-        verify(rulesEngine, times(1)).executeRule(eq("RULE_ENABLED"), any(RuleContext.class));
-        verify(rulesEngine, never()).executeRule(eq("RULE_DISABLED"), any(RuleContext.class));
-        verify(executionLogRepository, times(1)).save(any(RuleExecutionLogDto.class));
+
+    private static ExposureRecord createTestExposure() {
+        return ExposureRecord.builder()
+            .exposureId("E1")
+            .counterpartyId("C1")
+            .amount(BigDecimal.TEN)
+            .currency("USD")
+            .country("US")
+            .sector("TECH")
+            .counterpartyType("BANK")
+            .productType("LOAN")
+            .leiCode("LEI")
+            .internalRating("A")
+            .riskCategory("LOW")
+            .riskWeight(BigDecimal.ONE)
+            .reportingDate(LocalDate.of(2024, 1, 1))
+            .valuationDate(LocalDate.of(2024, 1, 1))
+            .maturityDate(LocalDate.of(2030, 1, 1))
+            .referenceNumber("R1")
+            .build();
     }
-    
-    @Test
-    @DisplayName("Should execute all enabled rules for validation")
-    void shouldExecuteAllEnabledRules() {
-        // Arrange
-        ExposureRecord exposure = createTestExposure();
-        
-        BusinessRuleDto rule1 = createTestRule("COMPLETENESS_AMOUNT", true);
-        BusinessRuleDto rule2 = createTestRule("ACCURACY_POSITIVE_AMOUNT", true);
-        BusinessRuleDto rule3 = createTestRule("VALIDITY_CURRENCY", true);
-        
-        when(ruleRepository.findByEnabledTrue()).thenReturn(Arrays.asList(rule1, rule2, rule3));
-        when(rulesEngine.executeRule(anyString(), any(RuleContext.class)))
-            .thenReturn(RuleExecutionResult.success("COMPLETENESS_AMOUNT"))
-            .thenReturn(RuleExecutionResult.success("ACCURACY_POSITIVE_AMOUNT"))
-            .thenReturn(RuleExecutionResult.success("VALIDITY_CURRENCY"));
-        when(exemptionRepository.findActiveExemptions(anyString(), anyString(), anyString(), any(LocalDate.class)))
-            .thenReturn(Collections.emptyList());
-        
-        // Act
-        List<ValidationError> errors = service.validateConfigurableRules(exposure);
-        
-        // Assert
-        verify(ruleRepository).findByEnabledTrue();
-        verify(rulesEngine, times(3)).executeRule(anyString(), any(RuleContext.class));
-        verify(executionLogRepository, times(3)).save(any(RuleExecutionLogDto.class));
+
+    private static BusinessRuleDto createTestRule(String ruleCode) {
+        return BusinessRuleDto.builder()
+            .ruleCode(ruleCode)
+            .enabled(true)
+            .active(true)
+            .ruleType(RuleType.DATA_QUALITY)
+            .build();
     }
-    
-    @Test
-    @DisplayName("Should execute multiple rules for same field and aggregate violations")
-    void shouldExecuteMultipleRulesForSameFieldAndAggregate() {
-        // Arrange
-        ExposureRecord exposure = createTestExposure();
-        
-        // Multiple rules validating the same field (amount)
-        BusinessRuleDto rule1 = createTestRule("ACCURACY_POSITIVE_AMOUNT", true);
-        BusinessRuleDto rule2 = createTestRule("ACCURACY_REASONABLE_AMOUNT", true);
-        BusinessRuleDto rule3 = createTestRule("COMPLETENESS_AMOUNT_REQUIRED", true);
-        
         // Create violations for each rule
         RuleViolation violation1 = createTestViolation("ACCURACY_POSITIVE_AMOUNT", "amount", "Amount must be positive");
         RuleViolation violation2 = createTestViolation("ACCURACY_REASONABLE_AMOUNT", "amount", "Amount exceeds reasonable threshold");
@@ -380,3 +620,4 @@ class DataQualityRulesServiceTest {
             .build();
     }
 }
+*/

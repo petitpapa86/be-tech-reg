@@ -9,6 +9,11 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Spring Expression Language (SpEL) implementation of ExpressionEvaluator.
  * 
@@ -19,6 +24,12 @@ import org.springframework.stereotype.Component;
 public class SpelExpressionEvaluator implements ExpressionEvaluator {
     
     private final ExpressionParser parser = new SpelExpressionParser();
+
+    // Matches SpEL variable references like #exposureId, #product_type, etc.
+    private static final Pattern SPEL_VARIABLE = Pattern.compile("#([A-Za-z_][A-Za-z0-9_]*)");
+
+    // SpEL built-in context variables (should not be rewritten).
+    private static final Set<String> RESERVED_VARIABLES = Set.of("root", "this");
     
     @Override
     public boolean evaluateBoolean(String expression, RuleContext context) {
@@ -54,7 +65,8 @@ public class SpelExpressionEvaluator implements ExpressionEvaluator {
     @Override
     public Object evaluate(String expression, RuleContext context) {
         try {
-            Expression expr = parser.parseExpression(expression);
+            String rewritten = rewriteVariableAliases(expression, context);
+            Expression expr = parser.parseExpression(rewritten);
             EvaluationContext evalContext = createEvaluationContext(context);
             return expr.getValue(evalContext);
             
@@ -68,7 +80,8 @@ public class SpelExpressionEvaluator implements ExpressionEvaluator {
     @Override
     public <T> T evaluate(String expression, RuleContext context, Class<T> resultType) {
         try {
-            Expression expr = parser.parseExpression(expression);
+            String rewritten = rewriteVariableAliases(expression, context);
+            Expression expr = parser.parseExpression(rewritten);
             EvaluationContext evalContext = createEvaluationContext(context);
             return expr.getValue(evalContext, resultType);
             
@@ -99,7 +112,8 @@ public class SpelExpressionEvaluator implements ExpressionEvaluator {
     private EvaluationContext createEvaluationContext(RuleContext context) {
         StandardEvaluationContext evalContext = new StandardEvaluationContext();
         if (context != null && context.getAllData() != null) {
-            // Exact variable names only (no case/underscore aliasing for performance).
+            // Register the exact context keys as variables.
+            // Alias support is handled by rewriting the expression, not by mutating the RuleContext.
             context.getAllData().forEach(evalContext::setVariable);
         }
 
@@ -153,6 +167,60 @@ public class SpelExpressionEvaluator implements ExpressionEvaluator {
      */
     public static java.time.LocalDate today() {
         return java.time.LocalDate.now();
+    }
+
+    private static String rewriteVariableAliases(String expression, RuleContext context) {
+        if (expression == null || context == null) {
+            return expression;
+        }
+
+        Map<String, Object> data = context.getAllData();
+        if (data == null || data.isEmpty()) {
+            return expression;
+        }
+
+        Matcher matcher = SPEL_VARIABLE.matcher(expression);
+        StringBuffer out = new StringBuffer(expression.length());
+
+        while (matcher.find()) {
+            String varName = matcher.group(1);
+            if (varName == null || varName.isBlank()) {
+                continue;
+            }
+
+            String lower = varName.toLowerCase();
+            if (RESERVED_VARIABLES.contains(lower)) {
+                continue;
+            }
+
+            String normalized = toSnakeLower(varName);
+            if (normalized.equals(varName)) {
+                continue;
+            }
+
+            // Only rewrite when it maps to an existing snake_case key and the original key doesn't exist.
+            if (data.containsKey(normalized) && !data.containsKey(varName)) {
+                matcher.appendReplacement(out, Matcher.quoteReplacement("#" + normalized));
+            }
+        }
+
+        matcher.appendTail(out);
+        return out.toString();
+    }
+
+    private static String toSnakeLower(String name) {
+        if (name == null || name.isBlank()) {
+            return name;
+        }
+
+        // 1) Convert camelCase / PascalCase to snake_case.
+        String s = name.replaceAll("([a-z0-9])([A-Z])", "$1_$2");
+
+        // 2) Normalize underscores and casing.
+        s = s.replaceAll("_+", "_");
+        s = s.toLowerCase();
+
+        return s;
     }
 }
 

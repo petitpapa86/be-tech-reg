@@ -64,6 +64,7 @@ public class ValidateBatchQualityCommandHandler {
     private final IQualityReportRepository qualityReportRepository;
     private final S3StorageService s3StorageService;
     private final DataQualityRulesService rulesService;
+    private final ParallelExposureValidationCoordinator coordinator;
     private final BaseUnitOfWork unitOfWork;
 
     private final int hikariMaxPoolSize;
@@ -73,6 +74,7 @@ public class ValidateBatchQualityCommandHandler {
         IQualityReportRepository qualityReportRepository,
         S3StorageService s3StorageService,
         DataQualityRulesService rulesService,
+        ParallelExposureValidationCoordinator coordinator,
         BaseUnitOfWork unitOfWork,
         @Value("${spring.datasource.hikari.maximum-pool-size:20}") int hikariMaxPoolSize,
         @Value("${dataquality.validation.max-in-flight:0}") int configuredMaxInFlight
@@ -80,6 +82,7 @@ public class ValidateBatchQualityCommandHandler {
         this.qualityReportRepository = qualityReportRepository;
         this.s3StorageService = s3StorageService;
         this.rulesService = rulesService;
+        this.coordinator = coordinator;
         this.unitOfWork = unitOfWork;
 
         this.hikariMaxPoolSize = Math.max(1, hikariMaxPoolSize);
@@ -171,101 +174,38 @@ public class ValidateBatchQualityCommandHandler {
         // Execute quality validation using Rules Engine (application layer responsibility)
         logger.debug("Executing quality validation for {} exposures using Rules Engine", exposures.size());
 
-        // Application layer orchestrates infrastructure (Rules Engine)
-        // Validate each exposure using the Rules Engine
-        Map<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>(Math.max(16, exposures.size()));
-        List<ValidationResultsDto> allValidationResults = new ArrayList<>(exposures.size());
+        // Use the coordinator for parallel validation
+        List<ValidationResults> allValidationResults = coordinator.validateAll(exposures, rulesService);
 
-        // For large batches, run exposure validations concurrently.
-        // Worker tasks perform rule execution + mapping only; persistence is done once after all validations complete.
-        int cpuBoundMax = Math.max(1, Math.min(Runtime.getRuntime().availableProcessors() * 2, 32));
-        int requestedMaxInFlight = (configuredMaxInFlight > 0) ? configuredMaxInFlight : cpuBoundMax;
-        int reservedConnections = 2; // leave room for the handler TX + misc repository calls
-        int connectionBudgetForWorkers = Math.max(1, hikariMaxPoolSize - reservedConnections);
-        int safeMaxInFlightFromPool = Math.max(1, connectionBudgetForWorkers);
-        int maxInFlight = Math.max(1, Math.min(requestedMaxInFlight, safeMaxInFlightFromPool));
-        boolean useParallel = exposures.size() >= Math.max(1_000, maxInFlight * 4);
+        // Convert to DTOs for persistence
+        List<ValidationResultsDto> allValidationResultsDto = allValidationResults.stream()
+            .map(vr -> new ValidationResultsDto(
+                vr.exposureId(),
+                vr.validationErrors(),
+                vr.ruleViolations(),
+                vr.executionLogs(),
+                vr.stats()
+            ))
+            .toList();
 
-        if (!useParallel) {
-            for (ExposureRecord exposure : exposures) {
-                ValidationResultsDto validationResults = validateSingleExposureNoPersist(exposure);
-                allValidationResults.add(validationResults);
-
-                ExposureValidationResult result = createExposureValidationResult(validationResults);
-                exposureResults.put(exposure.exposureId(), result);
-            }
-        } else {
-            logger.debug(
-                "Validating {} exposures in parallel (virtual threads), maxInFlight={} (hikariMaxPoolSize={}, configuredMaxInFlight={})",
-                exposures.size(),
-                maxInFlight,
-                hikariMaxPoolSize,
-                configuredMaxInFlight
+        // Convert to ExposureValidationResult for domain
+        Map<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>();
+        for (ValidationResults vr : allValidationResults) {
+            ExposureValidationResult result = createExposureValidationResult(
+                new ValidationResultsDto(
+                    vr.exposureId(),
+                    vr.validationErrors(),
+                    vr.ruleViolations(),
+                    vr.executionLogs(),
+                    vr.stats()
+                )
             );
-
-            try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
-                var completion = new ExecutorCompletionService<ValidationResultsDto>(executor);
-
-                int submitted = 0;
-                int completed = 0;
-                var iterator = exposures.iterator();
-
-                // Prime the pump with up to maxInFlight tasks
-                while (submitted - completed < maxInFlight && iterator.hasNext()) {
-                    ExposureRecord exposure = iterator.next();
-                    completion.submit(() -> validateSingleExposureNoPersist(exposure));
-                    submitted++;
-                }
-
-                while (completed < exposures.size()) {
-                    Future<ValidationResultsDto> future = completion.take();
-                    ValidationResultsDto validationResults = future.get();
-                    allValidationResults.add(validationResults);
-
-                    ExposureValidationResult result = createExposureValidationResult(validationResults);
-                    exposureResults.put(result.exposureId(), result);
-                    completed++;
-
-                    // Keep a bounded number of tasks in flight
-                    if (iterator.hasNext()) {
-                        ExposureRecord next = iterator.next();
-                        completion.submit(() -> validateSingleExposureNoPersist(next));
-                        submitted++;
-                    }
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                logger.error("Batch quality validation interrupted for batch {}", command.batchId().value(), e);
-                markReportAsFailed(report, "Quality validation interrupted");
-                return Result.failure(
-                    ErrorDetail.of(
-                        "DATA_QUALITY_VALIDATION_INTERRUPTED",
-                        com.bcbs239.regtech.core.domain.shared.ErrorType.SYSTEM_ERROR,
-                        "Quality validation interrupted",
-                        "dataquality.validation.interrupted"
-                    )
-                );
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause == null) {
-                    cause = e;
-                }
-                logger.error("Batch quality validation failed for batch {}: {}", command.batchId().value(), cause.getMessage(), cause);
-                markReportAsFailed(report, "Quality validation failed: " + cause.getMessage());
-                return Result.failure(
-                    ErrorDetail.of(
-                        "DATA_QUALITY_VALIDATION_FAILED",
-                        com.bcbs239.regtech.core.domain.shared.ErrorType.SYSTEM_ERROR,
-                        "Quality validation failed: " + cause.getMessage(),
-                        "dataquality.validation.failed"
-                    )
-                );
-            }
+            exposureResults.put(vr.exposureId(), result);
         }
 
         // Persist rule violations/execution logs once after validation completes.
         // This avoids per-worker database writes/transactions.
-        rulesService.batchPersistValidationResults(command.batchId().value(), allValidationResults);
+        rulesService.batchPersistValidationResults(command.batchId().value(), allValidationResultsDto);
 
         // Batch-level validation (if needed in the future)
         List<ValidationError> batchErrors = new ArrayList<>();
@@ -354,10 +294,6 @@ public class ValidateBatchQualityCommandHandler {
 
         // Finalize workflow with logging
         return Result.success();
-    }
-
-    private ValidationResultsDto validateSingleExposureNoPersist(ExposureRecord exposure) {
-        return rulesService.validateConfigurableRulesNoPersist(exposure);
     }
 
     private ExposureValidationResult createExposureValidationResult(ValidationResultsDto validationResults) {

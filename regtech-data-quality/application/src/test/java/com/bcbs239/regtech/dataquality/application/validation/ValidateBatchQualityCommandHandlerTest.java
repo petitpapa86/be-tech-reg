@@ -13,6 +13,7 @@ import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.application.rulesengine.ValidationResultsDto;
+import com.bcbs239.regtech.dataquality.application.validation.ParallelExposureValidationCoordinator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,9 @@ class ValidateBatchQualityCommandHandlerTest {
     
     @Mock
     private com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService rulesService;
+
+    @Mock
+    private ParallelExposureValidationCoordinator parallelCoordinator;
     
     private ValidateBatchQualityCommandHandler handler;
     
@@ -60,6 +64,7 @@ class ValidateBatchQualityCommandHandlerTest {
             qualityReportRepository,
             s3StorageService,
             rulesService,
+            parallelCoordinator,
             unitOfWork,
             20,
             0
@@ -83,6 +88,22 @@ class ValidateBatchQualityCommandHandlerTest {
                     Collections.emptyList(),
                     Collections.emptyList()
                 );
+            });
+
+        // The handler delegates exposure validation to the coordinator.
+        // In unit tests we stub this to avoid testing concurrency/executor behavior here.
+        lenient().when(parallelCoordinator.validateAll(anyList(), any()))
+            .thenAnswer(invocation -> {
+                List<ExposureRecord> exposures = invocation.getArgument(0);
+                return exposures.stream()
+                    .map(e -> new ValidationResults(
+                        e.exposureId(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        new ValidationExecutionStats()
+                    ))
+                    .toList();
             });
     }
     

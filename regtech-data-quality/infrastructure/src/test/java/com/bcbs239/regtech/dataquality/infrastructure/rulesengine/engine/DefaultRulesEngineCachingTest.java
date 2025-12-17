@@ -3,13 +3,12 @@ package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExecutionLogEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleParameterEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.RulesEngineAuditPersistenceService;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
-import com.bcbs239.regtech.dataquality.rulesengine.evaluator.ExpressionEvaluator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,10 +45,7 @@ class DefaultRulesEngineCachingTest {
     private BusinessRuleRepository ruleRepository;
     
     @Mock
-    private RuleExecutionLogRepository executionLogRepository;
-    
-    @Mock
-    private RuleViolationRepository violationRepository;
+    private RulesEngineAuditPersistenceService auditPersistenceService;
     
     @Mock
     private ExpressionEvaluator expressionEvaluator;
@@ -58,8 +54,8 @@ class DefaultRulesEngineCachingTest {
     
     @BeforeEach
     void setUp() {
-        // Mock execution log save to return the entity
-        when(executionLogRepository.save(any(RuleExecutionLogEntity.class)))
+        // Mock audit persistence to behave like a no-op save.
+        when(auditPersistenceService.saveExecutionLogBestEffort(any(RuleExecutionLogEntity.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
     }
     
@@ -71,7 +67,7 @@ class DefaultRulesEngineCachingTest {
     void testRulesCachedInMemory() {
         // Given: Cache enabled with 300 second TTL
         rulesEngine = new DefaultRulesEngine(
-            ruleRepository, executionLogRepository, violationRepository, 
+            ruleRepository, auditPersistenceService,
             expressionEvaluator, true, 300
         );
         
@@ -98,7 +94,7 @@ class DefaultRulesEngineCachingTest {
     void testCacheDisabledLoadsFromDatabaseEveryTime() {
         // Given: Cache disabled
         rulesEngine = new DefaultRulesEngine(
-            ruleRepository, executionLogRepository, violationRepository, 
+            ruleRepository, auditPersistenceService,
             expressionEvaluator, false, 300
         );
         
@@ -125,7 +121,7 @@ class DefaultRulesEngineCachingTest {
     void testCacheRefreshOnTTLExpiration() throws InterruptedException {
         // Given: Cache enabled with 1 second TTL
         rulesEngine = new DefaultRulesEngine(
-            ruleRepository, executionLogRepository, violationRepository, 
+            ruleRepository, auditPersistenceService,
             expressionEvaluator, true, 1
         );
         
@@ -154,7 +150,7 @@ class DefaultRulesEngineCachingTest {
     void testParameterUpdatesReflectedAfterCacheRefresh() throws InterruptedException {
         // Given: Cache enabled with 1 second TTL
         rulesEngine = new DefaultRulesEngine(
-            ruleRepository, executionLogRepository, violationRepository, 
+            ruleRepository, auditPersistenceService,
             expressionEvaluator, true, 1
         );
         
@@ -194,7 +190,7 @@ class DefaultRulesEngineCachingTest {
     void testCacheReuseAcrossMultipleExposures() {
         // Given: Cache enabled with 300 second TTL
         rulesEngine = new DefaultRulesEngine(
-            ruleRepository, executionLogRepository, violationRepository, 
+            ruleRepository, auditPersistenceService,
             expressionEvaluator, true, 300
         );
         
@@ -221,7 +217,7 @@ class DefaultRulesEngineCachingTest {
     void testCacheStatistics() {
         // Given: Cache enabled with 300 second TTL
         rulesEngine = new DefaultRulesEngine(
-            ruleRepository, executionLogRepository, violationRepository, 
+            ruleRepository, auditPersistenceService,
             expressionEvaluator, true, 300
         );
         
@@ -252,7 +248,7 @@ class DefaultRulesEngineCachingTest {
     void testManualCacheClear() {
         // Given: Cache enabled with 300 second TTL
         rulesEngine = new DefaultRulesEngine(
-            ruleRepository, executionLogRepository, violationRepository, 
+            ruleRepository, auditPersistenceService,
             expressionEvaluator, true, 300
         );
         
