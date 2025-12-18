@@ -52,17 +52,28 @@ public class RulesEngineAdapter implements RuleExecutionPort {
     private final boolean logExecutions;
     private final boolean logViolations;
 
+    // Audit persistence controls (DB execution log volume)
+    private final boolean persistExecutionLogs;
+    private final boolean persistSuccessExecutionLogs;
+    private final boolean persistSlowExecutionLogs;
+
     public RulesEngineAdapter(
             RulesEngine rulesEngine,
             IRuleExemptionRepository exemptionRepository,
             @Value("${data-quality.rules-engine.performance.warn-threshold-ms:100}") int warnThresholdMs,
             @Value("${data-quality.rules-engine.logging.log-executions:true}") boolean logExecutions,
-            @Value("${data-quality.rules-engine.logging.log-violations:true}") boolean logViolations) {
+            @Value("${data-quality.rules-engine.logging.log-violations:true}") boolean logViolations,
+            @Value("${data-quality.rules-engine.audit.persist-execution-logs:true}") boolean persistExecutionLogs,
+            @Value("${data-quality.rules-engine.audit.persist-success-execution-logs:false}") boolean persistSuccessExecutionLogs,
+            @Value("${data-quality.rules-engine.audit.persist-slow-execution-logs:true}") boolean persistSlowExecutionLogs) {
         this.rulesEngine = rulesEngine;
         this.exemptionRepository = exemptionRepository;
         this.warnThresholdMs = warnThresholdMs;
         this.logExecutions = logExecutions;
         this.logViolations = logViolations;
+        this.persistExecutionLogs = persistExecutionLogs;
+        this.persistSuccessExecutionLogs = persistSuccessExecutionLogs;
+        this.persistSlowExecutionLogs = persistSlowExecutionLogs;
     }
 
     @Override
@@ -218,16 +229,41 @@ public class RulesEngineAdapter implements RuleExecutionPort {
         } finally {
             long executionTime = System.currentTimeMillis() - ruleStartTime;
 
-            // Persist execution log
-            RuleExecutionLogDto executionLog = createExecutionLog(
-                rule,
-                exposure,
-                result,
-                executionTime,
-                errorMessage
-            );
-            logs.add(executionLog);
+            if (persistExecutionLogs) {
+                RuleExecutionLogDto executionLog = createExecutionLog(
+                    rule,
+                    exposure,
+                    result,
+                    executionTime,
+                    errorMessage
+                );
+
+                if (shouldCollectExecutionLog(executionLog)) {
+                    logs.add(executionLog);
+                }
+            }
         }
+    }
+
+    private boolean shouldCollectExecutionLog(RuleExecutionLogDto log) {
+        if (persistSuccessExecutionLogs) {
+            return true;
+        }
+        if (log == null) {
+            return false;
+        }
+
+        boolean hasViolations = log.violationCount() != null && log.violationCount() > 0;
+        boolean isErrorOrFailure = log.executionResult() != null && log.executionResult() != ExecutionResult.SUCCESS;
+        boolean isSlow = persistSlowExecutionLogs
+            && log.executionTimeMs() != null
+            && log.executionTimeMs() > warnThresholdMs;
+
+        // Keep only “interesting” logs by default:
+        // - failures/errors
+        // - any violations
+        // - slow executions (optional)
+        return isErrorOrFailure || hasViolations || isSlow;
     }
 
     private boolean shouldLogSlowRuleWarn(String ruleId) {

@@ -108,12 +108,16 @@ spring:
           lob:
             non_contextual_creation: true
           # Batch processing for better performance (Hibernate 7.x optimized)
-          batch_size: 20
+          batch_size: 1000
           batch_versioned_data: true
-        
+          fetch_size: 1000
+          use_get_generated_keys: true
         # Query optimization (Hibernate 7.x features)
         order_inserts: true
         order_updates: true
+
+        query:
+          in_clause_parameter_padding: true
         
         # SQL formatting (disabled for production performance)
         format_sql: false
