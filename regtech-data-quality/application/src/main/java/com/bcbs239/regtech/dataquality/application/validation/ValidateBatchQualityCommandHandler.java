@@ -5,7 +5,6 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
-import com.bcbs239.regtech.dataquality.application.rulesengine.ValidationResultsDto;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
@@ -18,7 +17,6 @@ import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import io.micrometer.core.annotation.Timed;
 
 import java.util.ArrayList;
@@ -86,8 +84,6 @@ public class ValidateBatchQualityCommandHandler {
             // Check if report was created by another thread despite the exception
             Optional<QualityReport> retryCheck = qualityReportRepository.findByBatchId(command.batchId());
             if (retryCheck.isPresent()) {
-                logger.debug("Quality report exists after exception during creation; assuming concurrent creation for batchId={}",
-                        command.batchId().value());
                 return Result.success();
             }
 
@@ -114,28 +110,17 @@ public class ValidateBatchQualityCommandHandler {
 
         List<ValidationResults> allResults = coordinator.validateAll(exposures, rulesService);
 
-        // Convert to DTOs for persistence and to ExposureValidationResult for domain.
-        // List<ValidationResultsDto> allValidationResultsDto = new ArrayList<>(allResults.size());
         Map<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>(
                 Math.max(16, (int) (allResults.size() / 0.75f) + 1)
         );
+
         for (ValidationResults result : allResults) {
             if (result == null) {
                 continue;
             }
-
-//            ValidationResultsDto dto = new ValidationResultsDto(
-//                results.exposureId(),
-//                results.validationErrors(),
-//                results.ruleViolations(),
-//                results.stats()
-//            );
-            // allValidationResultsDto.add(dto);
             exposureResults.put(result.exposureId(), createExposureValidationResult(result));
         }
 
-        // Persist rule violations/execution logs once after validation completes.
-        // This avoids per-worker database writes/transactions.
         rulesService.batchPersistValidationResults(command.batchId().value(), allResults);
 
         // Batch-level validation (if needed in the future)
@@ -148,8 +133,6 @@ public class ValidateBatchQualityCommandHandler {
         Result<ValidationResult> validationResult = report.recordValidationAndCalculateScores(validation);
 
         if (validationResult.isFailure()) {
-            logger.error("Failed to record quality validation: {}",
-                    validationResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
             markReportAsFailed(report, "Failed to record quality validation");
             return Result.failure(validationResult.errors());
         }
@@ -160,9 +143,6 @@ public class ValidateBatchQualityCommandHandler {
                 command.batchId().value(),
                 validation.validExposures(), validation.totalExposures(), validation.allErrors().size(),
                 scores.overallScore());
-
-        // Store detailed results in S3
-        logger.debug("Storing detailed validation results in S3 for batch {}", command.batchId().value());
 
         java.util.Map<String, String> metadata = java.util.Map.of(
                 "batch-id", command.batchId().value(),
@@ -196,8 +176,6 @@ public class ValidateBatchQualityCommandHandler {
         // Complete validation
         Result<Void> completeResult = report.completeValidation();
         if (completeResult.isFailure()) {
-            logger.error("Failed to complete validation: {}",
-                    completeResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
             markReportAsFailed(report, "Failed to complete validation");
             return completeResult;
         }
