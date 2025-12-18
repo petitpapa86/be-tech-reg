@@ -1,11 +1,9 @@
 package com.bcbs239.regtech.dataquality.infrastructure.config;
 
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
-import com.bcbs239.regtech.dataquality.application.rulesengine.RuleExecutionLogRepository;
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleExecutionService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExecutionLogEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineBatchLinkContext;
@@ -104,75 +102,7 @@ public class RulesEngineConfiguration {
         return new BusinessRuleRepositoryAdapter(infraRepo, rulesEngine, cacheEnabled, cacheTtl);
     }
 
-    /**
-     * Single implementation of the application port for execution-log persistence.
-     *
-     * <p>Uses JDBC batch inserts for high throughput. This is intentionally a Bean so there
-     * is exactly one wiring for the port across the application.</p>
-     */
-    @Bean
-    public RuleExecutionLogRepository ruleExecutionLogRepositoryPort(
-            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository executionLogRepository,
-            RulesEngineBatchLinkContext linkContext,
-            RulesEngineJdbcBatchInserter jdbcBatchInserter) {
 
-        return new RuleExecutionLogRepository() {
-            @Override
-            public void save(RuleExecutionLogDto executionLog) {
-                if (executionLog == null) {
-                    return;
-                }
-                RuleExecutionLogEntity entity = RuleExecutionLogEntity.builder()
-                    .ruleId(executionLog.ruleId())
-                    .executionTimestamp(executionLog.executionTimestamp())
-                    .entityType(executionLog.entityType())
-                    .entityId(executionLog.entityId())
-                    .executionResult(executionLog.executionResult())
-                    .violationCount(executionLog.violationCount())
-                    .executionTimeMs(executionLog.executionTimeMs())
-                    .contextData(executionLog.contextData())
-                    .errorMessage(executionLog.errorMessage())
-                    .executedBy(executionLog.executedBy())
-                    .build();
-
-                RuleExecutionLogEntity saved = executionLogRepository.save(entity);
-                linkContext.putExecutionId(saved.getRuleId(), saved.getEntityType(), saved.getEntityId(), saved.getExecutionId());
-            }
-
-            @Override
-            public void saveAllForBatch(String batchId, List<RuleExecutionLogDto> executionLogs) {
-                if (executionLogs == null) {
-                    return;
-                }
-
-                // New batch: clear mapping for this thread/request.
-                linkContext.clear();
-
-                // JDBC batch insert. Filter nulls only if they exist.
-//                java.util.List<RuleExecutionLogDto> safeLogs = executionLogs;
-//                for (RuleExecutionLogDto log : executionLogs) {
-//                    if (log == null) {
-//                        safeLogs = new java.util.ArrayList<>(executionLogs.size());
-//                        for (RuleExecutionLogDto l : executionLogs) {
-//                            if (l != null) {
-//                                safeLogs.add(l);
-//                            }
-//                        }
-//                        break;
-//                    }
-//                }
-
-                if (!executionLogs.isEmpty()) {
-                    jdbcBatchInserter.insertExecutionLogs(batchId, executionLogs);
-                }
-            }
-
-            @Override
-            public void flush() {
-                executionLogRepository.flush();
-            }
-        };
-    }
 
     /**
      * Single implementation of the application port for violation persistence.

@@ -5,7 +5,6 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
-import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
@@ -20,11 +19,9 @@ import org.springframework.stereotype.Component;
 import io.micrometer.core.annotation.Timed;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class ValidateBatchQualityCommandHandler {
@@ -108,18 +105,10 @@ public class ValidateBatchQualityCommandHandler {
         }
         List<ExposureRecord> exposures = exposuresResult.getValueOrThrow();
 
-        List<ValidationResults> allResults = coordinator.validateAll(exposures, rulesService);
+        ValidationBatchResult batchResult = coordinator.validateAll(exposures, rulesService);
 
-        Map<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>(
-                Math.max(16, (int) (allResults.size() / 0.75f) + 1)
-        );
-
-        for (ValidationResults result : allResults) {
-            if (result == null) {
-                continue;
-            }
-            exposureResults.put(result.exposureId(), createExposureValidationResult(result));
-        }
+        List<ValidationResults> allResults = batchResult.results();
+        Map<String, ExposureValidationResult> exposureResults = batchResult.exposureResults();
 
         rulesService.batchPersistValidationResults(command.batchId().value(), allResults);
 
@@ -191,26 +180,6 @@ public class ValidateBatchQualityCommandHandler {
         unitOfWork.saveChanges();
 
         return Result.success();
-    }
-
-    private ExposureValidationResult createExposureValidationResult(ValidationResults validationResults) {
-        List<ValidationError> errors = validationResults.validationErrors();
-
-        // Group errors by dimension
-        Map<QualityDimension, List<ValidationError>> dimensionErrors = new HashMap<>();
-        for (QualityDimension dimension : QualityDimension.values()) {
-            dimensionErrors.put(dimension, new ArrayList<>());
-        }
-        for (ValidationError error : errors) {
-            dimensionErrors.get(error.dimension()).add(error);
-        }
-
-        return ExposureValidationResult.builder()
-                .exposureId(validationResults.exposureId())
-                .errors(errors)
-                .dimensionErrors(dimensionErrors)
-                .isValid(errors.isEmpty())
-                .build();
     }
 
     private void markReportAsFailed(QualityReport report, String errorMessage) {

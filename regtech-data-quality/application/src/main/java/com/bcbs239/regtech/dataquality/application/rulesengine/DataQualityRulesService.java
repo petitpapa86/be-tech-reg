@@ -3,19 +3,14 @@ package com.bcbs239.regtech.dataquality.application.rulesengine;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Function;
 
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
-import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ParameterType;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLogDto;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
 
 import com.bcbs239.regtech.dataquality.application.validation.ExposureRuleValidator;

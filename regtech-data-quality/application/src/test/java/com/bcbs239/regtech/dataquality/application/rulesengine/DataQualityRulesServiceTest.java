@@ -7,7 +7,6 @@ import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.ExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLogDto;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.Severity;
@@ -114,7 +113,6 @@ class DataQualityRulesServiceRefactorTest {
             exposure.exposureId(),
             errors,
             List.of(violation),
-            List.of(log),
             new ValidationExecutionStats()
         );
 

@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLogDto;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
 
 import java.util.List;

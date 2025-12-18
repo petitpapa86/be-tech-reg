@@ -30,12 +30,12 @@ public class ValidationLoggingAspect {
                 "totalRules={}, executed={}, skipped={}, failed={}, " +
                 "totalViolations={}, totalTime={}ms",
             results.exposureId(),
-            results.stats().getExecuted() + results.stats().getSkipped() + results.stats().getFailed(),
+            results.stats().getExecuted().get() + results.stats().getSkipped().get() + results.stats().getFailed().get(),
             results.stats().getExecuted(),
             results.stats().getSkipped(),
             results.stats().getFailed(),
             results.getViolationCount(),
-            results.stats().getTotalTime().toMillis()
+            results.stats().getTotalExecutionTimeMs()
         );
     }
 }

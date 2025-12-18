@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Infrastructure adapter implementing RuleExecutionPort.
@@ -52,28 +53,18 @@ public class RulesEngineAdapter implements RuleExecutionPort {
     private final boolean logExecutions;
     private final boolean logViolations;
 
-    // Audit persistence controls (DB execution log volume)
-    private final boolean persistExecutionLogs;
-    private final boolean persistSuccessExecutionLogs;
-    private final boolean persistSlowExecutionLogs;
 
     public RulesEngineAdapter(
             RulesEngine rulesEngine,
             IRuleExemptionRepository exemptionRepository,
             @Value("${data-quality.rules-engine.performance.warn-threshold-ms:100}") int warnThresholdMs,
             @Value("${data-quality.rules-engine.logging.log-executions:true}") boolean logExecutions,
-            @Value("${data-quality.rules-engine.logging.log-violations:true}") boolean logViolations,
-            @Value("${data-quality.rules-engine.audit.persist-execution-logs:true}") boolean persistExecutionLogs,
-            @Value("${data-quality.rules-engine.audit.persist-success-execution-logs:false}") boolean persistSuccessExecutionLogs,
-            @Value("${data-quality.rules-engine.audit.persist-slow-execution-logs:true}") boolean persistSlowExecutionLogs) {
+            @Value("${data-quality.rules-engine.logging.log-violations:true}") boolean logViolations) {
         this.rulesEngine = rulesEngine;
         this.exemptionRepository = exemptionRepository;
         this.warnThresholdMs = warnThresholdMs;
         this.logExecutions = logExecutions;
         this.logViolations = logViolations;
-        this.persistExecutionLogs = persistExecutionLogs;
-        this.persistSuccessExecutionLogs = persistSuccessExecutionLogs;
-        this.persistSlowExecutionLogs = persistSlowExecutionLogs;
     }
 
     @Override
@@ -104,8 +95,8 @@ public class RulesEngineAdapter implements RuleExecutionPort {
             asOfDate
         );
 
-        this.exemptionCache = ExemptionCache.build(entityType, asOfDate, distinctEntityIds, exemptions);
-
+        ExemptionCache newCache = ExemptionCache.build(entityType, asOfDate, distinctEntityIds, exemptions);
+        this.exemptionCache = newCache; // Single atomic write
         log.debug(
             "Preloaded {} active exemptions for entityType={} across {} entities (asOf={})",
             exemptions.size(),
@@ -120,133 +111,43 @@ public class RulesEngineAdapter implements RuleExecutionPort {
         this.exemptionCache = null;
     }
 
-    @Override
     public void execute(
-        BusinessRuleDto rule,
-        RuleContext context,
-        ExposureRecord exposure,
-        List<ValidationError> errors,
-        List<RuleViolation> violations,
-        ValidationExecutionStats stats
+            BusinessRuleDto rule,
+            RuleContext context,
+            ExposureRecord exposure,
+            List<ValidationError> errors,
+            List<RuleViolation> violations,
+            ValidationExecutionStats stats
     ) {
         if (!rule.isApplicableOn(LocalDate.now())) {
-            log.debug("Rule {} not applicable on current date, skipping", rule.ruleId());
             stats.incrementSkipped();
             return;
         }
 
-        long ruleStartTime = System.currentTimeMillis();
-        RuleExecutionResult result = null;
-        String errorMessage = null;
+        long startTime = System.nanoTime(); // More precise for timing
 
         try {
-            result = rulesEngine.executeRule(rule.ruleId(), context);
-            stats.incrementExecuted();
+            RuleExecutionResult result = rulesEngine.executeRule(rule.ruleId(), context);
+            long executionTimeMs = (System.nanoTime() - startTime) / 1_000_000;
 
-            long ruleExecutionTime = System.currentTimeMillis() - ruleStartTime;
+            stats.incrementExecuted(executionTimeMs); // Pass timing
 
-            // Track slowest rule
-            // Note: stats should track this, but for now we keep the logic
-
-            // Requirement 6.5: Emit warnings for slow rule execution
-            if (ruleExecutionTime > warnThresholdMs) {
-                if (shouldLogSlowRuleWarn(rule.ruleId())) {
-                    log.warn("Slow rule execution detected: rule={}, exposureId={}, executionTime={}ms, threshold={}ms",
-                        rule.ruleId(), exposure.exposureId(), ruleExecutionTime, warnThresholdMs);
-                }
-            }
-
-            // Requirement 6.1: Log individual rule execution
-            if (logExecutions) {
-                log.debug("Rule {} executed for exposure {} in {}ms - result: {}",
-                    rule.ruleId(), exposure.exposureId(), ruleExecutionTime,
-                    result.isSuccess() ? "SUCCESS" : "FAILURE");
+            if (executionTimeMs > warnThresholdMs && shouldLogSlowRuleWarn(rule.ruleId())) {
+                log.warn("Slow rule execution: rule={}, exposureId={}, time={}ms",
+                        rule.ruleId(), exposure.exposureId(), executionTimeMs);
             }
 
             if (!result.isSuccess() && result.hasViolations()) {
-                // Check for exemptions before reporting violations
-                String entityType = (String) context.get("entity_type");
-                String entityId = (String) context.get("entity_id");
-
-                boolean hasActiveExemption = checkExemption(
-                    rule.ruleId(),
-                    entityType,
-                    entityId
-                );
-
-                if (hasActiveExemption) {
-                    log.debug("Active exemption found for rule {} and entity {}/{}. Skipping violation reporting.",
-                        rule.ruleId(), entityType, entityId);
-                    // Don't report violations for exempted entities
-                    return;
-                }
-
                 stats.incrementFailed();
-                int violationCount = result.getViolations().size();
-
-                // Requirement 6.2: Log violation details with exposure ID
-                if (logViolations) {
-                    log.debug("Rule {} violated for exposure {}: {} violation(s) detected",
-                        rule.ruleId(), exposure.exposureId(), violationCount);
-                }
-
-                // Convert rule violations to ValidationErrors
-                for (RuleViolation violation : result.getViolations()) {
-                    // Collect violations (do not persist here)
-                    violations.add(violation);
-
-                    // Requirement 6.2: Log detailed violation information
-                    if (logViolations) {
-                        log.debug("Violation details: ruleCode={}, exposureId={}, severity={}, type={}, description={}",
-                            rule.ruleCode(),
-                            exposure.exposureId(),
-                            violation.severity(),
-                            violation.violationType(),
-                            violation.violationDescription());
-                    }
-
-                    // Convert to ValidationError
-                    ValidationError validationError = convertToValidationError(violation, rule);
-                    errors.add(validationError);
-                }
+                handleViolations(rule, context, exposure, result, errors, violations, stats);
             }
 
         } catch (Exception e) {
-            stats.incrementFailed(); // Assuming failed on exception
-
-            // Requirement 6.3: Log errors with rule code and context
-            log.error("Error executing rule {} for exposure {}: {} - Context: entityType={}, ruleType={}, severity={}",
-                rule.ruleId(),
-                exposure.exposureId(),
-                e.getMessage(),
-                context.get("entity_type"),
-                rule.ruleType(),
-                rule.severity(),
-                e);
-
+            stats.incrementFailed(); // Pass timing
+            logExecutionError(rule, exposure, context, e);
         }
     }
 
-    private boolean shouldCollectExecutionLog(RuleExecutionLogDto log) {
-        if (persistSuccessExecutionLogs) {
-            return true;
-        }
-        if (log == null) {
-            return false;
-        }
-
-        boolean hasViolations = log.violationCount() != null && log.violationCount() > 0;
-        boolean isErrorOrFailure = log.executionResult() != null && log.executionResult() != ExecutionResult.SUCCESS;
-        boolean isSlow = persistSlowExecutionLogs
-            && log.executionTimeMs() != null
-            && log.executionTimeMs() > warnThresholdMs;
-
-        // Keep only “interesting” logs by default:
-        // - failures/errors
-        // - any violations
-        // - slow executions (optional)
-        return isErrorOrFailure || hasViolations || isSlow;
-    }
 
     private boolean shouldLogSlowRuleWarn(String ruleId) {
         if (ruleId == null) {
@@ -265,6 +166,46 @@ public class RulesEngineAdapter implements RuleExecutionPort {
 
         // Best-effort CAS update
         return lastSlowRuleWarnAtMsByRuleId.replace(ruleId, last, now);
+    }
+
+    private void handleViolations(
+            BusinessRuleDto rule,
+            RuleContext context,
+            ExposureRecord exposure,
+            RuleExecutionResult result,
+            List<ValidationError> errors,
+            List<RuleViolation> violations,
+            ValidationExecutionStats stats
+    ) {
+        String entityType = (String) context.get("entity_type");
+        String entityId = (String) context.get("entity_id");
+
+        if (checkExemption(rule.ruleId(), entityType, entityId)) {
+            log.debug("Active exemption found for rule {} and entity {}/{}. Skipping violation.",
+                    rule.ruleId(), entityType, entityId);
+            return;
+        }
+
+        stats.incrementFailed();
+
+        for (RuleViolation violation : result.getViolations()) {
+            violations.add(violation);
+
+            if (logViolations) {
+                log.debug("Violation: ruleCode={}, exposureId={}, severity={}, type={}, description={}",
+                        rule.ruleCode(), exposure.exposureId(), violation.severity(),
+                        violation.violationType(), violation.violationDescription());
+            }
+
+            errors.add(convertToValidationError(violation, rule));
+        }
+    }
+
+    private void logExecutionError(BusinessRuleDto rule, ExposureRecord exposure,
+                                   RuleContext context, Exception e) {
+        log.error("Error executing rule {} for exposure {}: {} - Context: entityType={}, ruleType={}, severity={}",
+                rule.ruleId(), exposure.exposureId(), e.getMessage(),
+                context.get("entity_type"), rule.ruleType(), rule.severity(), e);
     }
 
     private ValidationError convertToValidationError(RuleViolation violation, BusinessRuleDto rule) {
@@ -316,39 +257,6 @@ public class RulesEngineAdapter implements RuleExecutionPort {
         };
     }
 
-    private RuleExecutionLogDto createExecutionLog(
-            BusinessRuleDto rule,
-            ExposureRecord exposure,
-            RuleExecutionResult result,
-            long executionTimeMs,
-            String errorMessage) {
-
-        ExecutionResult executionResult;
-        int violationCount = 0;
-
-        if (errorMessage != null) {
-            executionResult = ExecutionResult.ERROR;
-        } else if (result != null && result.isSuccess()) {
-            executionResult = ExecutionResult.SUCCESS;
-        } else if (result != null && result.hasViolations()) {
-            executionResult = ExecutionResult.FAILURE;
-            violationCount = result.getViolations().size();
-        } else {
-            executionResult = ExecutionResult.SUCCESS;
-        }
-
-        return RuleExecutionLogDto.builder()
-            .ruleId(rule.ruleId())
-            .executionTimestamp(Instant.now())
-            .entityType("EXPOSURE")
-            .entityId(exposure.exposureId())
-            .executionResult(executionResult)
-            .violationCount(violationCount)
-            .executionTimeMs(executionTimeMs)
-            .errorMessage(errorMessage)
-            .executedBy("SYSTEM")
-            .build();
-    }
 
     private String extractFieldFromDetails(java.util.Map<String, Object> details) {
         if (details != null && details.containsKey("field")) {
@@ -471,43 +379,40 @@ public class RulesEngineAdapter implements RuleExecutionPort {
         }
 
         static ExemptionCache build(
-            String entityType,
-            LocalDate asOfDate,
-            List<String> loadedEntityIds,
-            List<RuleExemptionDto> exemptions
+                String entityType,
+                LocalDate asOfDate,
+                List<String> loadedEntityIds,
+                List<RuleExemptionDto> exemptions
         ) {
-            Set<String> loaded = new HashSet<>(loadedEntityIds);
-            Map<String, Boolean> ruleAppliesToAll = new HashMap<>();
-            Map<String, Set<String>> entityIdsByRule = new HashMap<>();
-
-            if (exemptions != null) {
-                for (RuleExemptionDto exemption : exemptions) {
-                    if (exemption == null) {
-                        continue;
-                    }
-                    if (exemption.ruleId() == null || exemption.ruleId().isBlank()) {
-                        continue;
-                    }
-                    if (exemption.entityId() == null || exemption.entityId().isBlank()) {
-                        ruleAppliesToAll.put(exemption.ruleId(), Boolean.TRUE);
-                        continue;
-                    }
-                    entityIdsByRule
-                        .computeIfAbsent(exemption.ruleId(), k -> new HashSet<>())
-                        .add(exemption.entityId());
-                }
-            }
-
+            Set<String> loaded = Set.copyOf(loadedEntityIds);
             Map<String, RuleIdIndex> byRule = new HashMap<>();
-            for (Map.Entry<String, Boolean> entry : ruleAppliesToAll.entrySet()) {
-                byRule.put(entry.getKey(), new RuleIdIndex(true, Set.of()));
-            }
-            for (Map.Entry<String, Set<String>> entry : entityIdsByRule.entrySet()) {
-                boolean appliesToAll = Boolean.TRUE.equals(ruleAppliesToAll.get(entry.getKey()));
-                byRule.put(entry.getKey(), new RuleIdIndex(appliesToAll, Set.copyOf(entry.getValue())));
+
+            if (exemptions == null || exemptions.isEmpty()) {
+                return new ExemptionCache(entityType, asOfDate, loaded, Map.of());
             }
 
-            return new ExemptionCache(entityType, asOfDate, Set.copyOf(loaded), Map.copyOf(byRule));
+            // Group by ruleId
+            Map<String, List<RuleExemptionDto>> byRuleId = exemptions.stream()
+                    .filter(ex -> ex != null && ex.ruleId() != null && !ex.ruleId().isBlank())
+                    .collect(Collectors.groupingBy(RuleExemptionDto::ruleId));
+
+            for (Map.Entry<String, List<RuleExemptionDto>> entry : byRuleId.entrySet()) {
+                String ruleId = entry.getKey();
+                List<RuleExemptionDto> ruleExemptions = entry.getValue();
+
+                // Check if any exemption applies to all entities (null/blank entityId)
+                boolean appliesToAll = ruleExemptions.stream()
+                        .anyMatch(ex -> ex.entityId() == null || ex.entityId().isBlank());
+
+                Set<String> entityIds = ruleExemptions.stream()
+                        .map(RuleExemptionDto::entityId)
+                        .filter(id -> id != null && !id.isBlank())
+                        .collect(Collectors.toUnmodifiableSet());
+
+                byRule.put(ruleId, new RuleIdIndex(appliesToAll, entityIds));
+            }
+
+            return new ExemptionCache(entityType, asOfDate, loaded, Map.copyOf(byRule));
         }
     }
 

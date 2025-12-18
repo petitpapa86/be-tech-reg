@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository;
 
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLogDto;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,84 +27,6 @@ public class RulesEngineJdbcBatchInserter {
     public RulesEngineJdbcBatchInserter(JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
         this.jdbcTemplate = jdbcTemplate;
         this.objectMapper = objectMapper;
-    }
-
-    public void insertExecutionLogs(String batchId, List<RuleExecutionLogDto> logs) {
-        insertExecutionLogs(batchId, logs, DEFAULT_CHUNK_SIZE);
-    }
-
-    public void insertExecutionLogs(String batchId, List<RuleExecutionLogDto> logs, int chunkSize) {
-        if (logs == null || logs.isEmpty()) {
-            return;
-        }
-
-        String sql = "INSERT INTO dataquality.rule_execution_log (" +
-            "rule_id, execution_timestamp, entity_type, entity_id, execution_result, " +
-            "violation_count, execution_time_ms, context_json, batch_id, error_message, executed_by" +
-            ") VALUES (?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?, ?, ?)";
-
-        for (List<RuleExecutionLogDto> chunk : chunk(logs, chunkSize)) {
-            jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps, int i) throws SQLException {
-                    RuleExecutionLogDto log = chunk.get(i);
-
-                    ps.setString(1, log.ruleId());
-                    ps.setTimestamp(2, ts(log.executionTimestamp()));
-
-                    if (log.entityType() != null) {
-                        ps.setString(3, log.entityType());
-                    } else {
-                        ps.setNull(3, Types.VARCHAR);
-                    }
-
-                    if (log.entityId() != null) {
-                        ps.setString(4, log.entityId());
-                    } else {
-                        ps.setNull(4, Types.VARCHAR);
-                    }
-
-                    ps.setString(5, log.executionResult() != null ? log.executionResult().name() : null);
-
-                    if (log.violationCount() != null) {
-                        ps.setInt(6, log.violationCount());
-                    } else {
-                        ps.setNull(6, Types.INTEGER);
-                    }
-
-                    if (log.executionTimeMs() != null) {
-                        ps.setLong(7, log.executionTimeMs());
-                    } else {
-                        ps.setNull(7, Types.BIGINT);
-                    }
-
-                    setJsonbString(ps, 8, log.contextData());
-
-                    if (batchId != null) {
-                        ps.setString(9, batchId);
-                    } else {
-                        ps.setNull(9, Types.VARCHAR);
-                    }
-
-                    if (log.errorMessage() != null) {
-                        ps.setString(10, log.errorMessage());
-                    } else {
-                        ps.setNull(10, Types.VARCHAR);
-                    }
-
-                    if (log.executedBy() != null) {
-                        ps.setString(11, log.executedBy());
-                    } else {
-                        ps.setNull(11, Types.VARCHAR);
-                    }
-                }
-
-                @Override
-                public int getBatchSize() {
-                    return chunk.size();
-                }
-            });
-        }
     }
 
     public void insertViolations(String batchId, List<RuleViolation> violations) {

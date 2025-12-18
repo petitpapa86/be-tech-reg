@@ -8,7 +8,6 @@ public interface IRuleExecutionLogRepository {
     /**
      * Saves a rule execution log.
      */
-    void save(RuleExecutionLogDto executionLog);
 
     /**
      * Flushes pending writes (optional).

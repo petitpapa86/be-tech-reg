@@ -5,7 +5,6 @@ import com.bcbs239.regtech.dataquality.application.validation.ValidationResults;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLogDto;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 
@@ -52,8 +51,6 @@ public class RuleExecutionService {
                 errors, violations, stats
             );
         }
-
-        stats.setTotalExecutionTimeMs(System.currentTimeMillis() - start);
 
         return new ValidationResults(
             exposure.exposureId(),

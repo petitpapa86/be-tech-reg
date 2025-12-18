@@ -3,6 +3,8 @@ package com.bcbs239.regtech.dataquality.application.validation;
 import lombok.Getter;
 
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Statistics collector for validation execution.
@@ -11,35 +13,39 @@ import java.time.Duration;
 @Getter
 public class ValidationExecutionStats {
 
-    private int executed;
-    private int skipped;
-    private int failed;
-    private Duration totalTime;
-
-    public ValidationExecutionStats() {
-        this.executed = 0;
-        this.skipped = 0;
-        this.failed = 0;
-        this.totalTime = Duration.ZERO;
-    }
+    private final AtomicInteger executed = new AtomicInteger(0);
+    private final AtomicInteger failed = new AtomicInteger(0);
+    private final AtomicInteger skipped = new AtomicInteger(0);
+    private final LongAdder totalExecutionTimeMs = new LongAdder();
 
     public void incrementExecuted() {
-        executed++;
+        executed.incrementAndGet();
     }
 
-    public void incrementSkipped() {
-        skipped++;
+    public void incrementExecuted(long executionTimeMs) {
+        executed.incrementAndGet();
+        totalExecutionTimeMs.add(executionTimeMs);
     }
 
     public void incrementFailed() {
-        failed++;
+        failed.incrementAndGet();
     }
 
-    public void addExecutionTime(Duration time) {
-        totalTime = totalTime.plus(time);
+    public void incrementFailed(long executionTimeMs) {
+        failed.incrementAndGet();
+        totalExecutionTimeMs.add(executionTimeMs);
     }
 
-    public void setTotalExecutionTimeMs(long timeMs) {
-        totalTime = Duration.ofMillis(timeMs);
+    public void incrementSkipped() {
+        skipped.incrementAndGet();
+    }
+
+    public long getTotalExecutionTimeMs() {
+        return totalExecutionTimeMs.sum();
+    }
+
+    public long getAverageExecutionTimeMs() {
+        int count = executed.get();
+        return count > 0 ? totalExecutionTimeMs.sum() / count : 0;
     }
 }
