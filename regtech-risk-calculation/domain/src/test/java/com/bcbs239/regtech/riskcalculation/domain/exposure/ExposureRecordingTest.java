@@ -112,13 +112,15 @@ class ExposureRecordingTest {
         ExposureDTO dto = new ExposureDTO(
             "EXP-DTO-001",
             "LOAN-DTO-001",
-            "CP-DTO-001",
+            "LOAN",
             "DTO Bank",
+            "CP-DTO-001",
             "213800DTOBANK123",
             new BigDecimal("500000.00"),
             "USD",
             "Retail Loan",
-            "LOAN",
+            "RETAIL",
+            null,
             "ON_BALANCE",
             "US"
         );
@@ -149,13 +151,15 @@ class ExposureRecordingTest {
         ExposureDTO dto = new ExposureDTO(
             "EXP-UNKNOWN-001",
             "UNKNOWN-001",
-            "CP-001",
+            "UNKNOWN_TYPE",
             "Test Bank",
+            "CP-001",
             null,
             new BigDecimal("100000.00"),
             "EUR",
             "Unknown Product",
-            "UNKNOWN_TYPE",
+            null,
+            null,
             "ON_BALANCE",
             "IT"
         );
@@ -174,13 +178,15 @@ class ExposureRecordingTest {
         ExposureDTO dto = new ExposureDTO(
             "EXP-UNKNOWN-002",
             "LOAN-002",
-            "CP-002",
+            "LOAN",
             "Test Bank",
+            "CP-002",
             null,
             new BigDecimal("100000.00"),
             "EUR",
             "Test Product",
-            "LOAN",
+            null,
+            null,
             "UNKNOWN_BALANCE_TYPE",
             "IT"
         );
@@ -199,13 +205,15 @@ class ExposureRecordingTest {
         ExposureDTO dto = new ExposureDTO(
             "EXP-NO-LEI-001",
             "LOAN-001",
-            "CP-001",
+            "LOAN",
             "Bank Without LEI",
+            "CP-001",
             null,
             new BigDecimal("100000.00"),
             "EUR",
             "Corporate Loan",
-            "LOAN",
+            null,
+            null,
             "ON_BALANCE",
             "IT"
         );
@@ -432,13 +440,15 @@ class ExposureRecordingTest {
         ExposureDTO dto = new ExposureDTO(
             "EXP-CASE-001",
             "LOAN-001",
-            "CP-001",
+            "loan", // lowercase
             "Test Bank",
+            "CP-001",
             null,
             new BigDecimal("100000.00"),
             "EUR",
             "Test Product",
-            "loan", // lowercase
+            null,
+            null,
             "ON_BALANCE",
             "IT"
         );
@@ -457,13 +467,15 @@ class ExposureRecordingTest {
         ExposureDTO dto = new ExposureDTO(
             "EXP-CASE-002",
             "LOAN-001",
-            "CP-001",
+            "LOAN",
             "Test Bank",
+            "CP-001",
             null,
             new BigDecimal("100000.00"),
             "EUR",
             "Test Product",
-            "LOAN",
+            null,
+            null,
             "off_balance", // lowercase
             "IT"
         );
@@ -484,13 +496,15 @@ class ExposureRecordingTest {
             ExposureDTO dto = new ExposureDTO(
                 "EXP-TYPE-" + instrumentType.name(),
                 "INST-001",
-                "CP-001",
+                instrumentType.name(),
                 "Test Bank",
+                "CP-001",
                 null,
                 new BigDecimal("100000.00"),
                 "EUR",
                 "Test Product",
-                instrumentType.name(),
+                null,
+                null,
                 "ON_BALANCE",
                 "IT"
             );
@@ -513,13 +527,15 @@ class ExposureRecordingTest {
             ExposureDTO dto = new ExposureDTO(
                 "EXP-BALANCE-" + balanceSheetType.name(),
                 "INST-001",
-                "CP-001",
+                "LOAN",
                 "Test Bank",
+                "CP-001",
                 null,
                 new BigDecimal("100000.00"),
                 "EUR",
                 "Test Product",
-                "LOAN",
+                null,
+                null,
                 balanceSheetType.name(),
                 "IT"
             );

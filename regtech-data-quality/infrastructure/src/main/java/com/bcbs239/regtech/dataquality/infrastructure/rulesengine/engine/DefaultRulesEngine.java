@@ -147,7 +147,7 @@ public class DefaultRulesEngine implements RulesEngine {
             
             if (ruleResult) {
                 // Rule passed
-                logExecution(rule, context, ExecutionResult.SUCCESS, 0, executionTime, null);
+              //  logExecution(rule, context, ExecutionResult.SUCCESS, 0, executionTime, null);
                 return RuleExecutionResult.success(ruleId);
             } else {
                 // Rule failed - log execution first to get execution ID

@@ -53,6 +53,8 @@ class IngestionToRiskCalculationIntegrationTest {
             new BigDecimal("250000.0"),
             "EUR",
             "Business Loan",
+            "CORPORATE",
+            LocalDate.parse("2029-09-12"),
             "ON_BALANCE",
             "IT"
         );
@@ -67,6 +69,8 @@ class IngestionToRiskCalculationIntegrationTest {
             new BigDecimal("500000.0"),
             "EUR",
             "Corporate Loan",
+            "CORPORATE_TECHNOLOGY",
+            LocalDate.parse("2029-09-12"),
             "ON_BALANCE",
             "DE"
         );
@@ -183,6 +187,8 @@ class IngestionToRiskCalculationIntegrationTest {
             new BigDecimal("1000000.0"),
             "USD",
             "Term Loan",
+            "CORPORATE",
+            LocalDate.parse("2029-09-12"),
             "OFF_BALANCE",
             "US"
         );
@@ -208,6 +214,8 @@ class IngestionToRiskCalculationIntegrationTest {
         assertEquals(exposure.exposureAmount(), roundTripped.exposureAmount());
         assertEquals(exposure.currency(), roundTripped.currency());
         assertEquals(exposure.productType(), roundTripped.productType());
+        assertEquals(exposure.sector(), roundTripped.sector());
+        assertEquals(exposure.maturityDate(), roundTripped.maturityDate());
         assertEquals(exposure.balanceSheetType(), roundTripped.balanceSheetType());
         assertEquals(exposure.countryCode(), roundTripped.countryCode());
     }

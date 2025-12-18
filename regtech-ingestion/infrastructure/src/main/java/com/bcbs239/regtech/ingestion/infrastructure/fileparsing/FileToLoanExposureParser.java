@@ -219,21 +219,37 @@ public class FileToLoanExposureParser {
                 Row row = sheet.getRow(r);
                 if (row == null) continue;
 
-                String exposureId = formatter.formatCellValue(row.getCell(0));
-                String instrumentId = formatter.formatCellValue(row.getCell(1));
-                String instrumentType = formatter.formatCellValue(row.getCell(2));
-                String counterpartyName = formatter.formatCellValue(row.getCell(3));
-                String counterpartyId = formatter.formatCellValue(row.getCell(4));
-                String counterpartyLei = formatter.formatCellValue(row.getCell(5));
-                double exposureAmount = parseDoubleSafe(formatter.formatCellValue(row.getCell(6)));
-                String currency = formatter.formatCellValue(row.getCell(7));
-                String productType = formatter.formatCellValue(row.getCell(8));
-                String balanceSheetType = formatter.formatCellValue(row.getCell(9));
-                String countryCode = formatter.formatCellValue(row.getCell(10));
+                // Expected Excel columns (by index):
+                // 0 loan_id, 1 exposure_id, 2 borrower_name, 3 borrower_id, 4 counterparty_lei,
+                // 5 loan_amount, 6 gross_exposure_amount, 7 net_exposure_amount, 8 currency,
+                // 9 loan_type, 10 sector, 11 exposure_type, 12 borrower_country, 13 country_code
+                String instrumentId = formatter.formatCellValue(row.getCell(0));
+                String exposureId = formatter.formatCellValue(row.getCell(1));
+                String instrumentType = "LOAN";
+                String counterpartyName = formatter.formatCellValue(row.getCell(2));
+                String counterpartyId = formatter.formatCellValue(row.getCell(3));
+                String counterpartyLei = formatter.formatCellValue(row.getCell(4));
+                double exposureAmount = parseDoubleSafe(formatter.formatCellValue(row.getCell(5)));
+                String currency = formatter.formatCellValue(row.getCell(8));
+                String productType = formatter.formatCellValue(row.getCell(9));
+                String sector = formatter.formatCellValue(row.getCell(10));
+                String balanceSheetType = formatter.formatCellValue(row.getCell(11));
+                String countryCode = formatter.formatCellValue(row.getCell(13));
 
                 ExposureDto dto = new ExposureDto(
-                    exposureId, instrumentId, instrumentType, counterpartyName, counterpartyId, 
-                    counterpartyLei, exposureAmount, currency, productType, balanceSheetType, countryCode
+                    exposureId,
+                    instrumentId,
+                    instrumentType,
+                    counterpartyName,
+                    counterpartyId,
+                    counterpartyLei,
+                    exposureAmount,
+                    currency,
+                    productType,
+                    sector,
+                    null,
+                    balanceSheetType,
+                    countryCode
                 );
 
                 results.add(DomainMapper.toLoanExposure(dto));

@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,6 +26,8 @@ class ExposureRecordTest {
             new BigDecimal("100000.00"),
             "EUR",
             "Business Loan",
+            "CORPORATE",
+            LocalDate.parse("2029-09-12"),
             "ON_BALANCE",
             "IT"
         );
@@ -39,19 +42,19 @@ class ExposureRecordTest {
         assertEquals(new BigDecimal("100000.00"), record.amount());
         assertEquals("EUR", record.currency());
         assertEquals("IT", record.country());
+        assertEquals("CORPORATE", record.sector());
         assertEquals("Business Loan", record.productType());
         assertEquals("LEI123456789", record.leiCode());
         assertEquals("INST_001", record.referenceNumber());
         
         // Fields not in DTO should be null
-        assertNull(record.sector());
         assertNull(record.counterpartyType());
         assertNull(record.internalRating());
         assertNull(record.riskCategory());
         assertNull(record.riskWeight());
         assertNull(record.reportingDate());
         assertNull(record.valuationDate());
-        assertNull(record.maturityDate());
+        assertEquals(LocalDate.parse("2029-09-12"), record.maturityDate());
     }
 
     @Test
@@ -66,6 +69,8 @@ class ExposureRecordTest {
             null,
             new BigDecimal("50000.00"),
             "USD",
+            null,
+            null,
             null,
             null,
             "US"
@@ -99,6 +104,8 @@ class ExposureRecordTest {
             new BigDecimal("200000.00"),
             "GBP",
             "Corporate Bond",
+            null,
+            null,
             "ON_BALANCE",
             "GB"
         );

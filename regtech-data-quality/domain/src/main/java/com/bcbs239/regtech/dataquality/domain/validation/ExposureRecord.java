@@ -43,17 +43,17 @@ public record ExposureRecord(
             .amount(dto.exposureAmount())
             .currency(dto.currency())
             .country(dto.countryCode())
+            .sector(dto.sector())
             .productType(dto.productType())
             .leiCode(dto.counterpartyLei())
             // Fields not available in ExposureDTO - set to null
-            .sector(null)
             .counterpartyType(null)
             .internalRating(null)
             .riskCategory(null)
             .riskWeight(null)
             .reportingDate(null)
             .valuationDate(null)
-            .maturityDate(null)
+            .maturityDate(dto.maturityDate())
             .referenceNumber(dto.instrumentId()) // Use instrumentId as reference
             .build();
     }

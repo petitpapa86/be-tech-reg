@@ -65,8 +65,8 @@ public class SpelExpressionEvaluator implements ExpressionEvaluator {
     @Override
     public Object evaluate(String expression, RuleContext context) {
         try {
-            String rewritten = rewriteVariableAliases(expression, context);
-            Expression expr = parser.parseExpression(rewritten);
+           // String rewritten = rewriteVariableAliases(expression, context);
+            Expression expr = parser.parseExpression(expression);
             EvaluationContext evalContext = createEvaluationContext(context);
             return expr.getValue(evalContext);
             
@@ -80,8 +80,8 @@ public class SpelExpressionEvaluator implements ExpressionEvaluator {
     @Override
     public <T> T evaluate(String expression, RuleContext context, Class<T> resultType) {
         try {
-            String rewritten = rewriteVariableAliases(expression, context);
-            Expression expr = parser.parseExpression(rewritten);
+          //  String rewritten = rewriteVariableAliases(expression, context);
+            Expression expr = parser.parseExpression(expression);
             EvaluationContext evalContext = createEvaluationContext(context);
             return expr.getValue(evalContext, resultType);
             

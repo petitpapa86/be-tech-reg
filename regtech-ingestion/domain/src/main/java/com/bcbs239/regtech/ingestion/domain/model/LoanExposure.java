@@ -2,6 +2,7 @@ package com.bcbs239.regtech.ingestion.domain.model;
 
 import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Objects;
 
 public record LoanExposure(
@@ -16,6 +17,7 @@ public record LoanExposure(
     String currency,
     String loanType,
     String sector,
+    LocalDate maturityDate,
     String exposureType,
     String borrowerCountry,
     String countryCode
@@ -58,6 +60,8 @@ public record LoanExposure(
             BigDecimal.valueOf(grossExposureAmount),   // exposureAmount
             currency,                                  // currency
             loanType,                                  // productType
+            sector,                                    // sector
+            maturityDate,                              // maturityDate
             exposureType,                              // balanceSheetType
             countryCode                                // countryCode
         );
@@ -79,7 +83,8 @@ public record LoanExposure(
             dto.exposureAmount().doubleValue(),        // netExposureAmount (same as gross for now)
             dto.currency(),                            // currency
             dto.productType(),                         // loanType
-            null,                                      // sector (not in DTO)
+            dto.sector(),                              // sector
+            dto.maturityDate(),                        // maturityDate
             dto.balanceSheetType(),                    // exposureType
             null,                                      // borrowerCountry (not in DTO)
             dto.countryCode()                          // countryCode

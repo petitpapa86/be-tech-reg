@@ -17,6 +17,7 @@
       "exposure_amount": 250000.00,
       "currency": "EUR",
       "product_type": "Business Loan",
+      "maturityDate": "2029-09-12",
       "balance_sheet_type": "ON_BALANCE",
       "country_code": "IT"
     },
@@ -30,6 +31,7 @@
       "exposure_amount": 450000.00,
       "currency": "EUR",
       "product_type": "Mortgage",
+      "maturityDate": "2029-09-12",
       "balance_sheet_type": "ON_BALANCE",
       "country_code": "IT"
     },
@@ -43,6 +45,7 @@
       "exposure_amount": 50000.00,
       "currency": "EUR",
       "product_type": "Credit Line",
+      "maturityDate": "2029-09-12",
       "balance_sheet_type": "OFF_BALANCE",
       "country_code": "DE"
     },
@@ -56,6 +59,7 @@
       "exposure_amount": 750000.00,
       "currency": "EUR",
       "product_type": "Equipment Loan",
+      "maturityDate": "2029-09-12",
       "balance_sheet_type": "ON_BALANCE",
       "country_code": "CA"
     },
@@ -69,6 +73,7 @@
       "exposure_amount": 125000.00,
       "currency": "EUR",
       "product_type": "Small Business",
+      "maturityDate": "2029-09-12",
       "balance_sheet_type": "ON_BALANCE",
       "country_code": "IT"
     }

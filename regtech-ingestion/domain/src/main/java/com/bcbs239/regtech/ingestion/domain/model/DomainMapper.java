@@ -2,6 +2,7 @@ package com.bcbs239.regtech.ingestion.domain.model;
 
 import java.util.Arrays;
 import java.util.List;
+import java.time.LocalDate;
 import java.util.stream.Collectors;
 
 public class DomainMapper {
@@ -22,11 +23,21 @@ public class DomainMapper {
             dto.exposureAmount(),      // netExposureAmount
             dto.currency(),            // currency
             dto.productType(),         // loanType
-            null,                      // sector (not in new format)
+            dto.sector(),              // sector
+            parseLocalDateSafe(dto.maturityDate()), // maturityDate
             dto.balanceSheetType(),    // exposureType
             null,                      // borrowerCountry (not in new format)
             dto.countryCode()          // countryCode
         );
+    }
+
+    private static LocalDate parseLocalDateSafe(String raw) {
+        if (raw == null || raw.isBlank()) return null;
+        try {
+            return LocalDate.parse(raw);
+        } catch (RuntimeException ex) {
+            return null;
+        }
     }
 
     public static List<LoanExposure> toLoanExposureList(ExposureDto[] dtos) {

@@ -1,10 +1,33 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance" xmlns:eba="http://www.eba.europa.eu/xbrl/crr" xmlns:iso4217="http://www.xbrl.org/2003/iso4217" xmlns:xlink="http://www.w3.org/1999/xlink">
   <link:schemaRef xmlns:link="http://www.xbrl.org/2003/linkbase" xlink:href="http://www.eba.europa.eu/eu/fr/xbrl/crr/fws/corep/its-2023-12/2023-12-31/mod/corep.xsd" xlink:type="simple"/>
+  <xbrli:context id="ctx_0">
+    <xbrli:entity>
+      <xbrli:identifier scheme="http://www.eba.europa.eu">08081</xbrli:identifier>
+      <xbrli:segment>
+        <xbrli:explicitMember dimension="eba:CP">eba:Exposure_EXP_001_2024</xbrli:explicitMember>
+        <xbrli:explicitMember dimension="eba:CT">eba:N/A</xbrli:explicitMember>
+        <xbrli:explicitMember dimension="eba:SC">eba:other</xbrli:explicitMember>
+      </xbrli:segment>
+    </xbrli:entity>
+    <xbrli:period>
+      <xbrli:instant>2025-12-18</xbrli:instant>
+    </xbrli:period>
+  </xbrli:context>
   <xbrli:unit id="EUR">
     <xbrli:measure>iso4217:EUR</xbrli:measure>
   </xbrli:unit>
   <xbrli:unit id="pure">
     <xbrli:measure>xbrli:pure</xbrli:measure>
   </xbrli:unit>
+  <eba:LE1_CounterpartyName contextRef="ctx_0">Exposure EXP_001_2024</eba:LE1_CounterpartyName>
+  <eba:LE1_IdentifierType contextRef="ctx_0">CONCAT</eba:LE1_IdentifierType>
+  <eba:LE1_AlternateIdentifier contextRef="ctx_0">EXPOSURE_ID</eba:LE1_AlternateIdentifier>
+  <eba:LE1_CountryCode contextRef="ctx_0">N/A</eba:LE1_CountryCode>
+  <eba:LE1_SectorCode contextRef="ctx_0">other</eba:LE1_SectorCode>
+  <eba:LE2_OriginalExposure contextRef="ctx_0" unitRef="EUR">240000.00</eba:LE2_OriginalExposure>
+  <eba:LE2_ExposureAfterCRM contextRef="ctx_0" unitRef="EUR">240000.00</eba:LE2_ExposureAfterCRM>
+  <eba:LE2_TradingBookPortion contextRef="ctx_0" unitRef="EUR">0.00</eba:LE2_TradingBookPortion>
+  <eba:LE2_NonTradingBookPortion contextRef="ctx_0" unitRef="EUR">240000.00</eba:LE2_NonTradingBookPortion>
+  <eba:LE2_PercentageOfCapital contextRef="ctx_0" unitRef="pure">1.0000</eba:LE2_PercentageOfCapital>
 </xbrli:xbrl>

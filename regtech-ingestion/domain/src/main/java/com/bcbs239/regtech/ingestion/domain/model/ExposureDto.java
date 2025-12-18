@@ -45,6 +45,14 @@ public record ExposureDto(
     @JsonAlias({"productType", "product_Type"})
     String productType,
 
+    @JsonProperty("sector")
+    @JsonAlias({"Sector"})
+    String sector,
+
+    @JsonProperty("maturity_date")
+    @JsonAlias({"maturityDate", "maturity_Date"})
+    String maturityDate,
+
     @JsonProperty("balance_sheet_type")
     @JsonAlias({"balanceSheetType", "balance_Sheet_Type"})
     String balanceSheetType,

@@ -3,6 +3,7 @@ package com.bcbs239.regtech.core.domain.shared.dto;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 /**
  * Shared DTO for exposure data across all modules.
@@ -44,6 +45,14 @@ public record ExposureDTO(
     @JsonProperty("product_type")
     @JsonAlias({"productType", "product_Type"})
     String productType,
+
+    @JsonProperty("sector")
+    @JsonAlias({"Sector"})
+    String sector,
+
+    @JsonProperty("maturity_date")
+    @JsonAlias({"maturityDate", "maturity_Date"})
+    LocalDate maturityDate,
 
     @JsonProperty("balance_sheet_type")
     @JsonAlias({"balanceSheetType", "balance_Sheet_Type"})
