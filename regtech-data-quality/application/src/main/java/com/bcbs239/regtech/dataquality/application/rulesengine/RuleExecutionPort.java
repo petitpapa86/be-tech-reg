@@ -19,7 +19,6 @@ public interface RuleExecutionPort {
      * @param exposure The exposure record
      * @param errors List to collect validation errors
      * @param violations List to collect rule violations
-     * @param logs List to collect execution logs
      * @param stats Statistics collector
      */
     void execute(
@@ -28,7 +27,6 @@ public interface RuleExecutionPort {
         com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord exposure,
         java.util.List<ValidationError> errors,
         java.util.List<RuleViolation> violations,
-        java.util.List<RuleExecutionLogDto> logs,
         ValidationExecutionStats stats
     );
 

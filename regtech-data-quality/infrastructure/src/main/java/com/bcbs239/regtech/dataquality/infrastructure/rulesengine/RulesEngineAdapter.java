@@ -127,7 +127,6 @@ public class RulesEngineAdapter implements RuleExecutionPort {
         ExposureRecord exposure,
         List<ValidationError> errors,
         List<RuleViolation> violations,
-        List<RuleExecutionLogDto> logs,
         ValidationExecutionStats stats
     ) {
         if (!rule.isApplicableOn(LocalDate.now())) {
@@ -225,23 +224,6 @@ public class RulesEngineAdapter implements RuleExecutionPort {
                 rule.severity(),
                 e);
 
-            errorMessage = e.getMessage();
-        } finally {
-            long executionTime = System.currentTimeMillis() - ruleStartTime;
-
-            if (persistExecutionLogs) {
-                RuleExecutionLogDto executionLog = createExecutionLog(
-                    rule,
-                    exposure,
-                    result,
-                    executionTime,
-                    errorMessage
-                );
-
-                if (shouldCollectExecutionLog(executionLog)) {
-                    logs.add(executionLog);
-                }
-            }
         }
     }
 

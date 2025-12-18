@@ -43,14 +43,13 @@ public class RuleExecutionService {
 
         List<ValidationError> errors = new ArrayList<>();
         List<RuleViolation> violations = new ArrayList<>();
-        List<RuleExecutionLogDto> logs = new ArrayList<>();
 
         long start = System.currentTimeMillis();
 
         for (BusinessRuleDto rule : rules) {
             ruleExecutionPort.execute(
                 rule, context, exposure,
-                errors, violations, logs, stats
+                errors, violations, stats
             );
         }
 
@@ -60,7 +59,6 @@ public class RuleExecutionService {
             exposure.exposureId(),
             errors,
             violations,
-            logs,
             stats
         );
     }

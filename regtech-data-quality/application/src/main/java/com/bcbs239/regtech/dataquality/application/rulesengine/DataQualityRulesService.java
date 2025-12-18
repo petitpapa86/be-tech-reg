@@ -33,7 +33,6 @@ public class DataQualityRulesService implements ExposureRuleValidator {
 
     private final IBusinessRuleRepository ruleRepository;
     private final RuleViolationRepository violationRepository;
-    private final RuleExecutionLogRepository executionLogRepository;
     private final RuleExecutionService ruleExecutionService;
 
     // ✅ Application-level rule caching (lasts entire batch)
@@ -43,11 +42,10 @@ public class DataQualityRulesService implements ExposureRuleValidator {
     public DataQualityRulesService(
             IBusinessRuleRepository ruleRepository,
             RuleViolationRepository violationRepository,
-            RuleExecutionLogRepository executionLogRepository,
             RuleExecutionService ruleExecutionService) {
         this.ruleRepository = ruleRepository;
         this.violationRepository = violationRepository;
-        this.executionLogRepository = executionLogRepository;
+       // this.executionLogRepository = executionLogRepository;
         this.ruleExecutionService = ruleExecutionService;
     }
 
@@ -133,7 +131,7 @@ public class DataQualityRulesService implements ExposureRuleValidator {
     // ... rest of existing methods unchanged ...
 
     @Transactional
-    public void batchPersistValidationResults(String batchId, List<ValidationResultsDto> allResults) {
+    public void batchPersistValidationResults(String batchId, List<ValidationResults> allResults) {
         if (allResults == null || allResults.isEmpty()) {
             log.debug("No validation results to persist");
             return;
@@ -143,31 +141,31 @@ public class DataQualityRulesService implements ExposureRuleValidator {
         log.info("⏱️ PERSISTENCE START: {} exposure results", allResults.size());
 
         List<RuleViolation> allViolations = new ArrayList<>();
-        List<RuleExecutionLogDto> allExecutionLogs = new ArrayList<>();
+        //List<RuleExecutionLogDto> allExecutionLogs = new ArrayList<>();
 
-        for (ValidationResultsDto result : allResults) {
+        for (ValidationResults result : allResults) {
             if (result == null) continue;
             if (result.ruleViolations() != null) {
                 allViolations.addAll(result.ruleViolations());
             }
-            if (result.executionLogs() != null) {
-                allExecutionLogs.addAll(result.executionLogs());
-            }
+//            if (result.executionLogs() != null) {
+//                allExecutionLogs.addAll(result.executionLogs());
+//            }
         }
 
-        log.info("⏱️ COLLECTED: {} violations, {} logs",
-                allViolations.size(), allExecutionLogs.size());
+        log.info("⏱️ COLLECTED: {} violations",
+                allViolations.size());
 
         // Insert execution logs
-        if (!allExecutionLogs.isEmpty()) {
-            Instant logsStart = Instant.now();
-            executionLogRepository.saveAllForBatch(batchId, allExecutionLogs);
-            executionLogRepository.flush();
-            long logsDuration = Duration.between(logsStart, Instant.now()).toMillis();
-            log.info("⏱️ LOGS INSERTED: {}ms ({}/sec)",
-                    logsDuration,
-                    (allExecutionLogs.size() * 1000L) / Math.max(logsDuration, 1));
-        }
+//        if (!allExecutionLogs.isEmpty()) {
+//            Instant logsStart = Instant.now();
+//            executionLogRepository.saveAllForBatch(batchId, allExecutionLogs);
+//            executionLogRepository.flush();
+//            long logsDuration = Duration.between(logsStart, Instant.now()).toMillis();
+//            log.info("⏱️ LOGS INSERTED: {}ms ({}/sec)",
+//                    logsDuration,
+//                    (allExecutionLogs.size() * 1000L) / Math.max(logsDuration, 1));
+//        }
 
         // Insert violations
         if (!allViolations.isEmpty()) {

@@ -151,8 +151,9 @@ public class DefaultRulesEngine implements RulesEngine {
                 return RuleExecutionResult.success(ruleId);
             } else {
                 // Rule failed - log execution first to get execution ID
-                RuleExecutionLogEntity execLog = logExecution(rule, context, ExecutionResult.FAILURE,
-                    1, executionTime, null);
+                // RuleExecutionLogEntity execLog = logExecution(rule, context, ExecutionResult.FAILURE,
+                //     1, executionTime, null);
+                RuleExecutionLogEntity execLog = null;
                 
                 // Create violation with execution ID (if logging succeeded)
                 RuleViolationEntity violation = createViolation(rule, context);
@@ -184,7 +185,7 @@ public class DefaultRulesEngine implements RulesEngine {
             // Log error
             BusinessRuleEntity rule = ruleRepository.findById(ruleId).orElse(null);
             if (rule != null) {
-                logExecution(rule, context, ExecutionResult.ERROR, 0, executionTime, e.getMessage());
+                // logExecution(rule, context, ExecutionResult.ERROR, 0, executionTime, e.getMessage());
             }
             
             return RuleExecutionResult.error(ruleId, "Expression evaluation failed: " + e.getMessage());
@@ -196,7 +197,7 @@ public class DefaultRulesEngine implements RulesEngine {
             // Log error
             BusinessRuleEntity rule = ruleRepository.findById(ruleId).orElse(null);
             if (rule != null) {
-                logExecution(rule, context, ExecutionResult.ERROR, 0, executionTime, e.getMessage());
+                // logExecution(rule, context, ExecutionResult.ERROR, 0, executionTime, e.getMessage());
             }
             
             return RuleExecutionResult.error(ruleId, "Execution error: " + e.getMessage());
@@ -432,7 +433,7 @@ public class DefaultRulesEngine implements RulesEngine {
      */
     private RuleExecutionResult logAndReturnSkipped(BusinessRuleEntity rule, RuleContext context, long startTime) {
         long executionTime = System.currentTimeMillis() - startTime;
-        logExecution(rule, context, ExecutionResult.SKIPPED, 0, executionTime, "Rule skipped");
+        // logExecution(rule, context, ExecutionResult.SKIPPED, 0, executionTime, "Rule skipped");
         return RuleExecutionResult.success(rule.getRuleId(), "Rule skipped (inactive or exempted)");
     }
     

@@ -250,11 +250,8 @@ public class RulesEngineConfiguration {
      *   <li>maxExecutionTimeMs: Threshold for slow validation warning (Requirement 6.5)</li>
      * </ul>
      * 
-     * @param rulesEngine The rules engine
      * @param ruleRepositoryAdapter Adapter for business rules repository
      * @param violationRepository Repository for violations
-     * @param executionLogRepository Repository for execution logs
-     * @param exemptionRepository Repository for exemptions
      * @param properties Data quality configuration properties
      * @return Configured DataQualityRulesService instance
      */
@@ -262,7 +259,6 @@ public class RulesEngineConfiguration {
     public DataQualityRulesService dataQualityRulesService(
             IBusinessRuleRepository ruleRepositoryAdapter,
             RuleViolationRepository violationRepository,
-            RuleExecutionLogRepository executionLogRepository,
             RuleExecutionService ruleExecutionService,
             DataQualityProperties properties) {
         
@@ -281,7 +277,6 @@ public class RulesEngineConfiguration {
         return new DataQualityRulesService(
             ruleRepositoryAdapter,
             violationRepository,
-            executionLogRepository,
             ruleExecutionService
         );
     }

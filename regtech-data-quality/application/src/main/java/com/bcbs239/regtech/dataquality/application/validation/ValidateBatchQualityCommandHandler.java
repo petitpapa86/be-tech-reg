@@ -30,21 +30,21 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class ValidateBatchQualityCommandHandler {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(ValidateBatchQualityCommandHandler.class);
-    
+
     private final IQualityReportRepository qualityReportRepository;
     private final S3StorageService s3StorageService;
     private final DataQualityRulesService rulesService;
     private final ParallelExposureValidationCoordinator coordinator;
     private final BaseUnitOfWork unitOfWork;
-    
+
     public ValidateBatchQualityCommandHandler(
-        IQualityReportRepository qualityReportRepository,
-        S3StorageService s3StorageService,
-        DataQualityRulesService rulesService,
-        ParallelExposureValidationCoordinator coordinator,
-        BaseUnitOfWork unitOfWork
+            IQualityReportRepository qualityReportRepository,
+            S3StorageService s3StorageService,
+            DataQualityRulesService rulesService,
+            ParallelExposureValidationCoordinator coordinator,
+            BaseUnitOfWork unitOfWork
     ) {
         this.qualityReportRepository = qualityReportRepository;
         this.s3StorageService = s3StorageService;
@@ -52,34 +52,19 @@ public class ValidateBatchQualityCommandHandler {
         this.coordinator = coordinator;
         this.unitOfWork = unitOfWork;
     }
-    
-    /**
-     * Handles the batch quality validation command using the railway pattern.
-     * Implements the complete workflow with proper error handling and transaction management.
-     */
-    @Transactional
+
     @Timed(value = "dataquality.validation.batch", description = "Time taken to validate batch quality")
     public Result<Void> handle(ValidateBatchQualityCommand command) {
-        // Validate command parameters
         command.validate();
 
-        logger.info("Quality validation started: batchId={}, bankId={}",
-            command.batchId().value(), command.bankId().value());
-
-        // Check if report already exists and is completed (idempotency)
         Optional<QualityReport> existingReport = qualityReportRepository.findByBatchId(command.batchId());
         if (existingReport.isPresent()) {
             QualityReport existing = existingReport.get();
-            // Only skip if already completed or failed - let in-progress reports continue
             if (existing.getStatus().name().equals("COMPLETED") || existing.getStatus().name().equals("FAILED")) {
-                logger.info("Quality validation skipped: batchId={}, status={}",
-                    command.batchId().value(), existing.getStatus());
                 return Result.success();
             }
-            logger.debug("Quality report exists but status is {}, will process", existing.getStatus());
         }
 
-        // Try to create and save quality report (may fail if another thread created it)
         QualityReport report;
         try {
             report = QualityReport.createForBatch(command.batchId(), command.bankId());
@@ -89,14 +74,11 @@ public class ValidateBatchQualityCommandHandler {
             if (saveResult.isFailure()) {
                 // If duplicate key error, another thread is processing it
                 if (saveResult.getError().map(e ->
-                    e.getCode().equals("QUALITY_REPORT_DUPLICATE_BATCH_ID")
+                        e.getCode().equals("QUALITY_REPORT_DUPLICATE_BATCH_ID")
                 ).orElse(false)) {
-                    logger.debug("Concurrent creation detected for batch {}, another thread created the report", command.batchId().value());
                     return Result.success();
                 }
-                logger.error("Failed to save quality report for batch {}: {}",
-                    command.batchId().value(),
-                    saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+
                 return Result.failure(saveResult.errors());
             }
             report = saveResult.getValueOrThrow();
@@ -105,66 +87,56 @@ public class ValidateBatchQualityCommandHandler {
             Optional<QualityReport> retryCheck = qualityReportRepository.findByBatchId(command.batchId());
             if (retryCheck.isPresent()) {
                 logger.debug("Quality report exists after exception during creation; assuming concurrent creation for batchId={}",
-                    command.batchId().value());
+                        command.batchId().value());
                 return Result.success();
             }
 
             logger.warn("Exception during initial quality report creation for batchId={}: {}",
-                command.batchId().value(), e.getMessage());
+                    command.batchId().value(), e.getMessage());
             throw e;
         }
 
-        // Download exposure data
-        logger.debug("Downloading exposure data from S3: {}", command.s3Uri());
-
         Result<List<ExposureRecord>> downloadResult = command.expectedExposureCount() > 0
-            ? s3StorageService.downloadExposures(command.s3Uri(), command.expectedExposureCount())
-            : s3StorageService.downloadExposures(command.s3Uri());
+                ? s3StorageService.downloadExposures(command.s3Uri(), command.expectedExposureCount())
+                : s3StorageService.downloadExposures(command.s3Uri());
 
         Result<List<ExposureRecord>> exposuresResult = downloadResult.map(exposures -> {
             logger.debug("Downloaded {} exposures for batchId={}",
-                exposures.size(), command.batchId().value());
+                    exposures.size(), command.batchId().value());
             return exposures;
         });
 
         if (exposuresResult.isFailure()) {
-            logger.error("Failed to download exposure data for batch {}: {}",
-                command.batchId().value(), exposuresResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
             markReportAsFailed(report, "Failed to download exposure data");
             return Result.failure(exposuresResult.errors());
         }
         List<ExposureRecord> exposures = exposuresResult.getValueOrThrow();
 
-        // Execute quality validation using Rules Engine (application layer responsibility)
-        logger.debug("Executing quality validation for {} exposures using Rules Engine", exposures.size());
-
-        // Run validation through the validator so batch lifecycle hooks execute (prefetch/clear).
         List<ValidationResults> allResults = coordinator.validateAll(exposures, rulesService);
 
         // Convert to DTOs for persistence and to ExposureValidationResult for domain.
-        List<ValidationResultsDto> allValidationResultsDto = new ArrayList<>(allResults.size());
+        // List<ValidationResultsDto> allValidationResultsDto = new ArrayList<>(allResults.size());
         Map<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>(
-            Math.max(16, (int) (allResults.size() / 0.75f) + 1)
+                Math.max(16, (int) (allResults.size() / 0.75f) + 1)
         );
-        for (ValidationResults results : allResults) {
-            if (results == null) {
+        for (ValidationResults result : allResults) {
+            if (result == null) {
                 continue;
             }
 
-            ValidationResultsDto dto = new ValidationResultsDto(
-                results.exposureId(),
-                results.validationErrors(),
-                results.ruleViolations(),
-                results.executionLogs(),
-                results.stats()
-            );
-            allValidationResultsDto.add(dto);
-            exposureResults.put(dto.exposureId(), createExposureValidationResult(dto));
+//            ValidationResultsDto dto = new ValidationResultsDto(
+//                results.exposureId(),
+//                results.validationErrors(),
+//                results.ruleViolations(),
+//                results.stats()
+//            );
+            // allValidationResultsDto.add(dto);
+            exposureResults.put(result.exposureId(), createExposureValidationResult(result));
         }
 
         // Persist rule violations/execution logs once after validation completes.
         // This avoids per-worker database writes/transactions.
-        rulesService.batchPersistValidationResults(command.batchId().value(), allValidationResultsDto);
+        rulesService.batchPersistValidationResults(command.batchId().value(), allResults);
 
         // Batch-level validation (if needed in the future)
         List<ValidationError> batchErrors = new ArrayList<>();
@@ -177,7 +149,7 @@ public class ValidateBatchQualityCommandHandler {
 
         if (validationResult.isFailure()) {
             logger.error("Failed to record quality validation: {}",
-                validationResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+                    validationResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
             markReportAsFailed(report, "Failed to record quality validation");
             return Result.failure(validationResult.errors());
         }
@@ -185,32 +157,30 @@ public class ValidateBatchQualityCommandHandler {
         QualityScores scores = report.getScores(); // Scores calculated by aggregate
 
         logger.info("Quality validation completed: batchId={}, validExposures={}/{}, totalErrors={}, overallScore={}",
-            command.batchId().value(),
-            validation.validExposures(), validation.totalExposures(), validation.allErrors().size(),
-            scores.overallScore());
+                command.batchId().value(),
+                validation.validExposures(), validation.totalExposures(), validation.allErrors().size(),
+                scores.overallScore());
 
         // Store detailed results in S3
         logger.debug("Storing detailed validation results in S3 for batch {}", command.batchId().value());
 
         java.util.Map<String, String> metadata = java.util.Map.of(
-            "batch-id", command.batchId().value(),
-            "overall-score", String.valueOf(scores.overallScore()),
-            "grade", scores.grade().name(),
-            "compliant", String.valueOf(scores.isCompliant()),
-            "total-exposures", String.valueOf(validation.totalExposures()),
-            "valid-exposures", String.valueOf(validation.validExposures()),
-            "total-errors", String.valueOf(validation.allErrors().size())
+                "batch-id", command.batchId().value(),
+                "overall-score", String.valueOf(scores.overallScore()),
+                "grade", scores.grade().name(),
+                "compliant", String.valueOf(scores.isCompliant()),
+                "total-exposures", String.valueOf(validation.totalExposures()),
+                "valid-exposures", String.valueOf(validation.validExposures()),
+                "total-errors", String.valueOf(validation.allErrors().size())
         );
 
         Result<S3Reference> s3Result = s3StorageService.storeDetailedResults(command.batchId(), validation, metadata)
-            .map(reference -> {
-                logger.debug("Detailed results stored in S3: {}", reference.uri());
-                return reference;
-            });
+                .map(reference -> {
+                    logger.debug("Detailed results stored in S3: {}", reference.uri());
+                    return reference;
+                });
 
         if (s3Result.isFailure()) {
-            logger.error("Failed to store detailed results for batch {}: {}",
-                command.batchId().value(), s3Result.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
             markReportAsFailed(report, "Failed to store detailed results");
             return Result.failure(s3Result.errors());
         }
@@ -219,8 +189,6 @@ public class ValidateBatchQualityCommandHandler {
         // Record S3 reference
         Result<Void> storeResult = report.storeDetailedResults(detailsReference);
         if (storeResult.isFailure()) {
-            logger.error("Failed to record S3 reference: {}",
-                storeResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
             markReportAsFailed(report, "Failed to record S3 reference");
             return storeResult;
         }
@@ -229,33 +197,25 @@ public class ValidateBatchQualityCommandHandler {
         Result<Void> completeResult = report.completeValidation();
         if (completeResult.isFailure()) {
             logger.error("Failed to complete validation: {}",
-                completeResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+                    completeResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
             markReportAsFailed(report, "Failed to complete validation");
             return completeResult;
         }
 
-        // Save completed report
         Result<QualityReport> finalSaveResult = qualityReportRepository.save(report)
-            .map(savedReport -> {
-                logger.debug("Saved quality report {} for batch {}",
-                    savedReport.getReportId().value(), savedReport.getBatchId().value());
-                return savedReport;
-            });
+                .map(savedReport -> savedReport);
 
         if (finalSaveResult.isFailure()) {
-            logger.error("Failed to save completed quality report for batch {}", command.batchId().value());
             return Result.failure(finalSaveResult.errors());
         }
 
-        // Register aggregate with Unit of Work to persist domain events
         unitOfWork.registerEntity(report);
         unitOfWork.saveChanges();
 
-        // Finalize workflow with logging
         return Result.success();
     }
 
-    private ExposureValidationResult createExposureValidationResult(ValidationResultsDto validationResults) {
+    private ExposureValidationResult createExposureValidationResult(ValidationResults validationResults) {
         List<ValidationError> errors = validationResults.validationErrors();
 
         // Group errors by dimension
@@ -268,27 +228,18 @@ public class ValidateBatchQualityCommandHandler {
         }
 
         return ExposureValidationResult.builder()
-            .exposureId(validationResults.exposureId())
-            .errors(errors)
-            .dimensionErrors(dimensionErrors)
-            .isValid(errors.isEmpty())
-            .build();
+                .exposureId(validationResults.exposureId())
+                .errors(errors)
+                .dimensionErrors(dimensionErrors)
+                .isValid(errors.isEmpty())
+                .build();
     }
 
     private void markReportAsFailed(QualityReport report, String errorMessage) {
-        Result<Void> failResult = report.markAsFailed(errorMessage);
-        if (failResult.isFailure()) {
-            logger.error("Failed to mark report as failed: {}",
-                failResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
-        }
+        report.markAsFailed(errorMessage);
 
-        Result<QualityReport> saveResult = qualityReportRepository.save(report);
-        if (saveResult.isFailure()) {
-            logger.error("Failed to save failed report: {}",
-                saveResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
-        }
+        qualityReportRepository.save(report);
 
-        // Register failed aggregate with Unit of Work
         unitOfWork.registerEntity(report);
         unitOfWork.saveChanges();
     }

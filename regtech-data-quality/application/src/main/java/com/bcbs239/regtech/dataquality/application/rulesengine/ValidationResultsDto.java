@@ -15,23 +15,11 @@ public record ValidationResultsDto(
     String exposureId,
     List<ValidationError> validationErrors,
     List<RuleViolation> ruleViolations,
-    List<RuleExecutionLogDto> executionLogs,
     ValidationExecutionStats stats
 ) {
     public ValidationResultsDto(String exposureId, List<ValidationError> validationErrors,
-                               List<RuleViolation> ruleViolations, List<RuleExecutionLogDto> executionLogs) {
-        this(exposureId, validationErrors, ruleViolations, executionLogs, new ValidationExecutionStats());
+                               List<RuleViolation> ruleViolations) {
+        this(exposureId, validationErrors, ruleViolations, new ValidationExecutionStats());
     }
 
-    public boolean hasViolations() {
-        return validationErrors != null && !validationErrors.isEmpty();
-    }
-
-    public int getViolationCount() {
-        return ruleViolations == null ? 0 : ruleViolations.size();
-    }
-
-    public int getExecutionCount() {
-        return executionLogs == null ? 0 : executionLogs.size();
-    }
 }
