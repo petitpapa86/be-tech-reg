@@ -17,4 +17,16 @@ public interface IRuleExemptionRepository {
         String entityId,
         LocalDate currentDate
     );
+
+    /**
+     * Batch-loads all active exemptions for a given entity type and a set of entity IDs.
+     *
+     * <p>Implementations should include both entity-specific exemptions (entityId in the list)
+     * and wildcard exemptions (entityId is null) that apply to all entities of the type.</p>
+     */
+    List<RuleExemptionDto> findAllActiveExemptionsForBatch(
+        String entityType,
+        List<String> entityIds,
+        LocalDate currentDate
+    );
 }

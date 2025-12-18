@@ -4,14 +4,11 @@ import com.bcbs239.regtech.dataquality.application.rulesengine.RuleExecutionLogR
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExecutionLogEntity;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExecutionLogDto;
 
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 
 /**
  * JPA adapter for RuleExecutionLogRepository port.
  */
-@Component
 public class JpaRuleExecutionLogRepositoryAdapter implements RuleExecutionLogRepository {
 
     private final com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository jpaRepository;

@@ -31,4 +31,24 @@ public interface RuleExecutionPort {
         java.util.List<RuleExecutionLogDto> logs,
         ValidationExecutionStats stats
     );
+
+    /**
+     * Optional hook for batch validation: pre-load exemption data in bulk.
+     * Default implementation is a no-op.
+     */
+    default void preloadExemptionsForBatch(
+        String entityType,
+        java.util.List<String> entityIds,
+        java.time.LocalDate currentDate
+    ) {
+        // no-op
+    }
+
+    /**
+     * Optional hook for batch validation: clear any in-memory caches.
+     * Default implementation is a no-op.
+     */
+    default void clearExemptionCache() {
+        // no-op
+    }
 }

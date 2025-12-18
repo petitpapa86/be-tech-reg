@@ -4,14 +4,11 @@ import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepo
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
 
-import org.springframework.stereotype.Component;
-
 import java.util.List;
 
 /**
  * JPA adapter for RuleViolationRepository port.
  */
-@Component
 public class JpaRuleViolationRepositoryAdapter implements RuleViolationRepository {
 
     private final com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository jpaRepository;

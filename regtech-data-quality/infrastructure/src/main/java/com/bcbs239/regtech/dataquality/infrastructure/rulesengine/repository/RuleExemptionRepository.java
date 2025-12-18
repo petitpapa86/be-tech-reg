@@ -73,4 +73,21 @@ public interface RuleExemptionRepository extends JpaRepository<RuleExemptionEnti
         @Param("ruleId") String ruleId,
         @Param("currentDate") LocalDate currentDate
     );
+
+    /**
+     * Batch-load active exemptions for an entity type and a set of entity IDs.
+     * Includes wildcard exemptions where entityId is null.
+     */
+    @Query("""
+        SELECT e FROM RuleExemptionEntity e
+        WHERE e.entityType = :entityType
+        AND (e.entityId IS NULL OR e.entityId IN :entityIds)
+        AND e.effectiveDate <= :currentDate
+        AND (e.expirationDate IS NULL OR e.expirationDate >= :currentDate)
+        """)
+    List<RuleExemptionEntity> findAllActiveExemptionsForBatch(
+        @Param("entityType") String entityType,
+        @Param("entityIds") List<String> entityIds,
+        @Param("currentDate") LocalDate currentDate
+    );
 }

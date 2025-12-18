@@ -11,7 +11,6 @@ import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.Rul
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineBatchLinkContext;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineJdbcBatchInserter;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
-import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -73,17 +72,20 @@ public class RulesEngineConfiguration {
         
         boolean cacheEnabled = properties.getRulesEngine().isCacheEnabled();
         int cacheTtl = properties.getRulesEngine().getCacheTtl();
+        boolean auditPersistenceEnabled = properties.getRulesEngine().isAuditPersistenceEnabled();
         
         log.info("✓ Rules Engine ENABLED - Using configurable business rules");
         log.info("  - Cache enabled: {}", cacheEnabled);
         log.info("  - Cache TTL: {}s", cacheTtl);
+        log.info("  - Audit persistence enabled: {}", auditPersistenceEnabled);
         
         return new DefaultRulesEngine(
             ruleRepository,
             auditPersistenceService,
             expressionEvaluator,
             cacheEnabled,
-            cacheTtl
+            cacheTtl,
+            auditPersistenceEnabled
         );
     }
     
@@ -101,50 +103,20 @@ public class RulesEngineConfiguration {
 
         return new BusinessRuleRepositoryAdapter(infraRepo, rulesEngine, cacheEnabled, cacheTtl);
     }
-    
+
     /**
-     * Creates the DataQualityRulesService bean with logging configuration.
-     * 
-     * <p>The logging settings are injected from DataQualityProperties:</p>
-     * <ul>
-     *   <li>logExecutions: Whether to log individual rule executions (Requirement 6.1)</li>
-     *   <li>logViolations: Whether to log violation details (Requirement 6.2)</li>
-     *   <li>logSummary: Whether to log summary statistics (Requirement 6.4)</li>
-     *   <li>warnThresholdMs: Threshold for slow rule warning (Requirement 6.5)</li>
-     *   <li>maxExecutionTimeMs: Threshold for slow validation warning (Requirement 6.5)</li>
-     * </ul>
-     * 
-     * @param rulesEngine The rules engine
-     * @param ruleRepositoryAdapter Adapter for business rules repository
-     * @param violationRepository Repository for violations
-     * @param executionLogRepository Repository for execution logs
-     * @param exemptionRepository Repository for exemptions
-     * @param properties Data quality configuration properties
-     * @return Configured DataQualityRulesService instance
+     * Single implementation of the application port for execution-log persistence.
+     *
+     * <p>Uses JDBC batch inserts for high throughput. This is intentionally a Bean so there
+     * is exactly one wiring for the port across the application.</p>
      */
     @Bean
-    public DataQualityRulesService dataQualityRulesService(
-            IBusinessRuleRepository ruleRepositoryAdapter,
-            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository violationRepository,
+    public RuleExecutionLogRepository ruleExecutionLogRepositoryPort(
             com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository executionLogRepository,
             RulesEngineBatchLinkContext linkContext,
-            RulesEngineJdbcBatchInserter jdbcBatchInserter,
-            RuleExecutionService ruleExecutionService,
-            DataQualityProperties properties) {
-        
-        DataQualityProperties.RulesEngineProperties.LoggingProperties logging = 
-            properties.getRulesEngine().getLogging();
-        DataQualityProperties.RulesEngineProperties.PerformanceProperties performance = 
-            properties.getRulesEngine().getPerformance();
-        
-        log.info("✓ DataQualityRulesService configured with logging:");
-        log.info("  - Log executions: {}", logging.isLogExecutions());
-        log.info("  - Log violations: {}", logging.isLogViolations());
-        log.info("  - Log summary: {}", logging.isLogSummary());
-        log.info("  - Warn threshold: {}ms", performance.getWarnThresholdMs());
-        log.info("  - Max execution time: {}ms", performance.getMaxExecutionTimeMs());
-        
-        RuleExecutionLogRepository executionLogRepoAdapter = new RuleExecutionLogRepository() {
+            RulesEngineJdbcBatchInserter jdbcBatchInserter) {
+
+        return new RuleExecutionLogRepository() {
             @Override
             public void save(RuleExecutionLogDto executionLog) {
                 if (executionLog == null) {
@@ -164,9 +136,7 @@ public class RulesEngineConfiguration {
                     .build();
 
                 RuleExecutionLogEntity saved = executionLogRepository.save(entity);
-                if (saved != null) {
-                    linkContext.putExecutionId(saved.getRuleId(), saved.getEntityType(), saved.getEntityId(), saved.getExecutionId());
-                }
+                linkContext.putExecutionId(saved.getRuleId(), saved.getEntityType(), saved.getEntityId(), saved.getExecutionId());
             }
 
             @Override
@@ -178,17 +148,23 @@ public class RulesEngineConfiguration {
                 // New batch: clear mapping for this thread/request.
                 linkContext.clear();
 
-                // Fast path: JDBC batch insert (doesn't require returning generated IDs).
-                java.util.List<RuleExecutionLogDto> dtoList = new java.util.ArrayList<>();
-                for (RuleExecutionLogDto executionLog : executionLogs) {
-                    if (executionLog != null) {
-                        dtoList.add(executionLog);
-                    }
+                // JDBC batch insert. Filter nulls only if they exist.
+//                java.util.List<RuleExecutionLogDto> safeLogs = executionLogs;
+//                for (RuleExecutionLogDto log : executionLogs) {
+//                    if (log == null) {
+//                        safeLogs = new java.util.ArrayList<>(executionLogs.size());
+//                        for (RuleExecutionLogDto l : executionLogs) {
+//                            if (l != null) {
+//                                safeLogs.add(l);
+//                            }
+//                        }
+//                        break;
+//                    }
+//                }
+
+                if (!executionLogs.isEmpty()) {
+                    jdbcBatchInserter.insertExecutionLogs(batchId, executionLogs);
                 }
-                if (!dtoList.isEmpty()) {
-                    jdbcBatchInserter.insertExecutionLogs(batchId, dtoList);
-                }
-                return;
             }
 
             @Override
@@ -196,8 +172,21 @@ public class RulesEngineConfiguration {
                 executionLogRepository.flush();
             }
         };
+    }
 
-        RuleViolationRepository violationRepoAdapter = new RuleViolationRepository() {
+    /**
+     * Single implementation of the application port for violation persistence.
+     *
+     * <p>Uses JDBC batch inserts for high throughput. This is intentionally a Bean so there
+     * is exactly one wiring for the port across the application.</p>
+     */
+    @Bean
+    public RuleViolationRepository ruleViolationRepositoryPort(
+            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository violationRepository,
+            RulesEngineBatchLinkContext linkContext,
+            RulesEngineJdbcBatchInserter jdbcBatchInserter) {
+
+        return new RuleViolationRepository() {
             @Override
             public void save(RuleViolation violation) {
                 if (violation == null) {
@@ -231,15 +220,9 @@ public class RulesEngineConfiguration {
                     return;
                 }
 
-                // Fast path: JDBC batch insert.
-                java.util.List<RuleViolation> vList = new java.util.ArrayList<>();
-                for (RuleViolation v : violations) {
-                    if (v != null) {
-                        vList.add(v);
-                    }
-                }
-                if (!vList.isEmpty()) {
-                    jdbcBatchInserter.insertViolations(batchId, vList);
+
+                if (!violations.isEmpty()) {
+                    jdbcBatchInserter.insertViolations(batchId, violations);
                 }
             }
 
@@ -253,35 +236,114 @@ public class RulesEngineConfiguration {
                 }
             }
         };
-
+    }
+    
+    /**
+     * Creates the DataQualityRulesService bean with logging configuration.
+     * 
+     * <p>The logging settings are injected from DataQualityProperties:</p>
+     * <ul>
+     *   <li>logExecutions: Whether to log individual rule executions (Requirement 6.1)</li>
+     *   <li>logViolations: Whether to log violation details (Requirement 6.2)</li>
+     *   <li>logSummary: Whether to log summary statistics (Requirement 6.4)</li>
+     *   <li>warnThresholdMs: Threshold for slow rule warning (Requirement 6.5)</li>
+     *   <li>maxExecutionTimeMs: Threshold for slow validation warning (Requirement 6.5)</li>
+     * </ul>
+     * 
+     * @param rulesEngine The rules engine
+     * @param ruleRepositoryAdapter Adapter for business rules repository
+     * @param violationRepository Repository for violations
+     * @param executionLogRepository Repository for execution logs
+     * @param exemptionRepository Repository for exemptions
+     * @param properties Data quality configuration properties
+     * @return Configured DataQualityRulesService instance
+     */
+    @Bean
+    public DataQualityRulesService dataQualityRulesService(
+            IBusinessRuleRepository ruleRepositoryAdapter,
+            RuleViolationRepository violationRepository,
+            RuleExecutionLogRepository executionLogRepository,
+            RuleExecutionService ruleExecutionService,
+            DataQualityProperties properties) {
+        
+        DataQualityProperties.RulesEngineProperties.LoggingProperties logging = 
+            properties.getRulesEngine().getLogging();
+        DataQualityProperties.RulesEngineProperties.PerformanceProperties performance = 
+            properties.getRulesEngine().getPerformance();
+        
+        log.info("✓ DataQualityRulesService configured with logging:");
+        log.info("  - Log executions: {}", logging.isLogExecutions());
+        log.info("  - Log violations: {}", logging.isLogViolations());
+        log.info("  - Log summary: {}", logging.isLogSummary());
+        log.info("  - Warn threshold: {}ms", performance.getWarnThresholdMs());
+        log.info("  - Max execution time: {}ms", performance.getMaxExecutionTimeMs());
+        
         return new DataQualityRulesService(
             ruleRepositoryAdapter,
-            violationRepoAdapter,
-            executionLogRepoAdapter,
+            violationRepository,
+            executionLogRepository,
             ruleExecutionService
         );
     }
 
     @Bean
     public IRuleExemptionRepository ruleExemptionRepositoryAdapter(RuleExemptionRepository exemptionRepository) {
-        return (ruleId, entityType, entityId, currentDate) ->
-            exemptionRepository.findActiveExemptions(ruleId, entityType, entityId, currentDate)
-                .stream()
-                .map(e -> new RuleExemptionDto(
-                    e.getExemptionId(),
-                    e.getRule() != null ? e.getRule().getRuleId() : ruleId,
-                    e.getEntityType(),
-                    e.getEntityId(),
-                    e.getExemptionReason(),
-                    e.getExemptionType(),
-                    e.getApprovedBy(),
-                    e.getApprovalDate(),
-                    e.getEffectiveDate(),
-                    e.getExpirationDate(),
-                    e.getConditions(),
-                    e.getCreatedAt()
-                ))
-                .toList();
+        return new IRuleExemptionRepository() {
+            @Override
+            public java.util.List<RuleExemptionDto> findActiveExemptions(
+                String ruleId,
+                String entityType,
+                String entityId,
+                java.time.LocalDate currentDate
+            ) {
+                return exemptionRepository.findActiveExemptions(ruleId, entityType, entityId, currentDate)
+                    .stream()
+                    .map(e -> new RuleExemptionDto(
+                        e.getExemptionId(),
+                        e.getRule() != null ? e.getRule().getRuleId() : ruleId,
+                        e.getEntityType(),
+                        e.getEntityId(),
+                        e.getExemptionReason(),
+                        e.getExemptionType(),
+                        e.getApprovedBy(),
+                        e.getApprovalDate(),
+                        e.getEffectiveDate(),
+                        e.getExpirationDate(),
+                        e.getConditions(),
+                        e.getCreatedAt()
+                    ))
+                    .toList();
+            }
+
+            @Override
+            public java.util.List<RuleExemptionDto> findAllActiveExemptionsForBatch(
+                String entityType,
+                java.util.List<String> entityIds,
+                java.time.LocalDate currentDate
+            ) {
+                if (entityIds == null || entityIds.isEmpty()) {
+                    return java.util.List.of();
+                }
+
+                return exemptionRepository.findAllActiveExemptionsForBatch(entityType, entityIds, currentDate)
+                    .stream()
+                    .map(e -> new RuleExemptionDto(
+                        e.getExemptionId(),
+                        e.getRule() != null ? e.getRule().getRuleId() : null,
+                        e.getEntityType(),
+                        e.getEntityId(),
+                        e.getExemptionReason(),
+                        e.getExemptionType(),
+                        e.getApprovedBy(),
+                        e.getApprovalDate(),
+                        e.getEffectiveDate(),
+                        e.getExpirationDate(),
+                        e.getConditions(),
+                        e.getCreatedAt()
+                    ))
+                    .toList();
+            }
+        };
     }
 
     // execution_id is now optional (nullable). Treat non-positive IDs as unset.

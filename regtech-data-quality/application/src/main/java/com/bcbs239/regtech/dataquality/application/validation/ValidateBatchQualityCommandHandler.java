@@ -17,7 +17,6 @@ import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import io.micrometer.core.annotation.Timed;
@@ -28,34 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
-/**
- * Command handler for validating batch quality using proper DDD approach.
- * 
- * <p>This handler delegates business logic to the aggregate root and value object factories:
- * <ul>
- *   <li>{@link QualityReport#executeQualityValidation} - Aggregate orchestrates validation workflow</li>
- *   <li>{@link ValidationResult#validate} - Value object factory applies specifications</li>
- *   <li>{@link QualityScores#calculateFrom} - Value object factory calculates scores</li>
- *   <li>Application layer only handles: transactions, infrastructure (S3, events), and persistence</li>
- * </ul>
- * 
- * <p>Application layer responsibilities:</p>
- * <ol>
- *   <li>Transaction management (@Transactional)</li>
- *   <li>Downloading data from S3 (infrastructure)</li>
- *   <li>Calling aggregate business methods</li>
- *   <li>Storing results in S3 (infrastructure)</li>
- *   <li>Publishing integration events (infrastructure)</li>
- *   <li>Saving aggregates to repository</li>
- * </ol>
- * 
- * <p>This is proper DDD - business logic lives in aggregates and value objects, application layer only coordinates infrastructure.</p>
- */
 @Component
 public class ValidateBatchQualityCommandHandler {
     
@@ -66,27 +38,19 @@ public class ValidateBatchQualityCommandHandler {
     private final DataQualityRulesService rulesService;
     private final ParallelExposureValidationCoordinator coordinator;
     private final BaseUnitOfWork unitOfWork;
-
-    private final int hikariMaxPoolSize;
-    private final int configuredMaxInFlight;
     
     public ValidateBatchQualityCommandHandler(
         IQualityReportRepository qualityReportRepository,
         S3StorageService s3StorageService,
         DataQualityRulesService rulesService,
         ParallelExposureValidationCoordinator coordinator,
-        BaseUnitOfWork unitOfWork,
-        @Value("${spring.datasource.hikari.maximum-pool-size:20}") int hikariMaxPoolSize,
-        @Value("${dataquality.validation.max-in-flight:0}") int configuredMaxInFlight
+        BaseUnitOfWork unitOfWork
     ) {
         this.qualityReportRepository = qualityReportRepository;
         this.s3StorageService = s3StorageService;
         this.rulesService = rulesService;
         this.coordinator = coordinator;
         this.unitOfWork = unitOfWork;
-
-        this.hikariMaxPoolSize = Math.max(1, hikariMaxPoolSize);
-        this.configuredMaxInFlight = Math.max(0, configuredMaxInFlight);
     }
     
     /**
@@ -174,33 +138,28 @@ public class ValidateBatchQualityCommandHandler {
         // Execute quality validation using Rules Engine (application layer responsibility)
         logger.debug("Executing quality validation for {} exposures using Rules Engine", exposures.size());
 
-        // Use the coordinator for parallel validation
-        List<ValidationResults> allValidationResults = coordinator.validateAll(exposures, rulesService);
+        // Run validation through the validator so batch lifecycle hooks execute (prefetch/clear).
+        List<ValidationResults> allResults = coordinator.validateAll(exposures, rulesService);
 
-        // Convert to DTOs for persistence
-        List<ValidationResultsDto> allValidationResultsDto = allValidationResults.stream()
-            .map(vr -> new ValidationResultsDto(
-                vr.exposureId(),
-                vr.validationErrors(),
-                vr.ruleViolations(),
-                vr.executionLogs(),
-                vr.stats()
-            ))
-            .toList();
+        // Convert to DTOs for persistence and to ExposureValidationResult for domain.
+        List<ValidationResultsDto> allValidationResultsDto = new ArrayList<>(allResults.size());
+        Map<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>(
+            Math.max(16, (int) (allResults.size() / 0.75f) + 1)
+        );
+        for (ValidationResults results : allResults) {
+            if (results == null) {
+                continue;
+            }
 
-        // Convert to ExposureValidationResult for domain
-        Map<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>();
-        for (ValidationResults vr : allValidationResults) {
-            ExposureValidationResult result = createExposureValidationResult(
-                new ValidationResultsDto(
-                    vr.exposureId(),
-                    vr.validationErrors(),
-                    vr.ruleViolations(),
-                    vr.executionLogs(),
-                    vr.stats()
-                )
+            ValidationResultsDto dto = new ValidationResultsDto(
+                results.exposureId(),
+                results.validationErrors(),
+                results.ruleViolations(),
+                results.executionLogs(),
+                results.stats()
             );
-            exposureResults.put(vr.exposureId(), result);
+            allValidationResultsDto.add(dto);
+            exposureResults.put(dto.exposureId(), createExposureValidationResult(dto));
         }
 
         // Persist rule violations/execution logs once after validation completes.

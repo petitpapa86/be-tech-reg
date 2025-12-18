@@ -1,0 +1,43 @@
+{
+  "bank_info" : {
+    "bank_name" : "Community First Bank",
+    "abi_code" : "08081",
+    "lei_code" : "815600D7623147C25D86",
+    "report_date" : "2024-09-12",
+    "total_exposures" : 8
+  },
+  "exposures" : [ {
+    "exposure_id" : "EXP_001_2024",
+    "instrument_id" : "LOAN001",
+    "instrument_type" : "LOAN",
+    "counterparty_name" : "Mike's Pizza Inc",
+    "counterparty_id" : "CORP12345",
+    "counterparty_lei" : "549300ABCDEF12345678",
+    "exposure_amount" : 250000.0,
+    "currency" : "EUR",
+    "product_type" : "Business Loan",
+    "balance_sheet_type" : "ON_BALANCE",
+    "country_code" : "IT"
+  } ],
+  "credit_risk_mitigation" : [ {
+    "exposure_id" : "EXP_001_2024",
+    "mitigation_type" : "FINANCIAL_COLLATERAL",
+    "value" : 10000.0,
+    "currency" : "EUR"
+  }, {
+    "exposure_id" : "EXP_003_2024",
+    "mitigation_type" : "GUARANTEE",
+    "value" : 5000.0,
+    "currency" : "EUR"
+  }, {
+    "exposure_id" : "EXP_004_2024",
+    "mitigation_type" : "PHYSICAL_ASSET",
+    "value" : 50000.0,
+    "currency" : "EUR"
+  }, {
+    "exposure_id" : "EXP_008_2024",
+    "mitigation_type" : "FINANCIAL_COLLATERAL",
+    "value" : 50000.0,
+    "currency" : "EUR"
+  } ]
+}

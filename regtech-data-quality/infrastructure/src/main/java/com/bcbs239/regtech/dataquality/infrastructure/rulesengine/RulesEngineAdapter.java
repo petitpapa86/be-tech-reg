@@ -17,9 +17,12 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Infrastructure adapter implementing RuleExecutionPort.
@@ -36,13 +39,13 @@ import java.util.concurrent.atomic.AtomicLong;
 public class RulesEngineAdapter implements RuleExecutionPort {
 
     private static final long SLOW_RULE_WARN_MIN_INTERVAL_MS = 60_000;
-    private static final long SLOW_VALIDATION_WARN_MIN_INTERVAL_MS = 60_000;
 
     private final ConcurrentHashMap<String, Long> lastSlowRuleWarnAtMsByRuleId = new ConcurrentHashMap<>();
-    private final AtomicLong lastSlowValidationWarnAtMs = new AtomicLong(0);
 
     private final RulesEngine rulesEngine;
     private final IRuleExemptionRepository exemptionRepository;
+
+    private volatile ExemptionCache exemptionCache;
 
     // Configuration thresholds
     private final int warnThresholdMs;
@@ -60,6 +63,50 @@ public class RulesEngineAdapter implements RuleExecutionPort {
         this.warnThresholdMs = warnThresholdMs;
         this.logExecutions = logExecutions;
         this.logViolations = logViolations;
+    }
+
+    @Override
+    public void preloadExemptionsForBatch(String entityType, List<String> entityIds, LocalDate currentDate) {
+        if (entityType == null || entityType.isBlank()) {
+            return;
+        }
+        if (entityIds == null || entityIds.isEmpty()) {
+            clearExemptionCache();
+            return;
+        }
+
+        LocalDate asOfDate = currentDate != null ? currentDate : LocalDate.now();
+
+        List<String> distinctEntityIds = entityIds.stream()
+            .filter(id -> id != null && !id.isBlank())
+            .distinct()
+            .toList();
+
+        if (distinctEntityIds.isEmpty()) {
+            clearExemptionCache();
+            return;
+        }
+
+        List<RuleExemptionDto> exemptions = exemptionRepository.findAllActiveExemptionsForBatch(
+            entityType,
+            distinctEntityIds,
+            asOfDate
+        );
+
+        this.exemptionCache = ExemptionCache.build(entityType, asOfDate, distinctEntityIds, exemptions);
+
+        log.debug(
+            "Preloaded {} active exemptions for entityType={} across {} entities (asOf={})",
+            exemptions.size(),
+            entityType,
+            distinctEntityIds.size(),
+            asOfDate
+        );
+    }
+
+    @Override
+    public void clearExemptionCache() {
+        this.exemptionCache = null;
     }
 
     @Override
@@ -302,6 +349,23 @@ public class RulesEngineAdapter implements RuleExecutionPort {
         try {
             LocalDate currentDate = LocalDate.now();
 
+            ExemptionCache cache = this.exemptionCache;
+            if (cache != null && cache.matches(entityType, currentDate)) {
+                Boolean cachedDecision = cache.isExempted(ruleId, entityId);
+                if (cachedDecision != null) {
+                    if (cachedDecision) {
+                        log.debug(
+                            "Active exemption found (cache) for rule {} and entity {}/{}. Skipping violation reporting.",
+                            ruleId,
+                            entityType,
+                            entityId
+                        );
+                    }
+                    return cachedDecision;
+                }
+                // Cache present but does not cover this entityId; fall back to DB.
+            }
+
             // Find active exemptions for this rule and entity
             List<RuleExemptionDto> activeExemptions = exemptionRepository.findActiveExemptions(
                 ruleId,
@@ -338,6 +402,104 @@ public class RulesEngineAdapter implements RuleExecutionPort {
                 ruleId, entityType, entityId, e.getMessage(), e);
             // On error, fail safe by not granting exemption
             return false;
+        }
+    }
+
+    private static final class ExemptionCache {
+        private final String entityType;
+        private final LocalDate asOfDate;
+        private final Set<String> loadedEntityIds;
+        private final Map<String, RuleIdIndex> byRuleId;
+
+        private ExemptionCache(
+            String entityType,
+            LocalDate asOfDate,
+            Set<String> loadedEntityIds,
+            Map<String, RuleIdIndex> byRuleId
+        ) {
+            this.entityType = entityType;
+            this.asOfDate = asOfDate;
+            this.loadedEntityIds = loadedEntityIds;
+            this.byRuleId = byRuleId;
+        }
+
+        boolean matches(String entityType, LocalDate asOfDate) {
+            return this.entityType.equals(entityType) && this.asOfDate.equals(asOfDate);
+        }
+
+        /**
+         * @return Boolean decision if covered by cache; null if entityId isn't covered and DB fallback is required.
+         */
+        Boolean isExempted(String ruleId, String entityId) {
+            if (ruleId == null || ruleId.isBlank()) {
+                return Boolean.FALSE;
+            }
+
+            RuleIdIndex index = byRuleId.get(ruleId);
+            if (index == null) {
+                // If we preloaded the entity, this is a definitive "not exempt".
+                return loadedEntityIds.contains(entityId) ? Boolean.FALSE : null;
+            }
+
+            if (index.appliesToAllEntities) {
+                return Boolean.TRUE;
+            }
+
+            if (!loadedEntityIds.contains(entityId)) {
+                return null;
+            }
+
+            return index.entityIds.contains(entityId);
+        }
+
+        static ExemptionCache build(
+            String entityType,
+            LocalDate asOfDate,
+            List<String> loadedEntityIds,
+            List<RuleExemptionDto> exemptions
+        ) {
+            Set<String> loaded = new HashSet<>(loadedEntityIds);
+            Map<String, Boolean> ruleAppliesToAll = new HashMap<>();
+            Map<String, Set<String>> entityIdsByRule = new HashMap<>();
+
+            if (exemptions != null) {
+                for (RuleExemptionDto exemption : exemptions) {
+                    if (exemption == null) {
+                        continue;
+                    }
+                    if (exemption.ruleId() == null || exemption.ruleId().isBlank()) {
+                        continue;
+                    }
+                    if (exemption.entityId() == null || exemption.entityId().isBlank()) {
+                        ruleAppliesToAll.put(exemption.ruleId(), Boolean.TRUE);
+                        continue;
+                    }
+                    entityIdsByRule
+                        .computeIfAbsent(exemption.ruleId(), k -> new HashSet<>())
+                        .add(exemption.entityId());
+                }
+            }
+
+            Map<String, RuleIdIndex> byRule = new HashMap<>();
+            for (Map.Entry<String, Boolean> entry : ruleAppliesToAll.entrySet()) {
+                byRule.put(entry.getKey(), new RuleIdIndex(true, Set.of()));
+            }
+            for (Map.Entry<String, Set<String>> entry : entityIdsByRule.entrySet()) {
+                boolean appliesToAll = Boolean.TRUE.equals(ruleAppliesToAll.get(entry.getKey()));
+                byRule.put(entry.getKey(), new RuleIdIndex(appliesToAll, Set.copyOf(entry.getValue())));
+            }
+
+            return new ExemptionCache(entityType, asOfDate, Set.copyOf(loaded), Map.copyOf(byRule));
+        }
+    }
+
+    private static final class RuleIdIndex {
+        private final boolean appliesToAllEntities;
+        private final Set<String> entityIds;
+
+        private RuleIdIndex(boolean appliesToAllEntities, Set<String> entityIds) {
+            this.appliesToAllEntities = appliesToAllEntities;
+            this.entityIds = entityIds;
         }
     }
 }

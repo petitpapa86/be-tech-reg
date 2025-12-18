@@ -13,12 +13,10 @@ import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.application.rulesengine.ValidationResultsDto;
-import com.bcbs239.regtech.dataquality.application.validation.ParallelExposureValidationCoordinator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -65,9 +64,7 @@ class ValidateBatchQualityCommandHandlerTest {
             s3StorageService,
             rulesService,
             parallelCoordinator,
-            unitOfWork,
-            20,
-            0
+            unitOfWork
         );
         
         testBatchId = BatchId.of("batch_batch-123");
@@ -90,20 +87,22 @@ class ValidateBatchQualityCommandHandlerTest {
                 );
             });
 
+        lenient().when(rulesService.prepareForBatchDto())
+            .thenAnswer(invocation -> (Function<ExposureRecord, ValidationResultsDto>) exposure -> new ValidationResultsDto(
+                exposure.exposureId(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                Collections.emptyList()
+            ));
+
         // The handler delegates exposure validation to the coordinator.
         // In unit tests we stub this to avoid testing concurrency/executor behavior here.
-        lenient().when(parallelCoordinator.validateAll(anyList(), any()))
+        lenient().when(parallelCoordinator.validateAllWith(anyList(), any()))
             .thenAnswer(invocation -> {
                 List<ExposureRecord> exposures = invocation.getArgument(0);
-                return exposures.stream()
-                    .map(e -> new ValidationResults(
-                        e.exposureId(),
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        Collections.emptyList(),
-                        new ValidationExecutionStats()
-                    ))
-                    .toList();
+                @SuppressWarnings("unchecked")
+                Function<ExposureRecord, ValidationResultsDto> fn = (Function<ExposureRecord, ValidationResultsDto>) invocation.getArgument(1);
+                return exposures.stream().map(fn).toList();
             });
     }
     

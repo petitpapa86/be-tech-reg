@@ -110,6 +110,10 @@ data-quality:
     # Minimum: 60 (1 minute) to avoid excessive database load
     # Requirement 7.2: Cache TTL configuration
     cache-ttl: 300
+
+    # IMPORTANT: When batch validation persists results after validation completes,
+    # disable per-rule audit persistence to avoid per-exposure REQUIRES_NEW transactions.
+    audit-persistence-enabled: false
     
     # Enable parallel rule execution (future feature)
     # Currently not implemented - rules execute sequentially

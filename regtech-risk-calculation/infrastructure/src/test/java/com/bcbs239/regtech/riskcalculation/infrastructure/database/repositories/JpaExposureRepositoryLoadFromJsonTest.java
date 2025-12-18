@@ -3,6 +3,7 @@ package com.bcbs239.regtech.riskcalculation.infrastructure.database.repositories
 import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRecording;
 import com.bcbs239.regtech.riskcalculation.domain.exposure.CalculationResultsDeserializationException;
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.mappers.ExposureMapper;
+import com.bcbs239.regtech.riskcalculation.infrastructure.database.repository.ExposureJdbcBatchInserter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,9 @@ class JpaExposureRepositoryLoadFromJsonTest {
     
     @Mock
     private ExposureMapper mapper;
+
+    @Mock
+    private ExposureJdbcBatchInserter jdbcBatchInserter;
     
     private JpaExposureRepository repository;
     private ObjectMapper objectMapper;
@@ -36,7 +40,7 @@ class JpaExposureRepositoryLoadFromJsonTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        repository = new JpaExposureRepository(springDataRepository, mapper, objectMapper);
+      repository = new JpaExposureRepository(springDataRepository, mapper, objectMapper, jdbcBatchInserter);
     }
 
     @Test

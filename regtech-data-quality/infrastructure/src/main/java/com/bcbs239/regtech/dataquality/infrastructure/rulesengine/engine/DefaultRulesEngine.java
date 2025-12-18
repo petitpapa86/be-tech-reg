@@ -52,6 +52,8 @@ public class DefaultRulesEngine implements RulesEngine {
     // Cache configuration
     private final boolean cacheEnabled;
     private final int cacheTtlSeconds;
+
+    private final boolean auditPersistenceEnabled;
     
     // In-memory cache for rules
     private final Map<String, CachedRule> ruleCache = new ConcurrentHashMap<>();
@@ -86,11 +88,29 @@ public class DefaultRulesEngine implements RulesEngine {
             ExpressionEvaluator expressionEvaluator,
             boolean cacheEnabled,
             int cacheTtlSeconds) {
+        this(
+            ruleRepository,
+            auditPersistenceService,
+            expressionEvaluator,
+            cacheEnabled,
+            cacheTtlSeconds,
+            true
+        );
+    }
+
+    public DefaultRulesEngine(
+            BusinessRuleRepository ruleRepository,
+            RulesEngineAuditPersistenceService auditPersistenceService,
+            ExpressionEvaluator expressionEvaluator,
+            boolean cacheEnabled,
+            int cacheTtlSeconds,
+            boolean auditPersistenceEnabled) {
         this.ruleRepository = ruleRepository;
         this.auditPersistenceService = auditPersistenceService;
         this.expressionEvaluator = expressionEvaluator;
         this.cacheEnabled = cacheEnabled;
         this.cacheTtlSeconds = cacheTtlSeconds;
+        this.auditPersistenceEnabled = auditPersistenceEnabled;
         
         log.debug("DefaultRulesEngine initialized with caching: enabled={}, ttl={}s", 
             cacheEnabled, cacheTtlSeconds);
@@ -146,7 +166,9 @@ public class DefaultRulesEngine implements RulesEngine {
                 violation.setExecutionId(execLog.getExecutionId());
 
                 // Save violation (best-effort, isolated transaction)
-                auditPersistenceService.saveViolationBestEffort(violation);
+                if (auditPersistenceEnabled) {
+                    auditPersistenceService.saveViolationBestEffort(violation);
+                }
                 
                 // Convert to domain violation for result
                 RuleViolation domainViolation = toDomainViolation(violation);
@@ -356,6 +378,10 @@ public class DefaultRulesEngine implements RulesEngine {
     private RuleExecutionLogEntity logExecution(BusinessRuleEntity rule, RuleContext context, 
                                          ExecutionResult result, int violationCount, 
                                          long executionTime, String errorMessage) {
+        if (!auditPersistenceEnabled) {
+            return null;
+        }
+
         String entityType = context.get("entity_type", String.class);
         String entityId = context.get("entity_id", String.class);
         

@@ -11,6 +11,7 @@ import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -62,5 +63,33 @@ public class RuleExecutionService {
             logs,
             stats
         );
+    }
+
+    /**
+     * Pre-load exemptions for a batch of exposures so per-rule/per-exposure checks do not hit the DB.
+     */
+    public void preloadExemptionsForBatch(List<ExposureRecord> exposures) {
+        if (exposures == null || exposures.isEmpty()) {
+            return;
+        }
+
+        List<String> exposureIds = exposures.stream()
+            .map(ExposureRecord::exposureId)
+            .filter(id -> id != null && !id.isBlank())
+            .distinct()
+            .toList();
+
+        if (exposureIds.isEmpty()) {
+            return;
+        }
+
+        ruleExecutionPort.preloadExemptionsForBatch("EXPOSURE", exposureIds, LocalDate.now());
+    }
+
+    /**
+     * Clear any batch-scoped exemption caches after validation completes.
+     */
+    public void clearExemptionCache() {
+        ruleExecutionPort.clearExemptionCache();
     }
 }

@@ -131,6 +131,14 @@ public class DataQualityProperties {
          * Currently not implemented - rules execute sequentially.
          */
         private boolean parallelExecution = false;
+
+        /**
+         * Enable/disable best-effort audit persistence inside the rules engine during rule execution.
+         *
+         * <p>When running batch validation that persists results afterward (recommended), set this to false
+         * to avoid per-rule/per-exposure database writes and REQUIRES_NEW transactions.</p>
+         */
+        private boolean auditPersistenceEnabled = false;
         
         /**
          * Logging configuration for Rules Engine.

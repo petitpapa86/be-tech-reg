@@ -11,6 +11,7 @@ import com.bcbs239.regtech.riskcalculation.domain.exposure.CalculationResultsDes
 import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRepository;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.ExposureId;
 import com.bcbs239.regtech.riskcalculation.infrastructure.database.mappers.ExposureMapper;
+import com.bcbs239.regtech.riskcalculation.infrastructure.database.repository.ExposureJdbcBatchInserter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -39,15 +40,29 @@ public class JpaExposureRepository implements ExposureRepository {
     private final SpringDataExposureRepository springDataRepository;
     private final ExposureMapper mapper;
     private final ObjectMapper objectMapper;
+    private final ExposureJdbcBatchInserter jdbcBatchInserter;
     
     public JpaExposureRepository(
         SpringDataExposureRepository springDataRepository,
         ExposureMapper mapper,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        ExposureJdbcBatchInserter jdbcBatchInserter
     ) {
         this.springDataRepository = springDataRepository;
         this.mapper = mapper;
         this.objectMapper = objectMapper;
+        this.jdbcBatchInserter = jdbcBatchInserter;
+    }
+
+    /**
+     * Batch insert exposures using JDBC for performance.
+     *
+     * <p><strong>Note:</strong> This is intentionally not part of the domain repository interface
+     * because the module is transitioning to file-first persistence.</p>
+     */
+    @Transactional
+    public void batchInsertExposures(String batchId, List<ExposureRecording> exposures) {
+        jdbcBatchInserter.batchInsertExposures(batchId, exposures, 1_000);
     }
     
 
@@ -136,7 +151,7 @@ public class JpaExposureRepository implements ExposureRepository {
             
         } catch (CalculationResultsDeserializationException e) {
             throw e;
-        } catch (Exception e) {
+        } catch (java.io.IOException | RuntimeException e) {
             log.error("Failed to load exposures from JSON", e);
             throw new CalculationResultsDeserializationException(
                 "Failed to parse JSON content: " + e.getMessage(),
