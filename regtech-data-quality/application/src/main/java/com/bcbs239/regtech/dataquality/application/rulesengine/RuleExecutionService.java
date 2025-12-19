@@ -7,7 +7,6 @@ import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
-
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;

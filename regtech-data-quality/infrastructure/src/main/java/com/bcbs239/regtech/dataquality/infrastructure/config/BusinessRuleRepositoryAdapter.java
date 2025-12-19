@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.dataquality.infrastructure.config;
 
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleParameterEntity;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;

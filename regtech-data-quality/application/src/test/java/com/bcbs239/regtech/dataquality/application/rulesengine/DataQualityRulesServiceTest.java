@@ -4,12 +4,7 @@ import com.bcbs239.regtech.dataquality.application.validation.ValidationExecutio
 import com.bcbs239.regtech.dataquality.application.validation.ValidationResults;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ExecutionResult;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.Severity;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,9 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("DataQualityRulesService")

@@ -1,22 +1,19 @@
 package com.bcbs239.regtech.dataquality.application.rulesengine;
 
+import com.bcbs239.regtech.dataquality.application.validation.ExposureRuleValidator;
+import com.bcbs239.regtech.dataquality.application.validation.ValidationResults;
+import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
-
-import org.springframework.transaction.annotation.Transactional;
-
-import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
-
-import com.bcbs239.regtech.dataquality.application.validation.ExposureRuleValidator;
-import com.bcbs239.regtech.dataquality.application.validation.ValidationResults;
-
-import lombok.extern.slf4j.Slf4j;
 
 /**
  * Service that implements ExposureRuleValidator for data quality validation.
@@ -40,7 +37,6 @@ public class DataQualityRulesService implements ExposureRuleValidator {
             RuleExecutionService ruleExecutionService) {
         this.ruleRepository = ruleRepository;
         this.violationRepository = violationRepository;
-       // this.executionLogRepository = executionLogRepository;
         this.ruleExecutionService = ruleExecutionService;
     }
 
@@ -112,19 +108,6 @@ public class DataQualityRulesService implements ExposureRuleValidator {
         return cachedRules;
     }
 
-    /**
-     * ✅ Invalidate cache when rules are modified
-     * Call this after adding/updating/deleting rules
-     */
-    public void invalidateRulesCache() {
-        synchronized (cacheLock) {
-            cachedRules = null;
-            log.info("🔄 Rules cache invalidated - will reload on next access");
-        }
-    }
-
-    // ... rest of existing methods unchanged ...
-
     @Transactional
     public void batchPersistValidationResults(String batchId, List<ValidationResults> allResults) {
         if (allResults == null || allResults.isEmpty()) {
@@ -136,31 +119,16 @@ public class DataQualityRulesService implements ExposureRuleValidator {
         log.info("⏱️ PERSISTENCE START: {} exposure results", allResults.size());
 
         List<RuleViolation> allViolations = new ArrayList<>();
-        //List<RuleExecutionLogDto> allExecutionLogs = new ArrayList<>();
 
         for (ValidationResults result : allResults) {
             if (result == null) continue;
             if (result.ruleViolations() != null) {
                 allViolations.addAll(result.ruleViolations());
             }
-//            if (result.executionLogs() != null) {
-//                allExecutionLogs.addAll(result.executionLogs());
-//            }
         }
 
         log.info("⏱️ COLLECTED: {} violations",
                 allViolations.size());
-
-        // Insert execution logs
-//        if (!allExecutionLogs.isEmpty()) {
-//            Instant logsStart = Instant.now();
-//            executionLogRepository.saveAllForBatch(batchId, allExecutionLogs);
-//            executionLogRepository.flush();
-//            long logsDuration = Duration.between(logsStart, Instant.now()).toMillis();
-//            log.info("⏱️ LOGS INSERTED: {}ms ({}/sec)",
-//                    logsDuration,
-//                    (allExecutionLogs.size() * 1000L) / Math.max(logsDuration, 1));
-//        }
 
         // Insert violations
         if (!allViolations.isEmpty()) {

@@ -91,7 +91,6 @@ public class QualityReportQueryHandler {
             return Result.success(exists);
             
         } catch (IllegalArgumentException e) {
-            logger.warn("Invalid query parameters: {}", e.getMessage());
             return Result.failure(ErrorDetail.of(
                 "INVALID_QUERY_PARAMETERS",
                 ErrorType.VALIDATION_ERROR,
@@ -99,8 +98,6 @@ public class QualityReportQueryHandler {
                 "query.validation.parameters"
             ));
         } catch (Exception e) {
-            logger.error("Failed to check quality report existence for batch {}: {}", 
-                query.batchId().value(), e.getMessage(), e);
             return Result.failure(ErrorDetail.of(
                 "QUERY_EXECUTION_FAILED",
                 ErrorType.SYSTEM_ERROR,

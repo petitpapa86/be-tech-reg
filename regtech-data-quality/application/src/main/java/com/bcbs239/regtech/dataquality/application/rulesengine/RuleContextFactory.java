@@ -3,15 +3,11 @@ package com.bcbs239.regtech.dataquality.application.rulesengine;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
-
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Factory for creating RuleContext from ExposureRecord.
- */
 @Component
 public class RuleContextFactory {
 

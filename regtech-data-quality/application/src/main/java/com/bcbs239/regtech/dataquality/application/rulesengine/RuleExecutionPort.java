@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.dataquality.application.rulesengine;
 
 import com.bcbs239.regtech.dataquality.application.validation.ValidationExecutionStats;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
+import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
 
 /**
  * Port for rule execution functionality.

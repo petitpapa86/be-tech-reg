@@ -2,7 +2,6 @@ package com.bcbs239.regtech.dataquality.infrastructure.observability;
 
 import com.bcbs239.regtech.dataquality.application.validation.ValidationExecutionStats;
 import com.bcbs239.regtech.dataquality.application.validation.ValidationResults;
-
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Pointcut;

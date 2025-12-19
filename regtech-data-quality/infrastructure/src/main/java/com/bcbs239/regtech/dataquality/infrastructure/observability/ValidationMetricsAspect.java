@@ -1,11 +1,8 @@
 package com.bcbs239.regtech.dataquality.infrastructure.observability;
 
-import com.bcbs239.regtech.dataquality.application.validation.ValidationExecutionStats;
-
 import io.micrometer.core.annotation.Timed;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;

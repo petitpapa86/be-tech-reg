@@ -1,27 +1,22 @@
 package com.bcbs239.regtech.dataquality.domain.report;
 
 
-import java.time.Instant;
-
 import com.bcbs239.regtech.core.domain.shared.Entity;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
-import com.bcbs239.regtech.dataquality.domain.report.events.QualityResultsRecordedEvent;
-import com.bcbs239.regtech.dataquality.domain.report.events.QualityScoresCalculatedEvent;
-import com.bcbs239.regtech.dataquality.domain.report.events.QualityValidationCompletedEvent;
-import com.bcbs239.regtech.dataquality.domain.report.events.QualityValidationFailedEvent;
-import com.bcbs239.regtech.dataquality.domain.report.events.QualityValidationStartedEvent;
+import com.bcbs239.regtech.dataquality.domain.report.events.*;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
-
 import lombok.Getter;
 import lombok.Setter;
+
+import java.time.Instant;
 
 /**
  * Quality Report aggregate root that manages the lifecycle of data quality validation

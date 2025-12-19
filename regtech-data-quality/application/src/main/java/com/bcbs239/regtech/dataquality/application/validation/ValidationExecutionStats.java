@@ -2,7 +2,6 @@ package com.bcbs239.regtech.dataquality.application.validation;
 
 import lombok.Getter;
 
-import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 

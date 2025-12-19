@@ -1,13 +1,5 @@
 package com.bcbs239.regtech.dataquality.infrastructure.config;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleExecutionService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
@@ -22,8 +14,14 @@ import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepositor
 import com.bcbs239.regtech.dataquality.rulesengine.domain.IRuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExemptionDto;
 import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
-
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
