@@ -1,52 +1,48 @@
-package com.bcbs239.regtech.dataquality.application.batch;
+package com.bcbs239.regtech.riskcalculation.application.batch;
 
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedInboundEvent;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommand;
-import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommandHandler;
-import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
-import com.bcbs239.regtech.dataquality.domain.shared.BankId;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.riskcalculation.application.calculation.CalculateRiskMetricsCommand;
+import com.bcbs239.regtech.riskcalculation.application.calculation.CalculateRiskMetricsCommandHandler;
+import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysisRepository;
+import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("riskCalculationProcessBatchCompletedUseCase")
 @RequiredArgsConstructor
 public class ProcessBatchCompletedUseCase {
-    private final ValidateBatchQualityCommandHandler handler;
-    private final IQualityReportRepository repository;
+    private final CalculateRiskMetricsCommandHandler handler;
+    private final PortfolioAnalysisRepository portfolioAnalysisRepository;
 
 
     public void process(BatchCompletedInboundEvent event) {
         if (!event.isValid()) return;
-        if (repository.existsByBatchId(new BatchId(event.getBatchId()))) return;
+        BatchId batchId = BatchId.of(event.getBatchId());
+        if (portfolioAnalysisRepository.findByBatchId(batchId.value()).isPresent()) {
+            return;
+        }
         handle(event);
     }
 
-    @Async("qualityEventExecutor")
+    @Async("riskCalculationTaskExecutor")
     private void handle(BatchCompletedInboundEvent event) {
-        handler.handle(createValidationCommand(event));
+        Result<CalculateRiskMetricsCommand> commandResult = createValidationCommand(event);
+        if (commandResult.isSuccess()){
+            handler.handle(commandResult.getValueOrThrow());
+        }
     }
 
-    private ValidateBatchQualityCommand createValidationCommand(BatchCompletedInboundEvent event) {
+    private Result<CalculateRiskMetricsCommand> createValidationCommand(BatchCompletedInboundEvent event) {
         String correlationId = event.getCorrelationId();
 
-        if (correlationId != null && !correlationId.isEmpty()) {
-            return ValidateBatchQualityCommand.withCorrelation(
-                    new BatchId(event.getBatchId()),
-                    new BankId(event.getBankId()),
-                    event.getS3Uri(),
-                    event.getTotalExposures(),
-                    correlationId
-            );
-        }
-
-        return ValidateBatchQualityCommand.of(
-                new BatchId(event.getBatchId()),
-                new BankId(event.getBankId()),
+        return CalculateRiskMetricsCommand.create(
+                event.getBatchId(),
+                event.getBankId(),
                 event.getS3Uri(),
-                event.getTotalExposures()
+                event.getTotalExposures(),
+                correlationId
         );
     }
 }

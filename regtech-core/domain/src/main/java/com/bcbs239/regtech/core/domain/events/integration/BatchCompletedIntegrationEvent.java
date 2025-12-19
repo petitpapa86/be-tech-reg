@@ -50,7 +50,15 @@ public class BatchCompletedIntegrationEvent extends IntegrationEvent {
     public String eventType() {
         return getEventType();
     }
-    
+
+    //verify event fields are correctly  set
+    public boolean isValid() {
+        return batchId != null && !batchId.isEmpty()
+            && bankId != null && !bankId.isEmpty()
+            && s3Uri != null && !s3Uri.isEmpty()
+            && totalExposures >= 0
+            && fileSizeBytes >= 0;
+    }
     @Override
     public String toString() {
         return String.format(

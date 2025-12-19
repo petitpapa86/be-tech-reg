@@ -32,7 +32,6 @@ import java.util.Map;
  * - Error handling with EventProcessingFailure repository
  * - Structured logging for monitoring
  */
-@Component("riskCalculationCompletedIntegrationEventListener")
 @RequiredArgsConstructor
 @Slf4j
 public class BatchCompletedIntegrationEventListener {
@@ -51,7 +50,7 @@ public class BatchCompletedIntegrationEventListener {
      *
      * @param event The batch ingested event from ingestion module
      */
-    @EventListener
+    //@EventListener
     public void handleBatchIngestedEvent(BatchCompletedIntegrationEvent event) {
         // Exactly-once: skip handling when the integration event is first published (outbox stage).
         // Process only when the inbox job replays it.
@@ -166,8 +165,8 @@ public class BatchCompletedIntegrationEventListener {
      * @param errorMessage The error message
      * @param exception    The exception (if any)
      */
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @Async("riskCalculationTaskExecutor")
+   // @Transactional(propagation = Propagation.REQUIRES_NEW)
+   // @Async("riskCalculationTaskExecutor")
     protected void handleEventProcessingError(BatchCompletedIntegrationEvent event, String errorMessage, Exception exception) {
         try {
             String eventPayload = objectMapper.writeValueAsString(event);

@@ -1,12 +1,16 @@
-package com.bcbs239.regtech.dataquality.presentation.batch;
+package com.bcbs239.regtech.core.domain.events.integration;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 
 import java.time.Instant;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+@Getter
 public class BatchCompletedInboundEvent extends DomainEvent {
     private static final String EVENT_VERSION = "1.0";
 

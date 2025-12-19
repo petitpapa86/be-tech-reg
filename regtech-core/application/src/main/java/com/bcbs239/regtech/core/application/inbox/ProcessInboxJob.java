@@ -76,15 +76,9 @@ public class ProcessInboxJob {
             try {
                 logger.info("Publishing replayed integration event: {} (eventId={})", event.getClass().getSimpleName(), event.getEventId());
 
-                // Important: do NOT publish under the same transaction as inbox state updates.
-                // If a downstream listener marks the transaction rollback-only (or throws), we can
-                // end up reprocessing the same inbox message repeatedly (and re-creating files).
                 ScopedValue.where(CorrelationContext.CORRELATION_ID, message.getCorrelationId())
                         .where(CorrelationContext.CAUSATION_ID, message.getCausationId())
-                        // This is an inbox replay: downstream handlers should PROCESS (exactly-once)
-                        // and upstream receivers should NOT persist back into the inbox.
-                        .where(CorrelationContext.OUTBOX_REPLAY, false)
-                        .where(CorrelationContext.INBOX_REPLAY, true)
+                        .where(CorrelationContext.OUTBOX_REPLAY, true)
                         .run(() -> dispatcher.publishEvent(event));
 
                 inboxMessageRepository.markAsProcessed(message.getId(), Instant.now());

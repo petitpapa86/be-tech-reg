@@ -40,10 +40,8 @@ public class BatchQualityCompletedEventPublisher {
             );
 
             ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
-                    // .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
                     //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
                     .where(CorrelationContext.OUTBOX_REPLAY, true)
-                    .where(CorrelationContext.INBOX_REPLAY, false)
                     .run(() -> {
                         eventBus.publish(integrationEvent);
                     });

@@ -105,6 +105,12 @@
 
         <dependency>
             <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-risk-calculation-presentation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.bcbs239</groupId>
             <artifactId>regtech-data-quality-domain</artifactId>
             <version>${project.version}</version>
         </dependency>

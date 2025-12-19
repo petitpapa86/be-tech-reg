@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.core.application.eventprocessing;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
-import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -19,9 +18,10 @@ public class CoreIntegrationEventDeserializer {
     }
 
     public Result<DomainEvent> deserialize(String typeName, String json) {
+        String modifiedTypeName = typeName.replace("IntegrationEvent", "InboundEvent");
         Class<?> eventClass;
         try {
-            eventClass = Class.forName(typeName);
+            eventClass = Class.forName(modifiedTypeName);
         } catch (ClassNotFoundException e) {
             return Result.failure(ErrorDetail.of(
                     "EVENT_CLASS_NOT_FOUND",
@@ -31,21 +31,21 @@ public class CoreIntegrationEventDeserializer {
             ));
         }
 
-        if (!IntegrationEvent.class.isAssignableFrom(eventClass)) {
+        if (!DomainEvent.class.isAssignableFrom(eventClass)) {
             return Result.failure(ErrorDetail.of(
                     "INVALID_EVENT_TYPE",
                     ErrorType.BUSINESS_RULE_ERROR,
-                    "Event class does not extend IntegrationEvent: " + typeName,
+                    "Event class does not extend DomainEvent: " + typeName,
                     "event.invalid.type"
             ));
         }
 
         try {
             @SuppressWarnings("unchecked")
-            Class<? extends IntegrationEvent> integrationEventClass =
-                    (Class<? extends IntegrationEvent>) eventClass;
+            Class<? extends DomainEvent> domainEventClass =
+                    (Class<? extends DomainEvent>) eventClass;
 
-            IntegrationEvent event = objectMapper.readValue(json, integrationEventClass);
+            DomainEvent event = objectMapper.readValue(json, domainEventClass);
             // IntegrationEvent IS a DomainEvent
             return Result.success(event);
 
@@ -59,4 +59,3 @@ public class CoreIntegrationEventDeserializer {
         }
     }
 }
-

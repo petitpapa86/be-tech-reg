@@ -1,8 +1,8 @@
-package com.bcbs239.regtech.dataquality.presentation.batch;
+package com.bcbs239.regtech.riskcalculation.presentation.batch;
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedInboundEvent;
-import com.bcbs239.regtech.dataquality.application.batch.ProcessBatchCompletedUseCase;
+import com.bcbs239.regtech.riskcalculation.application.batch.ProcessBatchCompletedUseCase;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 

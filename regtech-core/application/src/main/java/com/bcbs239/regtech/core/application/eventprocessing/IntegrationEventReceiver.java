@@ -23,7 +23,6 @@ public class IntegrationEventReceiver {
     }
 
     @EventListener
-    @Transactional
     public void onIntegrationEvent(IntegrationEvent event) {
         // Skip saving events that are being replayed from inbox to prevent loops
         boolean isInboxReplay = CorrelationContext.isInboxReplay();
