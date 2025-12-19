@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.dataquality.application.monitoring;
 
 import com.bcbs239.regtech.dataquality.application.reporting.QualityReportSummaryDto;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityTrendsData;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 
 import java.time.Instant;
@@ -40,6 +41,28 @@ public record QualityTrendsDto(
             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
             0.0,
             "STABLE"
+        );
+    }
+    
+    /**
+     * Creates a DTO from domain data.
+     */
+    public static QualityTrendsDto fromDomain(QualityTrendsData data, List<QualityReportSummaryDto> reports) {
+        return new QualityTrendsDto(
+            data.bankId().value(),
+            data.startTime(),
+            data.endTime(),
+            data.totalReports(),
+            reports,
+            data.averageOverallScore(),
+            data.averageCompletenessScore(),
+            data.averageAccuracyScore(),
+            data.averageConsistencyScore(),
+            data.averageTimelinessScore(),
+            data.averageUniquenessScore(),
+            data.averageValidityScore(),
+            data.complianceRate(),
+            data.trendDirection()
         );
     }
     

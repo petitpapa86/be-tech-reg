@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.dataquality.application.monitoring;
+package com.bcbs239.regtech.dataquality.infrastructure.observability.health;
 
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
 import org.springframework.boot.health.contributor.Health;
