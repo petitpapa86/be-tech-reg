@@ -4,6 +4,7 @@ import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesS
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleExecutionService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
+import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExemptionEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineBatchLinkContext;
@@ -16,6 +17,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -250,23 +252,47 @@ public class RulesEngineConfiguration {
                     return java.util.List.of();
                 }
 
-                return exemptionRepository.findAllActiveExemptionsForBatch(entityType, entityIds, currentDate)
-                    .stream()
-                    .map(e -> new RuleExemptionDto(
-                        e.getExemptionId(),
-                        e.getRule() != null ? e.getRule().getRuleId() : null,
-                        e.getEntityType(),
-                        e.getEntityId(),
-                        e.getExemptionReason(),
-                        e.getExemptionType(),
-                        e.getApprovedBy(),
-                        e.getApprovalDate(),
-                        e.getEffectiveDate(),
-                        e.getExpirationDate(),
-                        e.getConditions(),
-                        e.getCreatedAt()
-                    ))
-                    .toList();
+                int chunkSize = 10_000;
+                List<RuleExemptionDto> allExemptions = new ArrayList<>();
+
+                log.info("⏱️ Loading exemptions for {} entity IDs in chunks of {}",
+                        entityIds.size(), chunkSize);
+
+                for (int i = 0; i < entityIds.size(); i += chunkSize) {
+                    int end = Math.min(i + chunkSize, entityIds.size());
+                    List<String> chunk = entityIds.subList(i, end);
+
+                    log.debug("Loading chunk {}-{}", i, end);
+
+                    List<RuleExemptionEntity> chunkResults = exemptionRepository.findAllActiveExemptionsForBatch(
+                            entityType,
+                            chunk,
+                            currentDate
+                    );
+
+                    List<RuleExemptionDto> chunkDtos = chunkResults.stream()
+                            .map(e -> new RuleExemptionDto(
+                                e.getExemptionId(),
+                                e.getRule() != null ? e.getRule().getRuleId() : null,
+                                e.getEntityType(),
+                                e.getEntityId(),
+                                e.getExemptionReason(),
+                                e.getExemptionType(),
+                                e.getApprovedBy(),
+                                e.getApprovalDate(),
+                                e.getEffectiveDate(),
+                                e.getExpirationDate(),
+                                e.getConditions(),
+                                e.getCreatedAt()
+                            ))
+                            .toList();
+
+                    allExemptions.addAll(chunkDtos);
+                }
+
+                log.info("⏱️ Loaded {} total exemptions", allExemptions.size());
+
+                return allExemptions;
             }
         };
     }
