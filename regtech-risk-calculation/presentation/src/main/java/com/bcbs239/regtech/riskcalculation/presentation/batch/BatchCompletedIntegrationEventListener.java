@@ -6,7 +6,7 @@ import com.bcbs239.regtech.riskcalculation.application.batch.ProcessBatchComplet
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-@Component("dataQualityBatchCompletedIntegrationEventListener")
+@Component("riskCalculationBatchCompletedIntegrationEventListener")
 public class BatchCompletedIntegrationEventListener {
     private final ProcessBatchCompletedUseCase useCase;
 

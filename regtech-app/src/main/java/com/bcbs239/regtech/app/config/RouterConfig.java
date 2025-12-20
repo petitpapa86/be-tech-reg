@@ -21,7 +21,7 @@ public class RouterConfig {
      * Spring will automatically inject all RouterFunction<ServerResponse> beans
      * defined across all modules, including those returned by IEndpoint.mapEndpoint().
      */
-    @Bean
+    @Bean(name = "routerFunction")
     public RouterFunction<ServerResponse> combinedRoutes(
             List<RouterFunction<ServerResponse>> allRoutes) {
         // Filter out null routes and check if any remain
