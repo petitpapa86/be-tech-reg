@@ -14,8 +14,8 @@ import lombok.Setter;
 public abstract class IntegrationEvent extends DomainEvent {
 
 
-    protected IntegrationEvent(String correlationId, Maybe<String> causationId, String eventType) {
-        super(correlationId, causationId, eventType);
+    protected IntegrationEvent(String correlationId) {
+        super(correlationId);
     }
 }
 

@@ -35,8 +35,9 @@ public class BatchCompletedIntegrationEvent extends IntegrationEvent {
             @JsonProperty("s3Uri") String s3Uri,
             @JsonProperty("totalExposures") int totalExposures,
             @JsonProperty("fileSizeBytes") long fileSizeBytes,
-            @JsonProperty("completedAt") Instant completedAt) {
-        super(batchId, Maybe.none(), "BatchCompletedIntegrationEvent");
+            @JsonProperty("completedAt") Instant completedAt,
+            @JsonProperty("correlationId") String correlationId) {
+        super(correlationId);
         this.batchId = batchId;
         this.bankId = bankId;
         this.s3Uri = s3Uri;

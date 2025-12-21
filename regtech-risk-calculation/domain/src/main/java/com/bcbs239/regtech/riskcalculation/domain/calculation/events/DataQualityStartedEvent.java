@@ -12,7 +12,7 @@ import java.time.Instant;
  * This event marks the beginning of the calculation process.
  */
 @Getter
-public class BatchCalculationStartedEvent extends DomainEvent {
+public class DataQualityStartedEvent extends DomainEvent {
     
     private final String batchId;
     private final String bankId;
@@ -20,7 +20,7 @@ public class BatchCalculationStartedEvent extends DomainEvent {
     private final Instant startedAt;
     
     @JsonCreator
-    public BatchCalculationStartedEvent(
+    public DataQualityStartedEvent(
             @JsonProperty("batchId") String batchId,
             @JsonProperty("bankId") String bankId,
             @JsonProperty("totalExposures") int totalExposures,

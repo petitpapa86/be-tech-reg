@@ -40,4 +40,7 @@ public interface SpringDataGeneratedReportRepository extends JpaRepository<Gener
      * @return true if a report exists with the given status, false otherwise
      */
     boolean existsByBatchIdAndStatus(String batchId, ReportStatus status);
+
+    boolean existsByDataQualityEventId(String qualityEventId);
+    boolean existsByRiskCalculationEventId(String riskCalculationEventId);
 }

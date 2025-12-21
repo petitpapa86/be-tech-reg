@@ -1,10 +1,10 @@
-package com.bcbs239.regtech.dataquality.application.integration;
+package com.bcbs239.regtech.dataquality.infrastructure.messaging.outbound;
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
-import com.bcbs239.regtech.core.domain.events.integration.BatchQualityCompletedIntegrationEvent;
 import com.bcbs239.regtech.core.domain.events.integration.DataQualityCompletedIntegrationEvent;
 import com.bcbs239.regtech.dataquality.domain.report.events.QualityValidationCompletedEvent;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,16 +12,12 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Component("dataQualityBatchQualityCompletedEventPublisher")
+@RequiredArgsConstructor
 public class BatchQualityCompletedEventPublisher {
 
     private static final Logger logger = LoggerFactory.getLogger(BatchQualityCompletedEventPublisher.class);
 
     private final IIntegrationEventBus eventBus;
-
-    @Autowired
-    public BatchQualityCompletedEventPublisher(IIntegrationEventBus eventBus) {
-        this.eventBus = eventBus;
-    }
 
     @EventListener
     public void handle(QualityValidationCompletedEvent event) {
@@ -41,11 +37,8 @@ public class BatchQualityCompletedEventPublisher {
             );
 
             ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
-                    //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
                     .where(CorrelationContext.OUTBOX_REPLAY, true)
-                    .run(() -> {
-                        eventBus.publish(integrationEvent);
-                    });
+                    .run(() -> eventBus.publish(integrationEvent));
 
             logger.info("Published BatchQualityCompletedIntegrationEvent for batch {}", event.getBatchId().value());
 

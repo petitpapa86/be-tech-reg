@@ -38,7 +38,7 @@ public class BatchCompletedEventPublisher {
      *
      * @param event The domain event from the ingestion batch aggregate
      */
-    @EventListener//(phase = TransactionPhase.BEFORE_COMMIT)
+    @EventListener
     public void handleBatchCompletedEvent(BatchCompletedEvent event) {
         // Skip if this is an outbox replay to avoid duplicate publishing
         if (CorrelationContext.isOutboxReplay()) {
@@ -54,14 +54,12 @@ public class BatchCompletedEventPublisher {
                     event.s3Reference().uri(),
                     event.totalExposures(),
                     event.fileSizeBytes(),
-                    event.completedAt()
+                    event.completedAt(),
+                    event.getCorrelationId()
             );
             integrationEvent.setCausationId(Maybe.some(event.getCorrelationId()));
 
-            // Publish to other bounded contexts
             ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
-                    .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
-                    //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
                     .where(CorrelationContext.OUTBOX_REPLAY, true)
                     .where(CorrelationContext.INBOX_REPLAY, false)
                     .run(() -> {

@@ -3,16 +3,11 @@ package com.bcbs239.regtech.riskcalculation.application.integration;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCalculationCompletedIntegrationEvent;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationCompletedEvent;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.events.DataQualityCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.event.TransactionPhase;
-import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component("riskCalculationBatchCalculationCompletedEventPublisher")
 public class BatchCalculationCompletedEventPublisher {
@@ -26,7 +21,7 @@ public class BatchCalculationCompletedEventPublisher {
     }
 
     @EventListener
-    public void handle(BatchCalculationCompletedEvent event) {
+    public void handle(DataQualityCompletedEvent event) {
         if (CorrelationContext.isOutboxReplay()) {
             logger.debug("Skipping integration publish for BatchCalculationCompletedEvent {} because this is an outbox replay", event.getEventId());
             return;

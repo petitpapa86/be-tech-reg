@@ -114,4 +114,27 @@ public class JpaGeneratedReportRepository implements IGeneratedReportRepository 
             return false;
         }
     }
+
+    @Override
+    public boolean existsByDataQualityEventId(String dataQualityEventId) {
+        try {
+            return springDataRepository.existsByDataQualityEventId(dataQualityEventId);
+
+        } catch (Exception e) {
+            log.error("Error checking if generated report exists by data quality event ID: dataQualityEventId={}",
+                    dataQualityEventId, e);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean existsByRiskCalculationEventId(String riskCalculationEventId) {
+        try {
+            return springDataRepository.existsByRiskCalculationEventId(riskCalculationEventId);
+        } catch (Exception e) {
+            log.error("Error checking if generated report exists by risk calculation event ID: riskCalculationEventId={}",
+                    riskCalculationEventId, e);
+            return false;
+        }
+    }
 }

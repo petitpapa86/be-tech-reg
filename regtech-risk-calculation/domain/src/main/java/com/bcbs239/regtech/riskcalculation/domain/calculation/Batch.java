@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.riskcalculation.domain.calculation;
 
 import com.bcbs239.regtech.core.domain.shared.Entity;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationCompletedEvent;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationFailedEvent;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.events.BatchCalculationStartedEvent;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.events.DataQualityCompletedEvent;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.events.DataQualityFailedEvent;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.events.DataQualityStartedEvent;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
@@ -73,7 +73,7 @@ public class Batch extends Entity {
         batch.timestamps = ProcessingTimestamps.started(Instant.now());
 
         // Raise domain event
-        batch.addDomainEvent(new BatchCalculationStartedEvent(
+        batch.addDomainEvent(new DataQualityStartedEvent(
                 batchId,
                 bankInfo.abiCode(),
                 totalExposures,
@@ -108,7 +108,7 @@ public class Batch extends Entity {
         this.timestamps = this.timestamps.withCompleted(Instant.now());
 
         // Raise domain event
-        this.addDomainEvent(new BatchCalculationCompletedEvent(
+        this.addDomainEvent(new DataQualityCompletedEvent(
                 this.id.value(),
                 this.bankInfo.abiCode(),
                 processedExposures,
@@ -141,7 +141,7 @@ public class Batch extends Entity {
         this.timestamps = this.timestamps.withFailed(Instant.now());
 
         // Raise domain event
-        this.addDomainEvent(new BatchCalculationFailedEvent(
+        this.addDomainEvent(new DataQualityFailedEvent(
                 this.id.value(),
                 this.bankInfo.abiCode(),
                 reason,

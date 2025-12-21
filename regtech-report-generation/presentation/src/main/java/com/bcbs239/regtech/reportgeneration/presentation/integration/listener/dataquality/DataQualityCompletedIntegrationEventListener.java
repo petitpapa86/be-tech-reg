@@ -1,23 +1,24 @@
-package com.bcbs239.regtech.dataquality.presentation.integration;
+package com.bcbs239.regtech.reportgeneration.presentation.integration.listener.dataquality;
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedInboundEvent;
-import com.bcbs239.regtech.dataquality.application.batch.ProcessBatchCompletedUseCase;
+import com.bcbs239.regtech.core.domain.events.integration.DataQualityCompletedInboundEvent;
+import com.bcbs239.regtech.reportgeneration.application.ingestionbatch.ProcessDataQualityCompletedUseCase;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Component("dataQualityBatchCompletedIntegrationEventListener")
-public class BatchCompletedIntegrationEventListener {
-    private final ProcessBatchCompletedUseCase useCase;
+public class DataQualityCompletedIntegrationEventListener {
+    private final ProcessDataQualityCompletedUseCase useCase;
 
-    public BatchCompletedIntegrationEventListener(
-            ProcessBatchCompletedUseCase useCase
+    public DataQualityCompletedIntegrationEventListener(
+            ProcessDataQualityCompletedUseCase useCase
     ) {
         this.useCase = useCase;
     }
 
     @EventListener
-    public void on(BatchCompletedInboundEvent event) {
+    public void on(DataQualityCompletedInboundEvent event) {
         if (CorrelationContext.isInboxReplay()) {
             return;
         }

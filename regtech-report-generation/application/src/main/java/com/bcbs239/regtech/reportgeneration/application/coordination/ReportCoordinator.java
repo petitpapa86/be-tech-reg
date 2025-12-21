@@ -3,6 +3,8 @@ package com.bcbs239.regtech.reportgeneration.application.coordination;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * Application service that coordinates the arrival of dual events (calculation and quality)
  * and triggers comprehensive report generation when both are present.
@@ -34,7 +36,7 @@ public class ReportCoordinator {
      * Handles the arrival of a calculation completed event.
      * Marks the event as received and checks if both events are now present.
      * If both events are present, triggers comprehensive report generation.
-     * 
+     *
      * @param eventData the calculation event data
      */
     public void handleCalculationCompleted(CalculationEventData eventData) {
@@ -47,20 +49,14 @@ public class ReportCoordinator {
         
         // Check if both events are now present
         if (eventTracker.areBothComplete(batchId)) {
-            log.info("Both events present for batch: {}. Triggering comprehensive report generation", batchId);
-            
+
             BatchEventTracker.BatchEvents events = eventTracker.getBothEvents(batchId);
             
             // Trigger asynchronous report generation
             reportOrchestrator.generateComprehensiveReport(
                 events.getRiskEventData(),
                 events.getQualityEventData()
-            ).exceptionally(throwable -> {
-                log.error("Comprehensive report generation failed for batch: {}", batchId, throwable);
-                return null;
-            });
-        } else {
-            log.info("Waiting for quality event for batch: {}", batchId);
+            );
         }
     }
     
@@ -68,7 +64,7 @@ public class ReportCoordinator {
      * Handles the arrival of a quality completed event.
      * Marks the event as received and checks if both events are now present.
      * If both events are present, triggers comprehensive report generation.
-     * 
+     *
      * @param eventData the quality event data
      */
     public void handleQualityCompleted(QualityEventData eventData) {
@@ -86,15 +82,12 @@ public class ReportCoordinator {
             BatchEventTracker.BatchEvents events = eventTracker.getBothEvents(batchId);
             
             // Trigger asynchronous report generation
-            reportOrchestrator.generateComprehensiveReport(
+            return reportOrchestrator.generateComprehensiveReport(
                 events.getRiskEventData(),
                 events.getQualityEventData()
-            ).exceptionally(throwable -> {
-                log.error("Comprehensive report generation failed for batch: {}", batchId, throwable);
-                return null;
-            });
+            );
         } else {
-            log.info("Waiting for calculation event for batch: {}", batchId);
+           return CompletableFuture.completedFuture(null);
         }
     }
     

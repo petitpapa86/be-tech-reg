@@ -1,52 +1,102 @@
-package com.bcbs239.regtech.dataquality.application.batch;
+package com.bcbs239.regtech.reportgeneration.application.ingestionbatch;
 
+import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
+import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedInboundEvent;
-import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommand;
-import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommandHandler;
-import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
-import com.bcbs239.regtech.dataquality.domain.shared.BankId;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+
+import com.bcbs239.regtech.core.domain.events.integration.DataQualityCompletedInboundEvent;
+import com.bcbs239.regtech.reportgeneration.application.coordination.QualityEventData;
+import com.bcbs239.regtech.reportgeneration.application.coordination.ReportCoordinator;
+import com.bcbs239.regtech.reportgeneration.domain.generation.IGeneratedReportRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
-@Component("dataQualityProcessBatchCompletedUseCase")
+import java.math.BigDecimal;
+import java.util.Map;
+
+
+@Component("ProcessDataQualityCompletedUseCase")
 @RequiredArgsConstructor
-public class ProcessBatchCompletedUseCase {
-    private final ValidateBatchQualityCommandHandler handler;
-    private final IQualityReportRepository repository;
+public class ProcessDataQualityCompletedUseCase {
+    private final ReportCoordinator reportCoordinator;
+    private final IGeneratedReportRepository reportRepository;
+    private final ObjectMapper objectMapper;
+    private final IEventProcessingFailureRepository failureRepository;
 
+    public void process(DataQualityCompletedInboundEvent event)  {
+        String batchId = event.getBatchId();
+        try {
+            if (!event.isValid()) {
+                return;
+            }
 
-    public void process(BatchCompletedInboundEvent event) {
-        if (!event.isValid()) return;
-        if (repository.existsByBatchId(new BatchId(event.getBatchId()))) return;
-        handle(event);
+            if (!reportRepository.existsByDataQualityEventId("QUALITY_" + batchId)) {
+                return;
+            }
+
+            handle(event);
+
+        } catch (Exception e) {
+
+            handleEventProcessingError(event, e);
+        }
     }
 
     @Async("qualityEventExecutor")
-    private void handle(BatchCompletedInboundEvent event) {
-        handler.handle(createValidationCommand(event));
+    private void handle(DataQualityCompletedInboundEvent event) {
+        QualityEventData qualityEventData = new QualityEventData(
+                event.getBatchId(),
+                event.getBankId(),
+                event.getS3ReferenceUri(),
+                BigDecimal.valueOf(event.getOverallScore()),
+                event.getQualityGrade(),
+                event.getCompletedAt()
+        );
+        reportCoordinator.handleQualityCompleted(qualityEventData);
+
     }
 
-    private ValidateBatchQualityCommand createValidationCommand(BatchCompletedInboundEvent event) {
-        String correlationId = event.getCorrelationId();
+    private void handleEventProcessingError(DataQualityCompletedInboundEvent event, Exception error)  {
 
-        if (correlationId != null && !correlationId.isEmpty()) {
-            return ValidateBatchQualityCommand.withCorrelation(
-                    new BatchId(event.getBatchId()),
-                    new BankId(event.getBankId()),
-                    event.getS3Uri(),
-                    event.getTotalExposures(),
-                    correlationId
-            );
+        String eventPayload ;
+        try {
+            eventPayload = objectMapper.writeValueAsString(event);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
         }
 
-        return ValidateBatchQualityCommand.of(
-                new BatchId(event.getBatchId()),
-                new BankId(event.getBankId()),
-                event.getS3Uri(),
-                event.getTotalExposures()
+        Map<String, String> metadata = Map.of(
+                "batchId", event.getBatchId(),
+                "eventType", event.getClass().getName(),
+                "errorType", error.getClass().getSimpleName()
         );
+
+        EventProcessingFailure failure = EventProcessingFailure.create(
+                event.getClass().getName(),
+                eventPayload,
+                error.getMessage() != null ? error.getMessage() : error.getClass().getName(),
+                getStackTraceAsString(error),
+                metadata,
+                3
+        );
+
+        failureRepository.save(failure);
+    }
+
+    private String getStackTraceAsString(Throwable e) {
+        if (e == null) return "";
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(e.getClass().getName()).append(": ").append(e.getMessage()).append("\n");
+
+        for (StackTraceElement element : e.getStackTrace()) {
+            sb.append("\tat ").append(element.toString()).append("\n");
+        }
+
+        return sb.toString();
     }
 }

@@ -10,14 +10,14 @@ import java.time.Instant;
  * Domain event indicating that a batch calculation has failed.
  * Raised by the Batch aggregate when calculation fails.
  */
-public class BatchCalculationFailedEvent extends DomainEvent {
+public class DataQualityFailedEvent extends DomainEvent {
     private final String batchId;
     private final String bankId;
     private final String reason;
     private final Instant failedAt;
 
     @JsonCreator
-    public BatchCalculationFailedEvent(
+    public DataQualityFailedEvent(
             @JsonProperty("batchId") String batchId,
             @JsonProperty("bankId") String bankId,
             @JsonProperty("reason") String reason,

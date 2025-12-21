@@ -91,6 +91,9 @@ public class GeneratedReportEntity {
     @Column(name = "version", nullable = false)
     private Long version = 0L;
 
+    private String dataQualityEventId;
+    private String riskCalculationEventId;
+
     /**
      * Convert domain aggregate to JPA entity
      * 

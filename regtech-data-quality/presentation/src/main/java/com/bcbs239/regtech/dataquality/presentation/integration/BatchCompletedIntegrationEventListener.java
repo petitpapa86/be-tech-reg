@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.dataquality.presentation.batch;
+package com.bcbs239.regtech.dataquality.presentation.integration;
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedInboundEvent;

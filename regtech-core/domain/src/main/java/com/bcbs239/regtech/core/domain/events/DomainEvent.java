@@ -21,19 +21,10 @@ public abstract class DomainEvent {
     private final Instant timestamp = Instant.now();
     protected String eventType;
 
-    protected DomainEvent(String correlationId, Maybe<String> causationId, String eventType) {
+    protected DomainEvent(String correlationId) {
         this.correlationId = correlationId;
-        this.causationId = causationId;
-        this.eventType = eventType;
     }
 
-    /**
-     * Constructor for domain events that start a correlation chain.
-     * CausationId defaults to none since these events are not caused by other events.
-     */
-    protected DomainEvent(String correlationId, String eventType) {
-        this(correlationId, Maybe.none(), eventType);
-    }
 
     public abstract String eventType();
 }

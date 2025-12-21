@@ -13,7 +13,7 @@ import java.time.Instant;
  * Raised by the Batch aggregate when calculation completes.
  */
 @Getter
-public class BatchCalculationCompletedEvent extends DomainEvent {
+public class DataQualityCompletedEvent extends DomainEvent {
     private final String batchId;
     private final String bankId;
     private final int processedExposures;
@@ -22,7 +22,7 @@ public class BatchCalculationCompletedEvent extends DomainEvent {
     private final BigDecimal TotalAmountEur;
 
     @JsonCreator
-    public BatchCalculationCompletedEvent(
+    public DataQualityCompletedEvent(
             @JsonProperty("batchId") String batchId,
             @JsonProperty("bankId") String bankId,
             @JsonProperty("processedExposures") int processedExposures,

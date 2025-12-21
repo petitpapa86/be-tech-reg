@@ -17,9 +17,8 @@ public interface IComprehensiveReportOrchestrator {
      * 
      * @param riskEventData the risk calculation event data
      * @param qualityEventData the quality validation event data
-     * @return CompletableFuture that completes when report generation finishes
      */
-    CompletableFuture<Void> generateComprehensiveReport(
+    void generateComprehensiveReport(
         CalculationEventData riskEventData,
         QualityEventData qualityEventData
     );
