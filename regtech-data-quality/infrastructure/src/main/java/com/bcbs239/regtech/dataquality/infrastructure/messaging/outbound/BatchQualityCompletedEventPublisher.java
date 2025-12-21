@@ -3,6 +3,7 @@ package com.bcbs239.regtech.dataquality.application.integration;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BatchQualityCompletedIntegrationEvent;
+import com.bcbs239.regtech.core.domain.events.integration.DataQualityCompletedIntegrationEvent;
 import com.bcbs239.regtech.dataquality.domain.report.events.QualityValidationCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +32,7 @@ public class BatchQualityCompletedEventPublisher {
         try {
             logger.info("Converting and publishing BatchQualityCompletedIntegrationEvent for batch {}", event.getBatchId().value());
 
-            BatchQualityCompletedIntegrationEvent integrationEvent = new BatchQualityCompletedIntegrationEvent(
+            DataQualityCompletedIntegrationEvent integrationEvent = new DataQualityCompletedIntegrationEvent(
                     event.getBatchId().value(),
                     event.getBankId().value(),
                     event.getDetailsReference().uri(),
