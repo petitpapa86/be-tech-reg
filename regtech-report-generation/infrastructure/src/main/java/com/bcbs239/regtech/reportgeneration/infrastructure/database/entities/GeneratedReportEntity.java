@@ -91,7 +91,10 @@ public class GeneratedReportEntity {
     @Column(name = "version", nullable = false)
     private Long version = 0L;
 
+    @Column(name = "data_quality_event_id", length = 255)
     private String dataQualityEventId;
+
+    @Column(name = "risk_calculation_event_id", length = 255)
     private String riskCalculationEventId;
 
     /**
