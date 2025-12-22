@@ -34,7 +34,7 @@ public class ProcessRiskCalculationCompletedUseCase {
                 return;
             }
 
-            if (!reportRepository.existsByRiskCalculationEventId("CALCULATION_" + batchId)) {
+            if (reportRepository.existsByRiskCalculationEventId("CALCULATION_" + batchId)) {
                 return;
             }
 
