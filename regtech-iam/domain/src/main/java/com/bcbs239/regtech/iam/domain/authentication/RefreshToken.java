@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.iam.domain.authentication;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.shared.*;
 import com.bcbs239.regtech.iam.domain.authentication.events.RefreshTokenCreatedEvent;
 import com.bcbs239.regtech.iam.domain.authentication.events.RefreshTokenRevokedEvent;
@@ -26,14 +27,14 @@ public class RefreshToken extends Entity {
     private Maybe<Instant> revokedAt;
 
     private RefreshToken(
-        RefreshTokenId id,
-        UserId userId,
-        String tokenHash,
-        String tokenValue,
-        Instant expiresAt,
-        Instant createdAt,
-        boolean revoked,
-        Maybe<Instant> revokedAt
+            RefreshTokenId id,
+            UserId userId,
+            String tokenHash,
+            String tokenValue,
+            Instant expiresAt,
+            Instant createdAt,
+            boolean revoked,
+            Maybe<Instant> revokedAt
     ) {
         this.id = id;
         this.userId = userId;
@@ -49,45 +50,45 @@ public class RefreshToken extends Entity {
      * Factory method to create a new refresh token
      */
     public static Result<RefreshToken> create(
-        UserId userId,
-        String tokenValue,
-        String tokenHash,
-        Duration expiration
+            UserId userId,
+            String tokenValue,
+            String tokenHash,
+            Duration expiration
     ) {
         // Validation
         if (userId == null) {
             return Result.failure(ErrorDetail.of(
-                "USER_ID_REQUIRED",
-                ErrorType.VALIDATION_ERROR,
-                "User ID is required",
-                "refresh_token.user_id.required"
+                    "USER_ID_REQUIRED",
+                    ErrorType.VALIDATION_ERROR,
+                    "User ID is required",
+                    "refresh_token.user_id.required"
             ));
         }
 
         if (tokenValue == null || tokenValue.isBlank()) {
             return Result.failure(ErrorDetail.of(
-                "TOKEN_VALUE_REQUIRED",
-                ErrorType.VALIDATION_ERROR,
-                "Token value is required",
-                "refresh_token.value.required"
+                    "TOKEN_VALUE_REQUIRED",
+                    ErrorType.VALIDATION_ERROR,
+                    "Token value is required",
+                    "refresh_token.value.required"
             ));
         }
 
         if (tokenHash == null || tokenHash.isBlank()) {
             return Result.failure(ErrorDetail.of(
-                "TOKEN_HASH_REQUIRED",
-                ErrorType.VALIDATION_ERROR,
-                "Token hash is required",
-                "refresh_token.hash.required"
+                    "TOKEN_HASH_REQUIRED",
+                    ErrorType.VALIDATION_ERROR,
+                    "Token hash is required",
+                    "refresh_token.hash.required"
             ));
         }
 
         if (expiration == null || expiration.isNegative() || expiration.isZero()) {
             return Result.failure(ErrorDetail.of(
-                "INVALID_EXPIRATION",
-                ErrorType.VALIDATION_ERROR,
-                "Expiration must be positive",
-                "refresh_token.expiration.invalid"
+                    "INVALID_EXPIRATION",
+                    ErrorType.VALIDATION_ERROR,
+                    "Expiration must be positive",
+                    "refresh_token.expiration.invalid"
             ));
         }
 
@@ -96,21 +97,21 @@ public class RefreshToken extends Entity {
         Instant expiresAt = now.plus(expiration);
 
         RefreshToken refreshToken = new RefreshToken(
-            id,
-            userId,
-            tokenHash,
-            tokenValue,
-            expiresAt,
-            now,
-            false,
-            Maybe.none()
+                id,
+                userId,
+                tokenHash,
+                tokenValue,
+                expiresAt,
+                now,
+                false,
+                Maybe.none()
         );
 
         // Raise domain event
         refreshToken.addDomainEvent(new RefreshTokenCreatedEvent(
-            id,
-            userId,
-            expiresAt
+                id,
+                userId,
+                expiresAt
         ));
 
         return Result.success(refreshToken);
@@ -120,23 +121,23 @@ public class RefreshToken extends Entity {
      * Factory method for persistence layer reconstruction
      */
     public static RefreshToken createFromPersistence(
-        RefreshTokenId id,
-        UserId userId,
-        String tokenHash,
-        Instant expiresAt,
-        Instant createdAt,
-        boolean revoked,
-        Maybe<Instant> revokedAt
+            RefreshTokenId id,
+            UserId userId,
+            String tokenHash,
+            Instant expiresAt,
+            Instant createdAt,
+            boolean revoked,
+            Maybe<Instant> revokedAt
     ) {
         return new RefreshToken(
-            id,
-            userId,
-            tokenHash,
-            null, // Token value not available from persistence
-            expiresAt,
-            createdAt,
-            revoked,
-            revokedAt
+                id,
+                userId,
+                tokenHash,
+                null, // Token value not available from persistence
+                expiresAt,
+                createdAt,
+                revoked,
+                revokedAt
         );
     }
 
@@ -156,10 +157,10 @@ public class RefreshToken extends Entity {
     public Result<Void> revoke() {
         if (this.revoked) {
             return Result.failure(ErrorDetail.of(
-                "TOKEN_ALREADY_REVOKED",
-                ErrorType.BUSINESS_RULE_ERROR,
-                "Refresh token is already revoked",
-                "refresh_token.already_revoked"
+                    "TOKEN_ALREADY_REVOKED",
+                    ErrorType.BUSINESS_RULE_ERROR,
+                    "Refresh token is already revoked",
+                    "refresh_token.already_revoked"
             ));
         }
 
@@ -168,9 +169,9 @@ public class RefreshToken extends Entity {
 
         // Raise domain event
         this.addDomainEvent(new RefreshTokenRevokedEvent(
-            this.id,
-            this.userId,
-            this.revokedAt.getValue()
+                this.id,
+                this.userId,
+                this.revokedAt.getValue()
         ));
 
         return Result.success(null);

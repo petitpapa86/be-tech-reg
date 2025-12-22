@@ -29,14 +29,10 @@ public class RefreshTokenRevokedEvent extends DomainEvent {
         @JsonProperty("userId") UserId userId,
         @JsonProperty("revokedAt") Instant revokedAt
     ) {
-        super(CorrelationContext.correlationId(), Maybe.none(), "RefreshTokenRevokedEvent");
+        super(CorrelationContext.correlationId());
         this.tokenId = tokenId;
         this.userId = userId;
         this.revokedAt = revokedAt;
     }
 
-    @Override
-    public String eventType() {
-        return "RefreshTokenRevokedEvent";
-    }
 }

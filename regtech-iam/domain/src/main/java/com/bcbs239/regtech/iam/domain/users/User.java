@@ -51,7 +51,7 @@ public class User extends Entity {
         return user;
     }
 
-    public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId, String paymentMethodId, String causationId) {
+    public static User createWithBank(Email email, Password password, String firstName, String lastName, String bankId, String paymentMethodId) {
         User user = create(email, password, firstName, lastName);
         // username already set in create()
         user.assignToBank(bankId, "USER"); // Default role for new users
@@ -59,8 +59,7 @@ public class User extends Entity {
                 user.id,
                 email.getValue(),
                 bankId,
-                paymentMethodId,
-                causationId);
+                paymentMethodId);
         user.addDomainEvent(event);
         return user;
     }

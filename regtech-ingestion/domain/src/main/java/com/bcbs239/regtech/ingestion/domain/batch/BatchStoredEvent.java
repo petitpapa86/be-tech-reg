@@ -24,18 +24,13 @@ public class BatchStoredEvent extends DomainEvent {
             @JsonProperty("s3Reference") S3Reference s3Reference, 
             @JsonProperty("storedAt") Instant storedAt, 
             @JsonProperty("correlationId") String correlationId) {
-        super(correlationId, "BatchStoredEvent");
+        super(correlationId);
         this.batchId = batchId;
         this.bankId = bankId;
         this.s3Reference = s3Reference;
         this.storedAt = storedAt;
     }
-    
-    @Override
-    public String eventType() {
-        return getEventType();
-    }
-    
+
     // Getters with JsonProperty for proper serialization
     @JsonProperty("batchId")
     public BatchId batchId() { return batchId; }

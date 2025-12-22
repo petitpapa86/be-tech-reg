@@ -32,9 +32,6 @@ public class ProcessBatchCompletedUseCase {
             return;
         }
 
-        // Do not gate processing on event.getTotalExposures().
-        // The risk-calculation handler parses the batch file and uses the actual number of exposures.
-
         BatchId batchId = BatchId.of(event.getBatchId());
         if (portfolioAnalysisRepository.findByBatchId(batchId.value()).isPresent()) {
             log.info("RiskCalculation: batch {} already processed (portfolio analysis exists), skipping", event.getBatchId());

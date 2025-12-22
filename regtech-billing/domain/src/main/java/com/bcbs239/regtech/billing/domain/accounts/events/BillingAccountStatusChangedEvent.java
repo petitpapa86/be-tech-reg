@@ -25,17 +25,12 @@ public class BillingAccountStatusChangedEvent extends DomainEvent {
                                           BillingAccountStatus newStatus,
                                           String reason,
                                           String correlationId) {
-        super(correlationId, "BillingAccountStatusChangedEvent");
+        super(correlationId);
         this.billingAccountId = billingAccountId;
         this.userId = userId;
         this.previousStatus = previousStatus;
         this.newStatus = newStatus;
         this.reason = reason;
-    }
-
-    @Override
-    public String eventType() {
-        return "BillingAccountStatusChangedEvent";
     }
     
     @Override

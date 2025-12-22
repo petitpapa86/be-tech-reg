@@ -39,13 +39,10 @@ public class UserRegisteredIntegrationAdapter {
         // Convert shared integration event to local billing domain event
         BillingUserRegisteredEvent billingEvent = new BillingUserRegisteredEvent(
                 integrationEvent.getCorrelationId(),
-                integrationEvent.getCausationId().orElse(null),
                 integrationEvent.getUserId(),
                 integrationEvent.getEmail(),
                 integrationEvent.getBankId(),
-                integrationEvent.getPaymentMethodId(),
-                "com.bcbs239.regtech.billing.application.integration.BillingUserRegisteredEvent"
-        );
+                integrationEvent.getPaymentMethodId());
 
         // Publish as replay so existing billing handlers receive it
         domainEventBus.publishEvent(billingEvent);

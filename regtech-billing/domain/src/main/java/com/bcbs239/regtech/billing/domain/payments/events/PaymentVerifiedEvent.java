@@ -16,14 +16,9 @@ public class PaymentVerifiedEvent extends DomainEvent {
     private final BillingAccountId billingAccountId;
     
     public PaymentVerifiedEvent(UserId userId, BillingAccountId billingAccountId, String correlationId) {
-        super(correlationId, "PaymentVerifiedEvent");
+        super(correlationId);
         this.userId = userId;
         this.billingAccountId = billingAccountId;
-    }
-
-    @Override
-    public String eventType() {
-        return getEventType();
     }
     
     @Override

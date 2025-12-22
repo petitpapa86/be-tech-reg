@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.dataquality.domain.report;
 
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
@@ -18,6 +19,7 @@ class QualityReportTest {
     
     private final BatchId batchId = BatchId.of("batch_123");
     private final BankId bankId = BankId.of("bank_456");
+    private final String correlationId = "corr-789";
     
     @Test
     void createForBatch_ShouldCreateReportInPendingStatus() {
@@ -41,7 +43,7 @@ class QualityReportTest {
         QualityReport report = QualityReport.createForBatch(batchId, bankId);
         
         // When
-        Result<Void> result = report.startValidation();
+        Result<Void> result = report.startValidation(correlationId);
         
         // Then
         assertTrue(result.isSuccess());
@@ -63,10 +65,10 @@ class QualityReportTest {
     void startValidation_FromNonPendingStatus_ShouldFail() {
         // Given
         QualityReport report = QualityReport.createForBatch(batchId, bankId);
-        report.startValidation(); // Move to IN_PROGRESS
+        report.startValidation(correlationId); // Move to IN_PROGRESS
         
         // When
-        Result<Void> result = report.startValidation();
+        Result<Void> result = report.startValidation(correlationId);
         
         // Then
         assertFalse(result.isSuccess());
@@ -76,8 +78,9 @@ class QualityReportTest {
     @Test
     void recordValidationResults_ShouldUpdateSummaryAndRaiseEvent() {
         // Given
+
         QualityReport report = QualityReport.createForBatch(batchId, bankId);
-        report.startValidation();
+        report.startValidation(correlationId);
         
         ValidationSummary summary = ValidationSummary.builder()
             .totalExposures(100)
@@ -92,7 +95,7 @@ class QualityReportTest {
             .build();
         
         // When
-        Result<Void> result = report.recordValidationResults(validationResult);
+        Result<Void> result = report.recordValidationResults(validationResult,correlationId);
         
         // Then
         assertTrue(result.isSuccess());
@@ -108,19 +111,19 @@ class QualityReportTest {
     void calculateScores_ShouldUpdateScoresAndRaiseEvent() {
         // Given
         QualityReport report = QualityReport.createForBatch(batchId, bankId);
-        report.startValidation();
+        report.startValidation(correlationId);
         
         ValidationResult validationResult = ValidationResult.builder()
             .summary(ValidationSummary.builder().totalExposures(100).validExposures(95).totalErrors(5).build())
             .totalExposures(100)
             .validExposures(95)
             .build();
-        report.recordValidationResults(validationResult);
+        report.recordValidationResults(validationResult, correlationId);
         
         QualityScores scores = new QualityScores(95, 90, 85, 80, 75, 70, 85, QualityGrade.GOOD);
         
         // When
-        Result<Void> result = report.calculateScores(scores);
+        Result<Void> result = report.calculateScores(scores, CorrelationContext.correlationId());
         
         // Then
         assertTrue(result.isSuccess());
@@ -154,14 +157,14 @@ class QualityReportTest {
     void completeValidation_WithoutScores_ShouldFail() {
         // Given
         QualityReport report = QualityReport.createForBatch(batchId, bankId);
-        report.startValidation();
+        report.startValidation(correlationId);
         
         ValidationResult validationResult = ValidationResult.builder()
             .summary(ValidationSummary.builder().totalExposures(100).validExposures(95).totalErrors(5).build())
             .totalExposures(100)
             .validExposures(95)
             .build();
-        report.recordValidationResults(validationResult);
+        report.recordValidationResults(validationResult, correlationId);
         
         // Store details but don't calculate scores
         S3Reference s3Reference = S3Reference.of("bucket", "quality/quality_batch_123.json", "v1");
@@ -179,17 +182,17 @@ class QualityReportTest {
     void completeValidation_WithoutDetailsReference_ShouldFail() {
         // Given
         QualityReport report = QualityReport.createForBatch(batchId, bankId);
-        report.startValidation();
+        report.startValidation(correlationId);
         
         ValidationResult validationResult = ValidationResult.builder()
             .summary(ValidationSummary.builder().totalExposures(100).validExposures(95).totalErrors(5).build())
             .totalExposures(100)
             .validExposures(95)
             .build();
-        report.recordValidationResults(validationResult);
+        report.recordValidationResults(validationResult, correlationId);
         
         QualityScores scores = new QualityScores(95, 90, 85, 80, 75, 70, 85, QualityGrade.GOOD);
-        report.calculateScores(scores);
+        report.calculateScores(scores, correlationId);
         
         // When (don't store details reference)
         Result<Void> result = report.completeValidation();
@@ -203,11 +206,11 @@ class QualityReportTest {
     void markAsFailed_ShouldTransitionToFailedAndRaiseEvent() {
         // Given
         QualityReport report = QualityReport.createForBatch(batchId, bankId);
-        report.startValidation();
+        report.startValidation(correlationId);
         String errorMessage = "S3 download failed";
         
         // When
-        Result<Void> result = report.markAsFailed(errorMessage);
+        Result<Void> result = report.markAsFailed(errorMessage, correlationId);
         
         // Then
         assertTrue(result.isSuccess());
@@ -231,7 +234,7 @@ class QualityReportTest {
         report.completeValidation(); // Move to COMPLETED (terminal)
         
         // When
-        Result<Void> result = report.markAsFailed("Some error");
+        Result<Void> result = report.markAsFailed("Some error", correlationId);
         
         // Then
         assertFalse(result.isSuccess());
@@ -243,7 +246,7 @@ class QualityReportTest {
         // Given
         QualityReport report = setupCompleteReport();
         QualityScores compliantScores = new QualityScores(95, 90, 85, 80, 75, 70, 85, QualityGrade.GOOD);
-        report.calculateScores(compliantScores);
+        report.calculateScores(compliantScores, correlationId);
         
         // When & Then
         assertTrue(report.isCompliant());
@@ -254,7 +257,7 @@ class QualityReportTest {
         // Given
         QualityReport report = setupCompleteReport();
         QualityScores poorScores = new QualityScores(60, 55, 50, 45, 40, 35, 50, QualityGrade.POOR);
-        report.calculateScores(poorScores);
+        report.calculateScores(poorScores, correlationId);
         
         // When & Then
         assertTrue(report.requiresAttention());
@@ -262,17 +265,17 @@ class QualityReportTest {
     
     private QualityReport setupCompleteReport() {
         QualityReport report = QualityReport.createForBatch(batchId, bankId);
-        report.startValidation();
+        report.startValidation(correlationId);
         
         ValidationResult validationResult = ValidationResult.builder()
             .summary(ValidationSummary.builder().totalExposures(100).validExposures(95).totalErrors(5).build())
             .totalExposures(100)
             .validExposures(95)
             .build();
-        report.recordValidationResults(validationResult);
+        report.recordValidationResults(validationResult, correlationId);
         
         QualityScores scores = new QualityScores(95, 90, 85, 80, 75, 70, 85, QualityGrade.GOOD);
-        report.calculateScores(scores);
+        report.calculateScores(scores, correlationId);
         
         S3Reference s3Reference = S3Reference.of("bucket", "quality/quality_batch_123.json", "v1");
         report.storeDetailedResults(s3Reference);

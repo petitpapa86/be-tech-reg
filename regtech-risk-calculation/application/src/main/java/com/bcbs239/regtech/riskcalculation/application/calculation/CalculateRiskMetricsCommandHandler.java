@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.shared.dto.ParsedBatchData;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.*;
 import com.bcbs239.regtech.riskcalculation.domain.shared.IPerformanceMetrics;
@@ -137,7 +138,7 @@ public class CalculateRiskMetricsCommandHandler {
             List<ClassifiedExposure> classifiedExposures = processingResult.classifiedExposures();
 
             // Analyze portfolio using domain object
-            PortfolioAnalysis analysis = PortfolioAnalysis.analyze(batchId, classifiedExposures);
+            PortfolioAnalysis analysis = PortfolioAnalysis.analyze(batchId, classifiedExposures, CorrelationContext.correlationId());
 
             // Store results
             RiskCalculationResult calculationResult = new RiskCalculationResult(
@@ -208,7 +209,7 @@ public class CalculateRiskMetricsCommandHandler {
         );
         log.error("Failed to store calculation results for batch: {}", batch.getId().value());
         
-        batch.failCalculation("Failed to store calculation results: " + error.getMessage());
+        batch.failCalculation("Failed to store calculation results: " + error.getMessage(), CorrelationContext.correlationId());
         
         batchRepository.save(batch);
         Result<Void> portfolioSaveResult = portfolioAnalysisRepository.save(analysis);
@@ -227,7 +228,7 @@ public class CalculateRiskMetricsCommandHandler {
     private Result<Void> handleUnexpectedFailure(Batch batch, String batchId, Exception e) {
         if (batch != null) {
             try {
-                batch.failCalculation("Calculation failed: " + e.getMessage());
+                batch.failCalculation("Calculation failed: " + e.getMessage(), CorrelationContext.correlationId());
                 batchRepository.save(batch);
                 unitOfWork.registerEntity(batch);
                 unitOfWork.saveChanges();

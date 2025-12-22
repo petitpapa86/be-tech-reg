@@ -26,7 +26,7 @@ public class SubscriptionCancelledEvent extends DomainEvent {
                                     LocalDate cancellationDate,
                                     String cancellationReason,
                                     String correlationId) {
-        super(correlationId, "SubscriptionCancelledEvent");
+        super(correlationId);
         this.subscriptionId = subscriptionId;
         this.billingAccountId = billingAccountId;
         this.userId = userId;
@@ -58,11 +58,7 @@ public class SubscriptionCancelledEvent extends DomainEvent {
     public String getCancellationReason() {
         return cancellationReason;
     }
-    
-    @Override
-    public String eventType() {
-        return getEventType();
-    }
+
     
     @Override
     public String toString() {

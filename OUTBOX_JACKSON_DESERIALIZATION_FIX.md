@@ -4,7 +4,7 @@
 The outbox processor was failing to deserialize domain events from the risk calculation module with the following error:
 
 ```
-Failed to process outbox message: Cannot construct instance of `com.bcbs239.regtech.riskcalculation.domain.calculation.events.DataQualityCompletedEvent` (no Creators, like default constructor, exist): cannot deserialize from Object value (no delegate- or property-based Creator)
+Failed to process outbox message: Cannot construct instance of `com.bcbs239.regtech.riskcalculation.domain.calculation.events.RiskCalculationCompletedEvent` (no Creators, like default constructor, exist): cannot deserialize from Object value (no delegate- or property-based Creator)
 ```
 
 ## Root Cause

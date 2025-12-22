@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.dataquality.application.integration;
+package com.bcbs239.regtech.dataquality.application.validation;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;

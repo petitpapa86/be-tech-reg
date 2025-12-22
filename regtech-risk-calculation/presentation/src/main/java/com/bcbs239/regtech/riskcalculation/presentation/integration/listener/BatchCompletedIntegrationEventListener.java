@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.riskcalculation.presentation.batch;
+package com.bcbs239.regtech.riskcalculation.presentation.integration.listener;
 
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

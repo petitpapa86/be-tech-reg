@@ -31,15 +31,11 @@ public class UserLoggedInEvent extends DomainEvent {
         @JsonProperty("loginTime") Instant loginTime,
         @JsonProperty("ipAddress") String ipAddress
     ) {
-        super(CorrelationContext.correlationId(), Maybe.none(), "UserLoggedInEvent");
+        super(CorrelationContext.correlationId());
         this.userId = userId;
         this.email = email;
         this.loginTime = loginTime;
         this.ipAddress = ipAddress;
     }
 
-    @Override
-    public String eventType() {
-        return "UserLoggedInEvent";
-    }
 }

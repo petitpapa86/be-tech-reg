@@ -33,7 +33,7 @@ public class EventHandlerExecutionFailed extends IntegrationEvent {
             @JsonProperty("retryCount") int retryCount,
             @JsonProperty("maxRetries") int maxRetries,
             @JsonProperty("correlationId") String correlationId) {
-        super(correlationId, Maybe.none(), "EventHandlerExecutionFailed");
+        super(correlationId);
         this.failureId = failureId;
         this.eventType = eventType;
         this.userId = userId;
@@ -42,10 +42,5 @@ public class EventHandlerExecutionFailed extends IntegrationEvent {
         this.errorMessage = errorMessage;
         this.retryCount = retryCount;
         this.maxRetries = maxRetries;
-    }
-
-    @Override
-    public String eventType() {
-        return "EventHandlerExecutionFailed";
     }
 }

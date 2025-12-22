@@ -1,9 +1,10 @@
 package com.bcbs239.regtech.riskcalculation.domain.calculation;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.shared.Entity;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.events.DataQualityCompletedEvent;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.events.RiskCalculationCompletedEvent;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.DataQualityFailedEvent;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.events.DataQualityStartedEvent;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.events.RiskCalculationStartedEvent;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.FileStorageUri;
@@ -73,11 +74,12 @@ public class Batch extends Entity {
         batch.timestamps = ProcessingTimestamps.started(Instant.now());
 
         // Raise domain event
-        batch.addDomainEvent(new DataQualityStartedEvent(
+        batch.addDomainEvent(new RiskCalculationStartedEvent(
                 batchId,
                 bankInfo.abiCode(),
                 totalExposures,
-                Instant.now()
+                Instant.now(),
+                CorrelationContext.correlationId()
         ));
 
         return batch;
@@ -108,13 +110,14 @@ public class Batch extends Entity {
         this.timestamps = this.timestamps.withCompleted(Instant.now());
 
         // Raise domain event
-        this.addDomainEvent(new DataQualityCompletedEvent(
+        this.addDomainEvent(new RiskCalculationCompletedEvent(
                 this.id.value(),
                 this.bankInfo.abiCode(),
                 processedExposures,
                 resultsUri,
                 this.timestamps.getCompletedAt().orElseThrow(),
-                totalPortfolio.value()
+                totalPortfolio.value(),
+                CorrelationContext.correlationId()
         ));
     }
 
@@ -125,7 +128,7 @@ public class Batch extends Entity {
      * @param reason description of why the calculation failed
      * @throws IllegalStateException if batch is not in PROCESSING state
      */
-    public void failCalculation(String reason) {
+    public void failCalculation(String reason, String correlationId) {
         if (this.status != BatchStatus.PROCESSING) {
             throw new IllegalStateException(
                     "Cannot fail batch that is not in PROCESSING state. Current state: " + this.status
@@ -145,7 +148,8 @@ public class Batch extends Entity {
                 this.id.value(),
                 this.bankInfo.abiCode(),
                 reason,
-                this.timestamps.getFailedAt().orElseThrow()
+                this.timestamps.getFailedAt().orElseThrow(),
+                correlationId
         ));
     }
 

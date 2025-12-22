@@ -3,6 +3,7 @@ package com.bcbs239.regtech.riskcalculation.domain.calculation.events;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
 
 import java.time.Instant;
 
@@ -10,6 +11,7 @@ import java.time.Instant;
  * Domain event indicating that a batch calculation has failed.
  * Raised by the Batch aggregate when calculation fails.
  */
+@Getter
 public class DataQualityFailedEvent extends DomainEvent {
     private final String batchId;
     private final String bankId;
@@ -21,34 +23,15 @@ public class DataQualityFailedEvent extends DomainEvent {
             @JsonProperty("batchId") String batchId,
             @JsonProperty("bankId") String bankId,
             @JsonProperty("reason") String reason,
-            @JsonProperty("failedAt") Instant failedAt) {
-        super(batchId, "BatchCalculationFailed");
+            @JsonProperty("failedAt") Instant failedAt,
+            @JsonProperty("correlationId") String correlationId){
+        super(correlationId);
         this.batchId = batchId;
         this.bankId = bankId;
         this.reason = reason;
         this.failedAt = failedAt;
     }
 
-    @Override
-    public String eventType() {
-        return "BatchCalculationFailed";
-    }
-
-    public String getBatchId() {
-        return batchId;
-    }
-
-    public String getBankId() {
-        return bankId;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public Instant getFailedAt() {
-        return failedAt;
-    }
 
     @Override
     public String toString() {

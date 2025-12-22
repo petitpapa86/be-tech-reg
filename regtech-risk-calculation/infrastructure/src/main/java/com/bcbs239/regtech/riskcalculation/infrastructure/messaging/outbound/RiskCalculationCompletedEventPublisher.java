@@ -1,8 +1,8 @@
-package com.bcbs239.regtech.riskcalculation.application.integration;
+package com.bcbs239.regtech.riskcalculation.infrastructure.messaging.outbound;
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
-import com.bcbs239.regtech.core.domain.events.integration.BatchCalculationCompletedIntegrationEvent;
+import com.bcbs239.regtech.core.domain.events.integration.RiskCalculationCompletedIntegrationEvent;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.events.RiskCalculationCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,13 +10,13 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 @Component("riskCalculationBatchCalculationCompletedEventPublisher")
-public class BatchCalculationCompletedEventPublisher {
+public class RiskCalculationCompletedEventPublisher {
 
-    private static final Logger logger = LoggerFactory.getLogger(BatchCalculationCompletedEventPublisher.class);
+    private static final Logger logger = LoggerFactory.getLogger(RiskCalculationCompletedEventPublisher.class);
 
     private final IIntegrationEventBus eventBus;
 
-    public BatchCalculationCompletedEventPublisher(IIntegrationEventBus eventBus) {
+    public RiskCalculationCompletedEventPublisher(IIntegrationEventBus eventBus) {
         this.eventBus = eventBus;
     }
 
@@ -29,13 +29,14 @@ public class BatchCalculationCompletedEventPublisher {
         try {
             logger.info("Converting and publishing BatchCalculationCompletedIntegrationEvent for batch {}", event.getBatchId());
 
-            BatchCalculationCompletedIntegrationEvent integrationEvent = new BatchCalculationCompletedIntegrationEvent(
+            RiskCalculationCompletedIntegrationEvent integrationEvent = new RiskCalculationCompletedIntegrationEvent(
+                    event.getCorrelationId(),
                     event.getBatchId(),
                     event.getBankId(),
                     event.getCalculationResultsUri(),
                     event.getCompletedAt(),
-                    event.getTotalAmountEur(),
-                    event.getProcessedExposures()
+                    event.getProcessedExposures(),
+                    event.getTotalAmountEur()
             );
             ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
                     .where(CorrelationContext.OUTBOX_REPLAY, true)

@@ -36,8 +36,9 @@ public class ReportGenerationFailedIntegrationEvent extends IntegrationEvent {
             @JsonProperty("bankId") String bankId,
             @JsonProperty("failureReason") String failureReason,
             @JsonProperty("errorCode") String errorCode,
-            @JsonProperty("failedAt") Instant failedAt) {
-        super(batchId, Maybe.none(), "ReportGenerationFailedIntegrationEvent");
+            @JsonProperty("failedAt") Instant failedAt,
+            @JsonProperty("correlationId") String correlationId) {
+        super(correlationId);
         this.reportId = reportId;
         this.batchId = batchId;
         this.bankId = bankId;
@@ -47,11 +48,7 @@ public class ReportGenerationFailedIntegrationEvent extends IntegrationEvent {
         this.eventVersion = EVENT_VERSION;
     }
     
-    @Override
-    public String eventType() {
-        return getEventType();
-    }
-    
+
     @Override
     public String toString() {
         return String.format(

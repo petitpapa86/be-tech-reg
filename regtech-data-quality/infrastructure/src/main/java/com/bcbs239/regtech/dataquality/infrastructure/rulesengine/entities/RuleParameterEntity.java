@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities;
 
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ParameterType;
+import com.bcbs239.regtech.dataquality.domain.rules.ParameterType;
 import jakarta.persistence.*;
 import lombok.*;
 

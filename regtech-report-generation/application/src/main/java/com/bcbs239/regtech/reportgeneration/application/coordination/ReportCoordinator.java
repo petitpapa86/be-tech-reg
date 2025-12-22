@@ -82,12 +82,12 @@ public class ReportCoordinator {
             BatchEventTracker.BatchEvents events = eventTracker.getBothEvents(batchId);
             
             // Trigger asynchronous report generation
-            return reportOrchestrator.generateComprehensiveReport(
+            reportOrchestrator.generateComprehensiveReport(
                 events.getRiskEventData(),
                 events.getQualityEventData()
             );
         } else {
-           return CompletableFuture.completedFuture(null);
+            log.info("Waiting for both events to be present for batch: {}", batchId);
         }
     }
     

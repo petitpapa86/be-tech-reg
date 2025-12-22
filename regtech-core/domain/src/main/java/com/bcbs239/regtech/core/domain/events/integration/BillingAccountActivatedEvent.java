@@ -19,12 +19,8 @@ public class BillingAccountActivatedEvent extends IntegrationEvent {
     public BillingAccountActivatedEvent(
             @JsonProperty("userId") String userId,
             @JsonProperty("correlationId") String correlationId) {
-        super(correlationId, Maybe.none(), "BillingAccountActivated");
+        super(correlationId);
         this.userId = userId;
     }
 
-    @Override
-    public String eventType() {
-        return "BillingAccountActivated";
-    }
 }

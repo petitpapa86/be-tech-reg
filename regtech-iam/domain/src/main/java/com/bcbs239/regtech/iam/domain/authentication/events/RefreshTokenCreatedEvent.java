@@ -29,14 +29,9 @@ public class RefreshTokenCreatedEvent extends DomainEvent {
         @JsonProperty("userId") UserId userId,
         @JsonProperty("expiresAt") Instant expiresAt
     ) {
-        super(CorrelationContext.correlationId(), Maybe.none(), "RefreshTokenCreatedEvent");
+        super(CorrelationContext.correlationId());
         this.tokenId = tokenId;
         this.userId = userId;
         this.expiresAt = expiresAt;
-    }
-
-    @Override
-    public String eventType() {
-        return "RefreshTokenCreatedEvent";
     }
 }

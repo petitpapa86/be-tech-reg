@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities;
 
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ResolutionStatus;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.Severity;
+import com.bcbs239.regtech.dataquality.domain.rules.ResolutionStatus;
+import com.bcbs239.regtech.dataquality.domain.rules.Severity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;

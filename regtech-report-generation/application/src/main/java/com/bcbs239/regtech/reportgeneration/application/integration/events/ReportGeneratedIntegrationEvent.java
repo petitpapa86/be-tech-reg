@@ -66,8 +66,9 @@ public class ReportGeneratedIntegrationEvent extends IntegrationEvent {
             @JsonProperty("overallQualityScore") BigDecimal overallQualityScore,
             @JsonProperty("complianceStatus") String complianceStatus,
             @JsonProperty("generationDurationMillis") Long generationDurationMillis,
-            @JsonProperty("generatedAt") Instant generatedAt) {
-        super(batchId, Maybe.none(), "ReportGeneratedIntegrationEvent");
+            @JsonProperty("generatedAt") Instant generatedAt,
+            @JsonProperty("correlationId") String correlationId) {
+        super(correlationId);
         this.reportId = reportId;
         this.batchId = batchId;
         this.bankId = bankId;
@@ -84,11 +85,6 @@ public class ReportGeneratedIntegrationEvent extends IntegrationEvent {
         this.generationDurationMillis = generationDurationMillis;
         this.generatedAt = generatedAt;
         this.eventVersion = EVENT_VERSION;
-    }
-    
-    @Override
-    public String eventType() {
-        return getEventType();
     }
     
     @Override

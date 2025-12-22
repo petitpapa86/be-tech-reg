@@ -2,9 +2,9 @@ package com.bcbs239.regtech.dataquality.infrastructure.rulesengine;
 
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleExecutionPort;
 import com.bcbs239.regtech.dataquality.application.validation.ValidationExecutionStats;
+import com.bcbs239.regtech.dataquality.domain.rules.*;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;

@@ -5,7 +5,7 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.dto.BatchDataDTO;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
-import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
+import com.bcbs239.regtech.dataquality.application.validation.S3StorageService;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;

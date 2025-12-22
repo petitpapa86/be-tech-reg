@@ -28,18 +28,15 @@ public class PortfolioAnalysisCompletedEvent extends DomainEvent {
             @JsonProperty("totalPortfolioEur") BigDecimal totalPortfolioEur,
             @JsonProperty("geographicHHI") BigDecimal geographicHHI,
             @JsonProperty("sectorHHI") BigDecimal sectorHHI,
-            @JsonProperty("completedAt") Instant completedAt) {
-        super(batchId, "PortfolioAnalysisCompleted");
+            @JsonProperty("completedAt") Instant completedAt,
+            @JsonProperty("correlationId") String correlationId) {
+        super(correlationId);
         this.batchId = batchId;
         this.totalPortfolioEur = totalPortfolioEur;
         this.geographicHHI = geographicHHI;
         this.sectorHHI = sectorHHI;
         this.completedAt = completedAt;
     }
-    
-    @Override
-    public String eventType() {
-        return "PortfolioAnalysisCompleted";
-    }
+
 
 }

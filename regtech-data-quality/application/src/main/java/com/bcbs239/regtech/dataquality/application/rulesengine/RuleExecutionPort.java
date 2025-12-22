@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.dataquality.application.rulesengine;
 
 import com.bcbs239.regtech.dataquality.application.validation.ValidationExecutionStats;
+import com.bcbs239.regtech.dataquality.domain.rules.BusinessRuleDto;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 
 /**
  * Port for rule execution functionality.
@@ -21,7 +22,7 @@ public interface RuleExecutionPort {
      * @param stats Statistics collector
      */
     void execute(
-        com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto rule,
+        BusinessRuleDto rule,
         com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext context,
         com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord exposure,
         java.util.List<ValidationError> errors,

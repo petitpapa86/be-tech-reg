@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.ingestion.domain.batch.events;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import lombok.Getter;
 
@@ -24,7 +25,7 @@ public class BatchProcessingFailedEvent extends DomainEvent {
             String errorMessage,
             String errorType,
             String tempFileKey) {
-        super(java.util.UUID.randomUUID().toString(), "BatchProcessingFailedEvent");
+        super(CorrelationContext.correlationId());
         this.batchId = batchId;
         this.bankId = bankId;
         this.fileName = fileName;
@@ -33,8 +34,4 @@ public class BatchProcessingFailedEvent extends DomainEvent {
         this.tempFileKey = tempFileKey;
     }
 
-    @Override
-    public String eventType() {
-        return this.getClass().getSimpleName();
-    }
 }

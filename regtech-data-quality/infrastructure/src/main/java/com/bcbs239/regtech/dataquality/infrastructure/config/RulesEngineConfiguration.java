@@ -10,10 +10,10 @@ import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.Expr
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineBatchLinkContext;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineJdbcBatchInserter;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.IRuleExemptionRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleExemptionDto;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+import com.bcbs239.regtech.dataquality.domain.rules.IBusinessRuleRepository;
+import com.bcbs239.regtech.dataquality.domain.rules.IRuleExemptionRepository;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleExemptionDto;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

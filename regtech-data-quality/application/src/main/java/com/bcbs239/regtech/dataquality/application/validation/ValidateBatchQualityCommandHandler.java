@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.dataquality.application.integration.S3StorageService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
@@ -62,7 +62,7 @@ public class ValidateBatchQualityCommandHandler {
         QualityReport report;
         try {
             report = QualityReport.createForBatch(command.batchId(), command.bankId());
-            report.startValidation();
+            report.startValidation(CorrelationContext.correlationId());
 
             Result<QualityReport> saveResult = qualityReportRepository.save(report);
             if (saveResult.isFailure()) {
@@ -99,7 +99,7 @@ public class ValidateBatchQualityCommandHandler {
         });
 
         if (exposuresResult.isFailure()) {
-            markReportAsFailed(report, "Failed to download exposure data");
+            markReportAsFailed(report, "Failed to download exposure data", CorrelationContext.correlationId());
             return Result.failure(exposuresResult.errors());
         }
         List<ExposureRecord> exposures = exposuresResult.getValueOrThrow();
@@ -118,10 +118,10 @@ public class ValidateBatchQualityCommandHandler {
         ValidationResult validation = ValidationResult.fromValidatedExposures(exposureResults, batchErrors);
 
         // Tell the aggregate to record the results (domain logic)
-        Result<ValidationResult> validationResult = report.recordValidationAndCalculateScores(validation);
+        Result<ValidationResult> validationResult = report.recordValidationAndCalculateScores(validation, CorrelationContext.correlationId());
 
         if (validationResult.isFailure()) {
-            markReportAsFailed(report, "Failed to record quality validation");
+            markReportAsFailed(report, "Failed to record quality validation", CorrelationContext.correlationId());
             return Result.failure(validationResult.errors());
         }
 
@@ -149,7 +149,7 @@ public class ValidateBatchQualityCommandHandler {
                 });
 
         if (s3Result.isFailure()) {
-            markReportAsFailed(report, "Failed to store detailed results");
+            markReportAsFailed(report, "Failed to store detailed results", CorrelationContext.correlationId());
             return Result.failure(s3Result.errors());
         }
         S3Reference detailsReference = s3Result.getValueOrThrow();
@@ -157,14 +157,14 @@ public class ValidateBatchQualityCommandHandler {
         // Record S3 reference
         Result<Void> storeResult = report.storeDetailedResults(detailsReference);
         if (storeResult.isFailure()) {
-            markReportAsFailed(report, "Failed to record S3 reference");
+            markReportAsFailed(report, "Failed to record S3 reference", CorrelationContext.correlationId());
             return storeResult;
         }
 
         // Complete validation
         Result<Void> completeResult = report.completeValidation();
         if (completeResult.isFailure()) {
-            markReportAsFailed(report, "Failed to complete validation");
+            markReportAsFailed(report, "Failed to complete validation", CorrelationContext.correlationId());
             return completeResult;
         }
 
@@ -181,8 +181,8 @@ public class ValidateBatchQualityCommandHandler {
         return Result.success();
     }
 
-    private void markReportAsFailed(QualityReport report, String errorMessage) {
-        report.markAsFailed(errorMessage);
+    private void markReportAsFailed(QualityReport report, String errorMessage, String correlationId) {
+        report.markAsFailed(errorMessage, correlationId);
 
         qualityReportRepository.save(report);
 

@@ -21,7 +21,7 @@ public class InvoiceGeneratedEvent extends DomainEvent {
                                BillingPeriod billingPeriod,
                                Money totalAmount,
                                String correlationId) {
-        super(correlationId, "InvoiceGeneratedEvent");
+        super(correlationId);
         this.invoiceId = invoiceId;
         this.billingAccountId = billingAccountId;
         this.billingPeriod = billingPeriod;
@@ -44,10 +44,6 @@ public class InvoiceGeneratedEvent extends DomainEvent {
         return totalAmount;
     }
 
-    @Override
-    public String eventType() {
-        return getEventType();
-    }
 
     @Override
     public String toString() {

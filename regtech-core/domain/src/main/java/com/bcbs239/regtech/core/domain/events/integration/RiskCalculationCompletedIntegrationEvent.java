@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.core.domain.events.integration;
 
-import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -21,7 +20,7 @@ import java.time.Instant;
  */
 @Getter
 @Setter
-public class BatchCalculationCompletedIntegrationEvent extends IntegrationEvent {
+public class RiskCalculationCompletedIntegrationEvent extends IntegrationEvent {
     
     private static final String EVENT_VERSION = "1.0";
     
@@ -32,56 +31,24 @@ public class BatchCalculationCompletedIntegrationEvent extends IntegrationEvent 
     private int totalExposures;
     private BigDecimal totalAmountEur;
     private final String eventVersion;
-    
+
     @JsonCreator
-    public BatchCalculationCompletedIntegrationEvent(
+    public RiskCalculationCompletedIntegrationEvent(
             @JsonProperty("correlationId") String correlationId,
-            @JsonProperty("causationId") Maybe<String> causationId,
-            @JsonProperty("eventId") String eventId,
-            @JsonProperty("batchId") String batchId,
-            @JsonProperty("bankId") String bankId,
-            @JsonProperty("resultFileUri") String resultFileUri,
-            @JsonProperty("completedAt") Instant completedAt) {
-        
-        super(correlationId, causationId, "BatchCalculationCompletedIntegrationEvent");
-        
-        this.batchId = batchId;
-        this.bankId = bankId;
-        this.resultFileUri = resultFileUri;
-        this.completedAt = completedAt;
-        this.eventVersion = EVENT_VERSION;
-    }
-    
-    // Convenience constructor for programmatic creation
-    public BatchCalculationCompletedIntegrationEvent(
             @JsonProperty("batchId") String batchId,
             @JsonProperty("bankId") String bankId,
             @JsonProperty("resultFileUri") String resultFileUri,
             @JsonProperty("completedAt") Instant completedAt,
-            @JsonProperty("totalAmountEur") BigDecimal totalAmountEur,
-            @JsonProperty("totalExposures") int totalExposures) {
+            @JsonProperty("totalExposures") int totalExposures,
+            @JsonProperty("totalAmountEur") BigDecimal totalAmountEur){
         
-        super(batchId, Maybe.none(), "BatchCalculationCompletedIntegrationEvent");
-        
+        super(correlationId);
         this.batchId = batchId;
         this.bankId = bankId;
         this.resultFileUri = resultFileUri;
         this.completedAt = completedAt;
-        this.eventVersion = EVENT_VERSION;
-        this.totalAmountEur = totalAmountEur;
         this.totalExposures = totalExposures;
-    }
-    
-    @Override
-    public String eventType() {
-        return getEventType();
-    }
-    
-    @Override
-    public String toString() {
-        return String.format(
-            "BatchCalculationCompletedIntegrationEvent{batchId='%s', bankId='%s', resultFileUri='%s', completedAt=%s, version='%s'}",
-            batchId, bankId, resultFileUri, completedAt, eventVersion
-        );
+        this.totalAmountEur = totalAmountEur;
+        this.eventVersion = EVENT_VERSION;
     }
 }

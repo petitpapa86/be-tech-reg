@@ -2,7 +2,7 @@ package com.bcbs239.regtech.dataquality.infrastructure.rulesengine;
 
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 
 import java.util.List;
 

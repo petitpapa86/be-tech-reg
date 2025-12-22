@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository;
 
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;

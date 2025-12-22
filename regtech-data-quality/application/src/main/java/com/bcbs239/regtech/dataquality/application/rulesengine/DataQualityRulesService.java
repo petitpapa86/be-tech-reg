@@ -3,9 +3,9 @@ package com.bcbs239.regtech.dataquality.application.rulesengine;
 import com.bcbs239.regtech.dataquality.application.validation.ExposureRuleValidator;
 import com.bcbs239.regtech.dataquality.application.validation.ValidationResults;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+import com.bcbs239.regtech.dataquality.domain.rules.BusinessRuleDto;
+import com.bcbs239.regtech.dataquality.domain.rules.IBusinessRuleRepository;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 

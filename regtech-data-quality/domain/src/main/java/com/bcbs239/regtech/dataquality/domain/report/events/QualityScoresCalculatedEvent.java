@@ -27,14 +27,12 @@ public class QualityScoresCalculatedEvent extends DomainEvent {
     @JsonCreator
     public QualityScoresCalculatedEvent(
             @JsonProperty("correlationId") String correlationId,
-            @JsonProperty("causationId") String causationId,
-            @JsonProperty("eventId") String eventId,
             @JsonProperty("reportId") QualityReportId reportId,
             @JsonProperty("batchId") BatchId batchId,
             @JsonProperty("bankId") BankId bankId,
             @JsonProperty("qualityScores") QualityScores qualityScores,
             @JsonProperty("occurredAt") Instant occurredAt) {
-        super(correlationId, causationId != null ? Maybe.some(causationId) : Maybe.none(), "QualityScoresCalculated");
+        super(correlationId);
         if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
         if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
         if (bankId == null) throw new IllegalArgumentException("Bank ID cannot be null");
@@ -47,24 +45,6 @@ public class QualityScoresCalculatedEvent extends DomainEvent {
         this.occurredAt = occurredAt;
     }
 
-    // Convenience constructor for programmatic creation
-    public QualityScoresCalculatedEvent(QualityReportId reportId, BatchId batchId, BankId bankId, QualityScores qualityScores, Instant occurredAt) {
-        super("QualityScoresCalculatedEvent", Maybe.none(), "QualityScoresCalculated");
-        if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
-        if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
-        if (bankId == null) throw new IllegalArgumentException("Bank ID cannot be null");
-        if (qualityScores == null) throw new IllegalArgumentException("Quality scores cannot be null");
-        if (occurredAt == null) throw new IllegalArgumentException("Occurred at cannot be null");
-        this.reportId = reportId;
-        this.batchId = batchId;
-        this.bankId = bankId;
-        this.qualityScores = qualityScores;
-        this.occurredAt = occurredAt;
-    }
 
-    @Override
-    public String eventType() {
-        return "QualityScoresCalculated";
-    }
 }
 

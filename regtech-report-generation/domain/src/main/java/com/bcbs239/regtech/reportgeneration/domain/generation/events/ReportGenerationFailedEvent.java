@@ -31,16 +31,12 @@ public class ReportGenerationFailedEvent extends DomainEvent {
             BankId bankId,
             FailureReason failureReason,
             Instant failedAt) {
-        super(correlationId, "ReportGenerationFailed");
+        super(correlationId);
         this.reportId = reportId;
         this.batchId = batchId;
         this.bankId = bankId;
         this.failureReason = failureReason;
         this.failedAt = failedAt;
     }
-    
-    @Override
-    public String eventType() {
-        return "ReportGenerationFailed";
-    }
+
 }

@@ -26,13 +26,9 @@ public class UserLoggedOutEvent extends DomainEvent {
         @JsonProperty("userId") UserId userId,
         @JsonProperty("logoutTime") Instant logoutTime
     ) {
-        super(CorrelationContext.correlationId(), Maybe.none(), "UserLoggedOutEvent");
+        super(CorrelationContext.correlationId());
         this.userId = userId;
         this.logoutTime = logoutTime;
     }
 
-    @Override
-    public String eventType() {
-        return "UserLoggedOutEvent";
-    }
 }

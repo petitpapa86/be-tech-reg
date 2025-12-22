@@ -28,15 +28,10 @@ public class ReportGenerationStartedEvent extends DomainEvent {
             BatchId batchId,
             BankId bankId,
             Instant startedAt) {
-        super(correlationId, "ReportGenerationStarted");
+        super(correlationId);
         this.reportId = reportId;
         this.batchId = batchId;
         this.bankId = bankId;
         this.startedAt = startedAt;
-    }
-    
-    @Override
-    public String eventType() {
-        return "ReportGenerationStarted";
     }
 }

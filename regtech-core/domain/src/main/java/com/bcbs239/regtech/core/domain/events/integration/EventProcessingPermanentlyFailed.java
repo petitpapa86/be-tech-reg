@@ -27,7 +27,7 @@ public class EventProcessingPermanentlyFailed extends IntegrationEvent {
             @JsonProperty("eventPayload") String eventPayload,
             @JsonProperty("retryCount") int retryCount,
             @JsonProperty("correlationId") String correlationId) {
-        super(correlationId, Maybe.none(), "EventProcessingPermanentlyFailed");
+        super(correlationId);
         this.failureId = failureId;
         this.eventType = eventType;
         this.userId = userId;
@@ -35,8 +35,4 @@ public class EventProcessingPermanentlyFailed extends IntegrationEvent {
         this.retryCount = retryCount;
     }
 
-    @Override
-    public String eventType() {
-        return "EventProcessingPermanentlyFailed";
-    }
 }

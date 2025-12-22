@@ -46,11 +46,6 @@ public class BatchCompletedIntegrationEvent extends IntegrationEvent {
         this.completedAt = completedAt;
         this.eventVersion = EVENT_VERSION;
     }
-    
-    @Override
-    public String eventType() {
-        return getEventType();
-    }
 
     //verify event fields are correctly  set
     public boolean isValid() {

@@ -28,7 +28,7 @@ public class UserRegisteredIntegrationEvent extends IntegrationEvent {
             @JsonProperty("email") String email,
             @JsonProperty("bankId") String bankId,
             @JsonProperty("paymentMethodId") String paymentMethodId) {
-        super(correlationId, causationId, "UserRegisteredIntegrationEvent");
+        super(correlationId);
         this.userId = userId;
         this.email = email;
         this.bankId = bankId;
@@ -43,21 +43,10 @@ public class UserRegisteredIntegrationEvent extends IntegrationEvent {
             String email,
             String bankId,
             String paymentMethodId) {
-        super(correlationId, causationId, "UserRegisteredIntegrationEvent");
+        super(correlationId);
         this.userId = userId;
         this.email = email;
         this.bankId = bankId;
         this.paymentMethodId = paymentMethodId;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("UserRegisteredIntegrationEvent{userId='%s', email='%s', bankId='%s', paymentMethodId='%s'}",
-                userId, email, bankId, paymentMethodId);
-    }
-
-    @Override
-    public String eventType() {
-        return "UserRegisteredIntegrationEvent";
     }
 }

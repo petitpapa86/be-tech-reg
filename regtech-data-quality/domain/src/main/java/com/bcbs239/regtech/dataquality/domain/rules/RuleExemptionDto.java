@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.dataquality.rulesengine.domain;
+package com.bcbs239.regtech.dataquality.domain.rules;
 
 import java.time.Instant;
 import java.time.LocalDate;

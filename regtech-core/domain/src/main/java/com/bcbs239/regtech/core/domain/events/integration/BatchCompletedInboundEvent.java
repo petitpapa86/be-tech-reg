@@ -30,7 +30,7 @@ public class BatchCompletedInboundEvent extends DomainEvent {
             @JsonProperty("totalExposures") int totalExposures,
             @JsonProperty("fileSizeBytes") long fileSizeBytes,
             @JsonProperty("completedAt") Instant completedAt) {
-        super(batchId, Maybe.none(), "BatchCompletedIntegrationEvent");
+        super(batchId);
         this.batchId = batchId;
         this.bankId = bankId;
         this.s3Uri = s3Uri;
@@ -40,10 +40,7 @@ public class BatchCompletedInboundEvent extends DomainEvent {
         this.eventVersion = EVENT_VERSION;
     }
 
-    @Override
-    public String eventType() {
-        return getEventType();
-    }
+
 
     //verify event fields are correctly  set
     public boolean isValid() {

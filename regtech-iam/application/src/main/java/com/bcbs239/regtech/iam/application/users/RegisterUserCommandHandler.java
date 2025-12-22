@@ -72,7 +72,7 @@ public class RegisterUserCommandHandler {
         }
         String lastName = maybeLast.getValue();
 
-        User newUser = User.createWithBank(email, password, firstName, lastName, command.getBankId(), command.getPaymentMethodId(), command.getId());
+        User newUser = User.createWithBank(email, password, firstName, lastName, command.getBankId(), command.getPaymentMethodId());
 
         // Step 6: Save user
         Result<UserId> saveResult = userRepository.userSaver(newUser);

@@ -4,8 +4,8 @@ import com.bcbs239.regtech.dataquality.application.validation.ValidationExecutio
 import com.bcbs239.regtech.dataquality.application.validation.ValidationResults;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+import com.bcbs239.regtech.dataquality.domain.rules.BusinessRuleDto;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import org.springframework.stereotype.Component;
 

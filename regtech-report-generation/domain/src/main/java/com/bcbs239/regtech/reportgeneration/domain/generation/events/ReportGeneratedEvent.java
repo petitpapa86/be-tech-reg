@@ -61,7 +61,7 @@ public class ReportGeneratedEvent extends DomainEvent {
             ComplianceStatus complianceStatus,
             Duration generationDuration,
             Instant generatedAt) {
-        super(correlationId, "ReportGenerated");
+        super(correlationId);
         this.reportId = reportId;
         this.batchId = batchId;
         this.bankId = bankId;
@@ -78,9 +78,5 @@ public class ReportGeneratedEvent extends DomainEvent {
         this.generationDuration = generationDuration;
         this.generatedAt = generatedAt;
     }
-    
-    @Override
-    public String eventType() {
-        return "ReportGenerated";
-    }
+
 }

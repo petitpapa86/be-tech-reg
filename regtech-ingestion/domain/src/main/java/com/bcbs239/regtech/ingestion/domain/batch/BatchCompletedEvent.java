@@ -29,7 +29,7 @@ public class BatchCompletedEvent extends DomainEvent {
             @JsonProperty("fileSizeBytes") long fileSizeBytes, 
             @JsonProperty("completedAt") Instant completedAt, 
             @JsonProperty("correlationId") String correlationId) {
-        super(correlationId, "BatchCompletedEvent");
+        super(correlationId);
         this.batchId = Objects.requireNonNull(batchId, "batchId cannot be null");
         this.bankId = Objects.requireNonNull(bankId, "bankId cannot be null");
         this.s3Reference = Objects.requireNonNull(s3Reference, "s3Reference cannot be null");
@@ -37,11 +37,7 @@ public class BatchCompletedEvent extends DomainEvent {
         this.fileSizeBytes = fileSizeBytes;
         this.completedAt = Objects.requireNonNull(completedAt, "completedAt cannot be null");
     }
-    
-    @Override
-    public String eventType() {
-        return getEventType();
-    }
+
     
     // Getters with JsonProperty for proper serialization
     @JsonProperty("batchId")

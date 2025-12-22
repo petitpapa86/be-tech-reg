@@ -7,10 +7,10 @@ import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleV
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluationException;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ExecutionResult;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ParameterType;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation;
+import com.bcbs239.regtech.dataquality.domain.rules.ExecutionResult;
+import com.bcbs239.regtech.dataquality.domain.rules.ParameterType;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleType;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;

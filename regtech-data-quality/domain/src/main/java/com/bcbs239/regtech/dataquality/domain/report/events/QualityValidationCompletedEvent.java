@@ -31,8 +31,6 @@ public class QualityValidationCompletedEvent extends DomainEvent {
     @JsonCreator
     public QualityValidationCompletedEvent(
             @JsonProperty("correlationId") String correlationId,
-            @JsonProperty("causationId") String causationId,
-            @JsonProperty("eventId") String eventId,
             @JsonProperty("reportId") QualityReportId reportId,
             @JsonProperty("batchId") BatchId batchId,
             @JsonProperty("bankId") BankId bankId,
@@ -40,7 +38,7 @@ public class QualityValidationCompletedEvent extends DomainEvent {
             @JsonProperty("qualityGrade") QualityGrade qualityGrade,
             @JsonProperty("detailsReference") S3Reference detailsReference,
             @JsonProperty("occurredAt") Instant occurredAt) {
-        super(correlationId, causationId != null ? Maybe.some(causationId) : Maybe.none(), "QualityValidationCompleted");
+        super(correlationId);
         if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
         if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
         if (bankId == null) throw new IllegalArgumentException("Bank ID cannot be null");
@@ -59,7 +57,7 @@ public class QualityValidationCompletedEvent extends DomainEvent {
 
     // Convenience constructor for programmatic creation
     public QualityValidationCompletedEvent(QualityReportId reportId, BatchId batchId, BankId bankId, QualityScores qualityScores, QualityGrade qualityGrade, S3Reference detailsReference, Instant occurredAt) {
-        super("QualityValidationCompletedEvent", Maybe.none(), "QualityValidationCompleted");
+        super("QualityValidationCompletedEvent");
 
         if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
         if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
@@ -77,9 +75,5 @@ public class QualityValidationCompletedEvent extends DomainEvent {
         this.occurredAt = occurredAt;
     }
 
-    @Override
-    public String eventType() {
-        return "QualityValidationCompleted";
-    }
 }
 

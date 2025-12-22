@@ -4,10 +4,10 @@ import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.Default
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleParameterEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.BusinessRuleDto;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.IBusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleParameterDto;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
+import com.bcbs239.regtech.dataquality.domain.rules.BusinessRuleDto;
+import com.bcbs239.regtech.dataquality.domain.rules.IBusinessRuleRepository;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleParameterDto;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleType;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;

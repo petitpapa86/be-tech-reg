@@ -24,18 +24,13 @@ public class BatchValidatedEvent extends DomainEvent {
             @JsonProperty("exposureCount") int exposureCount, 
             @JsonProperty("validatedAt") Instant validatedAt, 
             @JsonProperty("correlationId") String correlationId) {
-        super(correlationId, "BatchValidatedEvent");
+        super(correlationId);
         this.batchId = batchId;
         this.bankId = bankId;
         this.exposureCount = exposureCount;
         this.validatedAt = validatedAt;
     }
-    
-    @Override
-    public String eventType() {
-        return getEventType();
-    }
-    
+
     // Getters with JsonProperty for proper serialization
     @JsonProperty("batchId")
     public BatchId batchId() { return batchId; }

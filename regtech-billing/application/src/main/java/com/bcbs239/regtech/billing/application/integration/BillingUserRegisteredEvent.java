@@ -16,19 +16,13 @@ public class BillingUserRegisteredEvent extends DomainEvent {
     private final String bankId;
     private final String paymentMethodId;
 
-    public BillingUserRegisteredEvent(String correlationId, String causationId,
+    public BillingUserRegisteredEvent(String correlationId,
                                       String userId, String email, String bankId,
-                                      String paymentMethodId, String eventType) {
-        super(correlationId, causationId);
+                                      String paymentMethodId) {
+        super(correlationId);
         this.userId = userId;
         this.email = email;
         this.bankId = bankId;
         this.paymentMethodId = paymentMethodId;
-        this.eventType =  eventType;
-    }
-
-    @Override
-    public String eventType() {
-        return "BillingUserRegisteredEvent";
     }
 }

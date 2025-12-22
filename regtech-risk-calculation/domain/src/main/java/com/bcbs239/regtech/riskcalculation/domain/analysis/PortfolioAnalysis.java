@@ -22,14 +22,14 @@ import java.util.stream.Collectors;
  * - Total portfolio amount
  * - Geographic breakdown with HHI
  * - Sector breakdown with HHI
- * 
+ * <p>
  * This is the output of the portfolio analysis process
- * 
+ * <p>
  * Extends Entity to support domain event raising for proper DDD implementation.
  */
 @Getter
 public class PortfolioAnalysis extends Entity {
-    
+
     private final String batchId;
     private final EurAmount totalPortfolio;
     private final Breakdown geographicBreakdown;
@@ -37,22 +37,22 @@ public class PortfolioAnalysis extends Entity {
     private final HHI geographicHHI;
     private final HHI sectorHHI;
     private final Instant analyzedAt;
-    
+
     // NEW: State management fields
     private ProcessingState state;
     private ProcessingProgress progress;
     private final List<ChunkMetadata> processedChunks;
     private Instant startedAt;
     private Instant lastUpdatedAt;
-    
+
     private PortfolioAnalysis(
-        String batchId,
-        EurAmount totalPortfolio,
-        Breakdown geographicBreakdown,
-        Breakdown sectorBreakdown,
-        HHI geographicHHI,
-        HHI sectorHHI,
-        Instant analyzedAt
+            String batchId,
+            EurAmount totalPortfolio,
+            Breakdown geographicBreakdown,
+            Breakdown sectorBreakdown,
+            HHI geographicHHI,
+            HHI sectorHHI,
+            Instant analyzedAt
     ) {
         this.batchId = Objects.requireNonNull(batchId, "Batch ID cannot be null");
         this.totalPortfolio = Objects.requireNonNull(totalPortfolio, "Total portfolio cannot be null");
@@ -61,115 +61,116 @@ public class PortfolioAnalysis extends Entity {
         this.geographicHHI = Objects.requireNonNull(geographicHHI, "Geographic HHI cannot be null");
         this.sectorHHI = Objects.requireNonNull(sectorHHI, "Sector HHI cannot be null");
         this.analyzedAt = Objects.requireNonNull(analyzedAt, "Analyzed timestamp cannot be null");
-        
+
         // Initialize state management for completed analysis
         this.state = ProcessingState.COMPLETED;
         this.progress = null; // Not applicable for completed analysis
         this.processedChunks = new ArrayList<>();
     }
-    
+
     /**
      * Factory method to analyze a portfolio and calculate all metrics
-     * 
-     * @param batchId the batch identifier
+     *
+     * @param batchId   the batch identifier
      * @param exposures list of classified exposures
      * @return PortfolioAnalysis with all calculated metrics
      */
-    public static PortfolioAnalysis analyze(String batchId, List<ClassifiedExposure> exposures) {
+    public static PortfolioAnalysis analyze(String batchId, List<ClassifiedExposure> exposures, String correlationId) {
         Objects.requireNonNull(batchId, "Batch ID cannot be null");
         Objects.requireNonNull(exposures, "Exposures list cannot be null");
-        
+
         // Calculate total portfolio amount
         BigDecimal total = exposures.stream()
-            .map(e -> e.netExposure().value())
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
+                .map(e -> e.netExposure().value())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
         EurAmount totalPortfolio = EurAmount.of(total);
-        
+
         // Calculate geographic breakdown
         Map<GeographicRegion, BigDecimal> geoAmounts = exposures.stream()
-            .collect(Collectors.groupingBy(
-                ClassifiedExposure::region,
-                Collectors.mapping(
-                    e -> e.netExposure().value(),
-                    Collectors.reducing(BigDecimal.ZERO, BigDecimal::add)
-                )
-            ));
-        
+                .collect(Collectors.groupingBy(
+                        ClassifiedExposure::region,
+                        Collectors.mapping(
+                                e -> e.netExposure().value(),
+                                Collectors.reducing(BigDecimal.ZERO, BigDecimal::add)
+                        )
+                ));
+
         Breakdown geoBreakdown = Breakdown.from(geoAmounts, total);
         HHI geoHHI = HHI.calculate(geoBreakdown);
-        
+
         // Calculate sector breakdown
         Map<EconomicSector, BigDecimal> sectorAmounts = exposures.stream()
-            .collect(Collectors.groupingBy(
-                ClassifiedExposure::sector,
-                Collectors.mapping(
-                    e -> e.netExposure().value(),
-                    Collectors.reducing(BigDecimal.ZERO, BigDecimal::add)
-                )
-            ));
-        
+                .collect(Collectors.groupingBy(
+                        ClassifiedExposure::sector,
+                        Collectors.mapping(
+                                e -> e.netExposure().value(),
+                                Collectors.reducing(BigDecimal.ZERO, BigDecimal::add)
+                        )
+                ));
+
         Breakdown sectorBreakdown = Breakdown.from(sectorAmounts, total);
         HHI sectorHHI = HHI.calculate(sectorBreakdown);
-        
+
         Instant analyzedAt = Instant.now();
         PortfolioAnalysis analysis = new PortfolioAnalysis(
-            batchId,
-            totalPortfolio,
-            geoBreakdown,
-            sectorBreakdown,
-            geoHHI,
-            sectorHHI,
-            analyzedAt
+                batchId,
+                totalPortfolio,
+                geoBreakdown,
+                sectorBreakdown,
+                geoHHI,
+                sectorHHI,
+                analyzedAt
         );
-        
+
         // Raise domain event
         analysis.addDomainEvent(new PortfolioAnalysisCompletedEvent(
-            batchId,
-            totalPortfolio.value(),
-            geoHHI.value(),
-            sectorHHI.value(),
-            analyzedAt
+                batchId,
+                totalPortfolio.value(),
+                geoHHI.value(),
+                sectorHHI.value(),
+                analyzedAt,
+                correlationId
         ));
-        
+
         return analysis;
     }
-    
+
     /**
      * Factory method to reconstitute a PortfolioAnalysis from persisted data.
      * Used by infrastructure layer when loading from database.
-     * 
-     * @param batchId the batch identifier
-     * @param totalPortfolio total portfolio amount
+     *
+     * @param batchId             the batch identifier
+     * @param totalPortfolio      total portfolio amount
      * @param geographicBreakdown geographic breakdown
-     * @param sectorBreakdown sector breakdown
-     * @param geographicHHI geographic HHI
-     * @param sectorHHI sector HHI
-     * @param analyzedAt timestamp when analysis was performed
+     * @param sectorBreakdown     sector breakdown
+     * @param geographicHHI       geographic HHI
+     * @param sectorHHI           sector HHI
+     * @param analyzedAt          timestamp when analysis was performed
      * @return reconstituted PortfolioAnalysis
      */
     public static PortfolioAnalysis reconstitute(
-        String batchId,
-        EurAmount totalPortfolio,
-        Breakdown geographicBreakdown,
-        Breakdown sectorBreakdown,
-        HHI geographicHHI,
-        HHI sectorHHI,
-        Instant analyzedAt
+            String batchId,
+            EurAmount totalPortfolio,
+            Breakdown geographicBreakdown,
+            Breakdown sectorBreakdown,
+            HHI geographicHHI,
+            HHI sectorHHI,
+            Instant analyzedAt
     ) {
         return new PortfolioAnalysis(
-            batchId,
-            totalPortfolio,
-            geographicBreakdown,
-            sectorBreakdown,
-            geographicHHI,
-            sectorHHI,
-            analyzedAt
+                batchId,
+                totalPortfolio,
+                geographicBreakdown,
+                sectorBreakdown,
+                geographicHHI,
+                sectorHHI,
+                analyzedAt
         );
     }
-    
+
     // NEW: State management methods
-    
+
     /**
      * Starts processing - transitions to IN_PROGRESS state.
      */
@@ -177,14 +178,14 @@ public class PortfolioAnalysis extends Entity {
         if (state != ProcessingState.PENDING && state != null) {
             throw new IllegalStateException("Can only start processing from PENDING state, current state: " + state);
         }
-        
+
         this.state = ProcessingState.IN_PROGRESS;
         this.progress = ProcessingProgress.initial(totalExposures);
         this.processedChunks.clear();
         this.startedAt = Instant.now();
         this.lastUpdatedAt = Instant.now();
     }
-    
+
     /**
      * Records completion of a chunk.
      */
@@ -192,14 +193,14 @@ public class PortfolioAnalysis extends Entity {
         if (state != ProcessingState.IN_PROGRESS) {
             throw new IllegalStateException("Can only complete chunks during IN_PROGRESS state, current state: " + state);
         }
-        
+
         this.processedChunks.add(chunk);
         if (progress != null) {
             this.progress = progress.addProcessed(chunk.size());
         }
         this.lastUpdatedAt = Instant.now();
     }
-    
+
     /**
      * Marks processing as complete.
      */
@@ -207,11 +208,11 @@ public class PortfolioAnalysis extends Entity {
         if (state != ProcessingState.IN_PROGRESS) {
             throw new IllegalStateException("Can only complete from IN_PROGRESS state, current state: " + state);
         }
-        
+
         this.state = ProcessingState.COMPLETED;
         // Keep progress for historical tracking
     }
-    
+
     /**
      * Marks processing as failed.
      */
@@ -219,18 +220,18 @@ public class PortfolioAnalysis extends Entity {
         if (state == ProcessingState.COMPLETED) {
             throw new IllegalStateException("Cannot fail already completed analysis");
         }
-        
+
         this.state = ProcessingState.FAILED;
         // Keep progress and chunks for debugging
     }
-    
+
     /**
      * Checks if processing can be resumed.
      */
     public boolean canResume() {
         return state == ProcessingState.IN_PROGRESS && !processedChunks.isEmpty();
     }
-    
+
     /**
      * Gets the index of the last processed chunk.
      */
@@ -240,7 +241,7 @@ public class PortfolioAnalysis extends Entity {
         }
         return processedChunks.get(processedChunks.size() - 1).index();
     }
-    
+
     /**
      * Gets a copy of the processed chunks list.
      */

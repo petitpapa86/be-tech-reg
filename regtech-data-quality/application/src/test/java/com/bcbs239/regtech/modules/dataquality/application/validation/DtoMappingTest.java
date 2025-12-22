@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.modules.dataquality.application.validation;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.dataquality.application.reporting.QualityReportDto;
 import com.bcbs239.regtech.dataquality.application.scoring.QualityScoresDto;
 import com.bcbs239.regtech.dataquality.application.validation.ValidationSummaryDto;
@@ -143,9 +144,9 @@ class DtoMappingTest {
         
         S3Reference s3Ref = S3Reference.of("test-bucket", "quality/test.json", "v1");
         
-        domainReport.startValidation();
-        domainReport.recordValidationResults(createMockValidationResult(summary));
-        domainReport.calculateScores(scores);
+        domainReport.startValidation(CorrelationContext.correlationId());
+        domainReport.recordValidationResults(createMockValidationResult(summary),"1245-abcd");
+        domainReport.calculateScores(scores, CorrelationContext.correlationId());
         domainReport.storeDetailedResults(s3Ref);
         domainReport.completeValidation();
         

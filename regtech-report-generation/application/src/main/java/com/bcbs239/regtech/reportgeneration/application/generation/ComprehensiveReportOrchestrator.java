@@ -66,12 +66,11 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
      * 
      * @param riskEventData the risk calculation event data
      * @param qualityEventData the quality validation event data
-     * @return CompletableFuture that completes when generation finishes
      */
     @Async("reportGenerationExecutor")
     @Override
     @Timed(value = "reportgeneration.comprehensive", description = "Time taken to generate comprehensive report")
-    public CompletableFuture<Void> generateComprehensiveReport(
+    public void generateComprehensiveReport(
             CalculationEventData riskEventData,
             QualityEventData qualityEventData) {
         
@@ -86,7 +85,6 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             if (reportRepository.existsByBatchIdAndStatus(BatchId.of(batchId), ReportStatus.COMPLETED)) {
                 log.info("Report already exists with COMPLETED status [batchId:{}], skipping generation", batchId);
                 metrics.recordDuplicateSkipped(batchId);
-                return CompletableFuture.completedFuture(null);
             }
             
             // Step 2: Fetch and aggregate data from both sources
@@ -159,9 +157,7 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             
             log.info("Comprehensive report generation completed [batchId:{},reportId:{},duration:{}ms]",
                 batchId, report.getReportId().value(), totalDuration);
-            
-            return CompletableFuture.completedFuture(null);
-            
+
         } catch (HtmlGenerationException e) {
             // HTML failed, check if XBRL succeeded for partial status
             handlePartialFailure(batchId, "HTML generation failed: " + e.getMessage(), e);

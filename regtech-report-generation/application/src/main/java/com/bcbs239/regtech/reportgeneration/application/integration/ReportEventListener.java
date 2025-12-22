@@ -2,7 +2,7 @@ package com.bcbs239.regtech.reportgeneration.application.integration;
 
 import com.bcbs239.regtech.core.domain.eventprocessing.EventProcessingFailure;
 import com.bcbs239.regtech.core.domain.eventprocessing.IEventProcessingFailureRepository;
-import com.bcbs239.regtech.core.domain.events.integration.BatchCalculationCompletedIntegrationEvent;
+import com.bcbs239.regtech.core.domain.events.integration.RiskCalculationCompletedIntegrationEvent;
 import com.bcbs239.regtech.core.domain.events.integration.BatchQualityCompletedIntegrationEvent;
 import com.bcbs239.regtech.reportgeneration.application.coordination.CalculationEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.QualityEventData;
@@ -12,7 +12,6 @@ import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
@@ -112,8 +111,8 @@ public class ReportEventListener {
      * 
      * @param event the calculation completed event
      */
-    @EventListener
-    public void handleBatchCalculationCompleted(BatchCalculationCompletedIntegrationEvent event) {
+   // @EventListener
+    public void handleBatchCalculationCompleted(RiskCalculationCompletedIntegrationEvent event) {
 
         
         String batchId = event.getBatchId();
@@ -155,7 +154,7 @@ public class ReportEventListener {
     }
 
     @Async("reportGenerationExecutor")
-    private void routeRiskCalculationCompletedEvent(BatchCalculationCompletedIntegrationEvent event, String batchId) {
+    private void routeRiskCalculationCompletedEvent(RiskCalculationCompletedIntegrationEvent event, String batchId) {
         totalCalculationEventsReceived.incrementAndGet();
         CalculationEventData eventData = mapToCalculationEventData(event);
         reportCoordinator.handleCalculationCompleted(eventData);
@@ -178,7 +177,7 @@ public class ReportEventListener {
      * 
      * @param event the quality completed event
      */
-    @EventListener
+   // @EventListener
     public void handleBatchQualityCompleted(BatchQualityCompletedIntegrationEvent event) {
 
         String batchId = event.getBatchId();
@@ -236,7 +235,7 @@ public class ReportEventListener {
      * @param event the event to validate
      * @return true if should process, false otherwise
      */
-    private boolean shouldProcessCalculationEvent(BatchCalculationCompletedIntegrationEvent event) {
+    private boolean shouldProcessCalculationEvent(RiskCalculationCompletedIntegrationEvent event) {
         if (event == null) {
             log.info("batch_calculation_event_invalid; details={}", Map.of(
                     "reason", "null_event"
@@ -425,7 +424,7 @@ public class ReportEventListener {
      * @param event the external event
      * @return the internal DTO
      */
-    private CalculationEventData mapToCalculationEventData(BatchCalculationCompletedIntegrationEvent event) {
+    private CalculationEventData mapToCalculationEventData(RiskCalculationCompletedIntegrationEvent event) {
         return new CalculationEventData(
             event.getBatchId(),
             event.getBankId(),
@@ -513,7 +512,7 @@ public class ReportEventListener {
         }
         
         // Remove from processed set to allow retry
-        if (event instanceof BatchCalculationCompletedIntegrationEvent) {
+        if (event instanceof RiskCalculationCompletedIntegrationEvent) {
             processedEvents.remove(eventKey(EVENT_KEY_CALCULATION, batchId));
         } else if (event instanceof BatchQualityCompletedIntegrationEvent) {
             processedEvents.remove(eventKey(EVENT_KEY_QUALITY, batchId));
@@ -531,8 +530,8 @@ public class ReportEventListener {
      */
     private String extractBatchId(Object event) {
         try {
-            if (event instanceof BatchCalculationCompletedIntegrationEvent) {
-                return ((BatchCalculationCompletedIntegrationEvent) event).getBatchId();
+            if (event instanceof RiskCalculationCompletedIntegrationEvent) {
+                return ((RiskCalculationCompletedIntegrationEvent) event).getBatchId();
             } else if (event instanceof BatchQualityCompletedIntegrationEvent) {
                 return ((BatchQualityCompletedIntegrationEvent) event).getBatchId();
             }

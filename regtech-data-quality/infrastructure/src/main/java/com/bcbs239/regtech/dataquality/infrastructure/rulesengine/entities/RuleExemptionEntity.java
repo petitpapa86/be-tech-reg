@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities;
 
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.model.JsonbConverter;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ExemptionType;
+import com.bcbs239.regtech.dataquality.domain.rules.ExemptionType;
 import jakarta.persistence.*;
 import lombok.*;
 

@@ -6,7 +6,7 @@ import com.bcbs239.regtech.dataquality.application.batch.ProcessBatchCompletedUs
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
-@Component("dataQualityBatchCompletedIntegrationEventListener")
+@Component("BatchCompletedIntegrationEventListener")
 public class BatchCompletedIntegrationEventListener {
     private final ProcessBatchCompletedUseCase useCase;
 

@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+
 @Component("dataQualityBatchQualityCompletedEventPublisher")
 @RequiredArgsConstructor
 public class BatchQualityCompletedEventPublisher {
@@ -33,7 +35,10 @@ public class BatchQualityCompletedEventPublisher {
                     event.getBankId().value(),
                     event.getDetailsReference().uri(),
                     event.getQualityScores().overallScore(),
-                    event.getQualityGrade().getLetterGrade()
+                    event.getQualityGrade().getLetterGrade(),
+                    Instant.now(),
+                    event.getCorrelationId()
+
             );
 
             ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())

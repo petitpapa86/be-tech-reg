@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.ingestion.domain.integrationevents;
 
+import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
@@ -36,7 +37,7 @@ public class BatchIngestedEvent extends DomainEvent {
             @JsonProperty("totalExposures") int totalExposures,
             @JsonProperty("fileSizeBytes") long fileSizeBytes,
             @JsonProperty("completedAt") Instant completedAt) {
-        super(batchId, Maybe.none(), "BatchIngestedEvent");
+        super(CorrelationContext.correlationId());
         this.batchId = batchId;
         this.bankId = bankId;
         this.s3Uri = s3Uri;
@@ -44,11 +45,6 @@ public class BatchIngestedEvent extends DomainEvent {
         this.fileSizeBytes = fileSizeBytes;
         this.completedAt = completedAt;
         this.eventVersion = EVENT_VERSION;
-    }
-    
-    @Override
-    public String eventType() {
-        return getEventType();
     }
     
     @Override

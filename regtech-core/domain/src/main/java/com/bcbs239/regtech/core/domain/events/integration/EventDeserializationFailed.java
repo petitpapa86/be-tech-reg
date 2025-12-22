@@ -29,17 +29,12 @@ public class EventDeserializationFailed extends IntegrationEvent {
             @JsonProperty("maxRetries") int maxRetries,
             @JsonProperty("errorMessage") String errorMessage,
             @JsonProperty("correlationId") String correlationId) {
-        super(correlationId, Maybe.none(), "EventDeserializationFailed");
+        super(correlationId);
         this.failureId = failureId;
         this.eventType = eventType;
         this.userId = userId;
         this.retryCount = retryCount;
         this.maxRetries = maxRetries;
         this.errorMessage = errorMessage;
-    }
-
-    @Override
-    public String eventType() {
-        return "EventDeserializationFailed";
     }
 }

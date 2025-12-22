@@ -2,12 +2,14 @@ package com.bcbs239.regtech.dataquality.infrastructure.rules;
 
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.rules.IRulesValidationService;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
+import com.bcbs239.regtech.dataquality.domain.rules.Severity;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ParameterType;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
+import com.bcbs239.regtech.dataquality.domain.rules.ParameterType;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleType;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
@@ -203,7 +205,7 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
      * Maps the Rules Engine domain to the Data Quality domain.
      */
     private List<ValidationError> convertViolationsToErrors(
-            List<com.bcbs239.regtech.dataquality.rulesengine.domain.RuleViolation> violations,
+            List<RuleViolation> violations,
             BusinessRuleEntity rule) {
         
         return violations.stream()
@@ -245,7 +247,7 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
      * Maps Rules Engine severity to ValidationError severity.
      */
     private ValidationError.ErrorSeverity mapSeverity(
-            com.bcbs239.regtech.dataquality.rulesengine.domain.Severity severity) {
+            Severity severity) {
         
         return switch (severity) {
             case LOW -> ValidationError.ErrorSeverity.LOW;

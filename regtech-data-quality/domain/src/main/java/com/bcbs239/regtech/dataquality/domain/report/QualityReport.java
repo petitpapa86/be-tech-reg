@@ -76,7 +76,7 @@ public class QualityReport extends Entity {
      * Starts the quality validation process.
      * Transitions from PENDING to IN_PROGRESS status and raises domain event.
      */
-    public Result<Void> startValidation() {
+    public Result<Void> startValidation(String correlationId) {
         if (!canStartValidation()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
@@ -91,7 +91,7 @@ public class QualityReport extends Entity {
         this.updatedAt = Instant.now();
         
         addDomainEvent(new QualityValidationStartedEvent(
-            reportId, batchId, bankId, updatedAt
+            reportId, batchId, bankId, updatedAt, correlationId
         ));
         
         return Result.success();
@@ -107,7 +107,7 @@ public class QualityReport extends Entity {
      * @param validation The validation results from the Rules Engine
      * @return Result containing ValidationResult for further processing (e.g., S3 storage)
      */
-    public Result<ValidationResult> recordValidationAndCalculateScores(ValidationResult validation) {
+    public Result<ValidationResult> recordValidationAndCalculateScores(ValidationResult validation, String correlationId) {
         // Guard: Ensure we're in the correct state
         if (!isInProgress()) {
             return Result.failure(ErrorDetail.of(
@@ -134,7 +134,7 @@ public class QualityReport extends Entity {
         
         // Emit domain event for validation results
         addDomainEvent(new QualityResultsRecordedEvent(
-            reportId, batchId, bankId, validationSummary, updatedAt
+            reportId, batchId, bankId, validationSummary, updatedAt,correlationId
         ));
         
         // Business Logic: Calculate quality scores using value object factory method
@@ -147,7 +147,7 @@ public class QualityReport extends Entity {
         this.updatedAt = Instant.now();
         
         // Emit domain event for score calculation
-        addDomainEvent(new QualityScoresCalculatedEvent(
+        addDomainEvent(new QualityScoresCalculatedEvent(correlationId,
             reportId, batchId, bankId, qualityScores, updatedAt
         ));
         
@@ -159,7 +159,7 @@ public class QualityReport extends Entity {
      * Records validation results from the quality validation engine.
      * Updates validation summary and raises domain event.
      */
-    public Result<Void> recordValidationResults(ValidationResult validationResult) {
+    public Result<Void> recordValidationResults(ValidationResult validationResult, String correlationId) {
         if (!canRecordResults()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
@@ -182,7 +182,7 @@ public class QualityReport extends Entity {
         this.updatedAt = Instant.now();
         
         addDomainEvent(new QualityResultsRecordedEvent(
-            reportId, batchId, bankId, validationSummary, updatedAt
+            reportId, batchId, bankId, validationSummary, updatedAt, correlationId
         ));
         
         return Result.success();
@@ -192,7 +192,7 @@ public class QualityReport extends Entity {
      * Calculates and stores quality scores based on validation results.
      * Updates quality scores and raises domain event.
      */
-    public Result<Void> calculateScores(QualityScores qualityScores) {
+    public Result<Void> calculateScores(QualityScores qualityScores, String correlationId) {
         if (!canCalculateScores()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
@@ -215,7 +215,7 @@ public class QualityReport extends Entity {
         this.qualityGrade = qualityScores.grade();
         this.updatedAt = Instant.now();
         
-        addDomainEvent(new QualityScoresCalculatedEvent(
+        addDomainEvent(new QualityScoresCalculatedEvent(correlationId,
             reportId, batchId, bankId, qualityScores, updatedAt
         ));
         
@@ -309,7 +309,7 @@ public class QualityReport extends Entity {
      * Marks the quality validation as failed with an error message.
      * Transitions to FAILED status and raises failure event.
      */
-    public Result<Void> markAsFailed(String errorMessage) {
+    public Result<Void> markAsFailed(String errorMessage, String correlationId) {
         if (isTerminal()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
@@ -333,7 +333,7 @@ public class QualityReport extends Entity {
         this.updatedAt = Instant.now();
         
         addDomainEvent(new QualityValidationFailedEvent(
-            reportId, batchId, bankId, this.errorMessage, updatedAt
+            reportId, batchId, bankId, this.errorMessage, updatedAt, correlationId
         ));
         
         return Result.success();

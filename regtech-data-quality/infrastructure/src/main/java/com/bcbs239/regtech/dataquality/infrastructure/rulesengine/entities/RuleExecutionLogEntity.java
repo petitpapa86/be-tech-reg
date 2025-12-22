@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities;
 
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ExecutionResult;
+import com.bcbs239.regtech.dataquality.domain.rules.ExecutionResult;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;

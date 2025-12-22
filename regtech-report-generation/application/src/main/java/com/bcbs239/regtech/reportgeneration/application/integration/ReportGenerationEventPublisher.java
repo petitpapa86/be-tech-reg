@@ -69,7 +69,8 @@ public class ReportGenerationEventPublisher {
                     event.getOverallQualityScore(),
                     event.getComplianceStatus().name(),
                     event.getGenerationDuration() != null ? event.getGenerationDuration().toMillis() : null,
-                    event.getGeneratedAt()
+                    event.getGeneratedAt(),
+                    CorrelationContext.correlationId()
             );
 
             // Publish to other bounded contexts
@@ -109,7 +110,8 @@ public class ReportGenerationEventPublisher {
                     event.getBankId().value(),
                     event.getFailureReason().message(),
                     "REPORT_GENERATION_FAILED", // Standard error code
-                    event.getFailedAt()
+                    event.getFailedAt(),
+                    CorrelationContext.correlationId()
             );
 
             // Publish to other bounded contexts

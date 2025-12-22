@@ -15,7 +15,7 @@ public abstract class SagaMessage extends DomainEvent {
     protected final String eventType;
 
     public SagaMessage(String eventType, Instant occurredAt, SagaId sagaId, String correlationId, String causationId) {
-        super(correlationId, Maybe.some(causationId), eventType);
+        super(correlationId);
         this.eventType = eventType;
         this.occurredAt = occurredAt;
         this.sagaId = sagaId;
@@ -27,10 +27,6 @@ public abstract class SagaMessage extends DomainEvent {
 
     public SagaId sagaId() {
         return sagaId;
-    }
-
-    public Instant occurredAt() {
-        return occurredAt;
     }
 }
 

@@ -5,9 +5,9 @@ import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleE
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleParameterEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ParameterType;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.RuleType;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.Severity;
+import com.bcbs239.regtech.dataquality.domain.rules.ParameterType;
+import com.bcbs239.regtech.dataquality.domain.rules.RuleType;
+import com.bcbs239.regtech.dataquality.domain.rules.Severity;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.DefaultRuleContext;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import org.junit.jupiter.api.BeforeEach;

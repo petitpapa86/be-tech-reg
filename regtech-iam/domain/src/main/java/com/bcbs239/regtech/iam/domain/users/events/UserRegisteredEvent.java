@@ -21,30 +21,18 @@ public class UserRegisteredEvent extends DomainEvent {
     public UserRegisteredEvent(@JsonProperty("userId") String userId,
                                @JsonProperty("email") String email,
                                @JsonProperty("bankId") String bankId,
-                               @JsonProperty("paymentMethodId") String paymentMethodId,
-                               @JsonProperty("causationId") String causationId) {
+                               @JsonProperty("paymentMethodId") String paymentMethodId) {
 
         String correlationId = CorrelationContext.correlationId();
-        Maybe<String> causationMaybe;
-        if (causationId != null) {
-            causationMaybe = Maybe.some(causationId);
-        } else {
-            causationMaybe = Maybe.none();
-        }
-        super(correlationId, causationMaybe, "UserRegisteredEvent");
+        super(correlationId);
         this.userId = userId;
         this.email = email;
         this.bankId = bankId;
         this.paymentMethodId = paymentMethodId;
     }
 
-    public static UserRegisteredEvent create(String userId, String email, String bankId, String paymentMethodId, String causationId) {
-        return new UserRegisteredEvent(userId, email, bankId, paymentMethodId, causationId);
-    }
-
-    @Override
-    public String eventType() {
-        return "UserRegisteredEvent";
+    public static UserRegisteredEvent create(String userId, String email, String bankId, String paymentMethodId) {
+        return new UserRegisteredEvent(userId, email, bankId, paymentMethodId);
     }
 }
 

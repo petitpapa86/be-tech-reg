@@ -25,15 +25,10 @@ public class EventPublishingFailed extends IntegrationEvent {
             @JsonProperty("userId") String userId,
             @JsonProperty("errorMessage") String errorMessage,
             @JsonProperty("correlationId") String correlationId) {
-        super(correlationId, Maybe.none(), "EventPublishingFailed");
+        super(correlationId);
         this.failureId = failureId;
         this.eventType = eventType;
         this.userId = userId;
         this.errorMessage = errorMessage;
-    }
-
-    @Override
-    public String eventType() {
-        return "EventPublishingFailed";
     }
 }

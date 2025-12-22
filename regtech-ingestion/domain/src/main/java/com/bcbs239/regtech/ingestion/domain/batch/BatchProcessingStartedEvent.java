@@ -22,15 +22,10 @@ public class BatchProcessingStartedEvent extends DomainEvent {
             @JsonProperty("bankId") BankId bankId, 
             @JsonProperty("startedAt") Instant startedAt, 
             @JsonProperty("correlationId") String correlationId) {
-        super(correlationId, "BatchProcessingStartedEvent");
+        super(correlationId);
         this.batchId = batchId;
         this.bankId = bankId;
         this.startedAt = startedAt;
-    }
-    
-    @Override
-    public String eventType() {
-        return getEventType();
     }
     
     // Getters with JsonProperty for proper serialization

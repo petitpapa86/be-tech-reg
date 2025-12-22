@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository;
 
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.ResolutionStatus;
-import com.bcbs239.regtech.dataquality.rulesengine.domain.Severity;
+import com.bcbs239.regtech.dataquality.domain.rules.ResolutionStatus;
+import com.bcbs239.regtech.dataquality.domain.rules.Severity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

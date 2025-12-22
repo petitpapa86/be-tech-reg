@@ -27,14 +27,12 @@ public class QualityResultsRecordedEvent extends DomainEvent {
     @JsonCreator
     public QualityResultsRecordedEvent(
             @JsonProperty("correlationId") String correlationId,
-            @JsonProperty("causationId") String causationId,
-            @JsonProperty("eventId") String eventId,
             @JsonProperty("reportId") QualityReportId reportId,
             @JsonProperty("batchId") BatchId batchId,
             @JsonProperty("bankId") BankId bankId,
             @JsonProperty("validationSummary") ValidationSummary validationSummary,
             @JsonProperty("occurredAt") Instant occurredAt) {
-        super(correlationId, causationId != null ? Maybe.some(causationId) : Maybe.none(), "QualityResultsRecorded");
+        super(correlationId);
         if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
         if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
         if (bankId == null) throw new IllegalArgumentException("Bank ID cannot be null");
@@ -48,8 +46,8 @@ public class QualityResultsRecordedEvent extends DomainEvent {
     }
 
     // Convenience constructor for programmatic creation
-    public QualityResultsRecordedEvent(QualityReportId reportId, BatchId batchId, BankId bankId, ValidationSummary validationSummary, Instant occurredAt) {
-        super("QualityResultsRecordedEvent", Maybe.none(), "QualityResultsRecorded");
+    public QualityResultsRecordedEvent(QualityReportId reportId, BatchId batchId, BankId bankId, ValidationSummary validationSummary, Instant occurredAt, String correlationId) {
+        super(correlationId);
         if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
         if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
         if (bankId == null) throw new IllegalArgumentException("Bank ID cannot be null");
@@ -62,9 +60,5 @@ public class QualityResultsRecordedEvent extends DomainEvent {
         this.occurredAt = occurredAt;
     }
 
-    @Override
-    public String eventType() {
-        return "QualityResultsRecorded";
-    }
 }
 

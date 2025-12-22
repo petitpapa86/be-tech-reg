@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.presentation.integration.listener.dataquality;
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
-import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedInboundEvent;
 import com.bcbs239.regtech.core.domain.events.integration.DataQualityCompletedInboundEvent;
 import com.bcbs239.regtech.reportgeneration.application.ingestionbatch.ProcessDataQualityCompletedUseCase;
 import org.springframework.context.event.EventListener;

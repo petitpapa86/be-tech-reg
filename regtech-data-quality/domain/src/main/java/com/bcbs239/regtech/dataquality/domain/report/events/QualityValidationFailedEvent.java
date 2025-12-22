@@ -28,8 +28,9 @@ public class QualityValidationFailedEvent extends DomainEvent {
             @JsonProperty("batchId") BatchId batchId,
             @JsonProperty("bankId") BankId bankId,
             @JsonProperty("errorMessage") String errorMessage,
-            @JsonProperty("occurredAt") Instant occurredAt) {
-        super("QualityValidationFailedEvent", null, "QualityValidationFailed");
+            @JsonProperty("occurredAt") Instant occurredAt,
+            @JsonProperty("correlationId") String correlationId){
+        super(correlationId);
         if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
         if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
         if (bankId == null) throw new IllegalArgumentException("Bank ID cannot be null");
@@ -44,9 +45,5 @@ public class QualityValidationFailedEvent extends DomainEvent {
         this.occurredAt = occurredAt;
     }
 
-    @Override
-    public String eventType() {
-        return "QualityValidationFailed";
-    }
 }
 

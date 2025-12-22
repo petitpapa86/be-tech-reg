@@ -39,9 +39,10 @@ public class BatchQualityCompletedIntegrationEvent extends IntegrationEvent {
             @JsonProperty("s3ReferenceUri") String s3ReferenceUri,
             @JsonProperty("overallScore") double overallScore,
             @JsonProperty("qualityGrade") String qualityGrade,
-            @JsonProperty("completedAt") Instant completedAt
+            @JsonProperty("completedAt") Instant completedAt,
+            @JsonProperty("correlationId") String correlationId
     ) {
-        super(batchId, Maybe.none(), "BatchQualityCompletedIntegrationEvent");
+        super(correlationId);
         this.batchId = batchId;
         this.bankId = bankId;
         this.s3ReferenceUri = s3ReferenceUri;
@@ -49,22 +50,6 @@ public class BatchQualityCompletedIntegrationEvent extends IntegrationEvent {
         this.qualityGrade = qualityGrade;
         this.completedAt = completedAt;
         this.eventVersion = EVENT_VERSION;
-    }
-
-    // Convenience constructor without completedAt for creation
-    public BatchQualityCompletedIntegrationEvent(
-            String batchId,
-            String bankId,
-            String s3ReferenceUri,
-            double overallScore,
-            String qualityGrade
-    ) {
-        this(batchId, bankId, s3ReferenceUri, overallScore, qualityGrade, Instant.now());
-    }
-
-    @Override
-    public String eventType() {
-        return "BatchQualityCompletedIntegrationEvent";
     }
 
     @Override
