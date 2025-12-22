@@ -3,7 +3,7 @@ package com.bcbs239.regtech.riskcalculation.application.integration;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCalculationCompletedIntegrationEvent;
-import com.bcbs239.regtech.riskcalculation.domain.calculation.events.DataQualityCompletedEvent;
+import com.bcbs239.regtech.riskcalculation.domain.calculation.events.RiskCalculationCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -21,7 +21,7 @@ public class BatchCalculationCompletedEventPublisher {
     }
 
     @EventListener
-    public void handle(DataQualityCompletedEvent event) {
+    public void handle(RiskCalculationCompletedEvent event) {
         if (CorrelationContext.isOutboxReplay()) {
             logger.debug("Skipping integration publish for BatchCalculationCompletedEvent {} because this is an outbox replay", event.getEventId());
             return;
@@ -38,13 +38,9 @@ public class BatchCalculationCompletedEventPublisher {
                     event.getProcessedExposures()
             );
             ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
-                    // .where(CorrelationContext.CAUSATION_ID, event.getCausationId().getValue())
-                    //.where(CorrelationContext.BOUNDED_CONTEXT, event.getBoundedContext())
                     .where(CorrelationContext.OUTBOX_REPLAY, true)
                     .where(CorrelationContext.INBOX_REPLAY, false)
-                    .run(() -> {
-                        eventBus.publish(integrationEvent);
-                    });
+                    .run(() -> eventBus.publish(integrationEvent));
             logger.info("Published BatchCalculationCompletedIntegrationEvent for batch {}", event.getBatchId());
 
         } catch (Exception ex) {
