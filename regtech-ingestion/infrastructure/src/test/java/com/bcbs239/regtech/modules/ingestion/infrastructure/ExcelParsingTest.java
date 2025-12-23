@@ -83,7 +83,7 @@ class ExcelParsingTest {
             try (XSSFWorkbook readWb = new XSSFWorkbook(new ByteArrayInputStream(bytes))) {
                 XSSFSheet readSheet = readWb.getSheetAt(0);
                 DataFormatter formatter = new DataFormatter();
-                List<LoanExposureDto> exposures = new ArrayList<>();
+                List<ExposureDto> exposures = new ArrayList<>();
 
                 for (int r = 1; r <= readSheet.getLastRowNum(); r++) {
                     Row row = readSheet.getRow(r);
@@ -104,10 +104,10 @@ class ExcelParsingTest {
                     String borrowerCountry = formatter.formatCellValue(row.getCell(12));
                     String countryCode = formatter.formatCellValue(row.getCell(13));
 
-                    LoanExposureDto dto = new LoanExposureDto(
-                        loanId, exposureId, borrowerName, borrowerId, counterpartyLei,
-                        loanAmount, gross, net, currency, loanType, sector, exposureType,
-                        borrowerCountry, countryCode
+                    ExposureDto dto = new ExposureDto(
+                        exposureId, loanId, "LOAN", borrowerName, borrowerId, counterpartyLei,
+                        loanAmount, currency, loanType, sector, null, exposureType,
+                        countryCode, null
                     );
                     exposures.add(dto);
                 }
@@ -115,7 +115,7 @@ class ExcelParsingTest {
                 // Map to domain objects
                 java.util.List<LoanExposure> models =
                     DomainMapper.toLoanExposureList(
-                        exposures.toArray(new LoanExposureDto[0])
+                        exposures.toArray(new ExposureDto[0])
                     );
 
                 // Assertions on domain objects

@@ -29,7 +29,8 @@ class ExposureRecordTest {
             "CORPORATE",
             LocalDate.parse("2029-09-12"),
             "ON_BALANCE",
-            "IT"
+            "IT",
+            null
         );
 
         // When
@@ -73,7 +74,8 @@ class ExposureRecordTest {
             null,
             null,
             null,
-            "US"
+            "US",
+            null
         );
 
         // When
@@ -107,7 +109,8 @@ class ExposureRecordTest {
             null,
             null,
             "ON_BALANCE",
-            "GB"
+            "GB",
+            null
         );
 
         // When

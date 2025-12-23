@@ -27,7 +27,8 @@ public class DomainMapper {
             parseLocalDateSafe(dto.maturityDate()), // maturityDate
             dto.balanceSheetType(),    // exposureType
             null,                      // borrowerCountry (not in new format)
-            dto.countryCode()          // countryCode
+            dto.countryCode(),         // countryCode
+            dto.internalRating()       // internalRating
         );
     }
 

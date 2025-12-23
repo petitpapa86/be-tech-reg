@@ -122,7 +122,8 @@ class ExposureRecordingTest {
             "RETAIL",
             null,
             "ON_BALANCE",
-            "US"
+            "US",
+            null
         );
 
         // When
@@ -161,7 +162,8 @@ class ExposureRecordingTest {
             null,
             null,
             "ON_BALANCE",
-            "IT"
+            "IT",
+            null
         );
 
         // When
@@ -188,7 +190,8 @@ class ExposureRecordingTest {
             null,
             null,
             "UNKNOWN_BALANCE_TYPE",
-            "IT"
+            "IT",
+            null
         );
 
         // When
@@ -215,7 +218,8 @@ class ExposureRecordingTest {
             null,
             null,
             "ON_BALANCE",
-            "IT"
+            "IT",
+            null
         );
 
         // When
@@ -450,7 +454,8 @@ class ExposureRecordingTest {
             null,
             null,
             "ON_BALANCE",
-            "IT"
+            "IT",
+            null
         );
 
         // When
@@ -477,7 +482,8 @@ class ExposureRecordingTest {
             null,
             null,
             "off_balance", // lowercase
-            "IT"
+            "IT",
+            null
         );
 
         // When
@@ -506,7 +512,8 @@ class ExposureRecordingTest {
                 null,
                 null,
                 "ON_BALANCE",
-                "IT"
+                "IT",
+                null
             );
 
             // When
@@ -537,7 +544,8 @@ class ExposureRecordingTest {
                 null,
                 null,
                 balanceSheetType.name(),
-                "IT"
+                "IT",
+                null
             );
 
             // When

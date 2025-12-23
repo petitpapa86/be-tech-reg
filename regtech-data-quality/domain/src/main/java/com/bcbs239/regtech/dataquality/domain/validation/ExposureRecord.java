@@ -49,7 +49,7 @@ public record ExposureRecord(
             .leiCode(dto.counterpartyLei())
             // Fields not available in ExposureDTO - set to null
             .counterpartyType(null)
-            .internalRating(null)
+            .internalRating(dto.internalRating())
             .riskCategory(null)
             .riskWeight(null)
             .reportingDate(null)

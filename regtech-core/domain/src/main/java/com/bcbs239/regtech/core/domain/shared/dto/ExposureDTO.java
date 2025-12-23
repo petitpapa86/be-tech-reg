@@ -60,5 +60,9 @@ public record ExposureDTO(
 
     @JsonProperty("country_code")
     @JsonAlias({"countryCode", "country_Code"})
-    String countryCode
+    String countryCode,
+
+    @JsonProperty("internal_rating")
+    @JsonAlias({"internalRating", "internal_Rating"})
+    String internalRating
 ) {}

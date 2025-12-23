@@ -56,7 +56,8 @@ class IngestionToRiskCalculationIntegrationTest {
             "CORPORATE",
             LocalDate.parse("2029-09-12"),
             "ON_BALANCE",
-            "IT"
+            "IT",
+            null
         );
 
         ExposureDTO exposure2 = new ExposureDTO(
@@ -72,7 +73,8 @@ class IngestionToRiskCalculationIntegrationTest {
             "CORPORATE_TECHNOLOGY",
             LocalDate.parse("2029-09-12"),
             "ON_BALANCE",
-            "DE"
+            "DE",
+            null
         );
 
         CreditRiskMitigationDTO mitigation1 = new CreditRiskMitigationDTO(
@@ -190,7 +192,8 @@ class IngestionToRiskCalculationIntegrationTest {
             "CORPORATE",
             LocalDate.parse("2029-09-12"),
             "OFF_BALANCE",
-            "US"
+            "US",
+            null
         );
 
         BatchDataDTO dto = new BatchDataDTO(

@@ -124,69 +124,71 @@ public class FileToLoanExposureParser {
                 if (jp.currentToken() == JsonToken.FIELD_NAME) {
                     String fieldName = jp.currentName();
                     
-                    // Parse bank_info object
-                    if ("bank_info".equals(fieldName)) {
-                        jp.nextToken(); // move to START_OBJECT
-                        if (jp.currentToken() == JsonToken.START_OBJECT) {
-                            BankInfoDto dto = objectMapper.readValue(jp, BankInfoDto.class);
-                            bankInfo = DomainMapper.toBankInfoModel(dto);
-                            log.debug("Parsed bank_info: {}", bankInfo);
-                        } else {
-                            log.warn("Expected bank_info to be an object");
-                        }
-                    }
-                    // Parse exposures array (new format)
-                    else if ("exposures".equals(fieldName)) {
-                        jp.nextToken(); // move to START_ARRAY
-                        if (jp.currentToken() == JsonToken.START_ARRAY) {
-                            while (jp.nextToken() != JsonToken.END_ARRAY) {
-                                ExposureDto dto = objectMapper.readValue(jp, ExposureDto.class);
-                                exposures.add(DomainMapper.toLoanExposure(dto));
-                                if (exposures.size() >= maxRecords) {
-                                    log.info("Reached maxRecords limit ({}) while parsing exposures", maxRecords);
-                                    // Skip remaining elements in this array
-                                    jp.skipChildren();
-                                    break;
-                                }
+                    switch (fieldName) {
+                        // Parse bank_info object
+                        case "bank_info" -> {
+                            jp.nextToken(); // move to START_OBJECT
+                            if (jp.currentToken() == JsonToken.START_OBJECT) {
+                                BankInfoDto dto = objectMapper.readValue(jp, BankInfoDto.class);
+                                bankInfo = DomainMapper.toBankInfoModel(dto);
+                                log.debug("Parsed bank_info: {}", bankInfo);
+                            } else {
+                                log.warn("Expected bank_info to be an object");
                             }
-                        } else {
-                            log.warn("Expected exposures to be an array");
                         }
-                    }
-                    // Parse loan_portfolio array (old format - backward compatibility)
-                    else if ("loan_portfolio".equals(fieldName)) {
-                        jp.nextToken(); // move to START_ARRAY
-                        if (jp.currentToken() == JsonToken.START_ARRAY) {
-                            while (jp.nextToken() != JsonToken.END_ARRAY) {
-                                ExposureDto dto = objectMapper.readValue(jp, ExposureDto.class);
-                                exposures.add(DomainMapper.toLoanExposure(dto));
-                                if (exposures.size() >= maxRecords) {
-                                    log.info("Reached maxRecords limit ({}) while parsing loan_portfolio", maxRecords);
-                                    // Skip remaining elements in this array
-                                    jp.skipChildren();
-                                    break;
+                        // Parse exposures array (new format)
+                        case "exposures" -> {
+                            jp.nextToken(); // move to START_ARRAY
+                            if (jp.currentToken() == JsonToken.START_ARRAY) {
+                                while (jp.nextToken() != JsonToken.END_ARRAY) {
+                                    ExposureDto dto = objectMapper.readValue(jp, ExposureDto.class);
+                                    exposures.add(DomainMapper.toLoanExposure(dto));
+                                    if (exposures.size() >= maxRecords) {
+                                        log.info("Reached maxRecords limit ({}) while parsing exposures", maxRecords);
+                                        // Skip remaining elements in this array
+                                        jp.skipChildren();
+                                        break;
+                                    }
                                 }
+                            } else {
+                                log.warn("Expected exposures to be an array");
                             }
-                        } else {
-                            log.warn("Expected loan_portfolio to be an array");
                         }
-                    }
-                    // Parse credit_risk_mitigation array
-                    else if ("credit_risk_mitigation".equals(fieldName)) {
-                        jp.nextToken(); // move to START_ARRAY
-                        if (jp.currentToken() == JsonToken.START_ARRAY) {
-                            while (jp.nextToken() != JsonToken.END_ARRAY) {
-                                CreditRiskMitigationDto dto = objectMapper.readValue(jp, CreditRiskMitigationDto.class);
-                                crms.add(DomainMapper.toCrm(dto));
-                                if (crms.size() >= maxRecords) {
-                                    log.info("Reached maxRecords limit ({}) while parsing credit_risk_mitigation", maxRecords);
-                                    // Skip remaining elements in this array
-                                    jp.skipChildren();
-                                    break;
+                        // Parse loan_portfolio array (old format - backward compatibility)
+                        case "loan_portfolio" -> {
+                            jp.nextToken(); // move to START_ARRAY
+                            if (jp.currentToken() == JsonToken.START_ARRAY) {
+                                while (jp.nextToken() != JsonToken.END_ARRAY) {
+                                    ExposureDto dto = objectMapper.readValue(jp, ExposureDto.class);
+                                    exposures.add(DomainMapper.toLoanExposure(dto));
+                                    if (exposures.size() >= maxRecords) {
+                                        log.info("Reached maxRecords limit ({}) while parsing loan_portfolio", maxRecords);
+                                        // Skip remaining elements in this array
+                                        jp.skipChildren();
+                                        break;
+                                    }
                                 }
+                            } else {
+                                log.warn("Expected loan_portfolio to be an array");
                             }
-                        } else {
-                            log.warn("Expected credit_risk_mitigation to be an array");
+                        }
+                        // Parse credit_risk_mitigation array
+                        case "credit_risk_mitigation" -> {
+                            jp.nextToken(); // move to START_ARRAY
+                            if (jp.currentToken() == JsonToken.START_ARRAY) {
+                                while (jp.nextToken() != JsonToken.END_ARRAY) {
+                                    CreditRiskMitigationDto dto = objectMapper.readValue(jp, CreditRiskMitigationDto.class);
+                                    crms.add(DomainMapper.toCrm(dto));
+                                    if (crms.size() >= maxRecords) {
+                                        log.info("Reached maxRecords limit ({}) while parsing credit_risk_mitigation", maxRecords);
+                                        // Skip remaining elements in this array
+                                        jp.skipChildren();
+                                        break;
+                                    }
+                                }
+                            } else {
+                                log.warn("Expected credit_risk_mitigation to be an array");
+                            }
                         }
                     }
                 }
@@ -222,7 +224,7 @@ public class FileToLoanExposureParser {
                 // Expected Excel columns (by index):
                 // 0 loan_id, 1 exposure_id, 2 borrower_name, 3 borrower_id, 4 counterparty_lei,
                 // 5 loan_amount, 6 gross_exposure_amount, 7 net_exposure_amount, 8 currency,
-                // 9 loan_type, 10 sector, 11 exposure_type, 12 borrower_country, 13 country_code
+                // 9 loan_type, 10 sector, 11 exposure_type, 12 borrower_country, 13 country_code, 14 internal_rating
                 String instrumentId = formatter.formatCellValue(row.getCell(0));
                 String exposureId = formatter.formatCellValue(row.getCell(1));
                 String instrumentType = "LOAN";
@@ -235,6 +237,7 @@ public class FileToLoanExposureParser {
                 String sector = formatter.formatCellValue(row.getCell(10));
                 String balanceSheetType = formatter.formatCellValue(row.getCell(11));
                 String countryCode = formatter.formatCellValue(row.getCell(13));
+                String internalRating = formatter.formatCellValue(row.getCell(14));
 
                 ExposureDto dto = new ExposureDto(
                     exposureId,
@@ -249,7 +252,8 @@ public class FileToLoanExposureParser {
                     sector,
                     null,
                     balanceSheetType,
-                    countryCode
+                    countryCode,
+                    internalRating
                 );
 
                 results.add(DomainMapper.toLoanExposure(dto));

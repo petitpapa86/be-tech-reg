@@ -20,7 +20,8 @@ public record LoanExposure(
     LocalDate maturityDate,
     String exposureType,
     String borrowerCountry,
-    String countryCode
+    String countryCode,
+    String internalRating
 ) {
     public LoanExposure {
         Objects.requireNonNull(loanId);
@@ -63,7 +64,8 @@ public record LoanExposure(
             sector,                                    // sector
             maturityDate,                              // maturityDate
             exposureType,                              // balanceSheetType
-            countryCode                                // countryCode
+            countryCode,                               // countryCode
+            internalRating                             // internalRating
         );
     }
     
@@ -87,7 +89,8 @@ public record LoanExposure(
             dto.maturityDate(),                        // maturityDate
             dto.balanceSheetType(),                    // exposureType
             null,                                      // borrowerCountry (not in DTO)
-            dto.countryCode()                          // countryCode
+            dto.countryCode(),                         // countryCode
+            dto.internalRating()                       // internalRating
         );
     }
 }
