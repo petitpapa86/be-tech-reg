@@ -74,6 +74,14 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
             context.setVariable("riskSectorRows", prepareRiskSectorRows(results));
             context.setVariable("riskTopExposureCards", prepareRiskTopExposureCards(results));
             context.setVariable("riskConcentration", prepareRiskConcentration(results));
+
+            // Capital breakdown for Large Exposures section
+            context.setVariable("capitalBreakdown", prepareCapitalBreakdown(results));
+
+            // Defaults for quality-only variables to keep template null-safe
+            context.setVariable("bcbs239Compliance", List.of());
+            context.setVariable("validationRate", BigDecimal.ZERO);
+            context.setVariable("errorRate", BigDecimal.ZERO);
             
             // Process template
             String html = templateEngine.process("comprehensive-report", context);
@@ -136,6 +144,16 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
             context.setVariable("riskSectorRows", prepareRiskSectorRows(calculationResults));
             context.setVariable("riskTopExposureCards", prepareRiskTopExposureCards(calculationResults));
             context.setVariable("riskConcentration", prepareRiskConcentration(calculationResults));
+
+            // Capital breakdown for Large Exposures section
+            context.setVariable("capitalBreakdown", prepareCapitalBreakdown(calculationResults));
+
+            // BCBS 239 principles compliance
+            context.setVariable("bcbs239Compliance", prepareBCBS239Compliance(qualityResults));
+
+            // Additional metrics
+            context.setVariable("validationRate", calculateValidationRate(qualityResults));
+            context.setVariable("errorRate", calculateErrorRate(qualityResults));
             
             // Process template
             String html = templateEngine.process("comprehensive-report", context);
@@ -360,6 +378,34 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
         return data;
     }
 
+    private BigDecimal calculateValidationRate(QualityResults qualityResults) {
+        if (qualityResults == null || qualityResults.getTotalExposures() == null
+            || qualityResults.getTotalExposures() == 0) {
+            return BigDecimal.ZERO;
+        }
+
+        int valid = Optional.ofNullable(qualityResults.getValidExposures()).orElse(0);
+        int total = qualityResults.getTotalExposures();
+
+        return new BigDecimal(valid)
+            .multiply(new BigDecimal("100"))
+            .divide(new BigDecimal(total), 2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calculateErrorRate(QualityResults qualityResults) {
+        if (qualityResults == null || qualityResults.getTotalExposures() == null
+            || qualityResults.getTotalExposures() == 0) {
+            return BigDecimal.ZERO;
+        }
+
+        int errors = Optional.ofNullable(qualityResults.getTotalErrors()).orElse(0);
+        int total = qualityResults.getTotalExposures();
+
+        return new BigDecimal(errors)
+            .multiply(new BigDecimal("100"))
+            .divide(new BigDecimal(total), 2, RoundingMode.HALF_UP);
+    }
+
     private record RiskSectorRow(
         String label,
         int count,
@@ -388,6 +434,21 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
         BigDecimal avgExposureAmountEur,
         BigDecimal avgExposurePercentOfCapital,
         int sectorsInvolved
+    ) {}
+
+    // Add after existing RiskConcentration record
+
+    private record CapitalBreakdown(
+        BigDecimal totalOwnFunds,
+        BigDecimal tierOneCapital,
+        BigDecimal eligibleCapitalForLE
+    ) {}
+
+    private record ComplianceAssessment(
+        String principle,
+        String description,
+        boolean compliant,
+        BigDecimal score
     ) {}
 
     private List<RiskSectorRow> prepareRiskSectorRows(CalculationResults results) {
@@ -563,6 +624,61 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
             avgPctCapital,
             sectorsInvolved
         );
+    }
+
+    private CapitalBreakdown prepareCapitalBreakdown(CalculationResults results) {
+        BigDecimal tierOne = Optional.ofNullable(results.tierOneCapital())
+            .map(AmountEur::value)
+            .orElse(BigDecimal.ZERO);
+
+        // Assuming Total Own Funds = Tier 1 (simplified)
+        // In production, add Tier 2 capital if available
+        BigDecimal totalOwnFunds = tierOne;
+        BigDecimal eligibleCapital = tierOne;
+
+        return new CapitalBreakdown(totalOwnFunds, tierOne, eligibleCapital);
+    }
+
+    private List<ComplianceAssessment> prepareBCBS239Compliance(QualityResults qualityResults) {
+        if (qualityResults == null) {
+            return List.of();
+        }
+
+        Map<QualityDimension, BigDecimal> scores = qualityResults.getDimensionScores();
+
+        return List.of(
+            new ComplianceAssessment(
+                "Principle 3 - Accuracy and Integrity",
+                "Data must be accurate and reliable",
+                getScore(scores, QualityDimension.ACCURACY).compareTo(new BigDecimal("90")) >= 0,
+                getScore(scores, QualityDimension.ACCURACY)
+            ),
+            new ComplianceAssessment(
+                "Principle 4 - Completeness",
+                "Data must be complete and available",
+                getScore(scores, QualityDimension.COMPLETENESS).compareTo(new BigDecimal("90")) >= 0,
+                getScore(scores, QualityDimension.COMPLETENESS)
+            ),
+            new ComplianceAssessment(
+                "Principle 5 - Timeliness",
+                "Data must be updated and available on-demand",
+                getScore(scores, QualityDimension.TIMELINESS).compareTo(new BigDecimal("90")) >= 0,
+                getScore(scores, QualityDimension.TIMELINESS)
+            ),
+            new ComplianceAssessment(
+                "Principle 6 - Adaptability",
+                "Systems must be flexible for new requirements",
+                getScore(scores, QualityDimension.CONSISTENCY).compareTo(new BigDecimal("70")) >= 0,
+                getScore(scores, QualityDimension.CONSISTENCY)
+            )
+        );
+    }
+
+    private BigDecimal getScore(Map<QualityDimension, BigDecimal> scores, QualityDimension dimension) {
+        if (scores == null || dimension == null) {
+            return BigDecimal.ZERO;
+        }
+        return Optional.ofNullable(scores.get(dimension)).orElse(BigDecimal.ZERO);
     }
 
     private BigDecimal safePercent(BigDecimal numerator, BigDecimal denominator) {

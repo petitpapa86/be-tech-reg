@@ -3,7 +3,6 @@ package com.bcbs239.regtech.dataquality.application.validation;
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
