@@ -52,7 +52,4 @@ public interface IGeneratedReportRepository {
      * @return true if a report exists with the given status, false otherwise
      */
     boolean existsByBatchIdAndStatus(BatchId batchId, ReportStatus status);
-
-    boolean existsByDataQualityEventId(String dataQualityEventId);
-    boolean existsByRiskCalculationEventId(String riskCalculationEventId);
 }

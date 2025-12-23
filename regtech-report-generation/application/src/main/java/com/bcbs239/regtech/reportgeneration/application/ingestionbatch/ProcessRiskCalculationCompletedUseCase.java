@@ -8,6 +8,7 @@ import com.bcbs239.regtech.core.domain.events.integration.RiskCalculationComplet
 import com.bcbs239.regtech.reportgeneration.application.coordination.CalculationEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.ReportCoordinator;
 import com.bcbs239.regtech.reportgeneration.domain.generation.IGeneratedReportRepository;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -23,18 +24,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ProcessRiskCalculationCompletedUseCase {
     private final ReportCoordinator reportCoordinator;
-    private final IGeneratedReportRepository reportRepository;
     private final ObjectMapper objectMapper;
     private final IEventProcessingFailureRepository failureRepository;
 
     public void process(RiskCalculationCompletedInboundEvent event)  {
-        String batchId = event.getBatchId();
         try {
             if (!event.isValid()) {
-                return;
-            }
-
-            if (reportRepository.existsByRiskCalculationEventId("CALCULATION_" + batchId)) {
                 return;
             }
 
