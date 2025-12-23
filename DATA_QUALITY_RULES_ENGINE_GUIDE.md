@@ -313,6 +313,119 @@ There are **two separate validation systems**:
    - Current valid sectors list doesn't include "CORPORATE_BOND"
    - This is what validates your data
 
+## Enhanced API Response with Detailed Error Information
+
+The quality report API now provides **full insight** into validation failures. Instead of just summary statistics, the response includes detailed exposure-level error information.
+
+### Enhanced Response Structure
+
+```json
+{
+  "success": true,
+  "data": {
+    "reportId": "qr_1f289566-18b2-4535-92a1-ce9464e0b646",
+    "batchId": "batch_20251223_131318_2108e69a-96de-4eec-92de-0580607296f2",
+    "status": "COMPLETED",
+    "scores": { ... },
+    "validationSummary": { ... },
+    "exposureResults": [
+      {
+        "isValid": false,
+        "exposureId": "EXP_001_2024",
+        "errorCount": 1,
+        "errors": [
+          {
+            "ruleCode": "COMPLETENESS_INTERNAL_RATING",
+            "severity": "HIGH",
+            "fieldName": null,
+            "message": "Validates that internal rating is present for risk assessment",
+            "dimension": "COMPLETENESS"
+          }
+        ]
+      }
+    ],
+    "detailsUri": "s3://local/quality/quality_batch_20251223_131318_2108e69a-96de-4eec-92de-0580607296f2.json",
+    "createdAt": "2025-12-23T12:13:44.568187Z",
+    "updatedAt": "2025-12-23T12:13:44.627420Z"
+  },
+  "message": "Quality report retrieved successfully",
+  "messageKey": "data-quality.report.retrieved",
+  "success": true
+}
+```
+
+### Key Enhancement: exposureResults Array
+
+The new `exposureResults` field contains:
+
+- **`isValid`**: Whether this exposure passed all validations
+- **`exposureId`**: The unique identifier of the exposure
+- **`errorCount`**: Number of validation failures for this exposure
+- **`errors`**: Array of specific rule violations with:
+  - `ruleCode`: The failing rule identifier
+  - `severity`: HIGH, MEDIUM, LOW, or CRITICAL
+  - `message`: Human-readable description of the issue
+  - `dimension`: COMPLETENESS, VALIDITY, ACCURACY, etc.
+
+### How It Works
+
+1. **Basic Report**: API first retrieves the summary report from database
+2. **File Lookup**: If report is completed and has `detailsUri`, reads the JSON file
+3. **Parse Details**: Extracts `exposureResults` array from the detailed JSON
+4. **Enhanced Response**: Returns both summary and detailed information
+
+### Benefits for Debugging
+
+- **Immediate Insight**: No need to manually find and read JSON files
+- **Specific Errors**: See exactly which rules failed and why
+- **Field-Level Issues**: Understand what data is missing or invalid
+- **Fix Guidance**: Error messages guide users on what to fix
+
+### Example: Your Current Issue
+
+```json
+"exposureResults": [
+  {
+    "isValid": false,
+    "exposureId": "EXP_001_2024", 
+    "errorCount": 1,
+    "errors": [
+      {
+        "ruleCode": "COMPLETENESS_INTERNAL_RATING",
+        "severity": "HIGH",
+        "message": "Validates that internal rating is present for risk assessment",
+        "dimension": "COMPLETENESS"
+      }
+    ]
+  }
+]
+```
+
+**Solution**: Add `"internal_rating": "AAA"` to your JSON data.
+
+### How to Get Detailed Error Information
+
+The report summary doesn't show specific violations, but the detailed results are stored in JSON files:
+
+1. **Find the detailsUri from the report response**
+2. **Locate the file**: `data/quality/quality/{filename}.json`
+3. **Read the exposureResults array** to see specific rule violations
+
+Example from your latest report:
+```json
+"exposureResults": [{
+  "isValid": false,
+  "exposureId": "EXP_001_2024",
+  "errorCount": 1,
+  "errors": [{
+    "ruleCode": "COMPLETENESS_INTERNAL_RATING",
+    "severity": "HIGH",
+    "message": "Validates that internal rating is present for risk assessment",
+    "dimension": "COMPLETENESS"
+  }]
+}]
+```
+
 ## Maturity Date Validation Issue
 
 ### Current Problem
@@ -503,9 +616,15 @@ The data quality rules engine:
 3. **Executes SpEL expressions** against cached rules
 4. **Validates sector field** against database parameter
 5. **Validates maturity dates** for term exposures
-6. **Creates violations** when rules fail
+6. **Validates internal ratings** for risk assessment
+7. **Creates violations** when rules fail
 
-### Your Issues:
+### Your Current Issue:
+
+#### Internal Rating Missing
+Your JSON data is missing the `internal_rating` field, which causes the **COMPLETENESS_INTERNAL_RATING** rule to fail. This rule requires internal rating to be present and non-empty for risk assessment.
+
+### Previously Identified Issues:
 
 #### Sector Issue
 Your sector "CORPORATE_BOND" fails validation because it's not in the configured valid sectors list. Update the parameter to include it, or modify the migration to add it to the initial rules.
@@ -515,16 +634,61 @@ Your maturity date is null for a "Business Loan" product, which violates the **C
 
 ### Quick Fixes:
 
-1. **Add maturity date to JSON**:
+1. **Add internal_rating to JSON**:
+   ```json
+   "internal_rating": "AAA"
+   ```
+
+2. **Add maturity date to JSON**:
    ```json
    "maturity_date": "2025-12-31"
    ```
 
-2. **Add CORPORATE_BOND to valid sectors**:
+3. **Add CORPORATE_BOND to valid sectors**:
    ```sql
    UPDATE rule_parameters SET parameter_value = parameter_value || ',CORPORATE_BOND' 
    WHERE rule_id = 'DQ_VALIDITY_VALID_SECTOR';
    ```
 
-3. **Enable debug logging** to see detailed rule execution</content>
+4. **Enable debug logging** to see detailed rule execution
+
+## ✅ Enhanced API Response
+
+The quality report API has been **enhanced** to provide full insight into validation failures:
+
+- **Before**: Only summary statistics (1 completeness error)
+- **After**: Detailed exposure-level errors with specific rule violations
+
+### New Response Structure
+
+```json
+{
+  "data": {
+    "exposureResults": [
+      {
+        "isValid": false,
+        "exposureId": "EXP_001_2024",
+        "errorCount": 1,
+        "errors": [
+          {
+            "ruleCode": "COMPLETENESS_INTERNAL_RATING",
+            "severity": "HIGH",
+            "message": "Validates that internal rating is present for risk assessment",
+            "dimension": "COMPLETENESS"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Implementation Details
+
+- **New DTOs**: `DetailedQualityReportDto` and `DetailedExposureResult`
+- **File Reading**: Automatically reads detailed JSON files from `data/quality/quality/`
+- **Backward Compatible**: Falls back gracefully if detailed files are unavailable
+- **Performance**: Only loads details for completed reports
+
+This enhancement eliminates the need to manually locate and read JSON files, providing immediate insight into what needs to be fixed!</content>
 <parameter name="filePath">c:\Users\alseny\Desktop\react projects\regtech\DATA_QUALITY_RULES_ENGINE_GUIDE.md
