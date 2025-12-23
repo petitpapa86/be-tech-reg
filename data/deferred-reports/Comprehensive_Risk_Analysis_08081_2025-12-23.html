@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BCBS 239 - Rapporto Comprensivo di Rischio e Qualità</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <style>
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none; }
+            .page-break { page-break-before: always; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-7xl mx-auto p-8">
+
+        <!-- ============================================ -->
+        <!-- COVER PAGE -->
+        <!-- ============================================ -->
+        <section class="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-700 rounded-lg shadow-2xl p-12 mb-8 text-white no-print">
+            <div class="text-center">
+                <div class="mb-8">
+                    <div class="inline-block bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 mb-4">
+                        <span class="text-sm font-semibold tracking-wider">BCBS 239 COMPLIANCE PLATFORM</span>
+                    </div>
+                </div>
+
+                <h1 class="text-5xl font-bold mb-4">Rapporto Comprensivo</h1>
+                <h2 class="text-3xl font-light mb-8">Grandi Rischi &amp; Data Quality</h2>
+
+                <div class="border-t border-white/30 my-8"></div>
+
+                <div class="grid grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                        <p class="text-sm opacity-75 mb-1">Banca</p>
+                        <p class="text-xl font-bold">Community First Bank</p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                        <p class="text-sm opacity-75 mb-1">Data Riferimento</p>
+                        <p class="text-xl font-bold">2025-12-23</p>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                        <p class="text-sm opacity-75 mb-1">Report ID</p>
+                        <p class="text-lg font-mono">batch_20251223_124601_24629e0f-3e91-4877-b2f5-b9f89c99331c</p>
+                    </div>
+                </div>
+
+                <div class="text-sm opacity-75">
+                    <p>Generato automaticamente da BCBS 239 Process Engine</p>
+                    <p class="mt-1">Conforme a Circolare Banca d'Italia n. 285/2013</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- SECTION 1: LARGE EXPOSURES (GRANDI RISCHI) -->
+        <!-- ============================================ -->
+
+        <section class="mb-12">
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <div class="border-b-4 border-blue-600 pb-4 mb-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-bold mb-3">
+                                SEZIONE 1
+                            </div>
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                                RAPPORTO GRANDI RISCHI
+                            </h1>
+                            <p class="text-lg text-gray-600">
+                                Circolare n. 285 del 17 dicembre 2013 - Banca d'Italia
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <div class="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                                <p class="text-sm font-semibold">Data Riferimento</p>
+                                <p class="text-xl font-bold">2025-12-23</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 mb-2">BANCA</h3>
+                        <p class="text-xl font-bold text-gray-900">Community First Bank</p>
+                        <div class="mt-2 space-y-1">
+                            <p class="text-sm text-gray-600"><span class="font-semibold">Codice ABI:</span> <span>08081</span></p>
+                            <p class="text-sm text-gray-600"><span class="font-semibold">Report ID:</span> <span class="font-mono text-xs">batch_20251223_124601_24629e0f-3e91-4877-b2f5-b9f89c99331c</span></p>
+                            <p class="text-sm text-gray-600"><span class="font-semibold">Generato:</span> <span>23/12/2025 12:46:42</span></p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 mb-2">PATRIMONIO DI VIGILANZA</h3>
+                        <div class="space-y-2">
+                            <div class="bg-gray-50 p-3 rounded">
+                                <p class="text-xs text-gray-600">Fondi Propri Totali</p>
+                                <p class="text-lg font-bold text-gray-900">€0.00</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded">
+                                <p class="text-xs text-gray-600">Capitale Tier 1</p>
+                                <p class="text-lg font-bold text-gray-900">€0.00</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded border border-blue-200">
+                                <p class="text-xs text-blue-800 font-semibold">Capitale Eleggibile Grandi Rischi</p>
+                                <p class="text-lg font-bold text-blue-900">€0.00</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Executive Summary -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Riepilogo Esecutivo
+                </h2>
+
+                <div class="grid grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+                        <p class="text-sm font-semibold opacity-90">Grandi Esposizioni</p>
+                        <p class="text-4xl font-bold mt-2">1</p>
+                        <p class="text-xs mt-2 opacity-75">≥ 10% capitale eleggibile</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white">
+                        <p class="text-sm font-semibold opacity-90">Importo Totale</p>
+                        <p class="text-2xl font-bold mt-2">€ 0,2M</p>
+                        <p class="text-xs mt-2 opacity-75"><span>0,0</span>% capitale</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg p-6 text-white">
+                        <p class="text-sm font-semibold opacity-90">Superamento Limite</p>
+                        <p class="text-4xl font-bold mt-2">1</p>
+                        <p class="text-xs mt-2 opacity-75">&gt; 25% capitale eleggibile</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+                        <p class="text-sm font-semibold opacity-90">Settori Coinvolti</p>
+                        <p class="text-4xl font-bold mt-2">1</p>
+                        <p class="text-xs mt-2 opacity-75">Diversificazione settoriale</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sector Distribution -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Distribuzione Settoriale
+                </h2>
+
+                <div class="grid grid-cols-2 gap-8">
+                    <div>
+                        <div class="bg-gray-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">Ripartizione per Settore</h3>
+                            <canvas id="sectorPieChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="bg-gray-50 rounded-lg p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">Esposizione per Settore (EUR)</h3>
+                            <canvas id="sectorBarChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sector Details Table (dynamic) -->
+                <div class="mt-6">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Settore</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">N. Esposizioni</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">Importo Totale</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">% su Totale</th>
+                                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase">% Capitale</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full  bg-blue-100 text-blue-800">Corporate</span>
+                                </td>
+                                <td class="px-4 py-3 text-right text-sm font-medium">1</td>
+                                <td class="px-4 py-3 text-right text-sm font-bold">€ 240000,00</td>
+                                <td class="px-4 py-3 text-right text-sm font-semibold text-blue-600">
+                                    <span>100,00</span>%
+                                </td>
+                                <td class="px-4 py-3 text-right text-sm font-semibold">
+                                    <span>0,00</span>%
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Top 10 Exposures -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Top 10 Esposizioni
+                </h2>
+
+                <div class="mb-6">
+                    <canvas id="top10Chart" style="max-height: 400px;"></canvas>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-4 rounded-lg  bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-500">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-xs font-semibold uppercase">🥇 1° - Exposure EXP_001_2024</p>
+                                <p class="text-2xl font-bold mt-1">€ 0,2M</p>
+                                <p class="text-sm mt-1">100,00% del capitale • Altro</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="inline-flex items-center px-3 py-1 text-xs font-bold rounded-full border  bg-red-100 text-red-800 border-red-600">⚠️ LIMITE SUPERATO</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Risk Concentration Metrics -->
+                <div class="mt-6 grid grid-cols-3 gap-4">
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p class="text-xs font-semibold text-red-800 uppercase">Concentrazione Top 3</p>
+                        <p class="text-2xl font-bold text-red-900 mt-1">€ 0,2M</p>
+                        <p class="text-sm text-red-700"><span>100,00</span>% del totale esposizioni</p>
+                    </div>
+
+                    <div class="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <p class="text-xs font-semibold text-orange-800 uppercase">Concentrazione Top 5</p>
+                        <p class="text-2xl font-bold text-orange-900 mt-1">€ 0,2M</p>
+                        <p class="text-sm text-orange-700"><span>100,00</span>% del totale esposizioni</p>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p class="text-xs font-semibold text-blue-800 uppercase">Esposizione Media</p>
+                        <p class="text-2xl font-bold text-blue-900 mt-1">€ 0,2M</p>
+                        <p class="text-sm text-blue-700"><span>0,00</span>% del capitale eleggibile</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compliance Notes -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Note di Conformità
+                </h2>
+
+                <div class="space-y-4">
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+                        <h4 class="font-bold text-blue-900 mb-2">📋 Soglia Grande Esposizione</h4>
+                        <p class="text-sm text-blue-800">
+                            Un'esposizione è considerata "grande rischio" quando rappresenta il <strong>10% o più</strong>
+                            del capitale eleggibile della banca (<span>€0.00</span>).
+                        </p>
+                    </div>
+
+                    <div class="bg-amber-50 border-l-4 border-amber-500 p-4">
+                        <h4 class="font-bold text-amber-900 mb-2">⚠️ Limite Legale Generale</h4>
+                        <p class="text-sm text-amber-800">
+                            Il limite generale per le grandi esposizioni è del <strong>25%</strong> del capitale eleggibile.
+                            Esposizioni superiori richiedono esenzioni specifiche o autorizzazioni supervisorie.
+                        </p>
+                    </div>
+
+                    <div class="bg-green-50 border-l-4 border-green-500 p-4">
+                        <h4 class="font-bold text-green-900 mb-2">✓ Esenzioni Applicabili</h4>
+                        <p class="text-sm text-green-800 mb-2">
+                            Le seguenti esenzioni possono essere applicate secondo la normativa:
+                        </p>
+                        <ul class="list-disc list-inside text-sm text-green-800 space-y-1">
+                            <li>Titoli di Stato italiani (esenti da limite)</li>
+                            <li>Covered bond con garanzia statale (limite 500%)</li>
+                            <li>Esposizioni verso enti creditizi della stessa rete</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================ -->
+        <!-- SECTION 2: DATA QUALITY -->
+        <!-- ============================================ -->
+
+        <section class="page-break">
+
+            <!-- Header -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <div class="border-b-4 border-purple-600 pb-4 mb-6">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="inline-block bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-bold mb-3">
+                                SEZIONE 2
+                            </div>
+                            <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                                RAPPORTO DATA QUALITY
+                            </h1>
+                            <p class="text-lg text-gray-600">
+                                BCBS 239 - Principi per l'aggregazione dei dati di rischio e l'informativa di rischio
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <div class="bg-purple-600 text-white px-4 py-2 rounded-lg">
+                                <p class="text-sm font-semibold">Data Riferimento</p>
+                                <p class="text-xl font-bold">2025-12-23</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 mb-2">BANCA</h3>
+                        <p class="text-xl font-bold text-gray-900">Community First Bank</p>
+                        <div class="mt-2 space-y-1">
+                            <p class="text-sm text-gray-600"><span class="font-semibold">Bank ID:</span> <span>08081</span></p>
+                            <p class="text-sm text-gray-600"><span class="font-semibold">Report ID:</span>
+                                <span class="font-mono">qr_batch_20251223_124601_24629e0f-3e91-4877-b2f5-b9f89c99331c</span>
+                            </p>
+                            <p class="text-sm text-gray-600"><span class="font-semibold">Batch ID:</span> <span class="font-mono">batch_20251223_124601_24629e0f-3e91-4877-b2f5-b9f89c99331c</span></p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-semibold text-gray-500 mb-2">STATO VALIDAZIONE</h3>
+                        <div class="space-y-2">
+                            <div class="bg-red-50 p-3 rounded border border-red-200">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-xs text-red-800 font-semibold">Stato Conformità</p>
+                                    <span class="px-3 py-1 text-xs font-bold rounded-full  bg-red-100 text-red-800">NON CONFORME</span>
+                                </div>
+                            </div>
+                            <div class="p-3 rounded border  bg-yellow-50 border-yellow-200">
+                                <div class="flex justify-between items-center">
+                                    <p class="text-xs font-semibold  text-yellow-800">Livello di Attenzione</p>
+                                    <span class="px-3 py-1 text-xs font-bold rounded-full  bg-yellow-600 text-white">MEDIO</span>
+                                </div>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded">
+                                <p class="text-xs text-gray-600">Tempo di Elaborazione</p>
+                                <p class="text-lg font-bold text-gray-900">1 ms</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overall Score -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Punteggio Complessivo
+                </h2>
+
+                <div class="grid grid-cols-5 gap-4 mb-6">
+                    <div class="col-span-2 bg-gradient-to-br rounded-lg p-8 text-white  from-amber-500 to-amber-600">
+                        <p class="text-sm font-semibold opacity-90 mb-2">QUALITY SCORE</p>
+                        <div class="flex items-end space-x-4">
+                            <p class="text-6xl font-bold"><span>83,3</span>%</p>
+                            <p class="text-4xl font-bold pb-2 opacity-90">B</p>
+                        </div>
+                        <p class="text-xs mt-3 opacity-75 uppercase tracking-wide">GOOD - Minor Improvements Needed</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white">
+                        <p class="text-sm font-semibold opacity-90">Esposizioni Totali</p>
+                        <p class="text-4xl font-bold mt-2">1</p>
+                        <p class="text-xs mt-2 opacity-75">Analizzate</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-6 text-white">
+                        <p class="text-sm font-semibold opacity-90">Esposizioni Valide</p>
+                        <p class="text-4xl font-bold mt-2">0</p>
+                        <p class="text-xs mt-2 opacity-75"><span>0,0</span>% validation rate</p>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white">
+                        <p class="text-sm font-semibold opacity-90">Errori Totali</p>
+                        <p class="text-4xl font-bold mt-2">2</p>
+                        <p class="text-xs mt-2 opacity-75"><span>200,0</span>% error rate</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dimension Scores -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Punteggi per Dimensione di Qualità
+                </h2>
+
+                <div class="space-y-4">
+                    <!-- Completeness -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Completezza (Completeness)</h4>
+                                <p class="text-sm text-gray-600">Tutti i dati richiesti sono presenti e popolati</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-red-600">0,0%</span>
+                                <p class="text-xs text-red-600 font-semibold"><span>2</span> ERRORI</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-red-600 h-4 rounded-full" style="width: 0.0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Accuracy -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Accuratezza (Accuracy)</h4>
+                                <p class="text-sm text-gray-600">I dati riflettono correttamente la realtà</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-red-600">100,0%</span>
+                                <p class="text-xs text-red-600 font-semibold"><span>0</span> ERRORI</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-red-600 h-4 rounded-full" style="width: 100.0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Consistency -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Coerenza (Consistency)</h4>
+                                <p class="text-sm text-gray-600">I dati sono uniformi tra diverse fonti e nel tempo</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-amber-600">100,0%</span>
+                                <p class="text-xs text-amber-600 font-semibold"><span>0</span> ERRORE</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-amber-500 h-4 rounded-full" style="width: 100.0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Timeliness -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Tempestività (Timeliness)</h4>
+                                <p class="text-sm text-gray-600">I dati sono aggiornati e disponibili quando necessari</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-green-600">100,0%</span>
+                                <p class="text-xs text-green-600 font-semibold"><span>0</span> ERRORI</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-green-600 h-4 rounded-full" style="width: 100.0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Uniqueness -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Unicità (Uniqueness)</h4>
+                                <p class="text-sm text-gray-600">Non ci sono duplicazioni nei dati</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-green-600">100,0%</span>
+                                <p class="text-xs text-green-600 font-semibold"><span>0</span> ERRORI</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-green-600 h-4 rounded-full" style="width: 100.0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Validity -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900">Validità (Validity)</h4>
+                                <p class="text-sm text-gray-600">I dati rispettano le regole di business e i formati attesi</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-3xl font-bold text-green-600">100,0%</span>
+                                <p class="text-xs text-green-600 font-semibold"><span>0</span> ERRORI</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div class="bg-green-600 h-4 rounded-full" style="width: 100.0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Distribution -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Distribuzione Errori per Dimensione
+                </h2>
+
+                <div class="grid grid-cols-3 gap-6">
+                    <div class="bg-red-50 rounded-lg p-6 border-2 border-red-200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-sm font-semibold text-red-800">COMPLETENESS</p>
+                                <p class="text-xs text-red-600 mt-1">Dimensione più problematica</p>
+                            </div>
+                            <span class="text-3xl font-bold text-red-600">2</span>
+                        </div>
+                        <div class="w-full bg-red-200 rounded-full h-3">
+                            <div class="bg-red-600 h-3 rounded-full"
+                                 style="width: 100.0%"></div>
+                        </div>
+                        <p class="text-xs text-red-700 mt-2"><span>100,0</span>% degli errori totali</p>
+                    </div>
+
+                    <div class="bg-orange-50 rounded-lg p-6 border-2 border-orange-200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-sm font-semibold text-orange-800">ACCURACY</p>
+                                <p class="text-xs text-orange-600 mt-1">Seconda dimensione critica</p>
+                            </div>
+                            <span class="text-3xl font-bold text-orange-600">0</span>
+                        </div>
+                        <div class="w-full bg-orange-200 rounded-full h-3">
+                            <div class="bg-orange-600 h-3 rounded-full"
+                                 style="width: 0.0%"></div>
+                        </div>
+                        <p class="text-xs text-orange-700 mt-2"><span>0,0</span>% degli errori totali</p>
+                    </div>
+
+                    <div class="bg-yellow-50 rounded-lg p-6 border-2 border-yellow-200">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-sm font-semibold text-yellow-800">CONSISTENCY</p>
+                                <p class="text-xs text-yellow-600 mt-1">Errori minori</p>
+                            </div>
+                            <span class="text-3xl font-bold text-yellow-600">0</span>
+                        </div>
+                        <div class="w-full bg-yellow-200 rounded-full h-3">
+                            <div class="bg-yellow-600 h-3 rounded-full"
+                                 style="width: 0.0%"></div>
+                        </div>
+                        <p class="text-xs text-yellow-700 mt-2"><span>0,0</span>% degli errori totali</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quality Insights -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Analisi e Raccomandazioni
+                </h2>
+
+                <div id="qualityInsightsContainer" class="space-y-4"></div>
+            </div>
+
+            <!-- BCBS 239 Compliance -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+                    Conformità BCBS 239
+                </h2>
+
+                <div class="space-y-4">
+                    <div class="bg-purple-50 border-l-4 border-purple-500 p-4">
+                        <h4 class="font-bold text-purple-900 mb-2">📘 Principi BCBS 239</h4>
+                        <p class="text-sm text-purple-800 mb-3">
+                            Il Basel Committee on Banking Supervision ha stabilito 14 principi fondamentali per l'aggregazione
+                            dei dati di rischio e l'informativa di rischio. I principi relativi alla qualità dei dati includono:
+                        </p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-white p-3 rounded border border-purple-200">
+                                <p class="text-xs font-bold text-purple-900 mb-1">Principio 3: Accuratezza e Integrità</p>
+                                <p class="text-xs text-purple-800">I dati devono essere accurati e affidabili</p>
+                            </div>
+                            <div class="bg-white p-3 rounded border border-purple-200">
+                                <p class="text-xs font-bold text-purple-900 mb-1">Principio 4: Completezza</p>
+                                <p class="text-xs text-purple-800">I dati devono essere completi e disponibili</p>
+                            </div>
+                            <div class="bg-white p-3 rounded border border-purple-200">
+                                <p class="text-xs font-bold text-purple-900 mb-1">Principio 5: Tempestività</p>
+                                <p class="text-xs text-purple-800">I dati devono essere aggiornati e disponibili on-demand</p>
+                            </div>
+                            <div class="bg-white p-3 rounded border border-purple-200">
+                                <p class="text-xs font-bold text-purple-900 mb-1">Principio 6: Adattabilità</p>
+                                <p class="text-xs text-purple-800">I sistemi devono essere flessibili per nuove esigenze</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-bold text-gray-900 mb-3">Valutazione Conformità per Principio</h4>
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700">Principio 3 - Accuratezza e Integrità</span>
+                                <span class="px-3 py-1 text-xs font-bold rounded-full  bg-green-100 text-green-800">CONFORME</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700">Principio 4 - Completezza</span>
+                                <span class="px-3 py-1 text-xs font-bold rounded-full  bg-red-100 text-red-800">NON CONFORME</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700">Principio 5 - Tempestività</span>
+                                <span class="px-3 py-1 text-xs font-bold rounded-full  bg-green-100 text-green-800">CONFORME</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-700">Principio 6 - Adattabilità</span>
+                                <span class="px-3 py-1 text-xs font-bold rounded-full  bg-green-100 text-green-800">CONFORME</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ============================================ -->
+        <!-- FOOTER -->
+        <!-- ============================================ -->
+
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg p-8 text-center text-white shadow-lg">
+            <p class="text-lg font-bold mb-2">Rapporto generato da BCBS 239 Process Engine</p>
+            <p class="mb-4">
+                Template v2024.1 • Generato il <span>23/12/2025</span> alle ore <span>12:46:42</span>
+            </p>
+            <div class="border-t border-white/30 my-4"></div>
+            <p class="text-sm opacity-90">Conforme a Circolare n. 285 di Banca d'Italia e Principi BCBS 239</p>
+            <p class="text-xs mt-2 opacity-75">
+                Per informazioni: <a href="https://www.bancaditalia.it" class="underline hover:no-underline">www.bancaditalia.it</a> •
+                <a href="https://www.bis.org/publ/bcbs239.htm" class="underline hover:no-underline">www.bis.org/publ/bcbs239.htm</a>
+            </p>
+        </div>
+
+        <!-- Print Button -->
+        <div class="mt-8 text-center no-print">
+            <button onclick="window.print()"
+                    class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-12 rounded-lg shadow-lg transition duration-200 transform hover:scale-105">
+                🖨️ Stampa Rapporto Completo / Salva PDF
+            </button>
+        </div>
+        
+    </div>
+    
+    <!-- Chart.js Scripts -->
+    <script>
+        const qualityRules = {
+            insightColors: {
+                critical: { bg: 'bg-red-50', border: 'border-red-500', title: 'text-red-900', text: 'text-red-800' },
+                high: { bg: 'bg-orange-50', border: 'border-orange-500', title: 'text-orange-900', text: 'text-orange-800' },
+                medium: { bg: 'bg-amber-50', border: 'border-amber-500', title: 'text-amber-900', text: 'text-amber-800' },
+                success: { bg: 'bg-green-50', border: 'border-green-500', title: 'text-green-900', text: 'text-green-800' },
+                info: { bg: 'bg-blue-50', border: 'border-blue-500', title: 'text-blue-900', text: 'text-blue-800' }
+            },
+            dimensionThresholds: {
+                COMPLETENESS: 80,
+                ACCURACY: 85,
+                CONSISTENCY: 90,
+                TIMELINESS: 95,
+                UNIQUENESS: 98,
+                VALIDITY: 90
+            }
+        };
+
+        const safeNumber = (value, fallback = 0) => {
+            const n = Number(value);
+            return Number.isFinite(n) ? n : fallback;
+        };
+
+        const safePct = (num, den) => {
+            const d = safeNumber(den, 0);
+            if (d <= 0) return 0;
+            return (safeNumber(num, 0) / d) * 100;
+        };
+
+        const formatPct = (value, digits = 1) => safeNumber(value, 0).toFixed(digits);
+
+        const titleCase = (s) => {
+            const str = (s ?? '').toString().toLowerCase();
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        };
+
+        const dimensionDisplayName = (dimensionName) => {
+            const n = (dimensionName ?? '').toString().toUpperCase();
+            switch (n) {
+                case 'COMPLETENESS': return 'Completeness';
+                case 'ACCURACY': return 'Accuracy';
+                case 'CONSISTENCY': return 'Consistency';
+                case 'TIMELINESS': return 'Timeliness';
+                case 'UNIQUENESS': return 'Uniqueness';
+                case 'VALIDITY': return 'Validity';
+                default: return titleCase(n);
+            }
+        };
+
+        const getQualityGrade = (score) => {
+            const s = safeNumber(score, 0);
+            if (s >= 95) return { grade: 'A', label: 'EXCELLENT', severity: 'success', color: 'green' };
+            if (s >= 85) return { grade: 'B', label: 'GOOD', severity: 'info', color: 'blue' };
+            if (s >= 75) return { grade: 'C', label: 'ACCEPTABLE', severity: 'warning', color: 'yellow' };
+            if (s >= 65) return { grade: 'D', label: 'POOR', severity: 'error', color: 'orange' };
+            if (s >= 50) return { grade: 'E', label: 'CRITICAL', severity: 'critical', color: 'red' };
+            return { grade: 'F', label: 'UNACCEPTABLE', severity: 'critical', color: 'red' };
+        };
+
+        const getAttentionLevel = (score, errorCount, validExposures, totalExposures) => {
+            const validationRate = safePct(validExposures, totalExposures);
+            const errorRate = safePct(errorCount, totalExposures);
+            const s = safeNumber(score, 0);
+
+            if (s < 50 || validationRate < 20 || errorRate > 500) {
+                return { level: 'CRITICO', color: 'red', icon: '🚨', priority: 1 };
+            }
+            if (s < 65 || validationRate < 50 || errorRate > 200) {
+                return { level: 'ALTO', color: 'orange', icon: '⚠️', priority: 2 };
+            }
+            if (s < 85 || validationRate < 80 || errorRate > 50) {
+                return { level: 'MEDIO', color: 'yellow', icon: '⚡', priority: 3 };
+            }
+            return { level: 'BASSO', color: 'green', icon: '✓', priority: 4 };
+        };
+
+        const getComplianceStatus = (score) => {
+            const s = safeNumber(score, 0);
+            if (s >= 85) {
+                return { status: 'CONFORME', color: 'green', badge: { bg: 'bg-green-100', text: 'text-green-800' } };
+            }
+            if (s >= 70) {
+                return { status: 'PARZIALMENTE CONFORME', color: 'yellow', badge: { bg: 'bg-yellow-100', text: 'text-yellow-800' } };
+            }
+            return { status: 'NON CONFORME', color: 'red', badge: { bg: 'bg-red-100', text: 'text-red-800' } };
+        };
+
+        const rankDimensionsByPriority = (dimensions) => {
+            return [...(dimensions ?? [])].sort((a, b) => {
+                const be = safeNumber(b.errorCount, 0);
+                const ae = safeNumber(a.errorCount, 0);
+                if (be !== ae) return be - ae;
+                return safeNumber(a.score, 0) - safeNumber(b.score, 0);
+            });
+        };
+
+        const isCriticalSituation = (qualityReport) => {
+            const overallScore = safeNumber(qualityReport?.overallScore, 0);
+            const totalExposures = safeNumber(qualityReport?.totalExposures, 0);
+            const validExposures = safeNumber(qualityReport?.validExposures, 0);
+            const errorCount = safeNumber(qualityReport?.errorCount, 0);
+            const validationRate = safePct(validExposures, totalExposures);
+            const errorRate = safePct(errorCount, totalExposures);
+            const anyDimensionUnder50 = (qualityReport?.dimensions ?? []).some(d => safeNumber(d.score, 0) < 50);
+
+            return overallScore < 65 || validationRate < 50 || errorRate > 200 || anyDimensionUnder50 || validExposures === 0;
+        };
+
+        const generateCriticalInsight = (qualityReport) => {
+            const overallScore = safeNumber(qualityReport.overallScore, 0);
+            const totalExposures = safeNumber(qualityReport.totalExposures, 0);
+            const validExposures = safeNumber(qualityReport.validExposures, 0);
+            const errorCount = safeNumber(qualityReport.errorCount, 0);
+            const worstDimension = rankDimensionsByPriority(qualityReport.dimensions).find(d => safeNumber(d.score, 0) > 0 || safeNumber(d.errorCount, 0) > 0)
+                || rankDimensionsByPriority(qualityReport.dimensions)[0]
+                || { name: 'Completeness' };
+
+            return {
+                severity: 'critical',
+                icon: '🚨',
+                title: 'Situazione Critica - Azione Immediata Richiesta',
+                content: `Il punteggio complessivo di qualità del ${formatPct(overallScore, 0)}% indica una situazione critica che richiede intervento immediato. ${validExposures} su ${totalExposures} esposizioni analizzate presentano errori di validazione.`,
+                priority: `Affrontare immediatamente i problemi di ${dimensionDisplayName(worstDimension.name)}.`
+            };
+        };
+
+        const generateDimensionInsight = (dimension, qualityReport) => {
+            const nameKey = (dimension?.name ?? '').toString().toUpperCase();
+            const score = safeNumber(dimension?.score, 0);
+            const errors = safeNumber(dimension?.errorCount, 0);
+            const displayName = dimensionDisplayName(nameKey);
+
+            if (nameKey === 'COMPLETENESS') {
+                return {
+                    severity: 'high',
+                    icon: '📊',
+                    title: 'Problemi di Completezza dei Dati',
+                    content: `La dimensione Completeness mostra il punteggio più basso (${formatPct(score, 0)}%) con ${errors} errori identificati. Questo indica che campi obbligatori mancano o non sono popolati correttamente.`,
+                    recommendation: 'Verificare i processi di data entry e assicurarsi che tutti i campi obbligatori siano correttamente valorizzati nei sistemi di origine.'
+                };
+            }
+
+            if (nameKey === 'ACCURACY') {
+                return {
+                    severity: 'medium',
+                    icon: '🎯',
+                    title: 'Problemi di Accuratezza',
+                    content: `La dimensione Accuracy presenta un punteggio del ${formatPct(score, 0)}% con ${errors} errori. I dati potrebbero non riflettere correttamente le informazioni effettive delle esposizioni.`,
+                    recommendation: "Implementare controlli di riconciliazione tra i sistemi sorgente e il data warehouse per garantire l'accuratezza delle informazioni."
+                };
+            }
+
+            const threshold = qualityRules.dimensionThresholds[nameKey];
+            const isBelowThreshold = typeof threshold === 'number' ? score < threshold : score < 80;
+            if (!isBelowThreshold) {
+                return null;
+            }
+
+            const severity = score < 60 ? 'critical' : score < 75 ? 'high' : 'medium';
+            const icon = severity === 'critical' ? '🚨' : severity === 'high' ? '⚠️' : '⚡';
+
+            let recommendation = 'Rafforzare i controlli di qualità e standardizzare i processi di validazione.';
+            if (nameKey === 'CONSISTENCY') recommendation = 'Standardizzare i formati e le regole di validazione tra sistemi sorgente e data warehouse.';
+            if (nameKey === 'TIMELINESS') recommendation = 'Ottimizzare i processi di aggiornamento dati per ridurre ritardi e garantire disponibilità tempestiva.';
+            if (nameKey === 'UNIQUENESS') recommendation = 'Implementare controlli anti-duplicazione e procedure di master data management.';
+            if (nameKey === 'VALIDITY') recommendation = 'Rafforzare le regole di validazione (formati, range, vincoli) nei sistemi di origine.';
+
+            return {
+                severity,
+                icon,
+                title: `Criticità su ${displayName}`,
+                content: `La dimensione ${displayName} presenta un punteggio del ${formatPct(score, 0)}% con ${errors} errori.`,
+                recommendation
+            };
+        };
+
+        const generatePositiveInsight = (goodDimensions) => {
+            const names = (goodDimensions ?? []).map(d => dimensionDisplayName(d.name)).filter(Boolean);
+            return {
+                severity: 'success',
+                icon: '✅',
+                title: 'Aspetti Positivi',
+                content: `Le dimensioni ${names.join(', ')} mostrano punteggi eccellenti (>95%), indicando che:`,
+                bulletPoints: [
+                    'I dati sono aggiornati e disponibili nei tempi richiesti',
+                    'Non ci sono duplicazioni nei record',
+                    'I formati dei dati rispettano le regole di validazione'
+                ]
+            };
+        };
+
+        const generateShortTermActions = (dimensions, severity) => {
+            const actions = [];
+            const worst = rankDimensionsByPriority(dimensions).slice(0, 2).map(d => dimensionDisplayName(d.name)).filter(Boolean);
+            const worstLabel = worst.length ? worst.join(' e ') : 'Completezza e Accuratezza';
+
+            if (severity === 'critical' || severity === 'error') {
+                actions.push('Analisi dettagliata degli errori di ' + worstLabel);
+                actions.push('Identificazione dei campi mancanti o errati');
+                actions.push('Correzione manuale delle esposizioni critiche');
+            } else if (severity === 'warning') {
+                actions.push('Revisione dei processi di raccolta dati');
+                actions.push('Analisi delle cause radice degli errori');
+                actions.push('Implementazione di quick wins');
+            } else {
+                actions.push('Monitoraggio continuo delle metriche di qualità');
+                actions.push('Ottimizzazione dei processi esistenti');
+            }
+            return actions;
+        };
+
+        const generateMediumTermActions = (dimensions, severity) => {
+            const actions = [];
+            if (severity === 'critical' || severity === 'error') {
+                actions.push('Implementazione di controlli automatici nei sistemi sorgente');
+                actions.push('Sviluppo di processi di riconciliazione automatica');
+                actions.push('Formazione degli operatori sui requisiti di qualità');
+            } else if (severity === 'warning') {
+                actions.push('Potenziamento dei controlli di qualità esistenti');
+                actions.push('Automazione dei processi manuali');
+                actions.push('Integrazione di nuovi data quality check');
+            } else {
+                actions.push('Implementazione di advanced analytics');
+                actions.push('Ottimizzazione delle performance');
+            }
+            return actions;
+        };
+
+        const generateLongTermActions = (dimensions, severity) => {
+            const actions = [
+                'Implementazione di data governance framework',
+                'Automazione completa dei controlli di qualità',
+                'Monitoraggio continuo e reporting automatico'
+            ];
+            if (severity === 'critical' || severity === 'error') {
+                actions.unshift("Revisione completa dell'architettura dei dati");
+                actions.push('Implementazione di machine learning per anomaly detection');
+            }
+            return actions;
+        };
+
+        const generateActionPlanInsight = (qualityReport) => {
+            const overallScore = safeNumber(qualityReport?.overallScore, 0);
+            const grade = getQualityGrade(overallScore);
+            const severity = grade.severity;
+            return {
+                severity: 'info',
+                icon: '📋',
+                title: "Piano d'Azione Consigliato",
+                shortTerm: generateShortTermActions(qualityReport.dimensions, severity),
+                mediumTerm: generateMediumTermActions(qualityReport.dimensions, severity),
+                longTerm: generateLongTermActions(qualityReport.dimensions, severity)
+            };
+        };
+
+        const generateQualityInsights = (qualityReport) => {
+            const insights = [];
+            const overallScore = safeNumber(qualityReport?.overallScore, 0);
+
+            if (isCriticalSituation(qualityReport)) {
+                insights.push(generateCriticalInsight(qualityReport));
+            }
+
+            const worstDimensions = rankDimensionsByPriority(qualityReport?.dimensions).slice(0, 3);
+            worstDimensions.forEach(dim => {
+                if (safeNumber(dim.score, 0) < 80) {
+                    const insight = generateDimensionInsight(dim, qualityReport);
+                    if (insight) insights.push(insight);
+                }
+            });
+
+            const goodDimensions = (qualityReport?.dimensions ?? []).filter(d => safeNumber(d.score, 0) >= 95);
+            if (goodDimensions.length > 0) {
+                insights.push(generatePositiveInsight(goodDimensions));
+            }
+
+            insights.push(generateActionPlanInsight(qualityReport));
+            return insights;
+        };
+
+        const renderInsight = (insight) => {
+            const palette = qualityRules.insightColors[insight.severity] || qualityRules.insightColors.info;
+            const wrap = document.createElement('div');
+            wrap.className = `${palette.bg} border-l-4 ${palette.border} p-4`;
+
+            const bullets = Array.isArray(insight.bulletPoints) && insight.bulletPoints.length
+                ? `<ul class="list-disc list-inside text-sm ${palette.text} space-y-1 ml-4">${insight.bulletPoints.map(li => `<li>${li}</li>`).join('')}</ul>`
+                : '';
+
+            const plan = (insight.shortTerm || insight.mediumTerm || insight.longTerm)
+                ? `
+                    <p class="text-sm ${palette.text} mb-2"><strong>Breve Termine (1-2 settimane):</strong></p>
+                    <ul class="list-disc list-inside text-sm ${palette.text} space-y-1 ml-4 mb-3">${(insight.shortTerm ?? []).map(a => `<li>${a}</li>`).join('')}</ul>
+                    <p class="text-sm ${palette.text} mb-2"><strong>Medio Termine (1-3 mesi):</strong></p>
+                    <ul class="list-disc list-inside text-sm ${palette.text} space-y-1 ml-4 mb-3">${(insight.mediumTerm ?? []).map(a => `<li>${a}</li>`).join('')}</ul>
+                    <p class="text-sm ${palette.text} mb-2"><strong>Lungo Termine (3-6 mesi):</strong></p>
+                    <ul class="list-disc list-inside text-sm ${palette.text} space-y-1 ml-4">${(insight.longTerm ?? []).map(a => `<li>${a}</li>`).join('')}</ul>
+                `
+                : '';
+
+            wrap.innerHTML = `
+                <div class="flex items-start">
+                    <span class="text-2xl mr-3">${insight.icon ?? ''}</span>
+                    <div>
+                        <h4 class="font-bold ${palette.title} mb-2">${insight.title ?? ''}</h4>
+                        ${insight.content ? `<p class="text-sm ${palette.text} mb-2">${insight.content}</p>` : ''}
+                        ${insight.priority ? `<p class="text-sm ${palette.text}"><strong>Priorità:</strong> ${insight.priority}</p>` : ''}
+                        ${insight.recommendation ? `<p class="text-sm ${palette.text}"><strong>Raccomandazione:</strong> ${insight.recommendation}</p>` : ''}
+                        ${bullets}
+                        ${plan}
+                    </div>
+                </div>
+            `;
+            return wrap;
+        };
+
+        const hydrateQualityInsights = () => {
+            const qualityReport = {"overallScore":83.33,"totalExposures":1,"validExposures":0,"errorCount":2,"dimensions":[{"score":100.0,"name":"ACCURACY","errorCount":0},{"score":0.0,"name":"COMPLETENESS","errorCount":2},{"score":100.0,"name":"CONSISTENCY","errorCount":0},{"score":100.0,"name":"TIMELINESS","errorCount":0},{"score":100.0,"name":"UNIQUENESS","errorCount":0},{"score":100.0,"name":"VALIDITY","errorCount":0}]};
+            const container = document.getElementById('qualityInsightsContainer');
+            if (!container || !qualityReport) return;
+
+            const insights = generateQualityInsights(qualityReport);
+            container.innerHTML = '';
+            insights.forEach(insight => container.appendChild(renderInsight(insight)));
+        };
+
+        // Render quality insights
+        hydrateQualityInsights();
+
+        const riskRules = {
+            colors: {
+                semantic: {
+                    red: '#EF4444',
+                    orange: '#F97316',
+                    amber: '#F59E0B',
+                    blue: '#3B82F6',
+                    green: '#10B981',
+                    purple: '#8B5CF6',
+                    gray: '#6B7280'
+                },
+                sector: {
+                    CORPORATE: '#3B82F6',
+                    BANK: '#10B981',
+                    INSURANCE: '#8B5CF6'
+                },
+                sectorBorder: {
+                    CORPORATE: '#2563EB',
+                    BANK: '#059669',
+                    INSURANCE: '#7C3AED'
+                },
+                rank: {
+                    1: '#EF4444',
+                    2: '#F97316',
+                    3: '#F59E0B',
+                    default: '#3B82F6',
+                    low: '#6B7280'
+                },
+                // NOTE: Purple (#8B5CF6) is reserved for INSURANCE only.
+                fallbackPalette: ['#3B82F6', '#10B981', '#F59E0B', '#F97316', '#EF4444', '#6B7280']
+            },
+            statusBadges: {
+                CONFORME: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-600' },
+                'LIMITE SUPERATO': { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-600' },
+                WARNING: { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-600' },
+                INFO: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-600' }
+            },
+            format: {
+                eur: (value) => '€' + (value ?? 0).toLocaleString('it-IT'),
+                eurMillions: (value) => '€' + ((value ?? 0) / 1000000).toFixed(1) + 'M'
+            }
+        };
+
+        const normalizeSector = (label) => (label ?? '').toString().trim().toUpperCase();
+        const resolveSectorKey = (label) => {
+            const normalized = normalizeSector(label);
+            if (normalized.includes('INSURANCE') || normalized.includes('ASSIC') || normalized === 'S.128') return 'INSURANCE';
+            if (normalized.includes('BANK') || normalized.includes('BANCA') || normalized.startsWith('S.12')) return 'BANK';
+            if (normalized.includes('CORPORATE') || normalized.includes('IMPRES') || normalized === 'S.11') return 'CORPORATE';
+            return null;
+        };
+
+        const sectorColor = (label, index) => {
+            const key = resolveSectorKey(label);
+            if (key) return riskRules.colors.sector[key];
+            return riskRules.colors.fallbackPalette[index % riskRules.colors.fallbackPalette.length];
+        };
+
+        const sectorBorderColor = (label, index) => {
+            const key = resolveSectorKey(label);
+            if (key) return riskRules.colors.sectorBorder[key];
+            // Default border: slightly darker tone (reuse palette index)
+            return riskRules.colors.fallbackPalette[index % riskRules.colors.fallbackPalette.length];
+        };
+
+        const top10BarColor = ({ sectorLabel, limitExceeded }, index) => {
+            // Rule 2 (sector consistency) takes precedence when sector is known.
+            const key = resolveSectorKey(sectorLabel);
+            if (key) return riskRules.colors.sector[key];
+
+            // Rule 3 (status): violations are always red.
+            if (limitExceeded) return riskRules.colors.semantic.red;
+
+            // Rule 1 (risk level by rank)
+            if (index === 0) return riskRules.colors.semantic.red;
+            if (index === 1) return riskRules.colors.semantic.orange;
+            if (index === 2) return riskRules.colors.semantic.amber;
+            if (index >= 6) return riskRules.colors.semantic.gray;
+            return riskRules.colors.semantic.blue;
+        };
+
+        // Risk sector charts (pie + bar)
+        const sectorData = {"values":[0.00,0.00,240000.00,0.00,0.00],"labels":["Mutui Retail","Sovrano","Corporate","Bancario","Altro"]};
+        const sectorLabels = (sectorData && sectorData.labels) ? sectorData.labels : [];
+        const sectorValues = (sectorData && sectorData.values) ? sectorData.values : [];
+        const sectorColors = sectorLabels.map((l, i) => sectorColor(l, i));
+        const sectorBorderColors = sectorLabels.map((l, i) => sectorBorderColor(l, i));
+
+        const sectorPieEl = document.getElementById('sectorPieChart');
+        if (sectorPieEl) {
+            new Chart(sectorPieEl.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: sectorLabels,
+                    datasets: [{
+                        data: sectorValues,
+                        backgroundColor: sectorColors,
+                        borderColor: sectorBorderColors,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { font: { size: 11 }, padding: 10 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = (context.dataset.data || []).reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0.0';
+                                    return label + ': ' + riskRules.format.eur(value) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        const sectorBarEl = document.getElementById('sectorBarChart');
+        if (sectorBarEl) {
+            new Chart(sectorBarEl.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: sectorLabels,
+                    datasets: [{
+                        label: 'Esposizione (EUR)',
+                        data: sectorValues,
+                        backgroundColor: sectorColors,
+                        borderColor: sectorBorderColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return riskRules.format.eur(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: function(value) { return riskRules.format.eurMillions(value); } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Top 10 exposures chart
+        const topExposuresData = {"sectors":["Altro"],"values":[240000.0],"limitExceeded":[true],"labels":["Exposure EXP_001_2024"]};
+        const topLabels = (topExposuresData && topExposuresData.labels) ? topExposuresData.labels : [];
+        const topValues = (topExposuresData && topExposuresData.values) ? topExposuresData.values : [];
+        const topSectors = (topExposuresData && topExposuresData.sectors) ? topExposuresData.sectors : [];
+        const topLimitExceeded = (topExposuresData && topExposuresData.limitExceeded) ? topExposuresData.limitExceeded : [];
+        const topColors = topLabels.map((_, i) => top10BarColor({
+            sectorLabel: topSectors[i],
+            limitExceeded: Boolean(topLimitExceeded[i])
+        }, i));
+
+        const top10El = document.getElementById('top10Chart');
+        if (top10El) {
+            new Chart(top10El.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: topLabels,
+                    datasets: [{
+                        label: 'Importo (EUR)',
+                        data: topValues,
+                        backgroundColor: topColors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return riskRules.format.eur(context.parsed.x);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { callback: function(value) { return riskRules.format.eurMillions(value); } }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
