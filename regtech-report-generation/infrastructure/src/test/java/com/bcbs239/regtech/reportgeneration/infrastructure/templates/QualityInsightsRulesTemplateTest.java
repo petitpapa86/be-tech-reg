@@ -28,24 +28,30 @@ class QualityInsightsRulesTemplateTest {
         assertThat(template).contains("if (s >= 50)");
 
         // Attention thresholds (validation rate / error rate)
-        assertThat(template).contains("validationRate < 20");
-        assertThat(template).contains("validationRate < 50");
-        assertThat(template).contains("validationRate < 80");
-        assertThat(template).contains("errorRate > 500");
-        assertThat(template).contains("errorRate > 200");
-        assertThat(template).contains("errorRate > 50");
+        assertThat(template).contains("severityThresholds");
+        assertThat(template).contains("overallScore: 65.0");
+        assertThat(template).contains("validationRate: 20.0");
+        assertThat(template).contains("errorRate: 50.0");
+        assertThat(template).contains("overallScore: 75.0");
+        assertThat(template).contains("validationRate: 50.0");
+        assertThat(template).contains("errorRate: 20.0");
+        assertThat(template).contains("overallScore: 85.0");
+        assertThat(template).contains("validationRate: 80.0");
+        assertThat(template).contains("errorRate: 10.0");
+        assertThat(template).contains("validationRate < qualityRules.severityThresholds.critical.validationRate");
+        assertThat(template).contains("errorRate > qualityRules.severityThresholds.critical.errorRate");
 
         // Insight palette classes
         assertThat(template).contains("bg-red-50");
-        assertThat(template).contains("border-red-500");
+        assertThat(template).contains("border-red-200");
         assertThat(template).contains("bg-orange-50");
-        assertThat(template).contains("border-orange-500");
-        assertThat(template).contains("bg-amber-50");
-        assertThat(template).contains("border-amber-500");
+        assertThat(template).contains("border-orange-200");
+        assertThat(template).contains("bg-yellow-50");
+        assertThat(template).contains("border-yellow-200");
         assertThat(template).contains("bg-green-50");
-        assertThat(template).contains("border-green-500");
+        assertThat(template).contains("border-green-200");
         assertThat(template).contains("bg-blue-50");
-        assertThat(template).contains("border-blue-500");
+        assertThat(template).contains("border-blue-200");
 
         // Rendering hook
         assertThat(template).contains("qualityInsightsContainer");

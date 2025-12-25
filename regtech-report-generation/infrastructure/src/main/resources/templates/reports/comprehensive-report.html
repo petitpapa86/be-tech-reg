@@ -555,21 +555,64 @@
     
     <!-- Chart.js Scripts -->
     <script th:inline="javascript">
+        /*
+        ============================================
+        Quality Insights - YAML aligned configuration
+        Source: color-rules-config-COMPLETE.yaml
+        ============================================
+        dimension_scores.thresholds.excellent.value = 90.0
+        dimension_scores.thresholds.acceptable.value = 75.0
+        error_distribution.thresholds.critical.value = 100
+        error_distribution.thresholds.high.value = 50
+        error_distribution.thresholds.medium.value = 10
+        quality_insights.severity_thresholds.critical.overall_score_below = 65.0
+        quality_insights.analysis_config.top_dimensions_to_analyze = 3
+        */
+
         const qualityRules = {
+            // From: global.color_palette.*
             insightColors: {
-                critical: { bg: 'bg-red-50', border: 'border-red-500', title: 'text-red-900', text: 'text-red-800' },
-                high: { bg: 'bg-orange-50', border: 'border-orange-500', title: 'text-orange-900', text: 'text-orange-800' },
-                medium: { bg: 'bg-amber-50', border: 'border-amber-500', title: 'text-amber-900', text: 'text-amber-800' },
-                success: { bg: 'bg-green-50', border: 'border-green-500', title: 'text-green-900', text: 'text-green-800' },
-                info: { bg: 'bg-blue-50', border: 'border-blue-500', title: 'text-blue-900', text: 'text-blue-800' }
+                critical: { bg: 'bg-red-50', border: 'border-red-200', title: 'text-red-800', text: 'text-red-800' },
+                high: { bg: 'bg-orange-50', border: 'border-orange-200', title: 'text-orange-800', text: 'text-orange-800' },
+                medium: { bg: 'bg-yellow-50', border: 'border-yellow-200', title: 'text-yellow-800', text: 'text-yellow-800' },
+                success: { bg: 'bg-green-50', border: 'border-green-200', title: 'text-green-800', text: 'text-green-800' },
+                info: { bg: 'bg-blue-50', border: 'border-blue-200', title: 'text-blue-800', text: 'text-blue-800' }
             },
+
+            // From: dimension_scores.thresholds
+            dimensionScoreThresholds: {
+                excellent: 90.0,
+                acceptable: 75.0
+            },
+
+            // From: dimension_scores.thresholds.excellent.value (applied to all dimensions)
             dimensionThresholds: {
-                COMPLETENESS: 80,
-                ACCURACY: 85,
+                COMPLETENESS: 90,
+                ACCURACY: 90,
                 CONSISTENCY: 90,
-                TIMELINESS: 95,
-                UNIQUENESS: 98,
+                TIMELINESS: 90,
+                UNIQUENESS: 90,
                 VALIDITY: 90
+            },
+
+            // From: error_distribution.thresholds
+            errorThresholds: {
+                critical: 100,
+                high: 50,
+                medium: 10
+            },
+
+            // From: quality_insights.severity_thresholds
+            severityThresholds: {
+                critical: { overallScore: 65.0, validationRate: 20.0, errorRate: 50.0, anyDimensionScore: 50.0 },
+                high: { overallScore: 75.0, validationRate: 50.0, errorRate: 20.0, anyDimensionScore: 65.0 },
+                medium: { overallScore: 85.0, validationRate: 80.0, errorRate: 10.0, anyDimensionScore: 75.0 }
+            },
+
+            // From: quality_insights.analysis_config
+            analysisConfig: {
+                topDimensions: 3,
+                minExcellentScore: 95.0
             }
         };
 
@@ -620,13 +663,26 @@
             const errorRate = safePct(errorCount, totalExposures);
             const s = safeNumber(score, 0);
 
-            if (s < 50 || validationRate < 20 || errorRate > 500) {
+            // From: quality_insights.severity_thresholds
+            if (
+                s < qualityRules.severityThresholds.critical.overallScore ||
+                validationRate < qualityRules.severityThresholds.critical.validationRate ||
+                errorRate > qualityRules.severityThresholds.critical.errorRate
+            ) {
                 return { level: 'CRITICO', color: 'red', icon: '🚨', priority: 1 };
             }
-            if (s < 65 || validationRate < 50 || errorRate > 200) {
+            if (
+                s < qualityRules.severityThresholds.high.overallScore ||
+                validationRate < qualityRules.severityThresholds.high.validationRate ||
+                errorRate > qualityRules.severityThresholds.high.errorRate
+            ) {
                 return { level: 'ALTO', color: 'orange', icon: '⚠️', priority: 2 };
             }
-            if (s < 85 || validationRate < 80 || errorRate > 50) {
+            if (
+                s < qualityRules.severityThresholds.medium.overallScore ||
+                validationRate < qualityRules.severityThresholds.medium.validationRate ||
+                errorRate > qualityRules.severityThresholds.medium.errorRate
+            ) {
                 return { level: 'MEDIO', color: 'yellow', icon: '⚡', priority: 3 };
             }
             return { level: 'BASSO', color: 'green', icon: '✓', priority: 4 };
@@ -634,10 +690,11 @@
 
         const getComplianceStatus = (score) => {
             const s = safeNumber(score, 0);
-            if (s >= 85) {
+            // From: dimension_scores.thresholds
+            if (s >= qualityRules.dimensionScoreThresholds.excellent) {
                 return { status: 'CONFORME', color: 'green', badge: { bg: 'bg-green-100', text: 'text-green-800' } };
             }
-            if (s >= 70) {
+            if (s >= qualityRules.dimensionScoreThresholds.acceptable) {
                 return { status: 'PARZIALMENTE CONFORME', color: 'yellow', badge: { bg: 'bg-yellow-100', text: 'text-yellow-800' } };
             }
             return { status: 'NON CONFORME', color: 'red', badge: { bg: 'bg-red-100', text: 'text-red-800' } };
@@ -659,9 +716,17 @@
             const errorCount = safeNumber(qualityReport?.errorCount, 0);
             const validationRate = safePct(validExposures, totalExposures);
             const errorRate = safePct(errorCount, totalExposures);
-            const anyDimensionUnder50 = (qualityReport?.dimensions ?? []).some(d => safeNumber(d.score, 0) < 50);
+            const anyDimensionBelowCritical = (qualityReport?.dimensions ?? []).some(
+                d => safeNumber(d.score, 0) < qualityRules.severityThresholds.critical.anyDimensionScore
+            );
 
-            return overallScore < 65 || validationRate < 50 || errorRate > 200 || anyDimensionUnder50 || validExposures === 0;
+            return (
+                overallScore < qualityRules.severityThresholds.critical.overallScore ||
+                validationRate < qualityRules.severityThresholds.critical.validationRate ||
+                errorRate > qualityRules.severityThresholds.critical.errorRate ||
+                anyDimensionBelowCritical ||
+                validExposures === 0
+            );
         };
 
         const generateCriticalInsight = (qualityReport) => {
@@ -708,8 +773,8 @@
                 };
             }
 
-            const threshold = qualityRules.dimensionThresholds[nameKey];
-            const isBelowThreshold = typeof threshold === 'number' ? score < threshold : score < 80;
+            const threshold = qualityRules.dimensionThresholds[nameKey] ?? qualityRules.dimensionScoreThresholds.excellent;
+            const isBelowThreshold = score < threshold;
             if (!isBelowThreshold) {
                 return null;
             }
@@ -819,15 +884,18 @@
                 insights.push(generateCriticalInsight(qualityReport));
             }
 
-            const worstDimensions = rankDimensionsByPriority(qualityReport?.dimensions).slice(0, 3);
+            const worstDimensions = rankDimensionsByPriority(qualityReport?.dimensions)
+                .slice(0, qualityRules.analysisConfig.topDimensions);
             worstDimensions.forEach(dim => {
-                if (safeNumber(dim.score, 0) < 80) {
+                if (safeNumber(dim.score, 0) < qualityRules.dimensionScoreThresholds.excellent) {
                     const insight = generateDimensionInsight(dim, qualityReport);
                     if (insight) insights.push(insight);
                 }
             });
 
-            const goodDimensions = (qualityReport?.dimensions ?? []).filter(d => safeNumber(d.score, 0) >= 95);
+            const goodDimensions = (qualityReport?.dimensions ?? []).filter(
+                d => safeNumber(d.score, 0) >= qualityRules.analysisConfig.minExcellentScore
+            );
             if (goodDimensions.length > 0) {
                 insights.push(generatePositiveInsight(goodDimensions));
             }
