@@ -119,6 +119,8 @@ public class ValidateBatchQualityCommandHandler {
 
         // Tell the aggregate to record the results (domain logic)
         Result<ValidationResult> validationResult = report.recordValidationAndCalculateScores(validation, CorrelationContext.correlationId());
+        if (validationResult.isFailure()) {
+            markReportAsFailed(report, "Failed to record validation results", CorrelationContext.correlationId());
             return Result.failure(validationResult.errors());
         }
 
