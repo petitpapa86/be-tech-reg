@@ -230,6 +230,10 @@ management:
   # Distributed tracing configuration
   tracing:
     enabled: true
+    baggage:
+      remote-fields: bank-id,user-id,batch-id
+      correlation:
+        fields: bank-id,user-id,batch-id
     sampling:
       probability: ${TRACE_SAMPLING_RATE:0.1}  # 10% sampling for production, 100% for dev
     export:
@@ -241,6 +245,8 @@ management:
   # Metrics export configuration
   metrics:
     export:
+      prometheus:
+        enabled: true
       otlp:
         enabled: true
         endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://localhost:4318/v1/metrics}

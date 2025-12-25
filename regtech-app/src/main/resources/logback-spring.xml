@@ -7,7 +7,7 @@
     <!-- Default console (readable) - used unless a profile overrides the root logger to use JSON -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n%X%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}/%X{spanId:-}] %-5level %logger{36} - %msg%ncontext bank-id=%X{bank-id:-} user-id=%X{user-id:-} batch-id=%X{batch-id:-}%n</pattern>
         </encoder>
     </appender>
 
@@ -127,50 +127,63 @@
         </encoder>
     </appender>
 
-    <!-- Root logger configuration -->
+    <!-- Root logger configuration (default/dev) -->
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
 
-    <!-- Application specific loggers -->
-    <logger name="com.bcbs239.regtech" level="INFO" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-        <!-- Uncomment for GCP deployment -->
-        <!-- <appender-ref ref="GCP_JSON"/> -->
-    </logger>
+    <!-- Application loggers: dev -> readable console, non-dev -> JSON console -->
+    <springProfile name="dev,development">
+        <logger name="com.bcbs239.regtech" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
 
-    <!-- Event processing loggers -->
-    <logger name="com.bcbs239.regtech.core.events" level="INFO" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-        <!-- Uncomment for GCP deployment -->
-        <!-- <appender-ref ref="GCP_JSON"/> -->
-    </logger>
+        <logger name="com.bcbs239.regtech.core.events" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
 
-    <logger name="com.bcbs239.regtech.core.inbox" level="INFO" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-        <!-- Uncomment for GCP deployment -->
-        <!-- <appender-ref ref="GCP_JSON"/> -->
-    </logger>
+        <logger name="com.bcbs239.regtech.core.inbox" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
 
-    <logger name="com.bcbs239.regtech.core.outbox" level="INFO" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-        <!-- Uncomment for GCP deployment -->
-        <!-- <appender-ref ref="GCP_JSON"/> -->
-    </logger>
+        <logger name="com.bcbs239.regtech.core.outbox" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
 
-    <!-- IAM specific loggers -->
-    <logger name="com.bcbs239.regtech.iam" level="INFO" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-        <!-- Uncomment for GCP deployment -->
-        <!-- <appender-ref ref="GCP_JSON"/> -->
-    </logger>
+        <logger name="com.bcbs239.regtech.iam" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
 
-    <!-- Billing specific loggers -->
-    <logger name="com.bcbs239.regtech.billing" level="INFO" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-        <!-- Uncomment for GCP deployment -->
-        <!-- <appender-ref ref="GCP_JSON"/> -->
-    </logger>
+        <logger name="com.bcbs239.regtech.billing" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+        </logger>
+    </springProfile>
+
+    <springProfile name="!dev,!development">
+        <logger name="com.bcbs239.regtech" level="INFO" additivity="false">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </logger>
+
+        <logger name="com.bcbs239.regtech.core.events" level="INFO" additivity="false">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </logger>
+
+        <logger name="com.bcbs239.regtech.core.inbox" level="INFO" additivity="false">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </logger>
+
+        <logger name="com.bcbs239.regtech.core.outbox" level="INFO" additivity="false">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </logger>
+
+        <logger name="com.bcbs239.regtech.iam" level="INFO" additivity="false">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </logger>
+
+        <logger name="com.bcbs239.regtech.billing" level="INFO" additivity="false">
+            <appender-ref ref="JSON_CONSOLE"/>
+        </logger>
+    </springProfile>
 
     <!-- Spring framework loggers -->
     <logger name="org.springframework" level="WARN"/>

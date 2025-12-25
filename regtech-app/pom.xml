@@ -205,6 +205,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+
+        <!-- Explicit actuator API dependency (needed at compile-time for custom HealthIndicator implementations) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-actuator</artifactId>
+        </dependency>
         
         <!-- JSON logging for structured logs -->
         <dependency>
