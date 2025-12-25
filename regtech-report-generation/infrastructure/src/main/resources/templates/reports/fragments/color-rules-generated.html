@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <body>
+    <th:block th:fragment="dimensionScores">
+<!-- Completeness -->
+<div>
+    <div class="flex justify-between items-center mb-2">
+        <div>
+            <h4 class="text-lg font-bold text-gray-900">Completezza (Completeness)</h4>
+            <p class="text-sm text-gray-600">Tutti i dati richiesti sono presenti e popolati</p>
+        </div>
+        <div class="text-right">
+            <span class="text-3xl font-bold"
+                  th:classappend="${cpl != null && cpl >= 90.0 ? 'text-green-600' : 
+                                  cpl != null && cpl >= 75.0 ? 'text-amber-600' : 
+                                  'text-red-600'}"
+                  th:text="${#numbers.formatDecimal((cpl != null ? cpl : 0), 1, 1)} + '%'"><span>0.0%</span></span>
+            <p class="text-xs font-semibold"
+               th:classappend="${cpl != null && cpl >= 90.0 ? 'text-green-600' : 
+                               cpl != null && cpl >= 75.0 ? 'text-amber-600' : 
+                               'text-red-600'}"><span th:text="${cplErr}">0</span> ERRORI</p>
+        </div>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-4">
+        <div class="h-4 rounded-full" 
+             th:style="${'width: ' + (cpl != null ? cpl : 0) + '%'}"
+             th:classappend="${cpl != null && cpl >= 90.0 ? 'bg-green-600' : 
+                             cpl != null && cpl >= 75.0 ? 'bg-amber-500' : 
+                             'bg-red-600'}"></div>
+    </div>
+</div>
+
+
+<!-- Accuracy -->
+<div>
+    <div class="flex justify-between items-center mb-2">
+        <div>
+            <h4 class="text-lg font-bold text-gray-900">Accuratezza (Accuracy)</h4>
+            <p class="text-sm text-gray-600">I dati riflettono correttamente la realtà</p>
+        </div>
+        <div class="text-right">
+            <span class="text-3xl font-bold"
+                  th:classappend="${acc != null && acc >= 90.0 ? 'text-green-600' : 
+                                  acc != null && acc >= 75.0 ? 'text-amber-600' : 
+                                  'text-red-600'}"
+                  th:text="${#numbers.formatDecimal((acc != null ? acc : 0), 1, 1)} + '%'"><span>0.0%</span></span>
+            <p class="text-xs font-semibold"
+               th:classappend="${acc != null && acc >= 90.0 ? 'text-green-600' : 
+                               acc != null && acc >= 75.0 ? 'text-amber-600' : 
+                               'text-red-600'}"><span th:text="${accErr}">0</span> ERRORI</p>
+        </div>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-4">
+        <div class="h-4 rounded-full" 
+             th:style="${'width: ' + (acc != null ? acc : 0) + '%'}"
+             th:classappend="${acc != null && acc >= 90.0 ? 'bg-green-600' : 
+                             acc != null && acc >= 75.0 ? 'bg-amber-500' : 
+                             'bg-red-600'}"></div>
+    </div>
+</div>
+
+
+<!-- Consistency -->
+<div>
+    <div class="flex justify-between items-center mb-2">
+        <div>
+            <h4 class="text-lg font-bold text-gray-900">Coerenza (Consistency)</h4>
+            <p class="text-sm text-gray-600">I dati sono uniformi tra diverse fonti e nel tempo</p>
+        </div>
+        <div class="text-right">
+            <span class="text-3xl font-bold"
+                  th:classappend="${con != null && con >= 90.0 ? 'text-green-600' : 
+                                  con != null && con >= 75.0 ? 'text-amber-600' : 
+                                  'text-red-600'}"
+                  th:text="${#numbers.formatDecimal((con != null ? con : 0), 1, 1)} + '%'"><span>0.0%</span></span>
+            <p class="text-xs font-semibold"
+               th:classappend="${con != null && con >= 90.0 ? 'text-green-600' : 
+                               con != null && con >= 75.0 ? 'text-amber-600' : 
+                               'text-red-600'}"><span th:text="${conErr}">0</span> ERRORE</p>
+        </div>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-4">
+        <div class="h-4 rounded-full" 
+             th:style="${'width: ' + (con != null ? con : 0) + '%'}"
+             th:classappend="${con != null && con >= 90.0 ? 'bg-green-600' : 
+                             con != null && con >= 75.0 ? 'bg-amber-500' : 
+                             'bg-red-600'}"></div>
+    </div>
+</div>
+
+
+<!-- Timeliness -->
+<div>
+    <div class="flex justify-between items-center mb-2">
+        <div>
+            <h4 class="text-lg font-bold text-gray-900">Tempestività (Timeliness)</h4>
+            <p class="text-sm text-gray-600">I dati sono aggiornati e disponibili quando necessari</p>
+        </div>
+        <div class="text-right">
+            <span class="text-3xl font-bold"
+                  th:classappend="${tim != null && tim >= 90.0 ? 'text-green-600' : 
+                                  tim != null && tim >= 75.0 ? 'text-amber-600' : 
+                                  'text-red-600'}"
+                  th:text="${#numbers.formatDecimal((tim != null ? tim : 0), 1, 1)} + '%'"><span>0.0%</span></span>
+            <p class="text-xs font-semibold"
+               th:classappend="${tim != null && tim >= 90.0 ? 'text-green-600' : 
+                               tim != null && tim >= 75.0 ? 'text-amber-600' : 
+                               'text-red-600'}"><span th:text="${timErr}">0</span> ERRORI</p>
+        </div>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-4">
+        <div class="h-4 rounded-full" 
+             th:style="${'width: ' + (tim != null ? tim : 0) + '%'}"
+             th:classappend="${tim != null && tim >= 90.0 ? 'bg-green-600' : 
+                             tim != null && tim >= 75.0 ? 'bg-amber-500' : 
+                             'bg-red-600'}"></div>
+    </div>
+</div>
+
+
+<!-- Uniqueness -->
+<div>
+    <div class="flex justify-between items-center mb-2">
+        <div>
+            <h4 class="text-lg font-bold text-gray-900">Unicità (Uniqueness)</h4>
+            <p class="text-sm text-gray-600">Non ci sono duplicazioni nei dati</p>
+        </div>
+        <div class="text-right">
+            <span class="text-3xl font-bold"
+                  th:classappend="${uni != null && uni >= 90.0 ? 'text-green-600' : 
+                                  uni != null && uni >= 75.0 ? 'text-amber-600' : 
+                                  'text-red-600'}"
+                  th:text="${#numbers.formatDecimal((uni != null ? uni : 0), 1, 1)} + '%'"><span>0.0%</span></span>
+            <p class="text-xs font-semibold"
+               th:classappend="${uni != null && uni >= 90.0 ? 'text-green-600' : 
+                               uni != null && uni >= 75.0 ? 'text-amber-600' : 
+                               'text-red-600'}"><span th:text="${uniErr}">0</span> ERRORI</p>
+        </div>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-4">
+        <div class="h-4 rounded-full" 
+             th:style="${'width: ' + (uni != null ? uni : 0) + '%'}"
+             th:classappend="${uni != null && uni >= 90.0 ? 'bg-green-600' : 
+                             uni != null && uni >= 75.0 ? 'bg-amber-500' : 
+                             'bg-red-600'}"></div>
+    </div>
+</div>
+
+
+<!-- Validity -->
+<div>
+    <div class="flex justify-between items-center mb-2">
+        <div>
+            <h4 class="text-lg font-bold text-gray-900">Validità (Validity)</h4>
+            <p class="text-sm text-gray-600">I dati rispettano le regole di business e i formati attesi</p>
+        </div>
+        <div class="text-right">
+            <span class="text-3xl font-bold"
+                  th:classappend="${val != null && val >= 90.0 ? 'text-green-600' : 
+                                  val != null && val >= 75.0 ? 'text-amber-600' : 
+                                  'text-red-600'}"
+                  th:text="${#numbers.formatDecimal((val != null ? val : 0), 1, 1)} + '%'"><span>0.0%</span></span>
+            <p class="text-xs font-semibold"
+               th:classappend="${val != null && val >= 90.0 ? 'text-green-600' : 
+                               val != null && val >= 75.0 ? 'text-amber-600' : 
+                               'text-red-600'}"><span th:text="${valErr}">0</span> ERRORI</p>
+        </div>
+    </div>
+    <div class="w-full bg-gray-200 rounded-full h-4">
+        <div class="h-4 rounded-full" 
+             th:style="${'width: ' + (val != null ? val : 0) + '%'}"
+             th:classappend="${val != null && val >= 90.0 ? 'bg-green-600' : 
+                             val != null && val >= 75.0 ? 'bg-amber-500' : 
+                             'bg-red-600'}"></div>
+    </div>
+</div>
+    </th:block>
+
+    <th:block th:fragment="errorDistributionCards">
+<!-- COMPLETENESS Error Card -->
+<div class="rounded-lg p-6 border-2"
+   th:with="severity=${cplCnt > 100 ? 'critical' : cplCnt > 50 ? 'high' : cplCnt > 10 ? 'medium' : 'low'}"
+   th:classappend="${severity == 'critical' ? 'bg-red-50 border-red-200' : 
+           severity == 'high' ? 'bg-orange-50 border-orange-200' : 
+           severity == 'medium' ? 'bg-yellow-50 border-yellow-200' : 
+           'bg-green-50 border-green-200'}">
+  <div class="flex justify-between items-start mb-4">
+    <div>
+      <p class="text-sm font-semibold"
+         th:classappend="${severity == 'critical' ? 'text-red-800' : 
+                 severity == 'high' ? 'text-orange-800' : 
+                 severity == 'medium' ? 'text-yellow-800' : 
+                 'text-green-800'}">COMPLETENESS</p>
+      <p class="text-xs mt-1"
+         th:classappend="${severity == 'critical' ? 'text-red-600' : 
+                 severity == 'high' ? 'text-orange-600' : 
+                 severity == 'medium' ? 'text-yellow-600' : 
+                 'text-green-600'}"
+         th:text="${severity == 'critical' ? 'Situazione critica!' : 
+             severity == 'high' ? 'Richiede attenzione' : 
+             severity == 'medium' ? 'Errori moderati' : 
+             'Errori minimi'}">Dimensione più problematica</p>
+    </div>
+    <span class="text-3xl font-bold"
+        th:classappend="${severity == 'critical' ? 'text-red-600' : 
+                severity == 'high' ? 'text-orange-600' : 
+                severity == 'medium' ? 'text-yellow-600' : 
+                'text-green-600'}"
+        th:text="${cplCnt}">0</span>
+  </div>
+  <div class="w-full rounded-full h-3"
+     th:classappend="${severity == 'critical' ? 'bg-red-200' : 
+             severity == 'high' ? 'bg-orange-200' : 
+             severity == 'medium' ? 'bg-yellow-200' : 
+             'bg-green-200'}">
+    <div class="h-3 rounded-full"
+       th:classappend="${severity == 'critical' ? 'bg-red-600' : 
+               severity == 'high' ? 'bg-orange-600' : 
+               severity == 'medium' ? 'bg-yellow-600' : 
+               'bg-green-600'}"
+       th:style="${'width: ' + (maxCnt > 0 ? ((cplCnt * 100.0) / maxCnt) : 0) + '%'}" style="width: 100%"></div>
+  </div>
+  <p class="text-xs mt-2"
+     th:classappend="${severity == 'critical' ? 'text-red-700' : 
+             severity == 'high' ? 'text-orange-700' : 
+             severity == 'medium' ? 'text-yellow-700' : 
+             'text-green-700'}"><span th:text="${qualityResults.totalErrors > 0 ? #numbers.formatDecimal((cplCnt * 100.0) / qualityResults.totalErrors, 1, 1) : '0.0'}">62.5</span>% degli errori totali</p>
+
+
+<!-- ACCURACY Error Card -->
+<div class="rounded-lg p-6 border-2"
+   th:with="severity=${accCnt > 100 ? 'critical' : accCnt > 50 ? 'high' : accCnt > 10 ? 'medium' : 'low'}"
+   th:classappend="${severity == 'critical' ? 'bg-red-50 border-red-200' : 
+           severity == 'high' ? 'bg-orange-50 border-orange-200' : 
+           severity == 'medium' ? 'bg-yellow-50 border-yellow-200' : 
+           'bg-green-50 border-green-200'}">
+  <div class="flex justify-between items-start mb-4">
+    <div>
+      <p class="text-sm font-semibold"
+         th:classappend="${severity == 'critical' ? 'text-red-800' : 
+                 severity == 'high' ? 'text-orange-800' : 
+                 severity == 'medium' ? 'text-yellow-800' : 
+                 'text-green-800'}">ACCURACY</p>
+      <p class="text-xs mt-1"
+         th:classappend="${severity == 'critical' ? 'text-red-600' : 
+                 severity == 'high' ? 'text-orange-600' : 
+                 severity == 'medium' ? 'text-yellow-600' : 
+                 'text-green-600'}"
+         th:text="${severity == 'critical' ? 'Situazione critica!' : 
+             severity == 'high' ? 'Richiede attenzione' : 
+             severity == 'medium' ? 'Errori moderati' : 
+             'Errori minimi'}">Seconda dimensione critica</p>
+    </div>
+    <span class="text-3xl font-bold"
+        th:classappend="${severity == 'critical' ? 'text-red-600' : 
+                severity == 'high' ? 'text-orange-600' : 
+                severity == 'medium' ? 'text-yellow-600' : 
+                'text-green-600'}"
+        th:text="${accCnt}">0</span>
+  </div>
+  <div class="w-full rounded-full h-3"
+     th:classappend="${severity == 'critical' ? 'bg-red-200' : 
+             severity == 'high' ? 'bg-orange-200' : 
+             severity == 'medium' ? 'bg-yellow-200' : 
+             'bg-green-200'}">
+    <div class="h-3 rounded-full"
+       th:classappend="${severity == 'critical' ? 'bg-red-600' : 
+               severity == 'high' ? 'bg-orange-600' : 
+               severity == 'medium' ? 'bg-yellow-600' : 
+               'bg-green-600'}"
+       th:style="${'width: ' + (maxCnt > 0 ? ((accCnt * 100.0) / maxCnt) : 0) + '%'}" style="width: 100%"></div>
+  </div>
+  <p class="text-xs mt-2"
+     th:classappend="${severity == 'critical' ? 'text-red-700' : 
+             severity == 'high' ? 'text-orange-700' : 
+             severity == 'medium' ? 'text-yellow-700' : 
+             'text-green-700'}"><span th:text="${qualityResults.totalErrors > 0 ? #numbers.formatDecimal((accCnt * 100.0) / qualityResults.totalErrors, 1, 1) : '0.0'}">62.5</span>% degli errori totali</p>
+
+
+<!-- CONSISTENCY Error Card -->
+<div class="rounded-lg p-6 border-2"
+   th:with="severity=${conCnt > 100 ? 'critical' : conCnt > 50 ? 'high' : conCnt > 10 ? 'medium' : 'low'}"
+   th:classappend="${severity == 'critical' ? 'bg-red-50 border-red-200' : 
+           severity == 'high' ? 'bg-orange-50 border-orange-200' : 
+           severity == 'medium' ? 'bg-yellow-50 border-yellow-200' : 
+           'bg-green-50 border-green-200'}">
+  <div class="flex justify-between items-start mb-4">
+    <div>
+      <p class="text-sm font-semibold"
+         th:classappend="${severity == 'critical' ? 'text-red-800' : 
+                 severity == 'high' ? 'text-orange-800' : 
+                 severity == 'medium' ? 'text-yellow-800' : 
+                 'text-green-800'}">CONSISTENCY</p>
+      <p class="text-xs mt-1"
+         th:classappend="${severity == 'critical' ? 'text-red-600' : 
+                 severity == 'high' ? 'text-orange-600' : 
+                 severity == 'medium' ? 'text-yellow-600' : 
+                 'text-green-600'}"
+         th:text="${severity == 'critical' ? 'Situazione critica!' : 
+             severity == 'high' ? 'Richiede attenzione' : 
+             severity == 'medium' ? 'Errori moderati' : 
+             'Errori minimi'}">Terza dimensione critica</p>
+    </div>
+    <span class="text-3xl font-bold"
+        th:classappend="${severity == 'critical' ? 'text-red-600' : 
+                severity == 'high' ? 'text-orange-600' : 
+                severity == 'medium' ? 'text-yellow-600' : 
+                'text-green-600'}"
+        th:text="${conCnt}">0</span>
+  </div>
+  <div class="w-full rounded-full h-3"
+     th:classappend="${severity == 'critical' ? 'bg-red-200' : 
+             severity == 'high' ? 'bg-orange-200' : 
+             severity == 'medium' ? 'bg-yellow-200' : 
+             'bg-green-200'}">
+    <div class="h-3 rounded-full"
+       th:classappend="${severity == 'critical' ? 'bg-red-600' : 
+               severity == 'high' ? 'bg-orange-600' : 
+               severity == 'medium' ? 'bg-yellow-600' : 
+               'bg-green-600'}"
+       th:style="${'width: ' + (maxCnt > 0 ? ((conCnt * 100.0) / maxCnt) : 0) + '%'}" style="width: 100%"></div>
+  </div>
+  <p class="text-xs mt-2"
+     th:classappend="${severity == 'critical' ? 'text-red-700' : 
+             severity == 'high' ? 'text-orange-700' : 
+             severity == 'medium' ? 'text-yellow-700' : 
+             'text-green-700'}"><span th:text="${qualityResults.totalErrors > 0 ? #numbers.formatDecimal((conCnt * 100.0) / qualityResults.totalErrors, 1, 1) : '0.0'}">62.5</span>% degli errori totali</p>
+    </th:block>
+  </body>
+</html>
