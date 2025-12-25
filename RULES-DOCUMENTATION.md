@@ -55,5 +55,5 @@ Per-principle thresholds are computed server-side in `HtmlReportGeneratorImpl#pr
 
 ## Single source of truth
 
-All rules are centralized in `color-rules-config.yaml`.
+All rules are centralized in `color-rules-config-COMPLETE.yaml`.
 

@@ -616,7 +616,7 @@ copilot_instructions:
     
     example_prompt: |
       Generate a JavaScript file quality-insights.js that:
-      1. Reads thresholds from color-rules-config.yaml
+      1. Reads thresholds from color-rules-config-COMPLETE.yaml
       2. Creates const qualityRules with all thresholds
       3. Implements generateQualityInsights() based on insight_rules
       4. Includes validation comments showing source YAML paths

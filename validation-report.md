@@ -2,7 +2,7 @@
 
 Date: 2025-12-23
 
-This report summarizes consistency checks for the conditional color rules defined in `color-rules-config.yaml`.
+This report summarizes consistency checks for the conditional color rules defined in `color-rules-config-COMPLETE.yaml`.
 
 ## Extraction completeness
 
@@ -34,7 +34,7 @@ This report summarizes consistency checks for the conditional color rules define
 ## Known non-Thymeleaf color logic in template
 
 - The inline JS contains additional conditional color logic/palettes for the “Quality insights” cards and risk charts.
-  These are captured in `color-rules-config.yaml` under `additional_rules.quality_insights_palette_js`.
+  These are captured in `color-rules-config-COMPLETE.yaml`.
 
 ## Suggested automated checks (optional)
 

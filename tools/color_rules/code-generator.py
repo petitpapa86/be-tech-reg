@@ -3,9 +3,11 @@
 
 This script is intentionally small and dependency-light.
 
-It supports two YAML schemas:
-- Legacy: `color-rules-config.yaml`
-- COMPLETE (recommended single source of truth): `color-rules-config-COMPLETE.yaml`
+It uses a single source of truth YAML:
+- `color-rules-config-COMPLETE.yaml`
+
+For backward compatibility, it can still read the legacy schema if you provide a legacy file path,
+but the repository is intended to keep only the COMPLETE YAML.
 
 Internally, COMPLETE YAML is normalized to the legacy structure so the
 snippet generation stays stable.
@@ -99,11 +101,12 @@ DEFAULT_TEMPLATES: Dict[str, str] = {
                'bg-green-600'}\"
        th:style=\"${'width: ' + (maxCnt > 0 ? ((@@ERROR_VAR@@ * 100.0) / maxCnt) : 0) + '%'}\" style=\"width: 100%\"></div>
   </div>
-  <p class=\"text-xs mt-2\"
+    <p class=\"text-xs mt-2\"
      th:classappend=\"${severity == 'critical' ? 'text-red-700' :
              severity == 'high' ? 'text-orange-700' :
              severity == 'medium' ? 'text-yellow-700' :
              'text-green-700'}\"><span th:text=\"${qualityResults.totalErrors > 0 ? #numbers.formatDecimal((@@ERROR_VAR@@ * 100.0) / qualityResults.totalErrors, 1, 1) : '0.0'}\">62.5</span>% degli errori totali</p>
+    </div>
 """,
 }
 
@@ -150,6 +153,13 @@ def _normalize_complete(raw: Dict[str, Any]) -> Dict[str, Any]:
     excellent_value = _as_float((dim_thresholds_raw.get("excellent") or {}).get("value"), path="dimension_scores.thresholds.excellent.value")
     acceptable_value = _as_float((dim_thresholds_raw.get("acceptable") or {}).get("value"), path="dimension_scores.thresholds.acceptable.value")
 
+    def _clean_label_it(value: Any) -> str:
+        s = (value or "").strip()
+        # COMPLETE labels are like "Completezza (Completeness)"; legacy template already appends (English).
+        if "(" in s and s.endswith(")"):
+            return s.split("(", 1)[0].strip()
+        return s
+
     dimensions_out: Dict[str, Any] = {}
     for key, d in (dim_raw.get("dimensions") or {}).items():
         if not isinstance(d, dict):
@@ -157,8 +167,8 @@ def _normalize_complete(raw: Dict[str, Any]) -> Dict[str, Any]:
         dimensions_out[key] = {
             "variable": d.get("variable_score") or d.get("variable") or d.get("id") or "",
             "error_variable": d.get("variable_error") or d.get("error_variable") or "",
-            "label_it": d.get("label_it") or "",
-            "label_en": d.get("label_en") or "",
+            "label_it": _clean_label_it(d.get("label_it")),
+            "label_en": (d.get("label_en") or ""),
             "description_it": d.get("description_it") or "",
             "error_label_it": "ERRORI",
         }

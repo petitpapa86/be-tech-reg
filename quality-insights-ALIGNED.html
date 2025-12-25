@@ -4,7 +4,7 @@
 <!--
 CRITICAL ALIGNMENT:
 This JavaScript must use the SAME thresholds as:
-- dimension_scores.thresholds in color-rules-config.yaml
+- dimension_scores.thresholds in color-rules-config-COMPLETE.yaml
 - HTML dimension score sections
 - Unit tests
 
@@ -14,7 +14,7 @@ YAML: dimension_scores.thresholds.excellent: 90.0
 ❌ DIFFERENT THRESHOLDS!
 
 AFTER (ALIGNED):
-JavaScript: Generated from color-rules-config.yaml
+JavaScript: Generated from color-rules-config-COMPLETE.yaml
 YAML: Single source of truth
 ✅ SAME THRESHOLDS EVERYWHERE!
 -->
@@ -33,7 +33,7 @@ YAML: Single source of truth
 // Quality Insights - Rule-Based Configuration
 // ============================================
 // 
-// IMPORTANT: These thresholds MUST match color-rules-config.yaml
+// IMPORTANT: These thresholds MUST match color-rules-config-COMPLETE.yaml
 // 
 // Synchronized with:
 // - dimension_scores.thresholds.excellent: 90.0
@@ -79,7 +79,7 @@ const qualityRules = {
     },
     
     // ----- DIMENSION SCORE THRESHOLDS -----
-    // CRITICAL: Must match color-rules-config.yaml
+    // CRITICAL: Must match color-rules-config-COMPLETE.yaml
     // dimension_scores.thresholds.excellent: 90.0
     // dimension_scores.thresholds.acceptable: 75.0
     dimensionThresholds: {
@@ -92,7 +92,7 @@ const qualityRules = {
     },
     
     // ----- ERROR COUNT THRESHOLDS -----
-    // CRITICAL: Must match color-rules-config.yaml
+    // CRITICAL: Must match color-rules-config-COMPLETE.yaml
     // error_distribution.thresholds: { critical: 100, high: 50, medium: 10 }
     errorThresholds: {
         critical: 100,   // Aligned with YAML!
@@ -147,7 +147,7 @@ const dimensionDisplayName = (dimensionName) => {
 // ----- GRADE MAPPING (aligned with overall_grade in YAML) -----
 const getQualityGrade = (score) => {
     const s = safeNumber(score, 0);
-    // Thresholds from color-rules-config.yaml: overall_grade.grades
+    // Thresholds from color-rules-config-COMPLETE.yaml: overall_grade.grades
     if (s >= 95) return { grade: 'A', label: 'EXCELLENT', severity: 'success', color: 'green' };
     if (s >= 85) return { grade: 'B', label: 'GOOD', severity: 'info', color: 'blue' };
     if (s >= 75) return { grade: 'C', label: 'ACCEPTABLE', severity: 'warning', color: 'yellow' };
@@ -450,7 +450,7 @@ hydrateQualityInsights();
 // ============================================
 // 
 // These thresholds should match across:
-// ✅ color-rules-config.yaml
+// ✅ color-rules-config-COMPLETE.yaml
 // ✅ HTML dimension score sections
 // ✅ This JavaScript file
 // ✅ Unit tests
