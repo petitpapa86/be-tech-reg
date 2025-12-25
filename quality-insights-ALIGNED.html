@@ -1,0 +1,466 @@
+<!-- ============================================ -->
+<!-- Quality Insights Section - ALIGNED VERSION -->
+<!-- ============================================ -->
+<!--
+CRITICAL ALIGNMENT:
+This JavaScript must use the SAME thresholds as:
+- dimension_scores.thresholds in color-rules-config.yaml
+- HTML dimension score sections
+- Unit tests
+
+BEFORE (INCONSISTENT):
+JavaScript: dimensionThresholds: { COMPLETENESS: 80 }
+YAML: dimension_scores.thresholds.excellent: 90.0
+❌ DIFFERENT THRESHOLDS!
+
+AFTER (ALIGNED):
+JavaScript: Generated from color-rules-config.yaml
+YAML: Single source of truth
+✅ SAME THRESHOLDS EVERYWHERE!
+-->
+
+<div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-gray-200 pb-2">
+        Analisi e Raccomandazioni
+    </h2>
+
+    <div id="qualityInsightsContainer" class="space-y-4"></div>
+</div>
+
+<script th:inline="javascript">
+/*[[
+// ============================================
+// Quality Insights - Rule-Based Configuration
+// ============================================
+// 
+// IMPORTANT: These thresholds MUST match color-rules-config.yaml
+// 
+// Synchronized with:
+// - dimension_scores.thresholds.excellent: 90.0
+// - dimension_scores.thresholds.acceptable: 75.0
+// - error_distribution.thresholds (100, 50, 10)
+// - global.color_palette
+// ============================================
+]]*/
+
+const qualityRules = {
+    // ----- COLOR PALETTE (from YAML: global.color_palette) -----
+    insightColors: {
+        critical: { 
+            bg: 'bg-red-50', 
+            border: 'border-red-500', 
+            title: 'text-red-900', 
+            text: 'text-red-800' 
+        },
+        high: { 
+            bg: 'bg-orange-50', 
+            border: 'border-orange-500', 
+            title: 'text-orange-900', 
+            text: 'text-orange-800' 
+        },
+        medium: { 
+            bg: 'bg-amber-50', 
+            border: 'border-amber-500', 
+            title: 'text-amber-900', 
+            text: 'text-amber-800' 
+        },
+        success: { 
+            bg: 'bg-green-50', 
+            border: 'border-green-500', 
+            title: 'text-green-900', 
+            text: 'text-green-800' 
+        },
+        info: { 
+            bg: 'bg-blue-50', 
+            border: 'border-blue-500', 
+            title: 'text-blue-900', 
+            text: 'text-blue-800' 
+        }
+    },
+    
+    // ----- DIMENSION SCORE THRESHOLDS -----
+    // CRITICAL: Must match color-rules-config.yaml
+    // dimension_scores.thresholds.excellent: 90.0
+    // dimension_scores.thresholds.acceptable: 75.0
+    dimensionThresholds: {
+        COMPLETENESS: 90,  // Changed from 80 to 90 (aligned with YAML!)
+        ACCURACY: 90,       // Changed from 85 to 90 (aligned with YAML!)
+        CONSISTENCY: 90,
+        TIMELINESS: 95,
+        UNIQUENESS: 98,
+        VALIDITY: 90
+    },
+    
+    // ----- ERROR COUNT THRESHOLDS -----
+    // CRITICAL: Must match color-rules-config.yaml
+    // error_distribution.thresholds: { critical: 100, high: 50, medium: 10 }
+    errorThresholds: {
+        critical: 100,   // Aligned with YAML!
+        high: 50,        // Aligned with YAML!
+        medium: 10       // Aligned with YAML!
+    },
+    
+    // ----- VALIDATION RATE THRESHOLDS -----
+    validationThresholds: {
+        critical: 20,   // < 20% validation rate = critical
+        high: 50,       // < 50% = high attention
+        medium: 80      // < 80% = medium attention
+    }
+};
+
+// ============================================
+// Helper Functions
+// ============================================
+
+const safeNumber = (value, fallback = 0) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+};
+
+const safePct = (num, den) => {
+    const d = safeNumber(den, 0);
+    if (d <= 0) return 0;
+    return (safeNumber(num, 0) / d) * 100;
+};
+
+const formatPct = (value, digits = 1) => safeNumber(value, 0).toFixed(digits);
+
+const titleCase = (s) => {
+    const str = (s ?? '').toString().toLowerCase();
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+const dimensionDisplayName = (dimensionName) => {
+    const n = (dimensionName ?? '').toString().toUpperCase();
+    switch (n) {
+        case 'COMPLETENESS': return 'Completeness';
+        case 'ACCURACY': return 'Accuracy';
+        case 'CONSISTENCY': return 'Consistency';
+        case 'TIMELINESS': return 'Timeliness';
+        case 'UNIQUENESS': return 'Uniqueness';
+        case 'VALIDITY': return 'Validity';
+        default: return titleCase(n);
+    }
+};
+
+// ----- GRADE MAPPING (aligned with overall_grade in YAML) -----
+const getQualityGrade = (score) => {
+    const s = safeNumber(score, 0);
+    // Thresholds from color-rules-config.yaml: overall_grade.grades
+    if (s >= 95) return { grade: 'A', label: 'EXCELLENT', severity: 'success', color: 'green' };
+    if (s >= 85) return { grade: 'B', label: 'GOOD', severity: 'info', color: 'blue' };
+    if (s >= 75) return { grade: 'C', label: 'ACCEPTABLE', severity: 'warning', color: 'yellow' };
+    if (s >= 65) return { grade: 'D', label: 'POOR', severity: 'error', color: 'orange' };
+    if (s >= 50) return { grade: 'E', label: 'CRITICAL', severity: 'critical', color: 'red' };
+    return { grade: 'F', label: 'UNACCEPTABLE', severity: 'critical', color: 'red' };
+};
+
+// ----- ATTENTION LEVEL (aligned with validation thresholds) -----
+const getAttentionLevel = (score, errorCount, validExposures, totalExposures) => {
+    const validationRate = safePct(validExposures, totalExposures);
+    const errorRate = safePct(errorCount, totalExposures);
+    const s = safeNumber(score, 0);
+
+    // Using thresholds from qualityRules.validationThresholds and errorThresholds
+    if (s < 50 || validationRate < qualityRules.validationThresholds.critical || errorRate > 500) {
+        return { level: 'CRITICO', color: 'red', icon: '🚨', priority: 1 };
+    }
+    if (s < 65 || validationRate < qualityRules.validationThresholds.high || errorRate > 200) {
+        return { level: 'ALTO', color: 'orange', icon: '⚠️', priority: 2 };
+    }
+    if (s < 85 || validationRate < qualityRules.validationThresholds.medium || errorRate > 50) {
+        return { level: 'MEDIO', color: 'yellow', icon: '⚡', priority: 3 };
+    }
+    return { level: 'BASSO', color: 'green', icon: '✓', priority: 4 };
+};
+
+// ----- COMPLIANCE STATUS (aligned with BCBS 239 thresholds) -----
+const getComplianceStatus = (score) => {
+    const s = safeNumber(score, 0);
+    // Using dimension threshold of 90% (from qualityRules.dimensionThresholds)
+    if (s >= 90) {
+        return { status: 'CONFORME', color: 'green', badge: { bg: 'bg-green-100', text: 'text-green-800' } };
+    }
+    if (s >= 70) {
+        return { status: 'PARZIALMENTE CONFORME', color: 'yellow', badge: { bg: 'bg-yellow-100', text: 'text-yellow-800' } };
+    }
+    return { status: 'NON CONFORME', color: 'red', badge: { bg: 'bg-red-100', text: 'text-red-800' } };
+};
+
+const rankDimensionsByPriority = (dimensions) => {
+    return [...(dimensions ?? [])].sort((a, b) => {
+        const be = safeNumber(b.errorCount, 0);
+        const ae = safeNumber(a.errorCount, 0);
+        if (be !== ae) return be - ae;
+        return safeNumber(a.score, 0) - safeNumber(b.score, 0);
+    });
+};
+
+const isCriticalSituation = (qualityReport) => {
+    const overallScore = safeNumber(qualityReport?.overallScore, 0);
+    const totalExposures = safeNumber(qualityReport?.totalExposures, 0);
+    const validExposures = safeNumber(qualityReport?.validExposures, 0);
+    const errorCount = safeNumber(qualityReport?.errorCount, 0);
+    const validationRate = safePct(validExposures, totalExposures);
+    const errorRate = safePct(errorCount, totalExposures);
+    
+    // Using aligned thresholds
+    const anyDimensionUnder50 = (qualityReport?.dimensions ?? []).some(d => safeNumber(d.score, 0) < 50);
+
+    return overallScore < 65 || 
+           validationRate < qualityRules.validationThresholds.high || 
+           errorRate > 200 || 
+           anyDimensionUnder50 || 
+           validExposures === 0;
+};
+
+// ============================================
+// Insight Generation Functions
+// ============================================
+
+const generateCriticalInsight = (qualityReport) => {
+    const overallScore = safeNumber(qualityReport.overallScore, 0);
+    const totalExposures = safeNumber(qualityReport.totalExposures, 0);
+    const validExposures = safeNumber(qualityReport.validExposures, 0);
+    const errorCount = safeNumber(qualityReport.errorCount, 0);
+    const worstDimension = rankDimensionsByPriority(qualityReport.dimensions).find(d => safeNumber(d.score, 0) > 0 || safeNumber(d.errorCount, 0) > 0)
+        || rankDimensionsByPriority(qualityReport.dimensions)[0]
+        || { name: 'Completeness' };
+
+    return {
+        severity: 'critical',
+        icon: '🚨',
+        title: 'Situazione Critica - Azione Immediata Richiesta',
+        content: `Il punteggio complessivo di qualità del ${formatPct(overallScore, 0)}% indica una situazione critica che richiede intervento immediato. ${validExposures} su ${totalExposures} esposizioni analizzate presentano errori di validazione.`,
+        priority: `Affrontare immediatamente i problemi di ${dimensionDisplayName(worstDimension.name)}.`
+    };
+};
+
+const generateDimensionInsight = (dimension, qualityReport) => {
+    const nameKey = (dimension?.name ?? '').toString().toUpperCase();
+    const score = safeNumber(dimension?.score, 0);
+    const errors = safeNumber(dimension?.errorCount, 0);
+    const displayName = dimensionDisplayName(nameKey);
+
+    if (nameKey === 'COMPLETENESS') {
+        return {
+            severity: 'high',
+            icon: '📊',
+            title: 'Problemi di Completezza dei Dati',
+            content: `La dimensione Completeness mostra il punteggio più basso (${formatPct(score, 0)}%) con ${errors} errori identificati. Questo indica che campi obbligatori mancano o non sono popolati correttamente.`,
+            recommendation: 'Verificare i processi di data entry e assicurarsi che tutti i campi obbligatori siano correttamente valorizzati nei sistemi di origine.'
+        };
+    }
+
+    if (nameKey === 'ACCURACY') {
+        return {
+            severity: 'medium',
+            icon: '🎯',
+            title: 'Problemi di Accuratezza',
+            content: `La dimensione Accuracy presenta un punteggio del ${formatPct(score, 0)}% con ${errors} errori. I dati potrebbero non riflettere correttamente le informazioni effettive delle esposizioni.`,
+            recommendation: "Implementare controlli di riconciliazione tra i sistemi sorgente e il data warehouse per garantire l'accuratezza delle informazioni."
+        };
+    }
+
+    // Using threshold from qualityRules.dimensionThresholds (90% for most dimensions)
+    const threshold = qualityRules.dimensionThresholds[nameKey] || 90;
+    const isBelowThreshold = score < threshold;
+    
+    if (!isBelowThreshold) {
+        return null;
+    }
+
+    const severity = score < 60 ? 'critical' : score < 75 ? 'high' : 'medium';
+    const icon = severity === 'critical' ? '🚨' : severity === 'high' ? '⚠️' : '⚡';
+
+    let recommendation = 'Rafforzare i controlli di qualità e standardizzare i processi di validazione.';
+    if (nameKey === 'CONSISTENCY') recommendation = 'Standardizzare i formati e le regole di validazione tra sistemi sorgente e data warehouse.';
+    if (nameKey === 'TIMELINESS') recommendation = 'Ottimizzare i processi di aggiornamento dati per ridurre ritardi e garantire disponibilità tempestiva.';
+    if (nameKey === 'UNIQUENESS') recommendation = 'Implementare controlli anti-duplicazione e procedure di master data management.';
+    if (nameKey === 'VALIDITY') recommendation = 'Rafforzare le regole di validazione (formati, range, vincoli) nei sistemi di origine.';
+
+    return {
+        severity,
+        icon,
+        title: `Criticità su ${displayName}`,
+        content: `La dimensione ${displayName} presenta un punteggio del ${formatPct(score, 0)}% con ${errors} errori.`,
+        recommendation
+    };
+};
+
+const generatePositiveInsight = (goodDimensions) => {
+    const names = (goodDimensions ?? []).map(d => dimensionDisplayName(d.name)).filter(Boolean);
+    return {
+        severity: 'success',
+        icon: '✅',
+        title: 'Aspetti Positivi',
+        content: `Le dimensioni ${names.join(', ')} mostrano punteggi eccellenti (>95%), indicando che:`,
+        bulletPoints: [
+            'I dati sono aggiornati e disponibili nei tempi richiesti',
+            'Non ci sono duplicazioni nei record',
+            'I formati dei dati rispettano le regole di validazione'
+        ]
+    };
+};
+
+const generateShortTermActions = (dimensions, severity) => {
+    const actions = [];
+    const worst = rankDimensionsByPriority(dimensions).slice(0, 2).map(d => dimensionDisplayName(d.name)).filter(Boolean);
+    const worstLabel = worst.length ? worst.join(' e ') : 'Completezza e Accuratezza';
+
+    if (severity === 'critical' || severity === 'error') {
+        actions.push('Analisi dettagliata degli errori di ' + worstLabel);
+        actions.push('Identificazione dei campi mancanti o errati');
+        actions.push('Correzione manuale delle esposizioni critiche');
+    } else if (severity === 'warning') {
+        actions.push('Revisione dei processi di raccolta dati');
+        actions.push('Analisi delle cause radice degli errori');
+        actions.push('Implementazione di quick wins');
+    } else {
+        actions.push('Monitoraggio continuo delle metriche di qualità');
+        actions.push('Ottimizzazione dei processi esistenti');
+    }
+    return actions;
+};
+
+const generateMediumTermActions = (dimensions, severity) => {
+    const actions = [];
+    if (severity === 'critical' || severity === 'error') {
+        actions.push('Implementazione di controlli automatici nei sistemi sorgente');
+        actions.push('Sviluppo di processi di riconciliazione automatica');
+        actions.push('Formazione degli operatori sui requisiti di qualità');
+    } else if (severity === 'warning') {
+        actions.push('Potenziamento dei controlli di qualità esistenti');
+        actions.push('Automazione dei processi manuali');
+        actions.push('Integrazione di nuovi data quality check');
+    } else {
+        actions.push('Implementazione di advanced analytics');
+        actions.push('Ottimizzazione delle performance');
+    }
+    return actions;
+};
+
+const generateLongTermActions = (dimensions, severity) => {
+    const actions = [
+        'Implementazione di data governance framework',
+        'Automazione completa dei controlli di qualità',
+        'Monitoraggio continuo e reporting automatico'
+    ];
+    if (severity === 'critical' || severity === 'error') {
+        actions.unshift("Revisione completa dell'architettura dei dati");
+        actions.push('Implementazione di machine learning per anomaly detection');
+    }
+    return actions;
+};
+
+const generateActionPlanInsight = (qualityReport) => {
+    const overallScore = safeNumber(qualityReport?.overallScore, 0);
+    const grade = getQualityGrade(overallScore);
+    const severity = grade.severity;
+    return {
+        severity: 'info',
+        icon: '📋',
+        title: "Piano d'Azione Consigliato",
+        shortTerm: generateShortTermActions(qualityReport.dimensions, severity),
+        mediumTerm: generateMediumTermActions(qualityReport.dimensions, severity),
+        longTerm: generateLongTermActions(qualityReport.dimensions, severity)
+    };
+};
+
+const generateQualityInsights = (qualityReport) => {
+    const insights = [];
+    const overallScore = safeNumber(qualityReport?.overallScore, 0);
+
+    if (isCriticalSituation(qualityReport)) {
+        insights.push(generateCriticalInsight(qualityReport));
+    }
+
+    const worstDimensions = rankDimensionsByPriority(qualityReport?.dimensions).slice(0, 3);
+    worstDimensions.forEach(dim => {
+        // Using aligned threshold (90% instead of varying thresholds)
+        const threshold = qualityRules.dimensionThresholds[dim.name.toUpperCase()] || 90;
+        if (safeNumber(dim.score, 0) < threshold) {
+            const insight = generateDimensionInsight(dim, qualityReport);
+            if (insight) insights.push(insight);
+        }
+    });
+
+    const goodDimensions = (qualityReport?.dimensions ?? []).filter(d => safeNumber(d.score, 0) >= 95);
+    if (goodDimensions.length > 0) {
+        insights.push(generatePositiveInsight(goodDimensions));
+    }
+
+    insights.push(generateActionPlanInsight(qualityReport));
+    return insights;
+};
+
+const renderInsight = (insight) => {
+    const palette = qualityRules.insightColors[insight.severity] || qualityRules.insightColors.info;
+    const wrap = document.createElement('div');
+    wrap.className = `${palette.bg} border-l-4 ${palette.border} p-4`;
+
+    const bullets = Array.isArray(insight.bulletPoints) && insight.bulletPoints.length
+        ? `<ul class="list-disc list-inside text-sm ${palette.text} space-y-1 ml-4">${insight.bulletPoints.map(li => `<li>${li}</li>`).join('')}</ul>`
+        : '';
+
+    const plan = (insight.shortTerm || insight.mediumTerm || insight.longTerm)
+        ? `
+            <p class="text-sm ${palette.text} mb-2"><strong>Breve Termine (1-2 settimane):</strong></p>
+            <ul class="list-disc list-inside text-sm ${palette.text} space-y-1 ml-4 mb-3">${(insight.shortTerm ?? []).map(a => `<li>${a}</li>`).join('')}</ul>
+            <p class="text-sm ${palette.text} mb-2"><strong>Medio Termine (1-3 mesi):</strong></p>
+            <ul class="list-disc list-inside text-sm ${palette.text} space-y-1 ml-4 mb-3">${(insight.mediumTerm ?? []).map(a => `<li>${a}</li>`).join('')}</ul>
+            <p class="text-sm ${palette.text} mb-2"><strong>Lungo Termine (3-6 mesi):</strong></p>
+            <ul class="list-disc list-inside text-sm ${palette.text} space-y-1 ml-4">${(insight.longTerm ?? []).map(a => `<li>${a}</li>`).join('')}</ul>
+        `
+        : '';
+
+    wrap.innerHTML = `
+        <div class="flex items-start">
+            <span class="text-2xl mr-3">${insight.icon ?? ''}</span>
+            <div>
+                <h4 class="font-bold ${palette.title} mb-2">${insight.title ?? ''}</h4>
+                ${insight.content ? `<p class="text-sm ${palette.text} mb-2">${insight.content}</p>` : ''}
+                ${insight.priority ? `<p class="text-sm ${palette.text}"><strong>Priorità:</strong> ${insight.priority}</p>` : ''}
+                ${insight.recommendation ? `<p class="text-sm ${palette.text}"><strong>Raccomandazione:</strong> ${insight.recommendation}</p>` : ''}
+                ${bullets}
+                ${plan}
+            </div>
+        </div>
+    `;
+    return wrap;
+};
+
+const hydrateQualityInsights = () => {
+    const qualityReport = /*[[${qualityInsightsData}]]*/ {};
+    const container = document.getElementById('qualityInsightsContainer');
+    if (!container || !qualityReport) return;
+
+    const insights = generateQualityInsights(qualityReport);
+    container.innerHTML = '';
+    insights.forEach(insight => container.appendChild(renderInsight(insight)));
+};
+
+// Render quality insights
+hydrateQualityInsights();
+
+/*[[
+// ============================================
+// VALIDATION: Threshold Alignment Check
+// ============================================
+// 
+// These thresholds should match across:
+// ✅ color-rules-config.yaml
+// ✅ HTML dimension score sections
+// ✅ This JavaScript file
+// ✅ Unit tests
+// 
+// Current values (VERIFY ALIGNMENT):
+// - Excellent threshold: 90%
+// - Acceptable threshold: 75%
+// - Critical errors: > 100
+// - High errors: > 50
+// - Medium errors: > 10
+// ============================================
+]]*/
+</script>

@@ -1,0 +1,676 @@
+# ============================================
+# BCBS 239 Report - Complete Configuration
+# ============================================
+# 
+# SINGLE SOURCE OF TRUTH for:
+# - HTML color rules
+# - JavaScript logic rules
+# - Quality insights generation
+# - Test expectations
+#
+# This file can be used by Copilot/LLM to generate:
+# 1. HTML templates (Thymeleaf)
+# 2. JavaScript code (quality-insights.js)
+# 3. Java unit tests
+# 4. Documentation
+#
+# ============================================
+
+version: "3.0"
+last_updated: "2024-12-25"
+author: "BCBS 239 Compliance Platform Team"
+
+# ============================================
+# GLOBAL SETTINGS
+# ============================================
+global:
+  # Color palette used throughout the application
+  color_palette:
+    green:
+      text: "text-green-600"
+      text_dark: "text-green-800"
+      text_light: "text-green-700"
+      bg_light: "bg-green-50"
+      bg: "bg-green-600"
+      bg_lighter: "bg-green-200"
+      border: "border-green-200"
+      gradient_from: "from-green-500"
+      gradient_to: "to-green-600"
+      
+    amber:
+      text: "text-amber-600"
+      text_dark: "text-amber-800"
+      text_light: "text-amber-700"
+      bg_light: "bg-amber-50"
+      bg: "bg-amber-500"
+      bg_lighter: "bg-amber-200"
+      border: "border-amber-200"
+      gradient_from: "from-amber-500"
+      gradient_to: "to-amber-600"
+      
+    yellow:
+      text: "text-yellow-600"
+      text_dark: "text-yellow-800"
+      text_light: "text-yellow-700"
+      bg_light: "bg-yellow-50"
+      bg: "bg-yellow-600"
+      bg_lighter: "bg-yellow-200"
+      border: "border-yellow-200"
+      gradient_from: "from-yellow-500"
+      gradient_to: "to-yellow-600"
+      
+    orange:
+      text: "text-orange-600"
+      text_dark: "text-orange-800"
+      text_light: "text-orange-700"
+      bg_light: "bg-orange-50"
+      bg: "bg-orange-600"
+      bg_lighter: "bg-orange-200"
+      border: "border-orange-200"
+      gradient_from: "from-orange-500"
+      gradient_to: "to-orange-600"
+      
+    red:
+      text: "text-red-600"
+      text_dark: "text-red-800"
+      text_light: "text-red-700"
+      bg_light: "bg-red-50"
+      bg: "bg-red-600"
+      bg_lighter: "bg-red-200"
+      border: "border-red-200"
+      gradient_from: "from-red-500"
+      gradient_to: "to-red-600"
+      
+    blue:
+      text: "text-blue-600"
+      text_dark: "text-blue-800"
+      text_light: "text-blue-700"
+      bg_light: "bg-blue-50"
+      bg: "bg-blue-600"
+      bg_lighter: "bg-blue-200"
+      border: "border-blue-200"
+
+# ============================================
+# RULE FAMILY 1: Dimension Score Colors
+# ============================================
+dimension_scores:
+  enabled: true
+  description: "Quality dimension scores (Completeness, Accuracy, etc.)"
+  
+  # ----- MAIN THRESHOLDS -----
+  thresholds:
+    excellent:
+      value: 90.0
+      operator: ">="
+      color_scheme: "green"
+      label_it: "ECCELLENTE"
+      label_en: "EXCELLENT"
+      
+    acceptable:
+      value: 75.0
+      operator: ">="
+      color_scheme: "amber"
+      label_it: "ACCETTABILE"
+      label_en: "ACCEPTABLE"
+      
+    poor:
+      operator: "<"
+      threshold_value: 75.0
+      color_scheme: "red"
+      label_it: "SCARSO"
+      label_en: "POOR"
+  
+  # ----- DIMENSIONS -----
+  dimensions:
+    completeness:
+      id: "cpl"
+      variable_score: "cpl"
+      variable_error: "cplErr"
+      variable_count: "cplCnt"
+      label_it: "Completezza (Completeness)"
+      label_en: "Completeness"
+      description_it: "Tutti i dati richiesti sono presenti e popolati"
+      description_en: "All required data is present and populated"
+      
+    accuracy:
+      id: "acc"
+      variable_score: "acc"
+      variable_error: "accErr"
+      variable_count: "accCnt"
+      label_it: "Accuratezza (Accuracy)"
+      label_en: "Accuracy"
+      description_it: "I dati riflettono correttamente la realtà"
+      description_en: "Data accurately reflects reality"
+      
+    consistency:
+      id: "con"
+      variable_score: "con"
+      variable_error: "conErr"
+      variable_count: "conCnt"
+      label_it: "Coerenza (Consistency)"
+      label_en: "Consistency"
+      description_it: "I dati sono uniformi tra diverse fonti e nel tempo"
+      description_en: "Data is uniform across sources and over time"
+      
+    timeliness:
+      id: "tim"
+      variable_score: "tim"
+      variable_error: "timErr"
+      variable_count: "timCnt"
+      label_it: "Tempestività (Timeliness)"
+      label_en: "Timeliness"
+      description_it: "I dati sono aggiornati e disponibili quando necessari"
+      description_en: "Data is current and available when needed"
+      
+    uniqueness:
+      id: "uni"
+      variable_score: "uni"
+      variable_error: "uniErr"
+      variable_count: "uniCnt"
+      label_it: "Unicità (Uniqueness)"
+      label_en: "Uniqueness"
+      description_it: "Non ci sono duplicazioni nei dati"
+      description_en: "No duplications in the data"
+      
+    validity:
+      id: "val"
+      variable_score: "val"
+      variable_error: "valErr"
+      variable_count: "valCnt"
+      label_it: "Validità (Validity)"
+      label_en: "Validity"
+      description_it: "I dati rispettano le regole di business e i formati attesi"
+      description_en: "Data conforms to business rules and expected formats"
+
+# ============================================
+# RULE FAMILY 2: Error Distribution Colors
+# ============================================
+error_distribution:
+  enabled: true
+  description: "Error distribution cards showing top 3 dimensions by error count"
+  
+  thresholds:
+    critical:
+      value: 100
+      operator: ">"
+      color_scheme: "red"
+      label_it: "Situazione critica!"
+      label_en: "Critical situation!"
+      
+    high:
+      value: 50
+      operator: ">"
+      max_value: 100
+      color_scheme: "orange"
+      label_it: "Richiede attenzione"
+      label_en: "Requires attention"
+      
+    medium:
+      value: 10
+      operator: ">"
+      max_value: 50
+      color_scheme: "yellow"
+      label_it: "Errori moderati"
+      label_en: "Moderate errors"
+      
+    low:
+      operator: "<="
+      threshold_value: 10
+      color_scheme: "green"
+      label_it: "Errori minimi"
+      label_en: "Minimal errors"
+
+# ============================================
+# RULE FAMILY 3: Overall Quality Grade
+# ============================================
+overall_grade:
+  enabled: true
+  description: "Overall quality score card with gradient background"
+  
+  grades:
+    A:
+      min_score: 95.0
+      color_scheme: "green"
+      label_it: "ECCELLENTE - Livello Industriale"
+      label_en: "EXCELLENT - Industry Leading"
+      
+    B:
+      min_score: 85.0
+      max_score: 94.99
+      color_scheme: "amber"
+      label_it: "BUONO - Miglioramenti Minori Necessari"
+      label_en: "GOOD - Minor Improvements Needed"
+      
+    C:
+      min_score: 75.0
+      max_score: 84.99
+      color_scheme: "yellow"
+      label_it: "ACCETTABILE - Alcuni Miglioramenti Necessari"
+      label_en: "ACCEPTABLE - Some Improvements Needed"
+      
+    D:
+      min_score: 65.0
+      max_score: 74.99
+      color_scheme: "orange"
+      label_it: "DEBOLE - Richiede Azione"
+      label_en: "WEAK - Requires Action"
+      
+    E:
+      min_score: 50.0
+      max_score: 64.99
+      color_scheme: "red"
+      label_it: "SCARSO - Richiede Azione Immediata"
+      label_en: "POOR - Requires Immediate Action"
+      
+    F:
+      max_score: 49.99
+      color_scheme: "red"
+      label_it: "INACCETTABILE - Intervento Urgente"
+      label_en: "UNACCEPTABLE - Urgent Intervention"
+
+# ============================================
+# RULE FAMILY 4: BCBS 239 Compliance Badges
+# ============================================
+bcbs239_compliance:
+  enabled: true
+  description: "Compliance badges for BCBS 239 principles"
+  
+  principles:
+    principle_3:
+      number: 3
+      name_it: "Principio 3 - Accuratezza e Integrità"
+      name_en: "Principle 3 - Accuracy and Integrity"
+      description_it: "I dati devono essere accurati e affidabili"
+      description_en: "Data must be accurate and reliable"
+      maps_to_dimension: "accuracy"
+      threshold: 90.0
+      
+    principle_4:
+      number: 4
+      name_it: "Principio 4 - Completezza"
+      name_en: "Principle 4 - Completeness"
+      description_it: "I dati devono essere completi e disponibili"
+      description_en: "Data must be complete and available"
+      maps_to_dimension: "completeness"
+      threshold: 90.0
+      
+    principle_5:
+      number: 5
+      name_it: "Principio 5 - Tempestività"
+      name_en: "Principle 5 - Timeliness"
+      description_it: "I dati devono essere aggiornati e disponibili on-demand"
+      description_en: "Data must be updated and available on-demand"
+      maps_to_dimension: "timeliness"
+      threshold: 90.0
+      
+    principle_6:
+      number: 6
+      name_it: "Principio 6 - Adattabilità"
+      name_en: "Principle 6 - Adaptability"
+      description_it: "I sistemi devono essere flessibili per nuovi requisiti"
+      description_en: "Systems must be flexible for new requirements"
+      maps_to_dimension: "consistency"
+      threshold: 70.0
+      note: "Lower threshold - adaptability is harder to measure"
+  
+  badges:
+    compliant:
+      color_scheme: "green"
+      label_it: "CONFORME"
+      label_en: "COMPLIANT"
+      
+    non_compliant:
+      color_scheme: "red"
+      label_it: "NON CONFORME"
+      label_en: "NON-COMPLIANT"
+
+# ============================================
+# RULE FAMILY 5: Quality Insights (NEW!)
+# ============================================
+quality_insights:
+  enabled: true
+  description: "Dynamic quality insights and recommendations generation"
+  
+  # ----- SEVERITY THRESHOLDS -----
+  severity_thresholds:
+    critical:
+      overall_score_below: 65.0
+      validation_rate_below: 20.0
+      error_rate_above: 50.0
+      any_dimension_below: 50.0
+      icon: "🚨"
+      color_scheme: "red"
+      
+    high:
+      overall_score_below: 75.0
+      validation_rate_below: 50.0
+      error_rate_above: 20.0
+      any_dimension_below: 65.0
+      icon: "⚠️"
+      color_scheme: "orange"
+      
+    medium:
+      overall_score_below: 85.0
+      validation_rate_below: 80.0
+      error_rate_above: 10.0
+      any_dimension_below: 75.0
+      icon: "⚡"
+      color_scheme: "yellow"
+      
+    low:
+      overall_score_above: 85.0
+      validation_rate_above: 80.0
+      icon: "✓"
+      color_scheme: "green"
+  
+  # ----- INSIGHT GENERATION RULES -----
+  insight_rules:
+    # Rule 1: Critical Situation
+    - id: "critical_situation"
+      priority: 1
+      condition:
+        type: "or"
+        checks:
+          - field: "overallScore"
+            operator: "<"
+            value: 65.0
+          - field: "validationRate"
+            operator: "<"
+            value: 20.0
+          - field: "anyDimensionScore"
+            operator: "<"
+            value: 50.0
+      
+      output:
+        severity: "critical"
+        icon: "🚨"
+        title_it: "Situazione Critica - Azione Immediata Richiesta"
+        title_en: "Critical Situation - Immediate Action Required"
+        content_template_it: "Il punteggio complessivo di qualità del {overallScore}% indica una situazione critica che richiede intervento immediato. {validExposures} su {totalExposures} esposizioni analizzate presentano errori di validazione."
+        content_template_en: "The overall quality score of {overallScore}% indicates a critical situation requiring immediate intervention. {validExposures} out of {totalExposures} analyzed exposures have validation errors."
+        priority_template_it: "Affrontare immediatamente i problemi di {worstDimensionName}."
+        priority_template_en: "Immediately address {worstDimensionName} issues."
+    
+    # Rule 2: Dimension-Specific Insights
+    - id: "dimension_below_threshold"
+      priority: 2
+      condition:
+        type: "dimension_check"
+        operator: "<"
+        threshold_field: "dimension_scores.thresholds.excellent.value"
+      
+      output:
+        severity: "dynamic"  # Based on score
+        icon: "dynamic"      # Based on score
+        title_template_it: "Criticità su {dimensionName}"
+        title_template_en: "Issues with {dimensionName}"
+        content_template_it: "La dimensione {dimensionName} presenta un punteggio del {score}% con {errorCount} errori."
+        content_template_en: "The {dimensionName} dimension shows a score of {score}% with {errorCount} errors."
+        
+        # Dimension-specific recommendations
+        recommendations:
+          completeness:
+            it: "Verificare i processi di data entry e assicurarsi che tutti i campi obbligatori siano correttamente valorizzati nei sistemi di origine."
+            en: "Verify data entry processes and ensure all mandatory fields are properly populated in source systems."
+          
+          accuracy:
+            it: "Implementare controlli di riconciliazione tra i sistemi sorgente e il data warehouse per garantire l'accuratezza delle informazioni."
+            en: "Implement reconciliation controls between source systems and data warehouse to ensure information accuracy."
+          
+          consistency:
+            it: "Standardizzare i formati e le regole di validazione tra sistemi sorgente e data warehouse."
+            en: "Standardize formats and validation rules across source systems and data warehouse."
+          
+          timeliness:
+            it: "Ottimizzare i processi di aggiornamento dati per ridurre ritardi e garantire disponibilità tempestiva."
+            en: "Optimize data update processes to reduce delays and ensure timely availability."
+          
+          uniqueness:
+            it: "Implementare controlli anti-duplicazione e procedure di master data management."
+            en: "Implement anti-duplication controls and master data management procedures."
+          
+          validity:
+            it: "Rafforzare le regole di validazione (formati, range, vincoli) nei sistemi di origine."
+            en: "Strengthen validation rules (formats, ranges, constraints) in source systems."
+    
+    # Rule 3: Positive Aspects
+    - id: "excellent_dimensions"
+      priority: 3
+      condition:
+        type: "dimension_check"
+        operator: ">="
+        value: 95.0
+        min_count: 1
+      
+      output:
+        severity: "success"
+        icon: "✅"
+        title_it: "Aspetti Positivi"
+        title_en: "Positive Aspects"
+        content_template_it: "Le dimensioni {dimensionNames} mostrano punteggi eccellenti (>95%), indicando che:"
+        content_template_en: "The dimensions {dimensionNames} show excellent scores (>95%), indicating that:"
+        
+        bullet_points_it:
+          - "I dati sono aggiornati e disponibili nei tempi richiesti"
+          - "Non ci sono duplicazioni nei record"
+          - "I formati dei dati rispettano le regole di validazione"
+        
+        bullet_points_en:
+          - "Data is current and available when required"
+          - "There are no duplications in records"
+          - "Data formats comply with validation rules"
+    
+    # Rule 4: Action Plan
+    - id: "action_plan"
+      priority: 4
+      always_generate: true
+      
+      output:
+        severity: "info"
+        icon: "📋"
+        title_it: "Piano d'Azione Consigliato"
+        title_en: "Recommended Action Plan"
+        
+        # Actions vary by severity
+        actions:
+          critical:
+            short_term_it:
+              - "Analisi dettagliata degli errori di {topDimensions}"
+              - "Identificazione dei campi mancanti o errati"
+              - "Correzione manuale delle esposizioni critiche"
+            
+            medium_term_it:
+              - "Implementazione di controlli automatici nei sistemi sorgente"
+              - "Sviluppo di processi di riconciliazione automatica"
+              - "Formazione degli operatori sui requisiti di qualità"
+            
+            long_term_it:
+              - "Revisione completa dell'architettura dei dati"
+              - "Implementazione di data governance framework"
+              - "Implementazione di machine learning per anomaly detection"
+          
+          high:
+            short_term_it:
+              - "Analisi dettagliata degli errori di {topDimensions}"
+              - "Identificazione dei campi mancanti o errati"
+              - "Correzione manuale delle esposizioni critiche"
+            
+            medium_term_it:
+              - "Implementazione di controlli automatici nei sistemi sorgente"
+              - "Sviluppo di processi di riconciliazione automatica"
+              - "Formazione degli operatori sui requisiti di qualità"
+            
+            long_term_it:
+              - "Implementazione di data governance framework"
+              - "Automazione completa dei controlli di qualità"
+              - "Monitoraggio continuo e reporting automatico"
+          
+          medium:
+            short_term_it:
+              - "Revisione dei processi di raccolta dati"
+              - "Analisi delle cause radice degli errori"
+              - "Implementazione di quick wins"
+            
+            medium_term_it:
+              - "Potenziamento dei controlli di qualità esistenti"
+              - "Automazione dei processi manuali"
+              - "Integrazione di nuovi data quality check"
+            
+            long_term_it:
+              - "Implementazione di data governance framework"
+              - "Automazione completa dei controlli di qualità"
+              - "Monitoraggio continuo e reporting automatico"
+          
+          low:
+            short_term_it:
+              - "Monitoraggio continuo delle metriche di qualità"
+              - "Ottimizzazione dei processi esistenti"
+            
+            medium_term_it:
+              - "Implementazione di advanced analytics"
+              - "Ottimizzazione delle performance"
+            
+            long_term_it:
+              - "Implementazione di data governance framework"
+              - "Automazione completa dei controlli di qualità"
+              - "Monitoraggio continuo e reporting automatico"
+  
+  # ----- ANALYSIS CONFIGURATION -----
+  analysis_config:
+    top_dimensions_to_analyze: 3
+    min_excellent_score: 95.0
+    dimension_ranking_by: "error_count"  # or "score"
+    
+  # ----- ERROR COUNT THRESHOLDS (reuse from error_distribution) -----
+  error_thresholds:
+    critical: 100
+    high: 50
+    medium: 10
+    low: 10
+
+# ============================================
+# VALIDATION RULES
+# ============================================
+validation:
+  consistency_checks:
+    - id: "dimension_threshold_consistency"
+      rule: "Text color threshold MUST equal progress bar threshold"
+      applies_to: "dimension_scores"
+      severity: "CRITICAL"
+      
+    - id: "error_card_severity_consistency"
+      rule: "All elements per error card MUST use same severity variable"
+      applies_to: "error_distribution"
+      severity: "CRITICAL"
+      
+    - id: "javascript_yaml_alignment"
+      rule: "JavaScript thresholds MUST match YAML configuration"
+      applies_to: "quality_insights"
+      severity: "CRITICAL"
+      check_fields:
+        - "dimension_scores.thresholds.excellent.value"
+        - "dimension_scores.thresholds.acceptable.value"
+        - "error_distribution.thresholds.critical.value"
+        - "error_distribution.thresholds.high.value"
+        - "error_distribution.thresholds.medium.value"
+      
+    - id: "no_hardcoded_colors"
+      rule: "Colors MUST NOT be hardcoded in class attribute"
+      applies_to: "all"
+      severity: "HIGH"
+
+# ============================================
+# CODE GENERATION TEMPLATES
+# ============================================
+code_generation:
+  javascript_quality_insights:
+    template_file: "quality-insights.js.template"
+    output_file: "quality-insights.js"
+    variables_to_inject:
+      - path: "dimension_scores.thresholds.excellent.value"
+        js_variable: "dimensionThresholds.COMPLETENESS"
+      - path: "dimension_scores.thresholds.excellent.value"
+        js_variable: "dimensionThresholds.ACCURACY"
+      - path: "error_distribution.thresholds.critical.value"
+        js_variable: "errorThresholds.critical"
+      - path: "error_distribution.thresholds.high.value"
+        js_variable: "errorThresholds.high"
+      - path: "quality_insights.severity_thresholds.critical.overall_score_below"
+        js_variable: "severityThresholds.critical.overallScore"
+      - path: "quality_insights.analysis_config.top_dimensions_to_analyze"
+        js_variable: "analysisConfig.topDimensions"
+
+# ============================================
+# USAGE EXAMPLES FOR COPILOT
+# ============================================
+copilot_instructions:
+  generate_javascript:
+    description: "Generate quality-insights.js from this YAML configuration"
+    steps:
+      - "Read this YAML file"
+      - "Extract values from quality_insights section"
+      - "Generate JavaScript qualityRules object with thresholds"
+      - "Generate insight generation functions based on insight_rules"
+      - "Ensure all thresholds match dimension_scores and error_distribution"
+      - "Add validation comments showing YAML source paths"
+    
+    example_prompt: |
+      Generate a JavaScript file quality-insights.js that:
+      1. Reads thresholds from color-rules-config.yaml
+      2. Creates const qualityRules with all thresholds
+      3. Implements generateQualityInsights() based on insight_rules
+      4. Includes validation comments showing source YAML paths
+      
+      Use these exact values:
+      - dimension_scores.thresholds.excellent.value = 90.0
+      - error_distribution.thresholds.critical.value = 100
+      - quality_insights.severity_thresholds.critical.overall_score_below = 65.0
+  
+  generate_html:
+    description: "Generate HTML template from dimension_scores configuration"
+    steps:
+      - "Read dimension_scores.dimensions"
+      - "For each dimension, generate HTML section"
+      - "Use thresholds from dimension_scores.thresholds"
+      - "Apply colors from global.color_palette"
+      - "Use Thymeleaf th:classappend with dynamic logic"
+    
+    example_prompt: |
+      Generate HTML for the "Completeness" dimension score section using:
+      - Variable: cpl (from dimension_scores.dimensions.completeness.variable_score)
+      - Error variable: cplErr
+      - Threshold excellent: 90.0
+      - Threshold acceptable: 75.0
+      - Colors: green (>=90), amber (>=75), red (<75)
+      
+      Use th:classappend, NOT hardcoded class attributes.
+
+# ============================================
+# CHANGE LOG
+# ============================================
+change_log:
+  - version: "3.0"
+    date: "2024-12-25"
+    changes:
+      - "Added quality_insights configuration section"
+      - "Added insight_rules for dynamic insight generation"
+      - "Added severity_thresholds for JavaScript logic"
+      - "Added action_plan templates for each severity level"
+      - "Added copilot_instructions for code generation"
+      - "Aligned all JavaScript thresholds with main config"
+    impact:
+      - "JavaScript can now be generated from YAML"
+      - "No more hardcoded thresholds in JavaScript"
+      - "Single source of truth for ALL logic"
+  
+  - version: "2.0"
+    date: "2024-12-23"
+    changes:
+      - "Fixed dimension score color bug"
+      - "Fixed error distribution color bug"
+      - "Extracted all rules from HTML"
+    
+  - version: "1.0"
+    date: "2024-12-15"
+    changes:
+      - "Initial hardcoded implementation"
