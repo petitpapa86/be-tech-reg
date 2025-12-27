@@ -4,14 +4,19 @@ package com.bcbs239.regtech.dataquality.domain.report;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.events.*;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
+import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -261,6 +266,44 @@ class QualityReportTest {
         
         // When & Then
         assertTrue(report.requiresAttention());
+    }
+
+    @Test
+    void toFrontendPresentation_ErrorRateShouldNeverExceed100Percent() {
+        // Given: 1 exposure with 2 errors (same exposure)
+        QualityReport report = QualityReport.createForBatch(batchId, bankId);
+
+        ValidationSummary summary = new ValidationSummary(
+            1,  // totalExposures
+            0,  // validExposures
+            1,  // invalidExposures
+            2,  // totalErrors
+            Map.of(QualityDimension.COMPLETENESS, 2),
+            Map.of(),
+            Map.of(),
+            0.0
+        );
+
+        report.setValidationSummary(summary);
+        report.setScores(new QualityScores(0, 100, 100, 100, 100, 100, 75, QualityGrade.POOR));
+
+        // When
+        QualityReportPresentation presentation = report.toFrontendPresentation(List.of());
+
+        // Then
+        assertNotNull(presentation);
+        assertFalse(presentation.violations().isEmpty());
+
+        var violation = presentation.violations().stream()
+            .filter(v -> v.title() != null && v.title().contains("Completezza"))
+            .findFirst()
+            .orElseThrow();
+
+        assertTrue(violation.title().contains("2"));
+        assertTrue(violation.description().contains("100,00%"));
+        assertFalse(violation.description().contains("200,00%"));
+        assertEquals("1", violation.details().get("Record Interessati"));
+        assertEquals("2", violation.details().get("Errori"));
     }
     
     private QualityReport setupCompleteReport() {

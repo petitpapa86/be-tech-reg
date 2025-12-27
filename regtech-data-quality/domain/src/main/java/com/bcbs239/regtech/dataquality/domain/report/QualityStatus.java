@@ -1,8 +1,11 @@
 package com.bcbs239.regtech.dataquality.domain.report;
 
+import lombok.Getter;
+
 /**
  * Enumeration representing the status of a quality validation process.
  */
+@Getter
 public enum QualityStatus {
     
     /**
@@ -30,11 +33,7 @@ public enum QualityStatus {
     QualityStatus(String displayName) {
         this.displayName = displayName;
     }
-    
-    public String getDisplayName() {
-        return displayName;
-    }
-    
+
     /**
      * Check if the status indicates validation is complete (either success or failure).
      */

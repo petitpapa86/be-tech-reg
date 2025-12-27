@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.modules.dataquality.presentation.reports;
 
 import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrendsQueryHandler;
-import com.bcbs239.regtech.dataquality.application.reporting.QualityReportQueryHandler;
+import com.bcbs239.regtech.dataquality.application.reporting.QualityReportPresentationService;
 import com.bcbs239.regtech.dataquality.presentation.reports.QualityReportController;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityResponseHandler;
@@ -20,9 +20,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 @ExtendWith(MockitoExtension.class)
 class QualityReportControllerTest {
-    
+
     @Mock
-    private QualityReportQueryHandler qualityReportQueryHandler;
+    private QualityReportPresentationService presentationService;
     
     @Mock
     private BatchQualityTrendsQueryHandler trendsQueryHandler;
@@ -38,7 +38,7 @@ class QualityReportControllerTest {
     @BeforeEach
     void setUp() {
         controller = new QualityReportController(
-            qualityReportQueryHandler, 
+            presentationService,
             trendsQueryHandler,
             requestValidator,
             responseHandler

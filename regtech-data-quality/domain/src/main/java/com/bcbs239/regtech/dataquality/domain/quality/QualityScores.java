@@ -3,6 +3,9 @@ package com.bcbs239.regtech.dataquality.domain.quality;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.util.Arrays;
+import java.util.Comparator;
+
 /**
  * Value object representing complete quality assessment results including
  * individual dimension scores, overall weighted score, and quality grade.
@@ -141,6 +144,15 @@ public record QualityScores(
             case VALIDITY -> validityScore;
         };
     }
+
+    /**
+     * Get score for specific dimension.
+     *
+     * <p>Alias for {@link #getScore(QualityDimension)} to align with presentation usage.</p>
+     */
+    public double getDimensionScore(QualityDimension dimension) {
+        return getScore(dimension);
+    }
     
     /**
      * Checks if the overall quality meets compliance standards (grade B or better)
@@ -169,6 +181,18 @@ public record QualityScores(
         }
         
         return QualityDimension.COMPLETENESS; // Fallback, should not happen
+    }
+
+    /**
+     * Get lowest scoring dimension.
+     *
+     * <p>Alias for {@link #getLowestScoringDimension()} to align with presentation usage.</p>
+     */
+    public QualityDimension getLowestDimension() {
+        // Keep the implementation robust even if new dimensions appear
+        return Arrays.stream(QualityDimension.values())
+            .min(Comparator.comparing(this::getDimensionScore))
+            .orElse(QualityDimension.COMPLETENESS);
     }
     
     /**

@@ -6,16 +6,33 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
+import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.events.*;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
+import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation;
+import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.ActionPresentation;
+import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.ExposurePresentation;
+import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.ViolationPresentation;
+import com.bcbs239.regtech.dataquality.domain.model.valueobject.LargeExposure;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
+import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.time.Instant;
 
 /**
@@ -47,6 +64,45 @@ public class QualityReport extends Entity {
 
     // Private constructor - use factory methods
     private QualityReport() {}
+
+    /**
+     * Generate frontend presentation model.
+     *
+     * <p>DOMAIN BEHAVIOR: the aggregate knows how to present itself for the frontend.
+     * This is a read-only presentation model and does not mutate domain state.</p>
+     */
+    public QualityReportPresentation toFrontendPresentation(List<LargeExposure> largeExposures) {
+        return toFrontendPresentation(largeExposures, null);
+    }
+
+    /**
+     * Generate frontend presentation model using an optional summary override.
+     *
+     * <p>This allows the application/infrastructure layer to derive a richer
+     * {@link ValidationSummary} from stored detailed results without performing I/O in the domain.
+     * The aggregate is not mutated.</p>
+     */
+    public QualityReportPresentation toFrontendPresentation(List<LargeExposure> largeExposures, ValidationSummary summaryOverride) {
+        ValidationSummary safeSummary = summaryOverride != null
+            ? summaryOverride
+            : (validationSummary != null ? validationSummary : ValidationSummary.empty());
+
+        QualityScores safeScores = scores != null ? scores : QualityScores.empty();
+        List<LargeExposure> safeLargeExposures = largeExposures != null ? largeExposures : List.of();
+
+        return new QualityReportPresentation(
+            extractFileName(),
+            calculateFileSize(safeSummary),
+            safeSummary.totalExposures(),
+            roundScore(safeScores.overallScore()),
+            roundScore(safeSummary.getValidationRatePercentage()),
+            countCriticalViolations(safeSummary, safeScores),
+            safeLargeExposures.size(),
+            generateViolations(safeSummary, safeScores, safeLargeExposures),
+            generateTopExposures(safeLargeExposures),
+            generateActions(safeSummary, safeScores, safeLargeExposures)
+        );
+    }
 
 
     /**
@@ -411,6 +467,399 @@ public class QualityReport extends Entity {
      */
     public boolean requiresAttention() {
         return scores != null && scores.requiresAttention();
+    }
+
+    // =====================================================================
+    // Presentation capabilities (read-only)
+    // =====================================================================
+
+    private String extractFileName() {
+        if (batchId == null || batchId.value() == null) {
+            return "esposizioni.xlsx";
+        }
+
+        String batchIdStr = batchId.value();
+        try {
+            String[] parts = batchIdStr.split("_");
+            if (parts.length >= 2) {
+                String dateStr = parts[1]; // YYYYMMDD
+                if (dateStr.length() >= 6) {
+                    int year = Integer.parseInt(dateStr.substring(0, 4));
+                    int month = Integer.parseInt(dateStr.substring(4, 6));
+
+                    return String.format("esposizioni_%s_%d.xlsx", getItalianMonth(month), year);
+                }
+            }
+        } catch (IndexOutOfBoundsException | IllegalArgumentException ignored) {
+            // Intentionally ignore and fall back to default name
+        }
+
+        return "esposizioni.xlsx";
+    }
+
+    private String calculateFileSize(ValidationSummary summary) {
+        int total = summary != null ? summary.totalExposures() : 0;
+        long bytes = total * 150L;
+
+        if (bytes < 1024L * 1024L) {
+            return String.format(Locale.ITALY, "%.1f KB", bytes / 1024.0);
+        }
+        return String.format(Locale.ITALY, "%.1f MB", bytes / (1024.0 * 1024.0));
+    }
+
+    private int countCriticalViolations(ValidationSummary summary, QualityScores safeScores) {
+        if (summary == null) {
+            return 0;
+        }
+
+        Map<ValidationError.ErrorSeverity, Integer> bySeverity = summary.errorsBySeverity();
+        if (bySeverity == null || bySeverity.isEmpty()) {
+            if (safeScores == null) {
+                return 0;
+            }
+            return (int) Arrays.stream(QualityDimension.values())
+                .filter(dim -> safeScores.getScore(dim) < 50.0)
+                .count();
+        }
+
+        return bySeverity.getOrDefault(ValidationError.ErrorSeverity.CRITICAL, 0);
+    }
+
+    private List<ViolationPresentation> generateViolations(
+        ValidationSummary summary,
+        QualityScores safeScores,
+        List<LargeExposure> largeExposures
+    ) {
+        ValidationSummary safeSummary = summary != null ? summary : ValidationSummary.empty();
+        QualityScores scoresSafe = safeScores != null ? safeScores : QualityScores.empty();
+        List<LargeExposure> safeLarge = largeExposures != null ? largeExposures : List.of();
+
+        List<ViolationPresentation> violations = new ArrayList<>();
+
+        // 0) Specific error-code driven violations (to match frontend expectations)
+        violations.addAll(generateViolationFromErrorCodes(safeSummary));
+
+        // 1) Large exposure violations
+        safeLarge.stream()
+            .filter(LargeExposure::exceedsLimit)
+            .forEach(exposure -> violations.add(
+                new ViolationPresentation(
+                    "Superamento Limite Grande Esposizione",
+                    "CRITICA",
+                    String.format(Locale.ITALY, "%s supera il limite del 25%% con %.2f%%",
+                        exposure.counterparty(), exposure.percentOfCapital()),
+                    Map.of(
+                        "Controparte", exposure.counterparty(),
+                        "Esposizione", formatCurrency(exposure.amount()),
+                        "Percentuale", formatPercent(exposure.percentOfCapital()) + "%",
+                        "Limite", "25.00%"
+                    )
+                )
+            ));
+
+        // 2) Dimension violations
+        Map<QualityDimension, Integer> errorsByDim = safeSummary.errorsByDimension();
+        if (errorsByDim != null) {
+            errorsByDim.forEach((dimension, errorCount) -> {
+                if (dimension != null && errorCount != null && errorCount > 0) {
+                    violations.add(createDimensionViolation(safeSummary, scoresSafe, dimension, errorCount));
+                }
+            });
+        }
+
+        violations.sort(Comparator.comparing(v -> getSeverityOrder(v.severity())));
+        return violations;
+    }
+
+    private List<ViolationPresentation> generateViolationFromErrorCodes(ValidationSummary summary) {
+        if (summary == null || summary.errorsByCode() == null || summary.errorsByCode().isEmpty()) {
+            return List.of();
+        }
+
+        int total = Math.max(1, summary.totalExposures());
+        Map<String, Integer> codes = summary.errorsByCode();
+
+        int missingMaturityDate = sumMatchingCodes(codes, "DATA_SCADENZA", "_MISSING", "_REQUIRED");
+        int invalidDateFormat = sumMatchingCodes(codes, "DATA", "_INVALID_FORMAT");
+
+        List<ViolationPresentation> violations = new ArrayList<>();
+
+        if (missingMaturityDate > 0) {
+            violations.add(new ViolationPresentation(
+                "Dati Mancanti - Campo Obbligatorio",
+                "CRITICA",
+                String.format(Locale.ITALY, "%s record senza data di scadenza",
+                    formatNumber(missingMaturityDate)
+                ),
+                Map.of(
+                    "Campo", "Data Scadenza",
+                    "Record Interessati", formatNumber(missingMaturityDate),
+                    "Percentuale", formatPercent((missingMaturityDate * 100.0) / total) + "%"
+                )
+            ));
+        }
+
+        if (invalidDateFormat > 0) {
+            violations.add(new ViolationPresentation(
+                "Formato Data Non Standard",
+                "ALTA",
+                String.format(Locale.ITALY, "%s record con formato data non valido",
+                    formatNumber(invalidDateFormat)
+                ),
+                Map.of(
+                    "Tipo", "Data",
+                    "Record Interessati", formatNumber(invalidDateFormat),
+                    "Percentuale", formatPercent((invalidDateFormat * 100.0) / total) + "%"
+                )
+            ));
+        }
+
+        return violations;
+    }
+
+    private int sumMatchingCodes(Map<String, Integer> codes, String requiredSubstring, String... requiredPatterns) {
+        if (codes == null || codes.isEmpty()) {
+            return 0;
+        }
+
+        return codes.entrySet().stream()
+            .filter(e -> e.getKey() != null)
+            .filter(e -> requiredSubstring == null || e.getKey().contains(requiredSubstring))
+            .filter(e -> {
+                if (requiredPatterns == null || requiredPatterns.length == 0) {
+                    return true;
+                }
+                for (String p : requiredPatterns) {
+                    if (p != null && e.getKey().contains(p)) {
+                        return true;
+                    }
+                }
+                return false;
+            })
+            .mapToInt(e -> e.getValue() != null ? e.getValue() : 0)
+            .sum();
+    }
+
+    private ViolationPresentation createDimensionViolation(
+        ValidationSummary summary,
+        QualityScores scoresSafe,
+        QualityDimension dimension,
+        int errorCount
+    ) {
+        int total = Math.max(1, summary.totalExposures());
+        double score = scoresSafe.getScore(dimension);
+        int exposuresWithErrors = countExposuresWithDimensionErrors(summary, dimension);
+        double errorRate = (exposuresWithErrors * 100.0) / total;
+        errorRate = Math.min(100.0, Math.max(0.0, errorRate));
+
+        String dimensionName = getItalianDimensionName(dimension);
+
+        return new ViolationPresentation(
+            String.format("%s - %s Errori", dimensionName, formatNumber(errorCount)),
+            calculateSeverity(score, errorRate),
+            String.format(Locale.ITALY, "%s record con errori di %s (%.2f%% del totale)",
+                formatNumber(exposuresWithErrors),
+                dimensionName.toLowerCase(Locale.ITALY),
+                errorRate
+            ),
+            Map.of(
+                "Dimensione", dimensionName,
+                "Errori", formatNumber(errorCount),
+                "Record Interessati", formatNumber(exposuresWithErrors),
+                "Score", String.format(Locale.ITALY, "%.1f%%", score)
+            )
+        );
+    }
+
+    /**
+     * Counts exposures affected for a given dimension.
+     *
+     * <p>We intentionally count exposures (records) rather than total errors so the resulting
+     * error rate cannot exceed 100%.
+     *
+     * <p>If exposure-level results are not available in the aggregate, we estimate affected
+     * exposures by distributing invalid exposures proportionally across dimensions.
+     */
+    private int countExposuresWithDimensionErrors(ValidationSummary summary, QualityDimension dimension) {
+        if (summary == null || dimension == null) {
+            return 0;
+        }
+
+        int total = summary.totalExposures();
+        if (total <= 0) {
+            return 0;
+        }
+
+        int invalid = summary.invalidExposures();
+        if (invalid <= 0) {
+            invalid = Math.max(0, total - Math.max(0, summary.validExposures()));
+        }
+        if (invalid <= 0) {
+            return 0;
+        }
+
+        Map<QualityDimension, Integer> byDim = summary.errorsByDimension();
+        if (byDim == null || byDim.isEmpty()) {
+            return Math.min(invalid, total);
+        }
+
+        int errorsInThisDim = byDim.getOrDefault(dimension, 0);
+        if (errorsInThisDim <= 0) {
+            return 0;
+        }
+
+        int totalErrorsAllDims = byDim.values().stream().filter(Objects::nonNull).mapToInt(Integer::intValue).sum();
+        if (totalErrorsAllDims <= 0) {
+            return Math.min(invalid, total);
+        }
+
+        double proportion = errorsInThisDim / (double) totalErrorsAllDims;
+        int estimated = (int) Math.ceil(proportion * invalid);
+        int clamped = Math.max(1, Math.min(estimated, Math.min(invalid, total)));
+        return clamped;
+    }
+
+    private List<ExposurePresentation> generateTopExposures(List<LargeExposure> largeExposures) {
+        List<LargeExposure> safeLarge = largeExposures != null ? largeExposures : List.of();
+
+        return safeLarge.stream()
+            .sorted(Comparator.comparing(LargeExposure::amount).reversed())
+            .limit(5)
+            .map(e -> new ExposurePresentation(
+                e.counterparty(),
+                formatCurrency(e.amount()),
+                formatPercent(e.percentOfCapital()) + "%",
+                e.exceedsLimit() ? "Violazione" : "Conforme"
+            ))
+            .collect(Collectors.toList());
+    }
+
+    private List<ActionPresentation> generateActions(
+        ValidationSummary summary,
+        QualityScores safeScores,
+        List<LargeExposure> largeExposures
+    ) {
+        ValidationSummary safeSummary = summary != null ? summary : ValidationSummary.empty();
+        QualityScores scoresSafe = safeScores != null ? safeScores : QualityScores.empty();
+        List<LargeExposure> safeLarge = largeExposures != null ? largeExposures : List.of();
+
+        List<ActionPresentation> actions = new ArrayList<>();
+
+        // Action for large exposure violations
+        safeLarge.stream()
+            .filter(LargeExposure::exceedsLimit)
+            .findFirst()
+            .ifPresent(worst -> actions.add(new ActionPresentation(
+                "Ridurre Esposizione " + worst.counterparty(),
+                "Vendere " + formatCurrency(worst.calculateExcess()),
+                "30 giorni",
+                "Critica",
+                "red"
+            )));
+
+        // Action for worst dimension
+        QualityDimension worstDimension = scoresSafe.getLowestScoringDimension();
+        int totalErrorsInDimension = safeSummary.getErrorCountForDimension(worstDimension);
+        int exposuresWithErrors = countExposuresWithDimensionErrors(safeSummary, worstDimension);
+
+        if (exposuresWithErrors > 0) {
+            int total = Math.max(1, safeSummary.totalExposures());
+            double errorRate = (exposuresWithErrors * 100.0) / total;
+            errorRate = Math.min(100.0, Math.max(0.0, errorRate));
+
+            actions.add(new ActionPresentation(
+                "Correggere " + getItalianDimensionName(worstDimension),
+                String.format(Locale.ITALY, "%s record con %s errori da risolvere",
+                    formatNumber(exposuresWithErrors),
+                    formatNumber(totalErrorsInDimension)
+                ),
+                calculateDeadline(errorRate),
+                calculatePriority(errorRate),
+                getPriorityColor(errorRate)
+            ));
+        }
+
+        return actions;
+    }
+
+    // =====================================================================
+    // Domain rules used for presentation
+    // =====================================================================
+
+    private String calculateSeverity(double score, double errorRate) {
+        if (score < 50 || errorRate > 10) return "CRITICA";
+        if (score < 75 || errorRate > 5) return "ALTA";
+        if (score < 90 || errorRate > 1) return "MEDIA";
+        return "BASSA";
+    }
+
+    private String calculateDeadline(double errorRate) {
+        if (errorRate > 10) return "7 giorni";
+        if (errorRate > 5) return "14 giorni";
+        return "30 giorni";
+    }
+
+    private String calculatePriority(double errorRate) {
+        if (errorRate > 10) return "Critica";
+        if (errorRate > 5) return "Alta";
+        return "Media";
+    }
+
+    private String getPriorityColor(double errorRate) {
+        if (errorRate > 10) return "red";
+        if (errorRate > 5) return "orange";
+        return "yellow";
+    }
+
+    // =====================================================================
+    // Formatting utilities
+    // =====================================================================
+
+    private String formatCurrency(BigDecimal amount) {
+        BigDecimal safe = amount != null ? amount : BigDecimal.ZERO;
+        return "€" + NumberFormat.getInstance(Locale.ITALY).format(safe.longValue());
+    }
+
+    private String formatPercent(double percent) {
+        return String.format(Locale.ITALY, "%.2f", percent);
+    }
+
+    private String formatNumber(int number) {
+        return NumberFormat.getInstance(Locale.ITALY).format(number);
+    }
+
+    private double roundScore(double score) {
+        return Math.round(score * 10.0) / 10.0;
+    }
+
+    private String getItalianMonth(int month) {
+        String[] months = {
+            "gennaio", "febbraio", "marzo", "aprile",
+            "maggio", "giugno", "luglio", "agosto",
+            "settembre", "ottobre", "novembre", "dicembre"
+        };
+        if (month < 1 || month > 12) {
+            return "mese";
+        }
+        return months[month - 1];
+    }
+
+    private int getSeverityOrder(String severity) {
+        String safe = Objects.requireNonNullElse(severity, "");
+        return switch (safe) {
+            case "CRITICA" -> 0;
+            case "ALTA" -> 1;
+            case "MEDIA" -> 2;
+            default -> 3;
+        };
+    }
+
+    private String getItalianDimensionName(QualityDimension dimension) {
+        if (dimension == null) {
+            return "Qualità";
+        }
+        String italianName = dimension.getItalianName();
+        return (italianName == null || italianName.isBlank()) ? dimension.getDisplayName() : italianName;
     }
 
 }

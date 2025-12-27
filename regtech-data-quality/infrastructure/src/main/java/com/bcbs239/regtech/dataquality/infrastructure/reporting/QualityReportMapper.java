@@ -148,6 +148,18 @@ public class QualityReportMapper {
         S3Reference s3Reference = null;
         if (entity.getS3Bucket() != null && entity.getS3Key() != null) {
             s3Reference = S3Reference.of(entity.getS3Bucket(), entity.getS3Key(), "0");
+        } else if (entity.getS3Uri() != null && !entity.getS3Uri().isBlank() && entity.getS3Uri().startsWith("s3://")) {
+            // Backward/compat: some rows may only store the full URI.
+            // Format: s3://<bucket>/<key>
+            String withoutScheme = entity.getS3Uri().substring("s3://".length());
+            int firstSlash = withoutScheme.indexOf('/');
+            if (firstSlash > 0 && firstSlash < withoutScheme.length() - 1) {
+                String bucket = withoutScheme.substring(0, firstSlash);
+                String key = withoutScheme.substring(firstSlash + 1);
+                if (!bucket.isBlank() && !key.isBlank()) {
+                    s3Reference = S3Reference.of(bucket, key, "0");
+                }
+            }
         }
         
         // Create domain object using factory method
