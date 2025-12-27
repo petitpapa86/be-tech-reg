@@ -109,6 +109,11 @@ public interface IQualityReportRepository {
      * Find the most recent quality report for a bank.
      */
     Optional<QualityReport> findMostRecentByBankId(BankId bankId);
+
+    /**
+     * Find the most recent quality report for a bank in a given status.
+     */
+    Optional<QualityReport> findMostRecentByBankIdAndStatus(BankId bankId, QualityStatus status);
     
     /**
      * Find quality reports with compliance issues (non-compliant status).

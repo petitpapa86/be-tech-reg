@@ -81,7 +81,7 @@ This document audits all RouterFunction definitions across modules to identify:
 #### 2.3 Quality Report Endpoints
 **File:** `regtech-data-quality/presentation/src/main/java/com/bcbs239/regtech/dataquality/presentation/reports/QualityReportRoutes.java`
 - **Routes:**
-  - `GET /api/v1/data-quality/reports/{batchId:.+}` - Permission: `["data-quality:reports:view"]`
+  - `GET /api/v1/data-quality/reports?bankId=...` - Permission: `["data-quality:reports:view"]`
   - `GET /api/v1/data-quality/trends` - Permission: `["data-quality:trends:view"]`
 - **Current Security:** Uses `RouterAttributes.withAttributes` with specific permissions ✅
 - **Should Be:** Requires authentication + specific permissions

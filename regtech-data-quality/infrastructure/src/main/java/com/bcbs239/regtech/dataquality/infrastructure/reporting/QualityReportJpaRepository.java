@@ -108,6 +108,11 @@ public interface QualityReportJpaRepository extends JpaRepository<QualityReportE
      * Find the most recent quality report for a bank.
      */
     Optional<QualityReportEntity> findFirstByBankIdOrderByCreatedAtDesc(String bankId);
+
+       /**
+        * Find the most recent quality report for a bank in a given status.
+        */
+       Optional<QualityReportEntity> findFirstByBankIdAndStatusOrderByCreatedAtDesc(String bankId, QualityStatus status);
     
     /**
      * Find quality reports with compliance issues (non-compliant status).

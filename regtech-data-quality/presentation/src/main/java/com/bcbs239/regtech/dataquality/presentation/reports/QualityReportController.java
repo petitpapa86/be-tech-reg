@@ -8,6 +8,7 @@ import com.bcbs239.regtech.dataquality.application.reporting.QualityReportPresen
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation;
+import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import com.bcbs239.regtech.dataquality.presentation.common.IEndpoint;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator.TrendsQueryParams;
@@ -73,22 +74,23 @@ public class QualityReportController implements IEndpoint {
     
     /**
      * Get quality report for a specific batch with detailed exposure results.
-     * Endpoint: GET /api/v1/data-quality/reports/{batchId}
+     * Endpoint: GET /api/v1/data-quality/reports?bankId=...
+     *
+     * Returns the most recent COMPLETED report for the given bank.
      */
     @Observed(name = "data-quality.api.report.get", contextualName = "get-quality-report")
     public ServerResponse getQualityReport(ServerRequest request) {
         try {
-            logger.debug("Processing quality report request for batch: {}",
-                request.pathVariable("batchId"));
+            String bankIdStr = request.param("bankId").orElse(null);
 
-            // Extract and validate batch ID
-            String batchIdStr = request.pathVariable("batchId");
-            Result<BatchId> batchIdResult = requestValidator.validateBatchId(batchIdStr);
-            if (batchIdResult.isFailure()) {
-                return responseHandler.handleErrorResponse(batchIdResult.getError().orElseThrow());
+            logger.debug("Processing quality report request for bankId={}", bankIdStr);
+
+            // Extract and validate bankId
+            Result<BankId> bankIdResult = requestValidator.validateBankId(bankIdStr);
+            if (bankIdResult.isFailure()) {
+                return responseHandler.handleErrorResponse(bankIdResult.getError().orElseThrow());
             }
-
-            BatchId batchId = batchIdResult.getValue().orElseThrow();
+            BankId bankId = bankIdResult.getValue().orElseThrow();
 
             // Verify user has access to this batch (bank-level security)
 //            Result<Void> accessResult = securityService.verifyBatchAccess(batchId);
@@ -97,7 +99,7 @@ public class QualityReportController implements IEndpoint {
 //            }
 
             // Generate presentation model (new frontend payload)
-            QualityReportPresentation presentation = presentationService.getFrontendPresentation(batchId.value());
+            QualityReportPresentation presentation = presentationService.getLatestFrontendPresentation(bankId);
 
             // Handle response
             return responseHandler.handleSuccessResult(

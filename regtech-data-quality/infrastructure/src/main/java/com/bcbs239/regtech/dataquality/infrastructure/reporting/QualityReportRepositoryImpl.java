@@ -66,6 +66,23 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
             return Optional.empty();
         }
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<QualityReport> findMostRecentByBankIdAndStatus(BankId bankId, QualityStatus status) {
+        try {
+            if (bankId == null || status == null) {
+                return Optional.empty();
+            }
+
+            return jpaRepository
+                .findFirstByBankIdAndStatusOrderByCreatedAtDesc(bankId.value(), status)
+                .map(mapper::toDomain);
+        } catch (DataAccessException e) {
+            logger.error("Error finding most recent quality report by bankId+status: {}, {}", bankId != null ? bankId.value() : null, status, e);
+            return Optional.empty();
+        }
+    }
     
     @Override
     public Result<QualityReport> save(QualityReport report) {

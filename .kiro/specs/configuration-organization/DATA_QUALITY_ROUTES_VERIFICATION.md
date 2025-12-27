@@ -43,10 +43,10 @@ All health endpoints are already using `RouterAttributes.withAttributes` with `n
 
 ### Quality Report Endpoints (Require Authentication + Permissions)
 
-6. **GET /api/v1/data-quality/reports/{batchId:.+}**
+6. **GET /api/v1/data-quality/reports?bankId=...**
    - Permission: `["data-quality:reports:view"]`
    - Tags: `[DATA_QUALITY, REPORTS]`
-   - Description: "Get quality report for a specific batch"
+   - Description: "Get most recent COMPLETED quality report for a bank"
    - Status: ✅ COMPLIANT
 
 7. **GET /api/v1/data-quality/trends**
@@ -81,7 +81,7 @@ Status: ✅ VERIFIED
 
 ### data-quality:reports:view
 - **Purpose:** View quality assessment reports for batches
-- **Endpoints:** GET /api/v1/data-quality/reports/{batchId}
+- **Endpoints:** GET /api/v1/data-quality/reports?bankId=...
 - **Required For:** Quality analysis and reporting
 
 ### data-quality:trends:view

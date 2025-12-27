@@ -5,6 +5,8 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
+import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
@@ -38,6 +40,48 @@ public class QualityRequestValidator {
         } catch (IllegalArgumentException e) {
             fieldErrors.add(new FieldError("batchId", "INVALID_FORMAT", 
                 "Invalid batch ID format: " + e.getMessage()));
+            return Result.failure(ErrorDetail.validationError(fieldErrors));
+        }
+    }
+
+    /**
+     * Validates bank ID query parameter.
+     */
+    public Result<BankId> validateBankId(String bankIdStr) {
+        List<FieldError> fieldErrors = new ArrayList<>();
+
+        if (bankIdStr == null || bankIdStr.trim().isEmpty()) {
+            fieldErrors.add(new FieldError("bankId", "REQUIRED", "Bank ID is required"));
+            return Result.failure(ErrorDetail.validationError(fieldErrors));
+        }
+
+        try {
+            BankId bankId = BankId.of(bankIdStr.trim());
+            return Result.success(bankId);
+        } catch (IllegalArgumentException e) {
+            fieldErrors.add(new FieldError("bankId", "INVALID_FORMAT",
+                "Invalid bank ID format: " + e.getMessage()));
+            return Result.failure(ErrorDetail.validationError(fieldErrors));
+        }
+    }
+
+    /**
+     * Validates QualityStatus query parameter.
+     * If the parameter is missing/blank, returns the provided default.
+     */
+    public Result<QualityStatus> validateQualityStatus(String statusStr, QualityStatus defaultStatus) {
+        List<FieldError> fieldErrors = new ArrayList<>();
+
+        if (statusStr == null || statusStr.trim().isEmpty()) {
+            return Result.success(defaultStatus);
+        }
+
+        try {
+            QualityStatus status = QualityStatus.valueOf(statusStr.trim().toUpperCase());
+            return Result.success(status);
+        } catch (IllegalArgumentException e) {
+            fieldErrors.add(new FieldError("status", "INVALID_VALUE",
+                "Invalid status. Allowed: PENDING, IN_PROGRESS, COMPLETED, FAILED"));
             return Result.failure(ErrorDetail.validationError(fieldErrors));
         }
     }

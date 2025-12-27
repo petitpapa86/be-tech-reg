@@ -5,7 +5,8 @@ import com.bcbs239.regtech.dataquality.domain.model.valueobject.LargeExposure;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
+import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
 import lombok.RequiredArgsConstructor;
@@ -30,16 +31,32 @@ public class QualityReportPresentationService {
     private final LargeExposureCalculator calculator;
     private final StoredValidationResultsReader storedResultsReader;
 
-    public QualityReportPresentation getFrontendPresentation(String batchId) {
-        BatchId id = BatchId.of(batchId);
+    /**
+     * Returns the frontend presentation for the most recent report for a bank in a given status.
+     *
+     * <p>Used by the API endpoint that doesn't expose batchId directly.</p>
+     */
+    public QualityReportPresentation getLatestFrontendPresentation(BankId bankId, QualityStatus status) {
+        if (bankId == null) {
+            throw new IllegalArgumentException("bankId is required");
+        }
+        QualityStatus effectiveStatus = status != null ? status : QualityStatus.COMPLETED;
 
-        QualityReport report = repository.findByBatchId(id)
-            .orElseThrow(() -> new IllegalArgumentException("QualityReport not found for batchId: " + batchId));
+        QualityReport report = repository.findMostRecentByBankIdAndStatus(bankId, effectiveStatus)
+            .orElseThrow(() -> new IllegalArgumentException(
+                "QualityReport not found for bankId=" + bankId.value() + " with status=" + effectiveStatus
+            ));
 
         List<LargeExposure> largeExposures = calculator.calculate(report);
-
         ValidationSummary summaryOverride = buildSummaryOverrideFromStoredDetails(report);
         return report.toFrontendPresentation(largeExposures, summaryOverride);
+    }
+
+    /**
+     * Returns the frontend presentation for the most recent COMPLETED report for a bank.
+     */
+    public QualityReportPresentation getLatestFrontendPresentation(BankId bankId) {
+        return getLatestFrontendPresentation(bankId, QualityStatus.COMPLETED);
     }
 
     private ValidationSummary buildSummaryOverrideFromStoredDetails(QualityReport report) {

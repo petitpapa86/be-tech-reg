@@ -793,7 +793,7 @@ public class QualityReportController extends BaseController implements IEndpoint
     
     @Override
     public RouterFunction<ServerResponse> mapEndpoint() {
-        return route(GET("/api/v1/quality/reports/{batchId}"), this::getQualityReport)
+        return route(GET("/api/v1/data-quality/reports?bankId=..."), this::getQualityReport)
             .withAttribute("tags", new String[]{"Quality", "Reports"})
             .withAttribute("permissions", new String[]{"quality:read"});
     }
