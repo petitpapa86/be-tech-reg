@@ -1,4 +1,4 @@
--- V63__increase_event_id_columns_length.sql
+-- V63.1__increase_event_id_columns_length.sql
 -- Increase length of event ID columns to 300 characters
 
 ALTER TABLE reportgeneration.generated_reports

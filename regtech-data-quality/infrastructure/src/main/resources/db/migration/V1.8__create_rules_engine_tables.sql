@@ -181,11 +181,11 @@ CREATE INDEX IF NOT EXISTS idx_violations_severity ON dataquality.rule_violation
 CREATE INDEX IF NOT EXISTS idx_violations_detected ON dataquality.rule_violations(detected_at);
 
 -- Comments for documentation
-COMMENT ON TABLE regulations IS 'Stores regulatory frameworks and compliance requirements';
-COMMENT ON TABLE regulation_templates IS 'Reusable rule templates with parameterized logic';
-COMMENT ON TABLE business_rules IS 'Configurable business rules for data quality validation';
-COMMENT ON TABLE rule_parameters IS 'Dynamic parameters for business rules';
-COMMENT ON TABLE rule_exemptions IS 'Approved exemptions from specific rules';
-COMMENT ON TABLE rule_execution_log IS 'Audit trail of all rule executions';
-COMMENT ON TABLE rule_violations IS 'Detected violations of business rules';
+COMMENT ON TABLE dataquality.regulations IS 'Stores regulatory frameworks and compliance requirements';
+COMMENT ON TABLE dataquality.regulation_templates IS 'Reusable rule templates with parameterized logic';
+COMMENT ON TABLE dataquality.business_rules IS 'Configurable business rules for data quality validation';
+COMMENT ON TABLE dataquality.rule_parameters IS 'Dynamic parameters for business rules';
+COMMENT ON TABLE dataquality.rule_exemptions IS 'Approved exemptions from specific rules';
+COMMENT ON TABLE dataquality.rule_execution_log IS 'Audit trail of all rule executions';
+COMMENT ON TABLE dataquality.rule_violations IS 'Detected violations of business rules';
 

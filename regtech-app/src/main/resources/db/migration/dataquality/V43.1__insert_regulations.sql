@@ -1,4 +1,4 @@
--- V43__insert_regulations.sql
+-- V43.1__insert_regulations.sql
 -- Insert the regulation records that are referenced by business rules
 -- Originally: V1.8.2__insert_regulations.sql
 
@@ -21,4 +21,5 @@ INSERT INTO dataquality.regulations (
     'ACTIVE',
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (regulation_id) DO NOTHING;

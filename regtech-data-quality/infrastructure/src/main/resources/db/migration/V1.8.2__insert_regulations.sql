@@ -24,4 +24,5 @@ INSERT INTO dataquality.regulations (
     'ACTIVE',
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (regulation_id) DO NOTHING;

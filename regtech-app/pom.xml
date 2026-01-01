@@ -160,6 +160,12 @@
             <scope>runtime</scope>
         </dependency>
         
+        <!-- Flyway (required for Spring Boot auto-migration at startup) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        
         <!-- Flyway PostgreSQL support for PostgreSQL 17.2 -->
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -264,8 +270,15 @@
         </dependency>
         <!-- Metrics context presentation module -->
         <dependency>
-            <groupId>com.regtech.metrics</groupId>
+            <groupId>com.bcbs239</groupId>
             <artifactId>metrics-presentation</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+
+        <!-- Metrics context infrastructure module (provides FileRepository adapter + JPA repositories/entities) -->
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>metrics-infrastructure</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
     </dependencies>

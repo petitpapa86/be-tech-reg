@@ -38,6 +38,7 @@ public class DatabaseMigrationConfig {
                 // Run migrations
                 migrateIngestionSchema(jdbcTemplate);
                 migrateDataQualitySchema(jdbcTemplate);
+                migrateMetricsSchema(jdbcTemplate);
                 
                 logger.info("========================================");
                 logger.info("Database migration completed successfully!");
@@ -120,6 +121,30 @@ public class DatabaseMigrationConfig {
         } catch (Exception e) {
             logger.warn("Could not migrate data quality schema: {}. This may be normal if using Hibernate ddl-auto.", 
                        e.getMessage());
+        }
+    }
+
+    private void migrateMetricsSchema(JdbcTemplate jdbcTemplate) {
+        logger.info("Migrating metrics schema...");
+
+        try {
+            jdbcTemplate.execute("CREATE SCHEMA IF NOT EXISTS metrics");
+
+            jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS metrics.metrics_file (" +
+                "filename VARCHAR(255) PRIMARY KEY, " +
+                "date VARCHAR(255), " +
+                "score DOUBLE PRECISION, " +
+                "status VARCHAR(255), " +
+                "batch_id VARCHAR(255), " +
+                "bank_id VARCHAR(255)" +
+                ")"
+            );
+
+            logger.info("✓ Metrics schema migrated successfully");
+        } catch (Exception e) {
+            logger.warn("Could not migrate metrics schema: {}. This may be normal if migrations are managed elsewhere.",
+                    e.getMessage());
         }
     }
 }

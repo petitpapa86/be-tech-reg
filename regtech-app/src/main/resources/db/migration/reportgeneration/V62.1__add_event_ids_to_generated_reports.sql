@@ -1,10 +1,10 @@
--- V62__add_event_ids_to_generated_reports.sql
+-- V62.1__add_event_ids_to_generated_reports.sql
 -- Add dataQualityEventId and riskCalculationEventId columns to generated_reports table
 
 -- Add new columns to the generated_reports table
 ALTER TABLE reportgeneration.generated_reports
-ADD COLUMN data_quality_event_id VARCHAR(255),
-ADD COLUMN risk_calculation_event_id VARCHAR(255);
+ADD COLUMN IF NOT EXISTS data_quality_event_id VARCHAR(255),
+ADD COLUMN IF NOT EXISTS risk_calculation_event_id VARCHAR(255);
 
 -- Update existing rows to populate the new columns based on batch_id
 -- Assuming the event IDs are batch_id + some suffix

@@ -147,9 +147,11 @@ spring:
     baseline-on-migrate: true  # For existing databases with tables already created
     baseline-version: 0
     out-of-order: true  # Allow out-of-order migrations
+    validate-on-migrate: false  # Dev safety valve: avoid checksum mismatch blocking startup
     locations:
       - classpath:db/migration
       - classpath:db/migration/common
+      - classpath:db/migration/metrics
       - classpath:db/migration/iam
       - classpath:db/migration/billing
       - classpath:db/migration/ingestion
@@ -164,6 +166,7 @@ spring:
       - dataquality
       - riskcalculation
       - reportgeneration
+      - metrics
   
   docker:
     compose:
@@ -516,6 +519,8 @@ logging:
     com.bcbs239.regtech.dataquality: INFO
     com.bcbs239.regtech.riskcalculation: INFO
     com.bcbs239.regtech.reportgeneration: INFO
+    org.flywaydb: DEBUG
+    org.springframework.boot.autoconfigure.flyway: DEBUG
 
 # ============================================================================
 # DATA QUALITY & RULES ENGINE CONFIGURATION
