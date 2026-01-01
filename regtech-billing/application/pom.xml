@@ -10,7 +10,9 @@
 	<artifactId>regtech-billing-application</artifactId>
 	<name>regtech-billing-application</name>
 	<description>Application layer for Billing module</description>
-	
+	<properties>
+		<spring-boot.repackage.skip>true</spring-boot.repackage.skip>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>com.bcbs239</groupId>

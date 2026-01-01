@@ -10,7 +10,9 @@
 	<artifactId>regtech-core-application</artifactId>
 	<name>regtech-core-application</name>
 	<description>Application layer for Core module - contains application services and use cases</description>
-	
+	<properties>
+		<spring-boot.repackage.skip>true</spring-boot.repackage.skip>
+	</properties>
 	<dependencies>
 		<!-- Domain layer dependency -->
 		<dependency>

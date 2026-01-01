@@ -9,12 +9,11 @@
         <version>0.0.1-SNAPSHOT</version>
     </parent>
 
-    <groupId>com.regtech.metrics</groupId>
-    <artifactId>metrics-context</artifactId>
+    <artifactId>metrics</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>METRICS Context</name>
+    <name>Dashboard Metrics</name>
     <description>Aggregator for METRICS context modules (Dashboard statistics, Compliance state)</description>
 
     <modules>

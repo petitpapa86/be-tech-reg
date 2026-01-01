@@ -308,6 +308,7 @@
                         <schema>dataquality</schema>
                         <schema>riskcalculation</schema>
                         <schema>reportgeneration</schema>
+                        <schema>metrics</schema>
                     </schemas>
                     <locations>
                         <!-- Consolidated migrations live under regtech-app/src/main/resources/db/migration/** -->

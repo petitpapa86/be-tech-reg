@@ -11,7 +11,7 @@
 	<packaging>pom</packaging>
 	<name>regtech-billing</name>
 	<description>Billing module for Regtech application - Modular Monolith</description>
-	
+
 	<modules>
 		<module>domain</module>
 		<module>application</module>
@@ -20,6 +20,7 @@
 	</modules>
 	
 	<properties>
+		<spring-boot.repackage.skip>true</spring-boot.repackage.skip>
 		<maven.compiler.source>25</maven.compiler.source>
 		<maven.compiler.target>25</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

@@ -10,7 +10,9 @@
 	<artifactId>regtech-core-domain</artifactId>
 	<name>regtech-core-domain</name>
 	<description>Domain layer for Core module - contains domain entities, value objects, and business rules</description>
-	
+	<properties>
+		<spring-boot.repackage.skip>true</spring-boot.repackage.skip>
+	</properties>
 	<dependencies>
 		<!-- Lombok for reducing boilerplate -->
 		<dependency>

@@ -29,3 +29,7 @@ CREATE SCHEMA IF NOT EXISTS riskcalculation;
 -- Report Generation Schema
 -- Purpose: Report Generation - manages generated reports, report metadata, and regulatory reporting outputs
 CREATE SCHEMA IF NOT EXISTS reportgeneration;
+
+-- Metrics Schema
+-- Purpose: Metrics and dashboard data for METRICS bounded context
+CREATE SCHEMA IF NOT EXISTS metrics;

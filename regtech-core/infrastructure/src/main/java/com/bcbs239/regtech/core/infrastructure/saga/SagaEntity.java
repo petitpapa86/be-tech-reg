@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.core.infrastructure.saga;
 
 import com.bcbs239.regtech.core.domain.saga.SagaStatus;
+import com.bcbs239.regtech.core.application.TimeProvider;
 import com.bcbs239.regtech.core.infrastructure.systemservices.SystemTimeProvider;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -11,7 +12,7 @@ import java.time.Instant;
 @Entity
 @Table(name = "sagas")
 public class SagaEntity {
-    private static SystemTimeProvider timeProvider = new SystemTimeProvider();
+    private static TimeProvider timeProvider = new SystemTimeProvider();
     @Id
     @Column(name = "saga_id", nullable = false)
     private String sagaId;
@@ -117,10 +118,10 @@ public class SagaEntity {
     }
 
     /**
-     * Sets the SystemTimeProvider for testing purposes.
-     * @param timeProvider the SystemTimeProvider to use
+     * Sets the TimeProvider for testing purposes.
+     * @param timeProvider the TimeProvider to use
      */
-    public static void setTimeProvider(SystemTimeProvider timeProvider) {
+    public static void setTimeProvider(TimeProvider timeProvider) {
         SagaEntity.timeProvider = timeProvider;
     }
 

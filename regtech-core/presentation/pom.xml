@@ -10,7 +10,9 @@
 	<artifactId>regtech-core-presentation</artifactId>
 	<name>regtech-core-presentation</name>
 	<description>Presentation layer for Core module - contains REST controllers and DTOs</description>
-	
+	<properties>
+		<spring-boot.repackage.skip>true</spring-boot.repackage.skip>
+	</properties>
 	<dependencies>
 		<!-- Domain layer dependency -->
 		<dependency>

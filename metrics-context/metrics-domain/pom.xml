@@ -4,8 +4,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.regtech.metrics</groupId>
-        <artifactId>metrics-context</artifactId>
+        <groupId>com.bcbs239</groupId>
+        <artifactId>metrics</artifactId>
         <version>1.0.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
@@ -18,5 +18,8 @@
     <properties>
         <spring-boot.repackage.skip>true</spring-boot.repackage.skip>
     </properties>
+    <dependencies>
+
+    </dependencies>
 
 </project>

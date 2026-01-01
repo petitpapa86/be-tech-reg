@@ -1,46 +1,29 @@
 package com.bcbs239.regtech.core.infrastructure.systemservices;
 
 import java.time.Clock;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.util.function.Supplier;
+import java.util.Objects;
+
+import com.bcbs239.regtech.core.application.TimeProvider;
 
 /**
- * Time provider using functional closures (suppliers) for better testability.
+ * Time provider backed by a {@link Clock} for better testability.
  */
-public class SystemTimeProvider {
-    private final Supplier<Instant> nowInstant;
-    private final Supplier<LocalDateTime> nowLocalDateTime;
-    private final Supplier<ZonedDateTime> nowZonedDateTime;
+public class SystemTimeProvider implements TimeProvider {
+    private final Clock clock;
 
     // Default constructor uses system clock
     public SystemTimeProvider() {
-        Clock clock = Clock.systemDefaultZone();
-        this.nowInstant = () -> Instant.now(clock);
-        this.nowLocalDateTime = () -> LocalDateTime.now(clock);
-        this.nowZonedDateTime = () -> ZonedDateTime.now(clock);
+        this(Clock.systemDefaultZone());
     }
 
-    // Constructor for injecting custom time suppliers (e.g., for testing)
-    public SystemTimeProvider(Supplier<Instant> instantSupplier,
-                              Supplier<LocalDateTime> localDateTimeSupplier,
-                              Supplier<ZonedDateTime> zonedDateTimeSupplier) {
-        this.nowInstant = instantSupplier;
-        this.nowLocalDateTime = localDateTimeSupplier;
-        this.nowZonedDateTime = zonedDateTimeSupplier;
+    // Constructor for injecting a custom clock (e.g., Clock.fixed(...) in tests)
+    public SystemTimeProvider(Clock clock) {
+        this.clock = Objects.requireNonNull(clock, "clock");
     }
 
-    public Instant nowInstant() {
-        return nowInstant.get();
-    }
-
-    public LocalDateTime nowLocalDateTime() {
-        return nowLocalDateTime.get();
-    }
-
-    public ZonedDateTime nowZonedDateTime() {
-        return nowZonedDateTime.get();
+    @Override
+    public Clock getClock() {
+        return clock;
     }
 }
 

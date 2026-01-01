@@ -58,6 +58,7 @@
 		<module>regtech-risk-calculation</module>
 		<module>regtech-report-generation</module>
 		<module>regtech-app</module>
+		<module>metrics-context</module>
 	</modules>
 	
 	<dependencyManagement>
