@@ -3,11 +3,14 @@ package com.bcbs239.regtech.core.infrastructure.systemservices;
 import java.time.Clock;
 import java.util.Objects;
 
+import org.springframework.stereotype.Component;
+
 import com.bcbs239.regtech.core.application.TimeProvider;
 
 /**
  * Time provider backed by a {@link Clock} for better testability.
  */
+@Component
 public class SystemTimeProvider implements TimeProvider {
     private final Clock clock;
 
