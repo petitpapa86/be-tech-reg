@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-@Component
+@Component("infrastructureCommandDispatcher")
 @RequiredArgsConstructor
 public class CommandDispatcher {
      private final ApplicationEventPublisher eventPublisher;
