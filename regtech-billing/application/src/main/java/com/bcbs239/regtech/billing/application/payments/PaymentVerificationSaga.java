@@ -22,7 +22,7 @@ import com.bcbs239.regtech.core.domain.saga.TimeoutScheduler;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
-import com.bcbs239.regtech.core.infrastructure.saga.SagaStartedEvent;
+import com.bcbs239.regtech.core.domain.saga.SagaStartedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
