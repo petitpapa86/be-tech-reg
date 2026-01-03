@@ -515,7 +515,7 @@ public class ComprehensiveReportDataAggregator {
             List<Object> batchErrors = new ArrayList<>();
             JsonNode batchErrorsNode = root.path("batchErrors");
             if (batchErrorsNode.isArray()) {
-                batchErrorsNode.forEach(node -> batchErrors.add(node));
+                batchErrorsNode.forEach(batchErrors::add);
             }
             
             // Extract exposure results

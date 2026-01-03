@@ -1,9 +1,12 @@
 package com.bcbs239.regtech.metrics.application.usecase;
 
 import com.bcbs239.regtech.metrics.application.port.FileRepository;
-import com.bcbs239.regtech.metrics.domain.model.ComplianceFile;
-import com.bcbs239.regtech.metrics.domain.service.DashboardMetrics;
-import com.bcbs239.regtech.metrics.domain.model.BankId;
+import com.bcbs239.regtech.metrics.application.port.DashboardMetricsRepository;
+import com.bcbs239.regtech.metrics.application.port.ComplianceReportRepository;
+import com.bcbs239.regtech.metrics.domain.ComplianceFile;
+import com.bcbs239.regtech.metrics.domain.BankId;
+import com.bcbs239.regtech.metrics.domain.DashboardMetrics;
+import com.bcbs239.regtech.metrics.domain.ComplianceReport;
 import com.bcbs239.regtech.core.application.TimeProvider;
 import org.springframework.stereotype.Component;
 
@@ -12,10 +15,17 @@ import java.util.List;
 @Component
 public class DashboardUseCase {
     private final FileRepository fileRepository;
+    private final DashboardMetricsRepository dashboardMetricsRepository;
+    private final ComplianceReportRepository complianceReportRepository;
     private final TimeProvider timeProvider;
 
-    public DashboardUseCase(FileRepository fileRepository, TimeProvider timeProvider) {
+    public DashboardUseCase(FileRepository fileRepository,
+                           DashboardMetricsRepository dashboardMetricsRepository,
+                           ComplianceReportRepository complianceReportRepository,
+                           TimeProvider timeProvider) {
         this.fileRepository = fileRepository;
+        this.dashboardMetricsRepository = dashboardMetricsRepository;
+        this.complianceReportRepository = complianceReportRepository;
         this.timeProvider = timeProvider;
     }
 
@@ -28,12 +38,49 @@ public class DashboardUseCase {
 
         List<ComplianceFile> files = fileRepository.findByBankIdAndDateBetween(bankId, start, end);
 
+        List<ComplianceReport> reports = complianceReportRepository.findRecentForMonth(
+            bankId,
+            startOfMonth,
+            now,
+            10
+        );
 
-        // Delegate business calculations to domain (month-to-date)
-        DashboardMetrics.Result metrics = DashboardMetrics.compute(files);
+        int reportCount = complianceReportRepository.countForMonth(bankId, startOfMonth, now);
 
-        DashboardResult.Summary summary = new DashboardResult.Summary(metrics.filesProcessed(), metrics.avgScore(), metrics.violations(), metrics.reports());
+        DashboardMetrics metrics = dashboardMetricsRepository.getForMonth(bankId, startOfMonth);
 
-        return new DashboardResult(summary, files, metrics.lastBatchViolations());
+        DashboardResult.Summary summary = new DashboardResult.Summary(
+                metrics.getTotalFilesProcessed(),
+                metrics.getOverallScore(),
+                metrics.getTotalViolations(),
+            reportCount
+        );
+
+        DashboardResult.Compliance compliance = new DashboardResult.Compliance(
+            metrics.getOverallScore(),
+            metrics.getDataQualityScore(),
+            metrics.getBcbsRulesScore(),
+            metrics.getCompletenessScore()
+        );
+
+        // Keep behavior minimal for now: last-batch violations derived from the displayed file list.
+        return new DashboardResult(summary, compliance, files, reports, computeLastBatchViolations(files));
+    }
+
+    private int computeLastBatchViolations(List<ComplianceFile> files) {
+        String latestBatch = files.stream()
+                .map(ComplianceFile::getBatchId)
+                .filter(java.util.Objects::nonNull)
+                .max(String::compareTo)
+                .orElse(null);
+
+        if (latestBatch == null) {
+            return (int) files.stream().filter(f -> !f.isCompliant()).count();
+        }
+
+        return (int) files.stream()
+                .filter(f -> java.util.Objects.equals(latestBatch, f.getBatchId()))
+                .filter(f -> !f.isCompliant())
+                .count();
     }
 }

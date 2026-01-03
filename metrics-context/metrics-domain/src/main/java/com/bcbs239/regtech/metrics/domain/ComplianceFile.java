@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.metrics.domain.model;
+package com.bcbs239.regtech.metrics.domain;
 
 /**
  * Domain model representing file-level metrics (lightweight DTO for domain layer).

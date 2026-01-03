@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.metrics.application.port;
 
-import com.bcbs239.regtech.metrics.domain.model.ComplianceFile;
-import com.bcbs239.regtech.metrics.domain.model.BankId;
+import com.bcbs239.regtech.metrics.domain.ComplianceFile;
+import com.bcbs239.regtech.metrics.domain.BankId;
 import java.util.List;
 
 /**

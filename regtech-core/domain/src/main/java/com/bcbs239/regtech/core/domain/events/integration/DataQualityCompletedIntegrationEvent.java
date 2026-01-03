@@ -1,7 +1,6 @@
 package com.bcbs239.regtech.core.domain.events.integration;
 
 import com.bcbs239.regtech.core.domain.events.IntegrationEvent;
-import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
@@ -19,6 +18,21 @@ public class DataQualityCompletedIntegrationEvent extends IntegrationEvent {
     private final double overallScore;
     private final String qualityGrade;
     private final Instant completedAt;
+
+    // Optional enrichment from dataquality.quality_reports
+    private final Integer totalExposures;
+    private final Integer validExposures;
+    private final Integer totalErrors;
+    private final Boolean complianceStatus;
+
+    // Optional dimension scores from QualityValidationCompletedEvent
+    private final Double completenessScore;
+    private final Double accuracyScore;
+    private final Double consistencyScore;
+    private final Double timelinessScore;
+    private final Double uniquenessScore;
+    private final Double validityScore;
+
     private final String eventVersion;
     private final String correlationId;
 
@@ -30,6 +44,16 @@ public class DataQualityCompletedIntegrationEvent extends IntegrationEvent {
             @JsonProperty("overallScore") double overallScore,
             @JsonProperty("qualityGrade") String qualityGrade,
             @JsonProperty("completedAt") Instant completedAt,
+            @JsonProperty("totalExposures") Integer totalExposures,
+            @JsonProperty("validExposures") Integer validExposures,
+            @JsonProperty("totalErrors") Integer totalErrors,
+            @JsonProperty("complianceStatus") Boolean complianceStatus,
+            @JsonProperty("completenessScore") Double completenessScore,
+            @JsonProperty("accuracyScore") Double accuracyScore,
+            @JsonProperty("consistencyScore") Double consistencyScore,
+            @JsonProperty("timelinessScore") Double timelinessScore,
+            @JsonProperty("uniquenessScore") Double uniquenessScore,
+            @JsonProperty("validityScore") Double validityScore,
             @JsonProperty("correlationId") String correlationId
     ) {
         super(correlationId);
@@ -39,8 +63,35 @@ public class DataQualityCompletedIntegrationEvent extends IntegrationEvent {
         this.overallScore = overallScore;
         this.qualityGrade = qualityGrade;
         this.completedAt = completedAt;
+        this.totalExposures = totalExposures;
+        this.validExposures = validExposures;
+        this.totalErrors = totalErrors;
+        this.complianceStatus = complianceStatus;
+
+        this.completenessScore = completenessScore;
+        this.accuracyScore = accuracyScore;
+        this.consistencyScore = consistencyScore;
+        this.timelinessScore = timelinessScore;
+        this.uniquenessScore = uniquenessScore;
+        this.validityScore = validityScore;
+
         this.eventVersion = EVENT_VERSION;
         this.correlationId = correlationId;
+    }
+
+    public DataQualityCompletedIntegrationEvent(
+            String batchId,
+            String bankId,
+            String s3ReferenceUri,
+            double overallScore,
+            String qualityGrade,
+            Instant completedAt,
+            String correlationId
+    ) {
+        this(batchId, bankId, s3ReferenceUri, overallScore, qualityGrade, completedAt,
+            null, null, null, null,
+            null, null, null, null, null, null,
+            correlationId);
     }
 
 }

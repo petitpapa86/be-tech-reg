@@ -2,7 +2,7 @@ package com.bcbs239.regtech.reportgeneration.application.integration;
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
-import com.bcbs239.regtech.reportgeneration.application.integration.events.ReportGeneratedIntegrationEvent;
+import com.bcbs239.regtech.core.domain.events.integration.ComplianceReportGeneratedIntegrationEvent;
 import com.bcbs239.regtech.reportgeneration.application.integration.events.ReportGenerationFailedIntegrationEvent;
 import com.bcbs239.regtech.reportgeneration.domain.generation.events.ReportGeneratedEvent;
 import com.bcbs239.regtech.reportgeneration.domain.generation.events.ReportGenerationFailedEvent;
@@ -54,7 +54,7 @@ public class ReportGenerationEventPublisher {
 
         try {
             // Create integration event from domain event
-            ReportGeneratedIntegrationEvent integrationEvent = new ReportGeneratedIntegrationEvent(
+            ComplianceReportGeneratedIntegrationEvent integrationEvent = new ComplianceReportGeneratedIntegrationEvent(
                     event.getReportId().value().toString(),
                     event.getBatchId().value(),
                     event.getBankId().value(),

@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.application.generation;
 
+import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.reportgeneration.application.coordination.BatchEventTracker;
 import com.bcbs239.regtech.reportgeneration.application.coordination.CalculationEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.IComprehensiveReportOrchestrator;
@@ -51,6 +52,7 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
     private final IGeneratedReportRepository reportRepository;
     private final BatchEventTracker eventTracker;
     private final ReportGenerationMetrics metrics;
+    private final BaseUnitOfWork unitOfWork;
     
     /**
      * Generates a comprehensive report asynchronously.
@@ -106,6 +108,8 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             
             // Save initial report with IN_PROGRESS status
             reportRepository.save(report);
+            unitOfWork.registerEntity(report);
+            unitOfWork.saveChanges();
             log.info("Created report aggregate [batchId:{},reportId:{}]", batchId, report.getReportId().value());
             
             // Step 4: Generate quality recommendations
@@ -148,6 +152,8 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             
             // Step 8: Save final report
             reportRepository.save(report);
+            unitOfWork.registerEntity(report);
+            unitOfWork.saveChanges();
             
             // Step 9: Cleanup event tracker
             eventTracker.cleanup(batchId);
@@ -160,13 +166,13 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
 
         } catch (HtmlGenerationException e) {
             // HTML failed, check if XBRL succeeded for partial status
-            handlePartialFailure(batchId, "HTML generation failed: " + e.getMessage(), e);
+            handlePartialFailure(batchId, "HTML generation failed: " + e.getMessage());
             metrics.recordReportGenerationPartial(batchId, "html_failed");
             throw new RuntimeException("Report generation partially failed", e);
             
         } catch (XbrlValidationException e) {
             // XBRL failed, check if HTML succeeded for partial status
-            handlePartialFailure(batchId, "XBRL generation failed: " + e.getMessage(), e);
+            handlePartialFailure(batchId, "XBRL generation failed: " + e.getMessage());
             metrics.recordReportGenerationPartial(batchId, "xbrl_failed");
             throw new RuntimeException("Report generation partially failed", e);
             
@@ -306,13 +312,15 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
     /**
      * Handles partial failure where one format succeeded but the other failed.
      */
-    private void handlePartialFailure(String batchId, String reason, Exception e) {
+    private void handlePartialFailure(String batchId, String reason) {
         try {
             Optional<GeneratedReport> reportOpt = reportRepository.findByBatchId(BatchId.of(batchId));
             if (reportOpt.isPresent()) {
                 GeneratedReport report = reportOpt.get();
                 report.markPartial(reason);
                 reportRepository.save(report);
+                unitOfWork.registerEntity(report);
+                unitOfWork.saveChanges();
                 
                 log.warn("Report marked as PARTIAL [batchId:{},reason:{}]", batchId, reason);
             }
@@ -331,6 +339,8 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
                 GeneratedReport report = reportOpt.get();
                 report.markFailed(FailureReason.of(e.getMessage()));
                 reportRepository.save(report);
+                unitOfWork.registerEntity(report);
+                unitOfWork.saveChanges();
                 
                 log.error("Report marked as FAILED [batchId:{},reason:{}]", batchId, e.getMessage());
             }

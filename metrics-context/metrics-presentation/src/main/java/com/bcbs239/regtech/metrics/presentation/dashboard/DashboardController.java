@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.metrics.presentation.dashboard;
 
-import com.bcbs239.regtech.metrics.domain.model.BankId;
+import com.bcbs239.regtech.metrics.domain.BankId;
 import org.springframework.http.MediaType;
 import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import org.springframework.stereotype.Component;
@@ -11,9 +11,8 @@ import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
 import java.util.List;
-import java.util.Arrays;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 import com.bcbs239.regtech.metrics.presentation.dashboard.dto.DashboardResponse;
 import com.bcbs239.regtech.metrics.presentation.dashboard.dto.FileItem;
@@ -21,7 +20,8 @@ import com.bcbs239.regtech.metrics.presentation.dashboard.dto.ComplianceState;
 import com.bcbs239.regtech.metrics.presentation.dashboard.dto.ReportItem;
 import com.bcbs239.regtech.metrics.application.usecase.DashboardUseCase;
 import com.bcbs239.regtech.metrics.application.usecase.DashboardResult;
-import com.bcbs239.regtech.metrics.domain.model.ComplianceFile;
+import com.bcbs239.regtech.metrics.domain.ComplianceFile;
+import com.bcbs239.regtech.metrics.domain.ComplianceReport;
 
 @Component
 public class DashboardController {
@@ -45,20 +45,16 @@ public class DashboardController {
 
                 DashboardResult result = dashboardUseCase.execute(bankId);
 
-        // Fake overlays for score and status (presentation-only)
-        List<Double> fakeScores = Arrays.asList(87.2, 94.1, 71.5, 99.0);
-        List<String> fakeStatuses = Arrays.asList("VIOLATIONS", "COMPLIANT", "VIOLATIONS", "COMPLIANT");
-
         List<ComplianceFile> filesDomain = result.files;
 
-        List<FileItem> fileItems = IntStream.range(0, filesDomain.size())
-                .mapToObj(i -> new FileItem(
-                        filesDomain.get(i).getFilename(),
-                        formatDate(filesDomain.get(i).getDate()),
-                        fakeScores.get(i % fakeScores.size()),    // FAKE
-                        fakeStatuses.get(i % fakeStatuses.size()) // FAKE
+        List<FileItem> fileItems = filesDomain.stream()
+                .map(file -> new FileItem(
+                        file.getFilename(),
+                        formatDate(file.getDate()),
+                        file.getScore(),
+                        file.getStatus()
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
         DashboardResponse.Summary summary = new DashboardResponse.Summary(
                 result.summary.filesProcessed,
@@ -67,12 +63,15 @@ public class DashboardController {
                 result.summary.reports
         );
 
-        // keep existing static compliance and reports placeholders for now
-        ComplianceState compliance = new ComplianceState(89.0, 94.0, 87.0, 96.0);
-        List<ReportItem> reports = List.of(
-                new ReportItem("BCBS_239_Report_Settembre.pdf", "COMPLETED", "Generato: 28 Ago 2025, 09:23 • 1,8 MB • 12 pagine"),
-                new ReportItem("Report_Agosto.pdf", "GENERATING", "Generato: 02 Ago 2025, 14:02 • 0,9 MB • 8 pagine")
+        ComplianceState compliance = new ComplianceState(
+                result.compliance != null ? result.compliance.overall : null,
+                result.compliance != null ? result.compliance.dataQuality : null,
+                result.compliance != null ? result.compliance.bcbs : null,
+                result.compliance != null ? result.compliance.completeness : null
         );
+        List<ReportItem> reports = result.reports.stream()
+                .map(this::toReportItem)
+                .toList();
 
         Integer lastBatchViolations = result.lastBatchViolations;
 
@@ -89,4 +88,66 @@ public class DashboardController {
         if (raw == null) return null;
         return raw; // simple passthrough for now; formatting can be added later
     }
+
+        private ReportItem toReportItem(ComplianceReport report) {
+                String filename = firstNonBlank(
+                        extractFileNameFromS3Uri(report.getHtmlS3Uri()),
+                        extractFileNameFromS3Uri(report.getXbrlS3Uri()),
+                        report.getReportType() + "_" + report.getReportingDate() + "_" + report.getReportId()
+                );
+
+                Long htmlSize = java.util.Objects.requireNonNullElse(report.getHtmlFileSize(), 0L);
+                Long xbrlSize = java.util.Objects.requireNonNullElse(report.getXbrlFileSize(), 0L);
+                long totalSize = htmlSize + xbrlSize;
+
+                String generatedAt = report.getGeneratedAt() == null
+                                ? "unknown"
+                                : DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(report.getGeneratedAt().atZone(ZoneId.systemDefault()).toLocalDateTime());
+
+                String details = "Generated: " + generatedAt
+                        + " • Size: " + formatBytes(totalSize)
+                                + (report.getComplianceStatus() != null ? " • Compliance: " + report.getComplianceStatus() : "")
+                                + (report.getOverallQualityScore() != null ? " • Score: " + report.getOverallQualityScore() : "");
+
+                return new ReportItem(filename, report.getStatus(), details);
+        }
+
+        private String extractFileNameFromS3Uri(String s3Uri) {
+                if (s3Uri == null || s3Uri.isBlank()) {
+                        return null;
+                }
+                int lastSlash = s3Uri.lastIndexOf('/');
+                if (lastSlash < 0 || lastSlash == s3Uri.length() - 1) {
+                        return null;
+                }
+                return s3Uri.substring(lastSlash + 1);
+        }
+
+        private String firstNonBlank(String... values) {
+                if (values == null) {
+                        return null;
+                }
+                for (String value : values) {
+                        if (value != null && !value.isBlank()) {
+                                return value;
+                        }
+                }
+                return null;
+        }
+
+        private String formatBytes(long bytes) {
+                if (bytes < 1024) {
+                        return bytes + " B";
+                }
+                double kb = bytes / 1024.0;
+                if (kb < 1024) {
+                        return String.format(java.util.Locale.ROOT, "%.1f KB", kb);
+                }
+                double mb = kb / 1024.0;
+                if (mb < 1024) {
+                        return String.format(java.util.Locale.ROOT, "%.1f MB", mb);
+                }
+                double gb = mb / 1024.0;
+                return String.format(java.util.Locale.ROOT, "%.1f GB", gb);
+        }
 }
