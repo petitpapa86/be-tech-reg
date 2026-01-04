@@ -1,14 +1,19 @@
 package com.bcbs239.regtech.riskcalculation.infrastructure.parser;
 
 import com.bcbs239.regtech.core.domain.shared.dto.BatchDataDTO;
-import com.bcbs239.regtech.core.domain.shared.dto.ParsedBatchData;
+import com.bcbs239.regtech.core.domain.shared.dto.CreditRiskMitigationDTO;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.BatchDataParsing;
+import com.bcbs239.regtech.riskcalculation.domain.exposure.ExposureRecording;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Domain service for parsing batch data from JSON content.
@@ -26,16 +31,20 @@ public class BatchDataParsingService implements BatchDataParsing {
     private final ObjectMapper objectMapper;
     
     /**
-     * Parse batch data from JSON content.
+     * Parse batch data from JSON content directly to domain objects.
+     * This optimized version parses JSON once and converts to domain objects immediately,
+     * eliminating the need for intermediate DTO processing in the command handler.
      * 
      * @param jsonContent The JSON content to parse
-     * @return ParsedBatchData containing the batch data and extracted bank info
+     * @return ParsedBatchDomainData containing domain objects ready for processing
      * @throws BatchDataParsingException if parsing fails
      */
-    public ParsedBatchData parseBatchData(String jsonContent) {
+    @Override
+    public ParsedBatchDomainData parseBatchData(String jsonContent) {
         try {
-            log.info("Parsing batch data from JSON, size: {} bytes", jsonContent.length());
+            log.info("Parsing batch data from JSON directly to domain objects, size: {} bytes", jsonContent.length());
             
+            // Parse JSON to DTO (still needed for deserialization)
             BatchDataDTO batchData = objectMapper.readValue(jsonContent, BatchDataDTO.class);
             
             if (batchData == null) {
@@ -48,11 +57,26 @@ public class BatchDataParsingService implements BatchDataParsing {
             // Validate batch data
             validateBatchData(batchData);
             
-            log.info("Successfully parsed batch data with {} exposures and {} mitigations",
-                batchData.exposures() != null ? batchData.exposures().size() : 0,
+            // Convert DTOs to domain objects immediately - single pass optimization
+            List<ExposureRecording> exposures = batchData.exposures().stream()
+                .map(ExposureRecording::fromDTO)
+                .collect(Collectors.toList());
+            
+            // Group mitigations by exposure ID for efficient lookup
+            Map<String, List<CreditRiskMitigationDTO>> mitigationsByExposure = 
+                batchData.creditRiskMitigation().stream()
+                    .collect(Collectors.groupingBy(CreditRiskMitigationDTO::exposureId));
+            
+            log.info("Successfully parsed batch data with {} exposures and {} mitigations to domain objects",
+                exposures.size(),
                 batchData.creditRiskMitigation() != null ? batchData.creditRiskMitigation().size() : 0);
             
-            return new ParsedBatchData(batchData, bankInfo);
+            return new ParsedBatchDomainData(
+                exposures,
+                mitigationsByExposure,
+                bankInfo,
+                exposures.size()
+            );
             
         } catch (JsonProcessingException e) {
             log.error("Failed to parse JSON content", e);

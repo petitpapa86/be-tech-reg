@@ -1,11 +1,8 @@
 package com.bcbs239.regtech.riskcalculation.application.calculation;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
-import com.bcbs239.regtech.core.domain.shared.dto.ParsedBatchData;
 import com.bcbs239.regtech.riskcalculation.domain.calculation.*;
 import com.bcbs239.regtech.riskcalculation.domain.shared.IPerformanceMetrics;
 import org.springframework.stereotype.Component;
@@ -37,15 +34,18 @@ import lombok.extern.slf4j.Slf4j;
  * Acts as an orchestrator that uses domain objects directly, following the 
  * "Tell, Don't Ask" principle. Domain objects know what they can do.
  * 
- * Workflow:
- * 1. Download and parse batch data
+ * Optimized Workflow:
+ * 1. Download and parse batch data directly to domain objects (single-pass optimization)
  * 2. Create Batch aggregate 
- * 3. Use ExposureRecording.fromDTO() to convert exposures
- * 4. Use ProtectedExposure.calculate() to apply mitigations
- * 5. Use ExposureClassifier to classify exposures
- * 6. Use ClassifiedExposure.of() to create classified exposures
- * 7. Use PortfolioAnalysis.analyze() to analyze portfolio
+ * 3. Process exposures through domain service (already in domain object form)
+ * 4. Apply mitigations via ProtectedExposure.calculate()
+ * 5. Classify exposures using ExposureClassifier
+ * 6. Create classified exposures via ClassifiedExposure.of()
+ * 7. Analyze portfolio using PortfolioAnalysis.analyze()
  * 8. Store results and complete batch
+ * 
+ * Performance Note: The parser now converts DTOs to domain objects in one pass,
+ * eliminating redundant streaming/conversion in the command handler.
  * 
  * Requirements: 6.1, 7.1, 8.1
  */
@@ -89,18 +89,18 @@ public class CalculateRiskMetricsCommandHandler {
                 return Result.success();
             }
             
-            // Download and parse batch data
+            // Download and parse batch data directly to domain objects (optimized single-pass parsing)
             Result<String> downloadResult = fileStorageService.retrieveFile(command.getS3Uri());
             if (downloadResult.isFailure()) {
                 return handleDownloadFailure(batchId, downloadResult);
             }
             
-            ParsedBatchData parsedData =
+            BatchDataParsing.ParsedBatchDomainData parsedData =
                 batchDataParsing.parseBatchData(downloadResult.getValue().orElse(""));
             BankInfo bankInfo = parsedData.bankInfo();
 
             // Create and save Batch aggregate
-            batch = Batch.create(batchId, bankInfo, parsedData.batchData().exposures().size(), command.getS3Uri());
+            batch = Batch.create(batchId, bankInfo, parsedData.totalExposures(), command.getS3Uri());
             Result<Void> batchSaveResult = batchRepository.save(batch);
             if (batchSaveResult.isFailure()) {
                 // Race/idempotency: another thread/process created the batch first.
@@ -119,20 +119,17 @@ public class CalculateRiskMetricsCommandHandler {
             unitOfWork.registerEntity(batch);
             unitOfWork.saveChanges();
 
-            // Convert exposures using domain objects directly
-            List<ExposureRecording> exposures = parsedData.batchData().exposures().stream()
-                .map(ExposureRecording::fromDTO)
-                .collect(Collectors.toList());
-
-            // Group mitigations by exposure ID
-            Map<String, List<CreditRiskMitigationDTO>> mitigationsByExposure = 
-                parsedData.batchData().creditRiskMitigation().stream()
-                    .collect(Collectors.groupingBy(CreditRiskMitigationDTO::exposureId));
-
+            // Exposures are already parsed to domain objects - no conversion needed!
+            // Mitigations are already grouped by exposure ID - ready for processing
+            // This optimization eliminates redundant DTO-to-domain conversions
+            
             // Process exposures through domain service - "Tell, Don't Ask"
             // Domain service knows how to process exposures through the pipeline
             ExposureProcessingService.ProcessingResult processingResult = 
-                exposureProcessingService.processExposures(exposures, mitigationsByExposure);
+                exposureProcessingService.processExposures(
+                    parsedData.exposures(), 
+                    parsedData.mitigationsByExposure()
+                );
             
             List<ProtectedExposure> protectedExposures = processingResult.protectedExposures();
             List<ClassifiedExposure> classifiedExposures = processingResult.classifiedExposures();
