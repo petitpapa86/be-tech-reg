@@ -2,7 +2,7 @@ package com.bcbs239.regtech.metrics.presentation.integration.listener;
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.integration.DataQualityCompletedInboundEvent;
-import com.bcbs239.regtech.metrics.application.integration.UpdateDashboardMetricsOnDataQualityCompletedUseCase;
+import com.bcbs239.regtech.metrics.application.dashboard.UpdateDashboardMetricsOnDataQualityCompletedUseCase;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 

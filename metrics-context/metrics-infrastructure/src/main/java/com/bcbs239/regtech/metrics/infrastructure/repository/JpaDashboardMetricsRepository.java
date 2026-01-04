@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.metrics.infrastructure.repository;
 
-import com.bcbs239.regtech.metrics.application.port.DashboardMetricsRepository;
+import com.bcbs239.regtech.metrics.application.dashboard.port.DashboardMetricsRepository;
 import com.bcbs239.regtech.metrics.domain.BankId;
 import com.bcbs239.regtech.metrics.domain.DashboardMetrics;
 import com.bcbs239.regtech.metrics.infrastructure.entity.DashboardMetricsEntity;

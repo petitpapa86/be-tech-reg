@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.metrics.infrastructure.repository;
 
-import com.bcbs239.regtech.metrics.application.port.ComplianceReportRepository;
+import com.bcbs239.regtech.metrics.application.compliance.port.ComplianceReportRepository;
 import com.bcbs239.regtech.metrics.domain.BankId;
 import com.bcbs239.regtech.metrics.domain.ComplianceReport;
 import com.bcbs239.regtech.metrics.infrastructure.entity.ComplianceReportEntity;

@@ -18,8 +18,8 @@ import com.bcbs239.regtech.metrics.presentation.dashboard.dto.DashboardResponse;
 import com.bcbs239.regtech.metrics.presentation.dashboard.dto.FileItem;
 import com.bcbs239.regtech.metrics.presentation.dashboard.dto.ComplianceState;
 import com.bcbs239.regtech.metrics.presentation.dashboard.dto.ReportItem;
-import com.bcbs239.regtech.metrics.application.usecase.DashboardUseCase;
-import com.bcbs239.regtech.metrics.application.usecase.DashboardResult;
+import com.bcbs239.regtech.metrics.application.dashboard.DashboardUseCase;
+import com.bcbs239.regtech.metrics.application.dashboard.DashboardResult;
 import com.bcbs239.regtech.metrics.domain.ComplianceFile;
 import com.bcbs239.regtech.metrics.domain.ComplianceReport;
 

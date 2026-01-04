@@ -7,7 +7,7 @@
     <!-- Default console (readable) - used unless a profile overrides the root logger to use JSON -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}/%X{spanId:-}] %-5level %logger{36} - %msg%n context bank-id=%X{bank-id:-} user-id=%X{user-id:-} batch-id=%X{batch-id:-}%n</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}/%X{spanId:-}] %-5level %logger{36} [%X{source-file:-}:%X{source-line:-}] - %msg%n context bank-id=%X{bank-id:-} user-id=%X{user-id:-} batch-id=%X{batch-id:-}%n</pattern>
         </encoder>
     </appender>
 
@@ -46,6 +46,9 @@
                 <threadName>
                     <fieldName>thread</fieldName>
                 </threadName>
+
+                <!-- Source location (class/method/line) for debugging -->
+                <provider class="net.logstash.logback.composite.loggingevent.CallerDataJsonProvider"/>
             </providers>
         </encoder>
     </appender>
@@ -92,6 +95,9 @@
                 <threadName>
                     <fieldName>thread</fieldName>
                 </threadName>
+
+                <!-- Source location (class/method/line) for debugging -->
+                <provider class="net.logstash.logback.composite.loggingevent.CallerDataJsonProvider"/>
 
                 <!-- Custom fields for GCP -->
                 <provider class="net.logstash.logback.provider.StructuredArgumentsJsonProvider">
@@ -224,6 +230,9 @@
                 <threadName>
                     <fieldName>thread</fieldName>
                 </threadName>
+
+                <!-- Source location (class/method/line) for debugging -->
+                <provider class="net.logstash.logback.composite.loggingevent.CallerDataJsonProvider"/>
             </providers>
         </encoder>
     </appender>

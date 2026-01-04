@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.metrics.domain;
 
+import lombok.Getter;
+
 import java.util.List;
 import java.util.OptionalDouble;
 
@@ -7,6 +9,7 @@ import java.util.OptionalDouble;
  * Domain aggregate for dashboard metrics.
  * Business behavior lives here; persistence concerns live in infrastructure entities.
  */
+@Getter
 public class DashboardMetrics {
 
     private BankId bankId;
@@ -87,32 +90,9 @@ public class DashboardMetrics {
         }
     }
 
-    // ASK WHAT METRICS CAN DO: Update from file validation
-    public void onFileValidated(String filename, double scorePercentage, int violations) {
-        this.totalFilesProcessed++;
-        this.totalViolations += violations;
-
-        // Recalculate weighted average
-        // Simplified - real version would be more sophisticated
-        double weight = 1.0 / this.totalFilesProcessed;
-        this.overallScore = this.overallScore * (1 - weight) + scorePercentage * weight;
-
-        // Update sub-scores (simplified)
-        this.dataQualityScore = this.overallScore + 5.0;
-        this.bcbsRulesScore = this.overallScore - 2.0;
-        this.completenessScore = this.overallScore + 7.0;
-    }
-
-    // ASK WHAT METRICS CAN DO: Increment reports
-    public void onReportGenerated() {
-        this.totalReportsGenerated++;
-    }
 
     // ASK WHAT METRICS CAN DO: Recalculate month-to-date
     public void recalculateMonthToDate(List<ComplianceFile> files) {
-        if (files == null) {
-            return;
-        }
 
         this.totalFilesProcessed = files.size();
 
@@ -130,55 +110,4 @@ public class DashboardMetrics {
         this.completenessScore = this.overallScore + 7.0;
     }
 
-    public BankId getBankId() {
-        return bankId;
-    }
-
-    public java.time.LocalDate getPeriodStart() {
-        return periodStart;
-    }
-
-    public Double getOverallScore() {
-        return overallScore;
-    }
-
-    public Double getDataQualityScore() {
-        return dataQualityScore;
-    }
-
-    public Double getBcbsRulesScore() {
-        return bcbsRulesScore;
-    }
-
-    public Double getCompletenessScore() {
-        return completenessScore;
-    }
-
-    public Integer getTotalFilesProcessed() {
-        return totalFilesProcessed;
-    }
-
-    public Integer getTotalViolations() {
-        return totalViolations;
-    }
-
-    public Integer getTotalReportsGenerated() {
-        return totalReportsGenerated;
-    }
-
-    public Integer getTotalExposures() {
-        return totalExposures;
-    }
-
-    public Integer getValidExposures() {
-        return validExposures;
-    }
-
-    public Integer getTotalErrors() {
-        return totalErrors;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
 }
