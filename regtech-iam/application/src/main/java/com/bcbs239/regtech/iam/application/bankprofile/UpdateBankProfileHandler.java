@@ -1,0 +1,159 @@
+package com.bcbs239.regtech.iam.application.bankprofile;
+
+import com.bcbs239.regtech.iam.domain.bankprofile.BankProfile;
+import com.bcbs239.regtech.iam.domain.bankprofile.BankProfileRepository;
+import com.bcbs239.regtech.iam.domain.bankprofile.valueobject.*;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Command Handler: Update Bank Profile
+ * 
+ * Application layer = Coordinator
+ * Orchestrates the update use case, coordinating:
+ * - Value object construction and validation
+ * - Domain model updates
+ * - Repository persistence
+ * 
+ * Returns Result&lt;BankProfile&gt; because validation can fail
+ */
+@Service
+@RequiredArgsConstructor
+public class UpdateBankProfileHandler {
+    
+    private final BankProfileRepository repository;
+    
+    @Value
+    public static class UpdateCommand {
+        Long bankId;
+        String legalName;
+        String abiCode;
+        String leiCode;
+        String groupType;
+        String bankType;
+        String supervisionCategory;
+        String legalAddress;
+        String vatNumber;
+        String taxCode;
+        String companyRegistry;
+        String institutionalEmail;
+        String pec;
+        String phone;
+        String website;
+        String modifiedBy;
+    }
+    
+    @Transactional
+    public Result<BankProfile> handle(UpdateCommand command) {
+        // Create value objects using smart constructors
+        List<String> errors = new ArrayList<>();
+        
+        Result<LegalName> legalNameResult = LegalName.of(command.legalName);
+        if (legalNameResult.isFailure()) {
+            errors.add(legalNameResult.getError());
+        }
+        
+        Result<AbiCode> abiCodeResult = AbiCode.of(command.abiCode);
+        if (abiCodeResult.isFailure()) {
+            errors.add(abiCodeResult.getError());
+        }
+        
+        Result<LeiCode> leiCodeResult = LeiCode.of(command.leiCode);
+        if (leiCodeResult.isFailure()) {
+            errors.add(leiCodeResult.getError());
+        }
+        
+        Result<GroupType> groupTypeResult = GroupType.of(command.groupType);
+        if (groupTypeResult.isFailure()) {
+            errors.add(groupTypeResult.getError());
+        }
+        
+        Result<BankType> bankTypeResult = BankType.of(command.bankType);
+        if (bankTypeResult.isFailure()) {
+            errors.add(bankTypeResult.getError());
+        }
+        
+        Result<SupervisionCategory> supervisionCategoryResult = SupervisionCategory.of(command.supervisionCategory);
+        if (supervisionCategoryResult.isFailure()) {
+            errors.add(supervisionCategoryResult.getError());
+        }
+        
+        if (command.legalAddress == null || command.legalAddress.isBlank()) {
+            errors.add("Legal address cannot be null or blank");
+        }
+        
+        // If any required field validation failed, return error
+        if (!errors.isEmpty()) {
+            return Result.failure(String.join(", ", errors));
+        }
+        
+        // Process optional fields (Maybe pattern)
+        Maybe<VatNumber> vatNumber = VatNumber.of(command.vatNumber);
+        Maybe<TaxCode> taxCode = TaxCode.of(command.taxCode);
+        Maybe<String> companyRegistry = command.companyRegistry != null && !command.companyRegistry.isBlank()
+                ? Maybe.of(command.companyRegistry.trim())
+                : Maybe.empty();
+        Maybe<EmailAddress> institutionalEmail = EmailAddress.of(command.institutionalEmail);
+        Maybe<EmailAddress> pec = EmailAddress.of(command.pec);
+        Maybe<PhoneNumber> phone = PhoneNumber.of(command.phone);
+        Maybe<WebsiteUrl> website = WebsiteUrl.of(command.website);
+        
+        // Get existing profile or create new
+        Maybe<BankProfile> existingProfile = repository.findById(command.bankId);
+        
+        BankProfile profile;
+        if (existingProfile.isPresent()) {
+            // Update existing
+            profile = existingProfile.get().update(
+                    legalNameResult.getValue(),
+                    abiCodeResult.getValue(),
+                    leiCodeResult.getValue(),
+                    groupTypeResult.getValue(),
+                    bankTypeResult.getValue(),
+                    supervisionCategoryResult.getValue(),
+                    command.legalAddress.trim(),
+                    vatNumber,
+                    taxCode,
+                    companyRegistry,
+                    institutionalEmail,
+                    pec,
+                    phone,
+                    website,
+                    command.modifiedBy
+            );
+        } else {
+            // Create new
+            profile = BankProfile.builder()
+                    .bankId(command.bankId)
+                    .legalName(legalNameResult.getValue())
+                    .abiCode(abiCodeResult.getValue())
+                    .leiCode(leiCodeResult.getValue())
+                    .groupType(groupTypeResult.getValue())
+                    .bankType(bankTypeResult.getValue())
+                    .supervisionCategory(supervisionCategoryResult.getValue())
+                    .legalAddress(command.legalAddress.trim())
+                    .vatNumber(vatNumber)
+                    .taxCode(taxCode)
+                    .companyRegistry(companyRegistry)
+                    .institutionalEmail(institutionalEmail)
+                    .pec(pec)
+                    .phone(phone)
+                    .website(website)
+                    .lastModified(Instant.now())
+                    .lastModifiedBy(command.modifiedBy)
+                    .build();
+        }
+        
+        BankProfile saved = repository.save(profile);
+        
+        return Result.success(saved);
+    }
+}
