@@ -23,4 +23,17 @@
         <module>metrics-presentation</module>
     </modules>
 
+    <!-- Inherit Spring Boot dependency management from parent -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>4.0.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
 </project>

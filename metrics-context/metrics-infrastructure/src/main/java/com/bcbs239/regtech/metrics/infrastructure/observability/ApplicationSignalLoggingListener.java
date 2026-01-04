@@ -12,6 +12,16 @@ import org.slf4j.MDC;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+/**
+ * Infrastructure component that listens to ApplicationSignal events and logs them.
+ * 
+ * <p>This removes the need for direct logging in the application layer.
+ * The application layer publishes semantic signals/events, and this infrastructure
+ * component converts them to structured logs with appropriate context (MDC).</p>
+ * 
+ * <p>Design principle: Application layer is unaware of logging infrastructure.
+ * It only publishes domain-meaningful signals via ApplicationSignalPublisher.</p>
+ */
 @Component
 public class ApplicationSignalLoggingListener {
 

@@ -1,0 +1,52 @@
+# Observability Configuration for Metrics Context
+
+## Spring AOP Configuration
+spring:
+  aop:
+    # Enable AspectJ auto-proxying for our observability aspects
+    auto: true
+    proxy-target-class: true
+
+## Metrics Context Observability
+metrics:
+  observability:
+    # Performance monitoring aspect configuration
+    performance-monitoring:
+      enabled: true
+      # Threshold in milliseconds for warning about slow use cases
+      slow-threshold-ms: 5000
+      
+    # Metrics collection aspect configuration  
+    metrics-collection:
+      enabled: true
+      
+    # Signal-based logging
+    signal-logging:
+      enabled: true
+      # Include source location (class, method, line) in logs
+      include-source-location: true
+
+## Logging Configuration
+logging:
+  level:
+    # Infrastructure observability components
+    com.bcbs239.regtech.metrics.infrastructure.observability: INFO
+    
+    # Set to DEBUG to see detailed method arguments and return types
+    # com.bcbs239.regtech.metrics.infrastructure.observability.UseCaseLoggingAspect: DEBUG
+    
+  pattern:
+    # Enhanced log pattern with MDC values
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%t] %-40.40logger{39} [bank=%X{bank-id:-N/A}] [batch=%X{batch-id:-N/A}] [use-case=%X{use-case-class:-}] : %m%n'
+
+## Micrometer Metrics
+management:
+  metrics:
+    tags:
+      # Add context tag to all metrics
+      context: metrics
+      
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus

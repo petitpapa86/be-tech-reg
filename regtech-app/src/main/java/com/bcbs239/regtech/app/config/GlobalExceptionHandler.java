@@ -1,12 +1,10 @@
 package com.bcbs239.regtech.app.config;
 
-
-import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,33 +22,27 @@ import java.util.Map;
  */
 @ControllerAdvice
 public class GlobalExceptionHandler {
-
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
-     * Logs error using both standard and structured logging
+     * Logs error with contextual information
      */
     private void logError(String eventType, Exception ex, HttpServletRequest request, Map<String, Object> additionalContext) {
         String path = request.getRequestURI();
+        String method = request.getMethod();
 
-        // Standard logging
-       // logger.error("Error [{}] at {}: {}", eventType, path, ex.getMessage(), ex);
-
-        // Structured logging with full context
         Map<String, Object> context = new HashMap<>(Map.of(
                 "eventType", eventType,
                 "exception", ex.getClass().getSimpleName(),
-                "message", ex.getMessage(),
                 "path", path,
-                "method", request.getMethod(),
-                "correlationId", LoggingConfiguration.getCurrentCorrelationId()
+                "method", method
         ));
 
         if (additionalContext != null) {
             context.putAll(additionalContext);
         }
 
-        LoggingConfiguration.logError(eventType, ex, context);
+        log.error("{}: {} - context={}", eventType, ex.getMessage(), context, ex);
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

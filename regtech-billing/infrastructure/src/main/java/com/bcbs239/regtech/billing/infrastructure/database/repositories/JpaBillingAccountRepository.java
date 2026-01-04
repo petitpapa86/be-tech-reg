@@ -9,7 +9,8 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.UserId;
-import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.OptimisticLockException;
@@ -19,7 +20,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -28,6 +28,7 @@ import java.util.function.Function;
  */
 @Repository
 public class JpaBillingAccountRepository implements BillingAccountRepository {
+    private static final Logger log = LoggerFactory.getLogger(JpaBillingAccountRepository.class);
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -41,8 +42,7 @@ public class JpaBillingAccountRepository implements BillingAccountRepository {
             }
             return Maybe.some(entity.toDomain());
         } catch (Exception e) {
-            LoggingConfiguration.logStructured("Error finding billing account by ID",
-                Map.of("billingAccountId", id.value(), "eventType", "BILLING_ACCOUNT_FIND_ERROR"), e);
+            log.error("Error finding billing account by ID: {}", id.value(), e);
             return Maybe.none();
         }
     }
@@ -62,16 +62,13 @@ public class JpaBillingAccountRepository implements BillingAccountRepository {
             }
             
             if (entities.size() > 1) {
-                LoggingConfiguration.logStructured("Multiple billing accounts found for user - returning most recent",
-                    Map.of("userId", userId.getValue(), 
-                           "count", entities.size(),
-                           "eventType", "DUPLICATE_BILLING_ACCOUNTS_WARNING"));
+                log.warn("Multiple billing accounts found for user - returning most recent: userId={} count={}", 
+                    userId.getValue(), entities.size());
             }
             
             return Maybe.some(entities.get(0).toDomain());
         } catch (Exception e) {
-            LoggingConfiguration.logStructured("Error finding billing account by user ID",
-                Map.of("userId", userId.getValue(), "eventType", "BILLING_ACCOUNT_FIND_BY_USER_ERROR"), e);
+            log.error("Error finding billing account by user ID: {}", userId.getValue(), e);
             return Maybe.none();
         }
     }
@@ -90,8 +87,7 @@ public class JpaBillingAccountRepository implements BillingAccountRepository {
             entityManager.flush();
             return Result.success(BillingAccountId.fromString(entity.getId()).getValue().orElseThrow());
         } catch (Exception e) {
-            LoggingConfiguration.logStructured("Error saving billing account",
-                Map.of("eventType", "BILLING_ACCOUNT_SAVE_ERROR"), e);
+            log.error("Error saving billing account", e);
             throw new RuntimeException("Failed to save billing account: " + e.getMessage(), e);
         }
     }
@@ -136,9 +132,8 @@ public class JpaBillingAccountRepository implements BillingAccountRepository {
 
                 return Result.success(BillingAccountId.fromString(managed.getId()).getValue().orElseThrow());
             } catch (OptimisticLockException ole) {
-                LoggingConfiguration.logStructured("Optimistic lock on billing account update",
-                    Map.of("billingAccountId", billingAccount.getId().value(), 
-                           "eventType", "BILLING_ACCOUNT_UPDATE_CONFLICT", "attempt", currentAttempt), ole);
+                log.warn("Optimistic lock on billing account update: billingAccountId={} attempt={}",
+                    billingAccount.getId().value(), currentAttempt, ole);
                 
                 // Retry on optimistic lock conflicts
                 if (attempt < maxAttempts) {

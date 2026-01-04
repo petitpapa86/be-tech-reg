@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.core.infrastructure.commandprocessing;
 
 import com.bcbs239.regtech.core.domain.saga.SagaCommand;
-import com.bcbs239.regtech.core.infrastructure.persistence.LoggingConfiguration;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -11,35 +12,24 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 @Component("infrastructureCommandDispatcher")
 @RequiredArgsConstructor
 public class CommandDispatcher {
-     private final ApplicationEventPublisher eventPublisher;
+    private static final Logger log = LoggerFactory.getLogger(CommandDispatcher.class);
+    private final ApplicationEventPublisher eventPublisher;
 
     public void dispatch(SagaCommand command) {
-        // Diagnostic structured log to trace commands being dispatched
-        try {
-            LoggingConfiguration.createStructuredLog("SAGA_COMMAND_PUBLISHED", java.util.Map.of(
-                "sagaId", command.sagaId().id(),
-                "commandType", command.commandType()
-            ));
-        } catch (Exception e) {
-            // ignore logging failure
-        }
+        log.debug("Saga command published: sagaId={} commandType={}", 
+            command.sagaId().id(), command.commandType());
 
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
                     try {
-                        LoggingConfiguration.createStructuredLog("SAGA_COMMAND_AFTER_COMMIT", java.util.Map.of(
-                            "sagaId", command.sagaId().id(),
-                            "commandType", command.commandType()
-                        ));
+                        log.debug("Saga command after commit: sagaId={} commandType={}",
+                            command.sagaId().id(), command.commandType());
                         eventPublisher.publishEvent(command);
                     } catch (Exception e) {
-                        LoggingConfiguration.createStructuredLog("SAGA_COMMAND_PUBLISH_FAILED", java.util.Map.of(
-                            "sagaId", command.sagaId().id(),
-                            "commandType", command.commandType(),
-                            "error", e.getMessage()
-                        ));
+                        log.error("Saga command publish failed: sagaId={} commandType={}",
+                            command.sagaId().id(), command.commandType(), e);
                     }
                 }
             });
@@ -54,14 +44,8 @@ public class CommandDispatcher {
      * an existing afterCommit callback where registering a new synchronization would be too late.
      */
     public void dispatchNow(SagaCommand command) {
-        try {
-            LoggingConfiguration.createStructuredLog("SAGA_COMMAND_PUBLISHED_IMMEDIATE", java.util.Map.of(
-                "sagaId", command.sagaId().id(),
-                "commandType", command.commandType()
-            ));
-        } catch (Exception e) {
-            // ignore logging failure
-        }
+        log.debug("Saga command published immediately: sagaId={} commandType={}",
+            command.sagaId().id(), command.commandType());
         eventPublisher.publishEvent(command);
     }
 }
