@@ -56,6 +56,40 @@ public interface UserRepository {
      * Query object for user organization role lookups
      */
     record UserOrgQuery(UserId userId, String organizationId) {}
+    
+    // ========================================
+    // NEW METHODS - For User Management
+    // ========================================
+    
+    /**
+     * Find all users for a specific bank
+     */
+    List<User> findByBankId(Long bankId);
+    
+    /**
+     * Find active users for a specific bank
+     */
+    List<User> findActiveByBankId(Long bankId);
+    
+    /**
+     * Find pending users (PENDING_PAYMENT status) for a specific bank
+     */
+    List<User> findPendingByBankId(Long bankId);
+    
+    /**
+     * Check if email exists within a bank
+     */
+    boolean existsByEmailAndBankId(Email email, Long bankId);
+    
+    /**
+     * Find user by email within a specific bank
+     */
+    Maybe<User> findByEmailAndBankId(Email email, Long bankId);
+    
+    /**
+     * Delete user (for revoking pending invitations)
+     */
+    void deleteUser(UserId userId);
 }
 
 
