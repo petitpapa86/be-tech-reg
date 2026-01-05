@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.iam.application.usermanagement;
+package com.bcbs239.regtech.iam.application.users;
 
 import com.bcbs239.regtech.iam.domain.users.*;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Command Handler: Revoke pending user invitation
  * 
  * Only works for users with PENDING_PAYMENT status
+ * Uses proper value object validation
  */
 @Service
 @RequiredArgsConstructor
@@ -27,16 +28,12 @@ public class RevokeInvitationHandler {
     
     @Transactional
     public Result<Void> handle(Command command) {
-        // Parse user ID
-        UserId userId;
-        try {
-            userId = UserId.fromString(command.userId);
-        } catch (IllegalArgumentException e) {
-            return Result.failure(
-                ErrorDetail.of("INVALID_USER_ID", ErrorType.VALIDATION_ERROR,
-                    "Invalid user ID format", "usermanagement.invalid.user.id")
-            );
+        // Validate and create UserId
+        Result<UserId> userIdResult = UserId.create(command.userId);
+        if (userIdResult.isFailure()) {
+            return Result.failure(userIdResult.getError().get());
         }
+        UserId userId = userIdResult.getValue().get();
         
         // Find user
         var userMaybe = userRepository.userLoader(userId);

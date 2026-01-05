@@ -1,45 +1,35 @@
-package com.bcbs239.regtech.iam.application.usermanagement;
+package com.bcbs239.regtech.iam.application.users;
 
-import com.bcbs239.regtech.iam.domain.users.User;
-import com.bcbs239.regtech.iam.domain.users.UserId;
-import com.bcbs239.regtech.iam.domain.users.UserRepository;
+import com.bcbs239.regtech.iam.domain.users.*;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Command Handler: Suspend user account
  * 
- * Uses EXISTING User.suspend() domain method
+ * Uses EXISTING User.suspend() domain method with proper value object validation
  */
 @Service
 @RequiredArgsConstructor
 public class SuspendUserHandler {
     
     private final UserRepository userRepository;
-    
-    @Value
-    public static class Command {
-        String userId;
-        String suspendedBy;
+
+    public record Command(String userId, String suspendedBy) {
     }
     
     @Transactional
     public Result<User> handle(Command command) {
-        // Parse user ID
-        UserId userId;
-        try {
-            userId = UserId.fromString(command.userId);
-        } catch (IllegalArgumentException e) {
-            return Result.failure(
-                ErrorDetail.of("INVALID_USER_ID", ErrorType.VALIDATION_ERROR,
-                    "Invalid user ID format", "usermanagement.invalid.user.id")
-            );
+        // Validate and create UserId
+        Result<UserId> userIdResult = UserId.create(command.userId);
+        if (userIdResult.isFailure()) {
+            return Result.failure(userIdResult.getError().get());
         }
+        UserId userId = userIdResult.getValue().get();
         
         // Find user
         var userMaybe = userRepository.userLoader(userId);
@@ -51,12 +41,10 @@ public class SuspendUserHandler {
         }
         
         User user = userMaybe.getValue();
-        
-        // Use EXISTING domain method
+
         user.suspend();
         
-        // Save
-        var saveResult = userRepository.userSaver(user);
+        Result<UserId> saveResult = userRepository.userSaver(user);
         if (saveResult.isFailure()) {
             return Result.failure(saveResult.getError().get());
         }

@@ -1,16 +1,19 @@
-package com.bcbs239.regtech.iam.application.usermanagement;
+package com.bcbs239.regtech.iam.application.users;
 
-import com.bcbs239.regtech.iam.domain.users.User;
-import com.bcbs239.regtech.iam.domain.users.UserRepository;
-import com.bcbs239.regtech.iam.domain.users.Password;
+import com.bcbs239.regtech.iam.domain.users.*;
+import com.bcbs239.regtech.iam.domain.authentication.PasswordHasher;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Command Handler: Add New Active User
@@ -18,17 +21,18 @@ import org.springframework.transaction.annotation.Transactional;
  * Creates user with ACTIVE status directly (no invitation workflow).
  * Used by admins to create users with immediate access.
  * 
- * Uses EXISTING User domain model.
+ * Uses EXISTING User domain model with proper value object validation.
  */
 @Service
 @RequiredArgsConstructor
 public class AddNewUserHandler {
     
     private final UserRepository userRepository;
+    private final PasswordHasher passwordHasher;
     
     @Value
     public static class Command {
-        Long bankId;
+        String bankId;
         String email;
         String firstName;
         String lastName;
@@ -39,16 +43,54 @@ public class AddNewUserHandler {
     
     @Transactional
     public Result<User> handle(Command command) {
-        // 1. Validate email
-        var emailResult = Email.create(command.email);
+        List<FieldError> validationErrors = new ArrayList<>();
+        
+        // 1. Validate and create Email value object
+        Result<Email> emailResult = Email.create(command.email);
+        Email email = null;
         if (emailResult.isFailure()) {
-            return Result.failure(emailResult.getError().get());
+            validationErrors.add(new FieldError("email", emailResult.getError().get().getMessage(), emailResult.getError().get().getMessageKey()));
+        } else {
+            email = emailResult.getValue().get();
+        }
+
+        // 2. Validate and create BankId value object with numeric validation
+        Result<BankId> bankIdResult = BankId.createNumeric(command.bankId);
+        BankId bankId = null;
+        if (bankIdResult.isFailure()) {
+            validationErrors.add(new FieldError("bankId", bankIdResult.getError().get().getMessage(), bankIdResult.getError().get().getMessageKey()));
+        } else {
+            bankId = bankIdResult.getValue().get();
+        }
+
+        // 3. Validate password strength
+        Result<Void> passwordValidation = Password.validateStrength(command.password);
+        if (passwordValidation.isFailure()) {
+            validationErrors.add(new FieldError("password", passwordValidation.getError().get().getMessage(), passwordValidation.getError().get().getMessageKey()));
+        }
+
+        // 4. Validate firstName
+        if (command.firstName == null || command.firstName.trim().isEmpty()) {
+            validationErrors.add(new FieldError("firstName", "First name is required", "validation.first_name_required"));
+        }
+
+        // 5. Validate lastName
+        if (command.lastName == null || command.lastName.trim().isEmpty()) {
+            validationErrors.add(new FieldError("lastName", "Last name is required", "validation.last_name_required"));
+        }
+
+        // 6. Validate roleName
+        if (command.roleName == null || command.roleName.trim().isEmpty()) {
+            validationErrors.add(new FieldError("roleName", "Role name is required", "validation.role_name_required"));
+        }
+
+        // Return validation errors if any
+        if (!validationErrors.isEmpty()) {
+            return Result.failure(ErrorDetail.validationError(validationErrors));
         }
         
-        Email email = emailResult.getValue().get();
-        
-        // 2. Check if user already exists in this bank
-        if (userRepository.existsByEmailAndBankId(email, command.bankId)) {
+        // 7. Check if user already exists in this bank (business rule validation)
+        if (userRepository.existsByEmailAndBankId(email, bankId.getAsLong())) {
             return Result.failure(
                 ErrorDetail.of("USER_EXISTS", ErrorType.BUSINESS_RULE_ERROR,
                     "User with email " + command.email + " already exists in this bank",
@@ -56,32 +98,21 @@ public class AddNewUserHandler {
             );
         }
         
-        // 3. Validate password strength (using existing Password value object)
-        var passwordValidation = Password.validateStrength(command.password);
-        if (passwordValidation.isFailure()) {
-            return Result.failure(passwordValidation.getError().get());
-        }
+        // 8. Hash the password and create Password value object
+        String hashedPassword = passwordHasher.hash(command.password);
+        Password password = Password.fromHash(hashedPassword);
         
-        // 4. Create password from hash (in real implementation, hash using PasswordHasher service first)
-        // For now, using fromHash as a placeholder - in production, hash the password first
-        Password password = Password.fromHash("HASHED_" + command.password);
+        // 9. Create user using EXISTING factory method
+        User user = User.create(email, password, command.firstName.trim(), command.lastName.trim());
         
-        // 5. Create user using EXISTING factory method
-        User user = User.create(
-            email,
-            password,
-            command.firstName,
-            command.lastName
-        );
+        // 10. Assign to bank (adds BankAssignment)
+        user.assignToBank(bankId.getValue(), command.roleName.trim());
         
-        // 6. Assign to bank (adds BankAssignment)
-        user.assignToBank(command.bankId.toString(), command.roleName);
-        
-        // 7. Activate user immediately (change status from PENDING_PAYMENT to ACTIVE)
+        // 11. Activate user immediately (change status from PENDING_PAYMENT to ACTIVE)
         user.activate();
         
-        // 8. Save user
-        var saveResult = userRepository.userSaver(user);
+        // 12. Save user
+        Result<UserId> saveResult = userRepository.userSaver(user);
         if (saveResult.isFailure()) {
             return Result.failure(saveResult.getError().get());
         }

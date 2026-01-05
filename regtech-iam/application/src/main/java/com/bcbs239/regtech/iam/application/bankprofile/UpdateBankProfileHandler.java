@@ -5,6 +5,8 @@ import com.bcbs239.regtech.iam.domain.bankprofile.BankProfileRepository;
 import com.bcbs239.regtech.iam.domain.bankprofile.valueobject.*;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import org.springframework.stereotype.Service;
@@ -54,45 +56,45 @@ public class UpdateBankProfileHandler {
     @Transactional
     public Result<BankProfile> handle(UpdateCommand command) {
         // Create value objects using smart constructors
-        List<String> errors = new ArrayList<>();
+        List<FieldError> validationErrors = new ArrayList<>();
         
         Result<LegalName> legalNameResult = LegalName.of(command.legalName);
         if (legalNameResult.isFailure()) {
-            errors.add(legalNameResult.getError());
+            validationErrors.add(new FieldError("legalName", legalNameResult.getError(), "bank.profile.legal.name.invalid"));
         }
         
         Result<AbiCode> abiCodeResult = AbiCode.of(command.abiCode);
         if (abiCodeResult.isFailure()) {
-            errors.add(abiCodeResult.getError());
+            validationErrors.add(new FieldError("abiCode", abiCodeResult.getError(), "bank.profile.abi.code.invalid"));
         }
         
         Result<LeiCode> leiCodeResult = LeiCode.of(command.leiCode);
         if (leiCodeResult.isFailure()) {
-            errors.add(leiCodeResult.getError());
+            validationErrors.add(new FieldError("leiCode", leiCodeResult.getError(), "bank.profile.lei.code.invalid"));
         }
         
         Result<GroupType> groupTypeResult = GroupType.of(command.groupType);
         if (groupTypeResult.isFailure()) {
-            errors.add(groupTypeResult.getError());
+            validationErrors.add(new FieldError("groupType", groupTypeResult.getError(), "bank.profile.group.type.invalid"));
         }
         
         Result<BankType> bankTypeResult = BankType.of(command.bankType);
         if (bankTypeResult.isFailure()) {
-            errors.add(bankTypeResult.getError());
+            validationErrors.add(new FieldError("bankType", bankTypeResult.getError(), "bank.profile.bank.type.invalid"));
         }
         
         Result<SupervisionCategory> supervisionCategoryResult = SupervisionCategory.of(command.supervisionCategory);
         if (supervisionCategoryResult.isFailure()) {
-            errors.add(supervisionCategoryResult.getError());
+            validationErrors.add(new FieldError("supervisionCategory", supervisionCategoryResult.getError(), "bank.profile.supervision.category.invalid"));
         }
         
         if (command.legalAddress == null || command.legalAddress.isBlank()) {
-            errors.add("Legal address cannot be null or blank");
+            validationErrors.add(new FieldError("legalAddress", "Legal address cannot be null or blank", "bank.profile.legal.address.required"));
         }
         
         // If any required field validation failed, return error
-        if (!errors.isEmpty()) {
-            return Result.failure(String.join(", ", errors));
+        if (!validationErrors.isEmpty()) {
+            return Result.failure(ErrorDetail.validationError(validationErrors));
         }
         
         // Process optional fields (Maybe pattern)

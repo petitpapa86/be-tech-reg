@@ -4,6 +4,9 @@ import com.bcbs239.regtech.core.application.Command;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
+import com.bcbs239.regtech.iam.domain.users.BankId;
+import com.bcbs239.regtech.iam.domain.users.Password;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -45,7 +48,6 @@ public final class RegisterUserCommand extends Command {
         this.address = address;
     }
 
-
     /**
      * Address information for Stripe integration
      */
@@ -59,7 +61,7 @@ public final class RegisterUserCommand extends Command {
     ) {}
 
     /**
-     * Creates a RegisterUserCommand with validation
+     * Creates a RegisterUserCommand with validation using value objects
      *
      * @param email User's email
      * @param password User's password
@@ -83,14 +85,16 @@ public final class RegisterUserCommand extends Command {
 
         List<FieldError> fieldErrors = new ArrayList<>();
 
-        // Validate email
-        if (email == null || email.trim().isEmpty()) {
-            fieldErrors.add(new FieldError("email", "Email is required", "error.email.required"));
+        // Validate email using Email value object
+        Result<Email> emailResult = Email.create(email);
+        if (emailResult.isFailure()) {
+            fieldErrors.add(new FieldError("email", emailResult.getError().get().getMessage(), emailResult.getError().get().getMessageKey()));
         }
 
-        // Validate password
-        if (password == null || password.trim().isEmpty()) {
-            fieldErrors.add(new FieldError("password", "Password is required", "error.password.required"));
+        // Validate password using Password value object
+        Result<Void> passwordResult = Password.validateStrength(password);
+        if (passwordResult.isFailure()) {
+            fieldErrors.add(new FieldError("password", passwordResult.getError().get().getMessage(), passwordResult.getError().get().getMessageKey()));
         }
 
         // Validate firstName
@@ -103,9 +107,10 @@ public final class RegisterUserCommand extends Command {
             fieldErrors.add(new FieldError("lastName", "Last name is required", "error.lastName.required"));
         }
 
-        // Validate bankId
-        if (bankId == null || bankId.trim().isEmpty()) {
-            fieldErrors.add(new FieldError("bankId", "Bank ID is required", "error.bankId.required"));
+        // Validate bankId using BankId value object
+        Result<BankId> bankIdResult = BankId.create(bankId);
+        if (bankIdResult.isFailure()) {
+            fieldErrors.add(new FieldError("bankId", bankIdResult.getError().get().getMessage(), bankIdResult.getError().get().getMessageKey()));
         }
 
         // Validate paymentMethodId
