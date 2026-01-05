@@ -19,8 +19,8 @@ public class BankProfileRepositoryAdapter implements BankProfileRepository {
     public Maybe<BankProfile> findById(Long bankId) {
         return jpaRepository.findByBankId(bankId)
                 .map(this::toDomain)
-                .map(Maybe::of)
-                .orElse(Maybe.empty());
+                .map(Maybe::some)
+                .orElse(Maybe.none());
     }
     
     @Override
@@ -36,18 +36,18 @@ public class BankProfileRepositoryAdapter implements BankProfileRepository {
     private BankProfile toDomain(BankProfileJpaEntity entity) {
         return BankProfile.builder()
                 .bankId(entity.getBankId())
-                .legalName(LegalName.of(entity.getLegalName()).getValue())
-                .abiCode(AbiCode.of(entity.getAbiCode()).getValue())
-                .leiCode(LeiCode.of(entity.getLeiCode()).getValue())
-                .groupType(GroupType.of(entity.getGroupType()).getValue())
-                .bankType(BankType.of(entity.getBankType()).getValue())
-                .supervisionCategory(SupervisionCategory.of(entity.getSupervisionCategory()).getValue())
+                .legalName(LegalName.of(entity.getLegalName()).getValueOrThrow())
+                .abiCode(AbiCode.of(entity.getAbiCode()).getValueOrThrow())
+                .leiCode(LeiCode.of(entity.getLeiCode()).getValueOrThrow())
+                .groupType(GroupType.of(entity.getGroupType()).getValueOrThrow())
+                .bankType(BankType.of(entity.getBankType()).getValueOrThrow())
+                .supervisionCategory(SupervisionCategory.of(entity.getSupervisionCategory()).getValueOrThrow())
                 .legalAddress(entity.getLegalAddress())
                 .vatNumber(VatNumber.of(entity.getVatNumber()))
                 .taxCode(TaxCode.of(entity.getTaxCode()))
                 .companyRegistry(entity.getCompanyRegistry() != null && !entity.getCompanyRegistry().isBlank()
-                        ? Maybe.of(entity.getCompanyRegistry())
-                        : Maybe.empty())
+                        ? Maybe.some(entity.getCompanyRegistry())
+                        : Maybe.none())
                 .institutionalEmail(EmailAddress.of(entity.getInstitutionalEmail()))
                 .pec(EmailAddress.of(entity.getPec()))
                 .phone(PhoneNumber.of(entity.getPhone()))

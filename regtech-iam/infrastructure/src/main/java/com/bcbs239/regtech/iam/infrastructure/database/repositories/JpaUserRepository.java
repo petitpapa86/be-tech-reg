@@ -171,11 +171,17 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                 throw new IllegalStateException("Role name is null for role ID: " + entity.getRoleId());
             }
 
-            return UserRole.create(
+            Result<UserRole> userRoleResult = UserRole.create(
                 new UserId(entity.getUserId()),
                 roleName,
                 entity.getOrganizationId()
             );
+            
+            if (userRoleResult.isFailure()) {
+                throw new IllegalStateException("Failed to create UserRole: " + userRoleResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
+            }
+            
+            return userRoleResult.getValueOrThrow();
         } catch (Exception e) {
             log.error("Failed to convert UserRoleEntity to domain; details={}",
                 Map.of("entityId", entity.getId(), "roleId", entity.getRoleId(), "error", e.getMessage()), e);
@@ -207,6 +213,25 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
     }
 
     /**
+     * Closure to delete user by ID
+     */
+    @Override
+    public void deleteUser(UserId userId) {
+        try {
+            if (!userRepository.existsById(userId.getUUID())) {
+                log.warn("Attempted to delete non-existent user: {}", userId.getValue());
+                return; // Silently ignore if user doesn't exist
+            }
+            
+            userRepository.deleteById(userId.getUUID());
+            log.info("Successfully deleted user: {}", userId.getValue());
+        } catch (Exception e) {
+            log.error("Failed to delete user; details={}", Map.of("userId", userId.getValue(), "error", e.getMessage()), e);
+            throw new RuntimeException("Failed to delete user: " + userId.getValue(), e);
+        }
+    }
+
+    /**
      * Traditional method for complex queries that don't fit the closure pattern
      */
     public List<User> findByStatus(UserStatus status) {
@@ -214,6 +239,87 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                 .stream()
                 .map(UserEntity::toDomain)
                 .toList();
+    }
+
+    // ========================================
+    // NEW METHODS - For User Management
+    // ========================================
+    
+    /**
+     * Find all users for a specific bank
+     */
+    @Override
+    public List<User> findByBankId(Long bankId) {
+        try {
+            return userRepository.findByBankId(bankId)
+                    .stream()
+                    .map(UserEntity::toDomain)
+                    .toList();
+        } catch (Exception e) {
+            log.error("Failed to find users by bank ID; details={}", Map.of("bankId", bankId, "error", e.getMessage()), e);
+            return List.of();
+        }
+    }
+    
+    /**
+     * Find active users for a specific bank
+     */
+    @Override
+    public List<User> findActiveByBankId(Long bankId) {
+        try {
+            return userRepository.findByBankIdAndStatus(bankId, UserStatus.ACTIVE)
+                    .stream()
+                    .map(UserEntity::toDomain)
+                    .toList();
+        } catch (Exception e) {
+            log.error("Failed to find active users by bank ID; details={}", Map.of("bankId", bankId, "error", e.getMessage()), e);
+            return List.of();
+        }
+    }
+    
+    /**
+     * Find pending users (PENDING_PAYMENT status) for a specific bank
+     */
+    @Override
+    public List<User> findPendingByBankId(Long bankId) {
+        try {
+            return userRepository.findByBankIdAndStatus(bankId, UserStatus.PENDING_PAYMENT)
+                    .stream()
+                    .map(UserEntity::toDomain)
+                    .toList();
+        } catch (Exception e) {
+            log.error("Failed to find pending users by bank ID; details={}", Map.of("bankId", bankId, "error", e.getMessage()), e);
+            return List.of();
+        }
+    }
+    
+    /**
+     * Check if email exists within a bank
+     */
+    @Override
+    public boolean existsByEmailAndBankId(Email email, Long bankId) {
+        try {
+            return userRepository.existsByEmailAndBankId(email.getValue(), bankId);
+        } catch (Exception e) {
+            log.error("Failed to check email existence by bank ID; details={}", Map.of("email", email.getValue(), "bankId", bankId, "error", e.getMessage()), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Find user by email within a specific bank
+     */
+    @Override
+    public Maybe<User> findByEmailAndBankId(Email email, Long bankId) {
+        try {
+            return userRepository.findByEmailAndBankId(email.getValue(), bankId)
+                    .map(UserEntity::toDomain)
+                    .map(Maybe::some)
+                    .orElse(Maybe.none());
+        } catch (Exception e) {
+            log.error("Failed to find user by email and bank ID; details={}", Map.of("email", email.getValue(), "bankId", bankId, "error", e.getMessage()), e);
+            return Maybe.none();
+        }
     }
 
     @Override

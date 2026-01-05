@@ -3,7 +3,7 @@ package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.BusinessRuleEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExecutionLogEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleParameterEntity;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.database.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluationException;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.BusinessRuleRepository;
@@ -131,12 +131,6 @@ public class DefaultRulesEngine implements RulesEngine {
             // Check if rule is active
             if (!rule.isActive()) {
                 log.debug("Rule {} is not active, skipping execution", ruleId);
-                return logAndReturnSkipped(rule, context, startTime);
-            }
-            
-            // Check for exemptions
-            if (hasActiveExemption(rule, context)) {
-                log.debug("Active exemption found for rule {}, skipping execution", ruleId);
                 return logAndReturnSkipped(rule, context, startTime);
             }
             
@@ -310,21 +304,6 @@ public class DefaultRulesEngine implements RulesEngine {
                 param.getParameterName(), value, dataType);
             return value;
         }
-    }
-    
-    /**
-     * Checks if there's an active exemption for the rule and entity.
-     */
-    private boolean hasActiveExemption(BusinessRuleEntity rule, RuleContext context) {
-        String entityType = context.get("entity_type", String.class);
-        String entityId = context.get("entity_id", String.class);
-        
-        if (entityType == null) {
-            return false;
-        }
-        
-        return rule.getExemptions().stream()
-            .anyMatch(exemption -> exemption.appliesTo(entityType, entityId));
     }
     
     /**
@@ -613,8 +592,7 @@ public class DefaultRulesEngine implements RulesEngine {
 
     private void initializeForCaching(BusinessRuleEntity rule) {
         // Touch lazy collections while still attached to an open session.
-        // These are used during rule execution (parameters) and exemption checks.
+        // These are used during rule execution (parameters).
         rule.getParameters().size();
-        rule.getExemptions().size();
     }
 }

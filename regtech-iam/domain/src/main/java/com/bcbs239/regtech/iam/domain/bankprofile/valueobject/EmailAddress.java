@@ -20,16 +20,16 @@ public class EmailAddress {
     
     public static Maybe<EmailAddress> of(String value) {
         if (value == null || value.isBlank()) {
-            return Maybe.empty();
+            return Maybe.none();
         }
         
         String trimmed = value.trim().toLowerCase();
         
         if (!trimmed.matches(EMAIL_REGEX)) {
-            return Maybe.empty();
+            return Maybe.none();
         }
         
-        return Maybe.of(new EmailAddress(trimmed));
+        return Maybe.some(new EmailAddress(trimmed));
     }
     
     @Override

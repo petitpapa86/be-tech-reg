@@ -19,16 +19,16 @@ public class TaxCode {
     
     public static Maybe<TaxCode> of(String value) {
         if (value == null || value.isBlank()) {
-            return Maybe.empty();
+            return Maybe.none();
         }
         
         String trimmed = value.trim();
         
         if (!trimmed.matches("\\d{11}")) {
-            return Maybe.empty();
+            return Maybe.none();
         }
         
-        return Maybe.of(new TaxCode(trimmed));
+        return Maybe.some(new TaxCode(trimmed));
     }
     
     @Override

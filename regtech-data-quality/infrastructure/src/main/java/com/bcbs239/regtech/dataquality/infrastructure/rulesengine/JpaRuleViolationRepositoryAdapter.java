@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine;
 
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.database.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 
 import java.util.List;
@@ -11,10 +11,10 @@ import java.util.List;
  */
 public class JpaRuleViolationRepositoryAdapter implements RuleViolationRepository {
 
-    private final com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository jpaRepository;
+    private final com.bcbs239.regtech.dataquality.infrastructure.database.repositories.RuleViolationRepository jpaRepository;
 
     public JpaRuleViolationRepositoryAdapter(
-            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository jpaRepository) {
+            com.bcbs239.regtech.dataquality.infrastructure.database.repositories.RuleViolationRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
 

@@ -56,10 +56,10 @@ public class UserManagementController {
         if (result.isFailure()) {
             return ServerResponse.badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(ResponseUtils.businessRuleError(result.getError().get().getMessage()));
+                .body(ResponseUtils.businessRuleError(result.getError().map(ErrorDetail::getMessage).orElse("Unknown error")));
         }
         
-        List<UserResponse> userResponses = result.getValue().get().stream()
+        List<UserResponse> userResponses = result.getValueOrThrow().stream()
             .map(UserResponse::from)
             .collect(Collectors.toList());
         
@@ -76,7 +76,7 @@ public class UserManagementController {
         String createdBy = "admin"; // TODO: Get from SecurityContext
         
         var command = new AddNewUserHandler.Command(
-            bankId,
+            bankId.toString(),
             addRequest.email(),
             addRequest.firstName(),
             addRequest.lastName(),
@@ -90,10 +90,10 @@ public class UserManagementController {
         if (result.isFailure()) {
             return ServerResponse.badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(ResponseUtils.businessRuleError(result.getError().get().getMessage()));
+                .body(ResponseUtils.businessRuleError(result.getError().map(ErrorDetail::getMessage).orElse("Unknown error")));
         }
         
-        UserResponse userResponse = UserResponse.from(result.getValue().get());
+        UserResponse userResponse = UserResponse.from(result.getValueOrThrow());
         
         return ServerResponse.ok()
             .contentType(MediaType.APPLICATION_JSON)
@@ -108,7 +108,7 @@ public class UserManagementController {
         String invitedBy = "admin"; // TODO: Get from SecurityContext
         
         var command = new InviteUserHandler.Command(
-            bankId,
+            bankId.toString(),
             inviteRequest.email(),
             inviteRequest.firstName(),
             inviteRequest.lastName(),

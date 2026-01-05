@@ -11,8 +11,8 @@ import java.util.UUID;
  */
 public record BankId(String value) {
 
-    // Private constructor to enforce factory method usage
-    private BankId {
+    // Public constructor with validation
+    public BankId {
         if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException("BankId value cannot be null or empty");
         }

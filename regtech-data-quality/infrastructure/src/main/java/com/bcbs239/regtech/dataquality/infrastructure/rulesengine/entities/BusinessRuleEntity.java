@@ -75,10 +75,6 @@ public class BusinessRuleEntity {
     @Builder.Default
     private List<RuleParameterEntity> parameters = new ArrayList<>();
 
-    @OneToMany(mappedBy = "rule", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<RuleExemptionEntity> exemptions = new ArrayList<>();
-
     @Column(name = "created_at")
     private Instant createdAt;
 
@@ -104,11 +100,6 @@ public class BusinessRuleEntity {
     public void removeParameter(RuleParameterEntity parameter) {
         parameters.remove(parameter);
         parameter.setRule(null);
-    }
-
-    public void addExemption(RuleExemptionEntity exemption) {
-        exemptions.add(exemption);
-        exemption.setRule(this);
     }
 
     @PrePersist

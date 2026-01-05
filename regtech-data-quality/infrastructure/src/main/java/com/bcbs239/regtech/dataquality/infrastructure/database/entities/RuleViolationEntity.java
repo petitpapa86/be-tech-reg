@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities;
+package com.bcbs239.regtech.dataquality.infrastructure.database.entities;
 
 import com.bcbs239.regtech.dataquality.domain.rules.ResolutionStatus;
 import com.bcbs239.regtech.dataquality.domain.rules.Severity;

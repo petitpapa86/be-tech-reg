@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.iam.domain.bankprofile.valueobject;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import lombok.Value;
 
@@ -20,13 +22,23 @@ public class LegalName {
     
     public static Result<LegalName> of(String value) {
         if (value == null || value.isBlank()) {
-            return Result.failure("Legal name cannot be null or blank");
+            return Result.failure(ErrorDetail.of(
+                "LEGAL_NAME_REQUIRED", 
+                ErrorType.VALIDATION_ERROR, 
+                "Legal name cannot be null or blank", 
+                "validation.legal_name_required"
+            ));
         }
         
         String trimmed = value.trim();
         
         if (trimmed.length() > 255) {
-            return Result.failure("Legal name cannot exceed 255 characters");
+            return Result.failure(ErrorDetail.of(
+                "LEGAL_NAME_TOO_LONG", 
+                ErrorType.VALIDATION_ERROR, 
+                "Legal name cannot exceed 255 characters", 
+                "validation.legal_name_too_long"
+            ));
         }
         
         return Result.success(new LegalName(trimmed));

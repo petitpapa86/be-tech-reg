@@ -19,16 +19,16 @@ public class WebsiteUrl {
     
     public static Maybe<WebsiteUrl> of(String value) {
         if (value == null || value.isBlank()) {
-            return Maybe.empty();
+            return Maybe.none();
         }
         
         String trimmed = value.trim();
         
         if (!trimmed.matches(URL_REGEX)) {
-            return Maybe.empty();
+            return Maybe.none();
         }
         
-        return Maybe.of(new WebsiteUrl(trimmed));
+        return Maybe.some(new WebsiteUrl(trimmed));
     }
     
     @Override

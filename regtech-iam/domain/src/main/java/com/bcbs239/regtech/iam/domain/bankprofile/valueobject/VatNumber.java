@@ -19,20 +19,20 @@ public class VatNumber {
     
     /**
      * Smart constructor - returns Maybe&lt;VatNumber&gt;
-     * Empty or invalid values return Maybe.empty()
+     * Empty or invalid values return Maybe.none()
      */
     public static Maybe<VatNumber> of(String value) {
         if (value == null || value.isBlank()) {
-            return Maybe.empty();
+            return Maybe.none();
         }
         
         String trimmed = value.trim().toUpperCase();
         
         if (!trimmed.matches("IT\\d{11}")) {
-            return Maybe.empty();
+            return Maybe.none();
         }
         
-        return Maybe.of(new VatNumber(trimmed));
+        return Maybe.some(new VatNumber(trimmed));
     }
     
     @Override

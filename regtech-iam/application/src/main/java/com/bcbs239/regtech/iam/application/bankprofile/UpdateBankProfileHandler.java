@@ -60,32 +60,32 @@ public class UpdateBankProfileHandler {
         
         Result<LegalName> legalNameResult = LegalName.of(command.legalName);
         if (legalNameResult.isFailure()) {
-            validationErrors.add(new FieldError("legalName", legalNameResult.getError(), "bank.profile.legal.name.invalid"));
+            validationErrors.add(new FieldError("legalName", legalNameResult.getError().map(ErrorDetail::getMessage).orElse("Invalid legal name"), "bank.profile.legal.name.invalid"));
         }
         
         Result<AbiCode> abiCodeResult = AbiCode.of(command.abiCode);
         if (abiCodeResult.isFailure()) {
-            validationErrors.add(new FieldError("abiCode", abiCodeResult.getError(), "bank.profile.abi.code.invalid"));
+            validationErrors.add(new FieldError("abiCode", abiCodeResult.getError().map(ErrorDetail::getMessage).orElse("Invalid ABI code"), "bank.profile.abi.code.invalid"));
         }
         
         Result<LeiCode> leiCodeResult = LeiCode.of(command.leiCode);
         if (leiCodeResult.isFailure()) {
-            validationErrors.add(new FieldError("leiCode", leiCodeResult.getError(), "bank.profile.lei.code.invalid"));
+            validationErrors.add(new FieldError("leiCode", leiCodeResult.getError().map(ErrorDetail::getMessage).orElse("Invalid LEI code"), "bank.profile.lei.code.invalid"));
         }
         
         Result<GroupType> groupTypeResult = GroupType.of(command.groupType);
         if (groupTypeResult.isFailure()) {
-            validationErrors.add(new FieldError("groupType", groupTypeResult.getError(), "bank.profile.group.type.invalid"));
+            validationErrors.add(new FieldError("groupType", groupTypeResult.getError().map(ErrorDetail::getMessage).orElse("Invalid group type"), "bank.profile.group.type.invalid"));
         }
         
         Result<BankType> bankTypeResult = BankType.of(command.bankType);
         if (bankTypeResult.isFailure()) {
-            validationErrors.add(new FieldError("bankType", bankTypeResult.getError(), "bank.profile.bank.type.invalid"));
+            validationErrors.add(new FieldError("bankType", bankTypeResult.getError().map(ErrorDetail::getMessage).orElse("Invalid bank type"), "bank.profile.bank.type.invalid"));
         }
         
         Result<SupervisionCategory> supervisionCategoryResult = SupervisionCategory.of(command.supervisionCategory);
         if (supervisionCategoryResult.isFailure()) {
-            validationErrors.add(new FieldError("supervisionCategory", supervisionCategoryResult.getError(), "bank.profile.supervision.category.invalid"));
+            validationErrors.add(new FieldError("supervisionCategory", supervisionCategoryResult.getError().map(ErrorDetail::getMessage).orElse("Invalid supervision category"), "bank.profile.supervision.category.invalid"));
         }
         
         if (command.legalAddress == null || command.legalAddress.isBlank()) {
@@ -101,8 +101,8 @@ public class UpdateBankProfileHandler {
         Maybe<VatNumber> vatNumber = VatNumber.of(command.vatNumber);
         Maybe<TaxCode> taxCode = TaxCode.of(command.taxCode);
         Maybe<String> companyRegistry = command.companyRegistry != null && !command.companyRegistry.isBlank()
-                ? Maybe.of(command.companyRegistry.trim())
-                : Maybe.empty();
+                ? Maybe.some(command.companyRegistry.trim())
+                : Maybe.none();
         Maybe<EmailAddress> institutionalEmail = EmailAddress.of(command.institutionalEmail);
         Maybe<EmailAddress> pec = EmailAddress.of(command.pec);
         Maybe<PhoneNumber> phone = PhoneNumber.of(command.phone);
@@ -114,13 +114,13 @@ public class UpdateBankProfileHandler {
         BankProfile profile;
         if (existingProfile.isPresent()) {
             // Update existing
-            profile = existingProfile.get().update(
-                    legalNameResult.getValue(),
-                    abiCodeResult.getValue(),
-                    leiCodeResult.getValue(),
-                    groupTypeResult.getValue(),
-                    bankTypeResult.getValue(),
-                    supervisionCategoryResult.getValue(),
+            profile = existingProfile.getValue().update(
+                    legalNameResult.getValueOrThrow(),
+                    abiCodeResult.getValueOrThrow(),
+                    leiCodeResult.getValueOrThrow(),
+                    groupTypeResult.getValueOrThrow(),
+                    bankTypeResult.getValueOrThrow(),
+                    supervisionCategoryResult.getValueOrThrow(),
                     command.legalAddress.trim(),
                     vatNumber,
                     taxCode,
@@ -135,12 +135,12 @@ public class UpdateBankProfileHandler {
             // Create new
             profile = BankProfile.builder()
                     .bankId(command.bankId)
-                    .legalName(legalNameResult.getValue())
-                    .abiCode(abiCodeResult.getValue())
-                    .leiCode(leiCodeResult.getValue())
-                    .groupType(groupTypeResult.getValue())
-                    .bankType(bankTypeResult.getValue())
-                    .supervisionCategory(supervisionCategoryResult.getValue())
+                    .legalName(legalNameResult.getValueOrThrow())
+                    .abiCode(abiCodeResult.getValueOrThrow())
+                    .leiCode(leiCodeResult.getValueOrThrow())
+                    .groupType(groupTypeResult.getValueOrThrow())
+                    .bankType(bankTypeResult.getValueOrThrow())
+                    .supervisionCategory(supervisionCategoryResult.getValueOrThrow())
                     .legalAddress(command.legalAddress.trim())
                     .vatNumber(vatNumber)
                     .taxCode(taxCode)

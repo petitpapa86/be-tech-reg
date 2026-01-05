@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine;
 
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExecutionLogEntity;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.database.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExecutionLogRepository;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository;
+import com.bcbs239.regtech.dataquality.infrastructure.database.repositories.RuleViolationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

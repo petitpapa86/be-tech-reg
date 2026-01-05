@@ -155,7 +155,6 @@ import com.bcbs239.regtech.dataquality.rulesengine.domain.*;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleContext;
 import com.bcbs239.regtech.dataquality.domain.rules.IBusinessRuleRepository;
 import com.bcbs239.regtech.dataquality.domain.rules.IRuleExecutionLogRepository;
-import com.bcbs239.regtech.dataquality.domain.rules.IRuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.domain.rules.IRuleViolationRepository;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RuleExecutionResult;
 import com.bcbs239.regtech.dataquality.rulesengine.engine.RulesEngine;
@@ -187,9 +186,6 @@ import static org.mockito.ArgumentMatchers.eq;
 
     @Mock
     private IRuleExecutionLogRepository executionLogRepository;
-
-    @Mock
-    private IRuleExemptionRepository exemptionRepository;
 
     @Mock
     private RuleExecutionService ruleExecutionService;
@@ -429,8 +425,6 @@ import static org.mockito.ArgumentMatchers.eq;
         when(rulesEngine.executeRule(eq("ACCURACY_POSITIVE_AMOUNT"), any(RuleContext.class))).thenReturn(result1);
         when(rulesEngine.executeRule(eq("ACCURACY_REASONABLE_AMOUNT"), any(RuleContext.class))).thenReturn(result2);
         when(rulesEngine.executeRule(eq("COMPLETENESS_AMOUNT_REQUIRED"), any(RuleContext.class))).thenReturn(result3);
-        when(exemptionRepository.findActiveExemptions(anyString(), anyString(), anyString(), any(LocalDate.class)))
-            .thenReturn(Collections.emptyList());
         
         // Act
         List<ValidationError> errors = service.validateConfigurableRules(exposure);
@@ -477,8 +471,6 @@ import static org.mockito.ArgumentMatchers.eq;
         when(rulesEngine.executeRule(anyString(), any(RuleContext.class)))
             .thenReturn(RuleExecutionResult.success("RULE_ENABLED_1"))
             .thenReturn(RuleExecutionResult.success("RULE_ENABLED_2"));
-        when(exemptionRepository.findActiveExemptions(anyString(), anyString(), anyString(), any(LocalDate.class)))
-            .thenReturn(Collections.emptyList());
         
         // Act
         List<ValidationError> errors = service.validateConfigurableRules(exposure);
@@ -503,8 +495,6 @@ import static org.mockito.ArgumentMatchers.eq;
         when(rulesEngine.executeRule(anyString(), any(RuleContext.class)))
             .thenReturn(RuleExecutionResult.success("RULE_001"))
             .thenReturn(RuleExecutionResult.success("RULE_002"));
-        when(exemptionRepository.findActiveExemptions(anyString(), anyString(), anyString(), any(LocalDate.class)))
-            .thenReturn(Collections.emptyList());
         
         ArgumentCaptor<RuleExecutionLogDto> logCaptor = ArgumentCaptor.forClass(RuleExecutionLogDto.class);
         
@@ -535,8 +525,6 @@ import static org.mockito.ArgumentMatchers.eq;
         
         when(ruleRepository.findByEnabledTrue()).thenReturn(Collections.singletonList(rule));
         when(rulesEngine.executeRule(eq("ACCURACY_POSITIVE_AMOUNT"), any(RuleContext.class))).thenReturn(result);
-        when(exemptionRepository.findActiveExemptions(anyString(), anyString(), anyString(), any(LocalDate.class)))
-            .thenReturn(Collections.emptyList());
         
         // Act
         List<ValidationError> errors = service.validateConfigurableRules(exposure);

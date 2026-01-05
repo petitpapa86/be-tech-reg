@@ -49,18 +49,11 @@ public class DataQualityRulesService implements ExposureRuleValidator {
         getCachedRules();
         long ruleDuration = Duration.between(ruleStart, Instant.now()).toMillis();
         log.info("⏱️ Rules cached: {}ms", ruleDuration);
-
-        // ✅ Pre-load exemptions
-        Instant exemptionStart = Instant.now();
-        ruleExecutionService.preloadExemptionsForBatch(exposures);
-        long exemptionDuration = Duration.between(exemptionStart, Instant.now()).toMillis();
-        log.info("⏱️ Exemptions pre-loaded: {}ms", exemptionDuration);
     }
 
     @Override
     public void onBatchComplete() {
-        ruleExecutionService.clearExemptionCache();
-        // Don't clear rule cache - it's useful for subsequent batches
+        // Rule cache is useful for subsequent batches, so we don't clear it
     }
 
     /**

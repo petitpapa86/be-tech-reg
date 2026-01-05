@@ -17,16 +17,16 @@ public class PhoneNumber {
     
     public static Maybe<PhoneNumber> of(String value) {
         if (value == null || value.isBlank()) {
-            return Maybe.empty();
+            return Maybe.none();
         }
         
         String trimmed = value.trim();
         
         if (trimmed.length() > 50) {
-            return Maybe.empty();
+            return Maybe.none();
         }
         
-        return Maybe.of(new PhoneNumber(trimmed));
+        return Maybe.some(new PhoneNumber(trimmed));
     }
     
     @Override

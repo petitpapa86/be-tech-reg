@@ -4,15 +4,11 @@ import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesS
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleExecutionService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleExemptionEntity;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.entities.RuleViolationEntity;
+import com.bcbs239.regtech.dataquality.infrastructure.database.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleExemptionRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineBatchLinkContext;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineJdbcBatchInserter;
 import com.bcbs239.regtech.dataquality.domain.rules.IBusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.domain.rules.IRuleExemptionRepository;
-import com.bcbs239.regtech.dataquality.domain.rules.RuleExemptionDto;
 import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -20,7 +16,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.ArrayList;
 import java.util.List;
 
 
@@ -117,7 +112,7 @@ public class RulesEngineConfiguration {
      */
     @Bean
     public RuleViolationRepository ruleViolationRepositoryPort(
-            com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RuleViolationRepository violationRepository,
+            com.bcbs239.regtech.dataquality.infrastructure.database.repositories.RuleViolationRepository violationRepository,
             RulesEngineBatchLinkContext linkContext,
             RulesEngineJdbcBatchInserter jdbcBatchInserter) {
 
@@ -214,90 +209,6 @@ public class RulesEngineConfiguration {
             violationRepository,
             ruleExecutionService
         );
-    }
-
-    @Bean
-    public IRuleExemptionRepository ruleExemptionRepositoryAdapter(RuleExemptionRepository exemptionRepository) {
-        return new IRuleExemptionRepository() {
-            @Override
-            public java.util.List<RuleExemptionDto> findActiveExemptions(
-                String ruleId,
-                String entityType,
-                String entityId,
-                java.time.LocalDate currentDate
-            ) {
-                return exemptionRepository.findActiveExemptions(ruleId, entityType, entityId, currentDate)
-                    .stream()
-                    .map(e -> new RuleExemptionDto(
-                        e.getExemptionId(),
-                        e.getRule() != null ? e.getRule().getRuleId() : ruleId,
-                        e.getEntityType(),
-                        e.getEntityId(),
-                        e.getExemptionReason(),
-                        e.getExemptionType(),
-                        e.getApprovedBy(),
-                        e.getApprovalDate(),
-                        e.getEffectiveDate(),
-                        e.getExpirationDate(),
-                        e.getConditions(),
-                        e.getCreatedAt()
-                    ))
-                    .toList();
-            }
-
-            @Override
-            public java.util.List<RuleExemptionDto> findAllActiveExemptionsForBatch(
-                String entityType,
-                java.util.List<String> entityIds,
-                java.time.LocalDate currentDate
-            ) {
-                if (entityIds == null || entityIds.isEmpty()) {
-                    return java.util.List.of();
-                }
-
-                int chunkSize = 10_000;
-                List<RuleExemptionDto> allExemptions = new ArrayList<>();
-
-                log.info("⏱️ Loading exemptions for {} entity IDs in chunks of {}",
-                        entityIds.size(), chunkSize);
-
-                for (int i = 0; i < entityIds.size(); i += chunkSize) {
-                    int end = Math.min(i + chunkSize, entityIds.size());
-                    List<String> chunk = entityIds.subList(i, end);
-
-                    log.debug("Loading chunk {}-{}", i, end);
-
-                    List<RuleExemptionEntity> chunkResults = exemptionRepository.findAllActiveExemptionsForBatch(
-                            entityType,
-                            chunk,
-                            currentDate
-                    );
-
-                    List<RuleExemptionDto> chunkDtos = chunkResults.stream()
-                            .map(e -> new RuleExemptionDto(
-                                e.getExemptionId(),
-                                e.getRule() != null ? e.getRule().getRuleId() : null,
-                                e.getEntityType(),
-                                e.getEntityId(),
-                                e.getExemptionReason(),
-                                e.getExemptionType(),
-                                e.getApprovedBy(),
-                                e.getApprovalDate(),
-                                e.getEffectiveDate(),
-                                e.getExpirationDate(),
-                                e.getConditions(),
-                                e.getCreatedAt()
-                            ))
-                            .toList();
-
-                    allExemptions.addAll(chunkDtos);
-                }
-
-                log.info("⏱️ Loaded {} total exemptions", allExemptions.size());
-
-                return allExemptions;
-            }
-        };
     }
 
     // execution_id is now optional (nullable). Treat non-positive IDs as unset.

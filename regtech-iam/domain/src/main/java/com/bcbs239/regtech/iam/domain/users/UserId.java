@@ -11,8 +11,8 @@ import java.util.UUID;
  */
 public record UserId(UUID value) {
 
-    // Private constructor to enforce factory method usage
-    private UserId {
+    // Public constructor with validation
+    public UserId {
         if (value == null) {
             throw new IllegalArgumentException("UserId value cannot be null");
         }

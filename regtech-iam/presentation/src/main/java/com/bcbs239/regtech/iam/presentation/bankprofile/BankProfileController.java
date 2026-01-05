@@ -54,7 +54,7 @@ public class BankProfileController {
             return ServerResponse.notFound().build();
         }
         
-        var response = BankProfileResponse.from(profileMaybe.get());
+        var response = BankProfileResponse.from(profileMaybe.getValue());
         return ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(response);
@@ -93,10 +93,10 @@ public class BankProfileController {
             if (result.isFailure()) {
                 return ServerResponse.badRequest()
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(new ErrorResponse(result.getError()));
+                        .body(new ErrorResponse(result.getError().map(ErrorDetail::getMessage).orElse("Unknown error")));
             }
             
-            var response = BankProfileResponse.from(result.getValue());
+            var response = BankProfileResponse.from(result.getValueOrThrow());
             return ServerResponse.ok()
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(response);
