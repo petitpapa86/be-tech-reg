@@ -32,8 +32,7 @@ class DataQualityRulesServiceRefactorTest {
     @Mock
     private RuleViolationRepository violationRepository;
 
-    @Mock
-    private RuleExecutionLogRepository executionLogRepository;
+
 
     @Mock
     private RuleExecutionService ruleExecutionService;
@@ -44,8 +43,7 @@ class DataQualityRulesServiceRefactorTest {
     void setUp() {
         service = new DataQualityRulesService(
             ruleRepository,
-            violationRepository,
-            executionLogRepository,
+
             ruleExecutionService
         );
     }
@@ -57,7 +55,6 @@ class DataQualityRulesServiceRefactorTest {
         List<BusinessRuleDto> rules = List.of(testRule("R-1"));
         ValidationResults expected = new ValidationResults(
             exposure.exposureId(),
-            Collections.emptyList(),
             Collections.emptyList(),
             Collections.emptyList(),
             new ValidationExecutionStats()
@@ -73,55 +70,6 @@ class DataQualityRulesServiceRefactorTest {
         verify(ruleExecutionService).execute(exposure, rules);
     }
 
-    @Test
-    @DisplayName("validateConfigurableRules persists logs before violations")
-    void validateConfigurableRulesPersistsLogsBeforeViolations() {
-        ExposureRecord exposure = ExposureRecord.builder().exposureId("EXP-2").productType("SWAP").build();
-        List<BusinessRuleDto> rules = List.of(testRule("R-2"));
-
-        RuleExecutionLogDto log = RuleExecutionLogDto.builder()
-            .ruleId("R-2")
-            .executionTimestamp(Instant.now())
-            .entityType("EXPOSURE")
-            .entityId(exposure.exposureId())
-            .executionResult(ExecutionResult.SUCCESS)
-            .violationCount(1)
-            .executionTimeMs(12L)
-            .contextData(Map.of())
-            .executedBy("test")
-            .build();
-
-        RuleViolation violation = RuleViolation.builder()
-            .ruleId("R-2")
-            .executionId(null)
-            .entityType("EXPOSURE")
-            .entityId(exposure.exposureId())
-            .violationType("TEST")
-            .violationDescription("test violation")
-            .severity(Severity.HIGH)
-            .build();
-
-        List<ValidationError> errors = Collections.emptyList();
-        ValidationResults results = new ValidationResults(
-            exposure.exposureId(),
-            errors,
-            List.of(violation),
-            new ValidationExecutionStats()
-        );
-
-        when(ruleRepository.findByEnabledTrue()).thenReturn(rules);
-        when(ruleExecutionService.execute(exposure, rules)).thenReturn(results);
-
-        List<ValidationError> returned = service.validateConfigurableRules(exposure);
-
-        assertSame(errors, returned);
-
-        InOrder inOrder = inOrder(executionLogRepository, violationRepository);
-        inOrder.verify(executionLogRepository).save(log);
-        inOrder.verify(executionLogRepository).flush();
-        inOrder.verify(violationRepository).save(violation);
-        inOrder.verify(violationRepository).flush();
-    }
 
     private static BusinessRuleDto testRule(String ruleId) {
         return new BusinessRuleDto(

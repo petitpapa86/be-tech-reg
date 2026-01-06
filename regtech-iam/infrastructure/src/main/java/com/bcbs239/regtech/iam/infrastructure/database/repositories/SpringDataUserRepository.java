@@ -16,16 +16,16 @@ public interface SpringDataUserRepository extends JpaRepository<UserEntity, UUID
     Optional<UserEntity> findByEmail(String email);
     List<UserEntity> findByStatus(UserStatus status);
     
-    // Bank-related queries
-    @Query("SELECT u FROM UserEntity u WHERE u.bankId = :bankId")
+    // Bank-related queries using bankAssignments relationship
+    @Query("SELECT DISTINCT u FROM UserEntity u JOIN u.bankAssignments ba WHERE ba.bankId = :bankId")
     List<UserEntity> findByBankId(@Param("bankId") Long bankId);
     
-    @Query("SELECT u FROM UserEntity u WHERE u.bankId = :bankId AND u.status = :status")
+    @Query("SELECT DISTINCT u FROM UserEntity u JOIN u.bankAssignments ba WHERE ba.bankId = :bankId AND u.status = :status")
     List<UserEntity> findByBankIdAndStatus(@Param("bankId") Long bankId, @Param("status") UserStatus status);
     
-    @Query("SELECT COUNT(u) > 0 FROM UserEntity u WHERE u.email = :email AND u.bankId = :bankId")
+    @Query("SELECT COUNT(DISTINCT u) > 0 FROM UserEntity u JOIN u.bankAssignments ba WHERE u.email = :email AND ba.bankId = :bankId")
     boolean existsByEmailAndBankId(@Param("email") String email, @Param("bankId") Long bankId);
     
-    @Query("SELECT u FROM UserEntity u WHERE u.email = :email AND u.bankId = :bankId")
+    @Query("SELECT DISTINCT u FROM UserEntity u JOIN u.bankAssignments ba WHERE u.email = :email AND ba.bankId = :bankId")
     Optional<UserEntity> findByEmailAndBankId(@Param("email") String email, @Param("bankId") Long bankId);
 }

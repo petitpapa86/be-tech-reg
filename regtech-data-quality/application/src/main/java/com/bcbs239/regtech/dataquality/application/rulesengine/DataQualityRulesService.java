@@ -5,13 +5,10 @@ import com.bcbs239.regtech.dataquality.application.validation.ValidationResults;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.rules.BusinessRuleDto;
 import com.bcbs239.regtech.dataquality.domain.rules.IBusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -24,7 +21,6 @@ public class DataQualityRulesService implements ExposureRuleValidator {
 
 
     private final IBusinessRuleRepository ruleRepository;
-    private final RuleViolationRepository violationRepository;
     private final RuleExecutionService ruleExecutionService;
 
     // ✅ Application-level rule caching (lasts entire batch)
@@ -33,10 +29,8 @@ public class DataQualityRulesService implements ExposureRuleValidator {
 
     public DataQualityRulesService(
             IBusinessRuleRepository ruleRepository,
-            RuleViolationRepository violationRepository,
             RuleExecutionService ruleExecutionService) {
         this.ruleRepository = ruleRepository;
-        this.violationRepository = violationRepository;
         this.ruleExecutionService = ruleExecutionService;
     }
 
@@ -101,40 +95,5 @@ public class DataQualityRulesService implements ExposureRuleValidator {
         return cachedRules;
     }
 
-    @Transactional
-    public void batchPersistValidationResults(String batchId, List<ValidationResults> allResults) {
-        if (allResults == null || allResults.isEmpty()) {
-            log.debug("No validation results to persist");
-            return;
-        }
 
-        Instant persistStart = Instant.now();
-        log.info("⏱️ PERSISTENCE START: {} exposure results", allResults.size());
-
-        List<RuleViolation> allViolations = new ArrayList<>();
-
-        for (ValidationResults result : allResults) {
-            if (result == null) continue;
-            if (result.ruleViolations() != null) {
-                allViolations.addAll(result.ruleViolations());
-            }
-        }
-
-        log.info("⏱️ COLLECTED: {} violations",
-                allViolations.size());
-
-        // Insert violations
-        if (!allViolations.isEmpty()) {
-            Instant violationsStart = Instant.now();
-            violationRepository.saveAllForBatch(batchId, allViolations);
-            violationRepository.flush();
-            long violationsDuration = Duration.between(violationsStart, Instant.now()).toMillis();
-            log.info("⏱️ VIOLATIONS INSERTED: {}ms ({}/sec)",
-                    violationsDuration,
-                    (allViolations.size() * 1000L) / Math.max(violationsDuration, 1));
-        }
-
-        long totalDuration = Duration.between(persistStart, Instant.now()).toMillis();
-        log.info("⏱️ PERSISTENCE COMPLETE: {}ms", totalDuration);
-    }
 }

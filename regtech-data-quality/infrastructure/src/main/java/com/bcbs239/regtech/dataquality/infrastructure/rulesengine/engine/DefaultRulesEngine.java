@@ -79,8 +79,6 @@ public class DefaultRulesEngine implements RulesEngine {
      * Constructor with cache configuration.
      * 
      * @param ruleRepository Repository for loading rules
-     * @param executionLogRepository Repository for logging executions
-     * @param violationRepository Repository for storing violations
      * @param expressionEvaluator Evaluator for SpEL expressions
      * @param cacheEnabled Whether caching is enabled
      * @param cacheTtlSeconds Cache TTL in seconds
@@ -354,37 +352,7 @@ public class DefaultRulesEngine implements RulesEngine {
             .build();
     }
     
-    /**
-     * Logs a rule execution.
-     * Returns null if logging fails to avoid blocking rule execution.
-     */
-    private RuleExecutionLogEntity logExecution(BusinessRuleEntity rule, RuleContext context, 
-                                         ExecutionResult result, int violationCount, 
-                                         long executionTime, String errorMessage) {
-        if (!auditPersistenceEnabled) {
-            return null;
-        }
 
-        String entityType = context.get("entity_type", String.class);
-        String entityId = context.get("entity_id", String.class);
-        
-        // Create a sanitized context with only essential data to avoid JSONB serialization issues
-        Map<String, Object> sanitizedContext = sanitizeContextForLogging(context);
-        
-        RuleExecutionLogEntity ruleExecLog = RuleExecutionLogEntity.builder()
-            .ruleId(rule.getRuleId())
-            .entityType(entityType)
-            .entityId(entityId)
-            .executionResult(result)
-            .violationCount(violationCount)
-            .executionTimeMs(executionTime)
-            .contextData(sanitizedContext)
-            .errorMessage(errorMessage)
-            .build();
-
-        return auditPersistenceService.saveExecutionLogBestEffort(ruleExecLog);
-    }
-    
     /**
      * Sanitizes context data for logging by keeping only essential fields.
      * This prevents JSONB serialization issues with large or complex objects.

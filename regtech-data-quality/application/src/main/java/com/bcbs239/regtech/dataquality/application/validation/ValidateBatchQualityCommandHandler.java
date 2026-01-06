@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.application.BaseUnitOfWork;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
+import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
@@ -33,18 +34,21 @@ public class ValidateBatchQualityCommandHandler {
     private final ParallelExposureValidationCoordinator coordinator;
     private final BaseUnitOfWork unitOfWork;
 
+    private final RuleViolationRepository violationRepository;
+
     public ValidateBatchQualityCommandHandler(
             IQualityReportRepository qualityReportRepository,
             S3StorageService s3StorageService,
             DataQualityRulesService rulesService,
             ParallelExposureValidationCoordinator coordinator,
-            BaseUnitOfWork unitOfWork
-    ) {
+            BaseUnitOfWork unitOfWork,
+            RuleViolationRepository violationRepository) {
         this.qualityReportRepository = qualityReportRepository;
         this.s3StorageService = s3StorageService;
         this.rulesService = rulesService;
         this.coordinator = coordinator;
         this.unitOfWork = unitOfWork;
+        this.violationRepository = violationRepository;
     }
 
     @Timed(value = "dataquality.validation.batch", description = "Time taken to validate batch quality")
@@ -109,7 +113,10 @@ public class ValidateBatchQualityCommandHandler {
         List<ValidationResults> allResults = batchResult.results();
         Map<String, ExposureValidationResult> exposureResults = batchResult.exposureResults();
 
-        rulesService.batchPersistValidationResults(command.batchId().value(), allResults);
+       // rulesService.batchPersistValidationResults(command.batchId().value(), allResults);
+        violationRepository.insertViolations(command.batchId().value(), allResults.parallelStream().flatMap(r ->
+                r.ruleViolations().stream()
+        ).toList());
 
         // Batch-level validation (if needed in the future)
         List<ValidationError> batchErrors = new ArrayList<>();

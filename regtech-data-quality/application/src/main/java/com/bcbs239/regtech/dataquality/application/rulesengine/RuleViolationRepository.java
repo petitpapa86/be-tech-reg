@@ -10,17 +10,17 @@ import java.util.List;
 public interface RuleViolationRepository {
 
     /**
-     * Save a single violation.
+     * Saves a single rule violation.
+     *
+     * @param violation the violation to save
      */
     void save(RuleViolation violation);
 
     /**
-     * Save all violations for a batch.
+     * Batch inserts multiple violations efficiently.
+     *
+     * @param batchId the batch identifier for grouping violations
+     * @param violations the list of violations to insert
      */
-    void saveAllForBatch(String batchId, List<RuleViolation> violations);
-
-    /**
-     * Flush pending changes.
-     */
-    void flush();
+    void insertViolations(String batchId, List<RuleViolation> violations);
 }

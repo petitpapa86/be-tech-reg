@@ -4,19 +4,13 @@ import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesS
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleExecutionService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.engine.DefaultRulesEngine;
-import com.bcbs239.regtech.dataquality.infrastructure.database.entities.RuleViolationEntity;
 import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.evaluator.ExpressionEvaluator;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineBatchLinkContext;
-import com.bcbs239.regtech.dataquality.infrastructure.rulesengine.repository.RulesEngineJdbcBatchInserter;
 import com.bcbs239.regtech.dataquality.domain.rules.IBusinessRuleRepository;
-import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import java.util.List;
 
 
 /**
@@ -105,70 +99,6 @@ public class RulesEngineConfiguration {
 
 
     /**
-     * Single implementation of the application port for violation persistence.
-     *
-     * <p>Uses JDBC batch inserts for high throughput. This is intentionally a Bean so there
-     * is exactly one wiring for the port across the application.</p>
-     */
-    @Bean
-    public RuleViolationRepository ruleViolationRepositoryPort(
-            com.bcbs239.regtech.dataquality.infrastructure.database.repositories.RuleViolationRepository violationRepository,
-            RulesEngineBatchLinkContext linkContext,
-            RulesEngineJdbcBatchInserter jdbcBatchInserter) {
-
-        return new RuleViolationRepository() {
-            @Override
-            public void save(RuleViolation violation) {
-                if (violation == null) {
-                    return;
-                }
-                Long executionId = normalizeExecutionId(
-                    violation.executionId() != null
-                        ? violation.executionId()
-                        : linkContext.getExecutionId(violation.ruleId(), violation.entityType(), violation.entityId())
-                );
-
-                RuleViolationEntity entity = RuleViolationEntity.builder()
-                    .ruleId(violation.ruleId())
-                    .executionId(executionId)
-                    .entityType(violation.entityType())
-                    .entityId(violation.entityId())
-                    .violationType(violation.violationType())
-                    .violationDescription(violation.violationDescription())
-                    .severity(violation.severity())
-                    .detectedAt(violation.detectedAt())
-                    .violationDetails(violation.violationDetails())
-                    .resolutionStatus(violation.resolutionStatus())
-                    .build();
-
-                violationRepository.save(entity);
-            }
-
-            @Override
-            public void saveAllForBatch(String batchId, List<RuleViolation> violations) {
-                if (violations == null) {
-                    return;
-                }
-
-
-                if (!violations.isEmpty()) {
-                    jdbcBatchInserter.insertViolations(batchId, violations);
-                }
-            }
-
-            @Override
-            public void flush() {
-                try {
-                    violationRepository.flush();
-                } finally {
-                    // Avoid leaking mappings across requests.
-                    linkContext.clear();
-                }
-            }
-        };
-    }
-    
-    /**
      * Creates the DataQualityRulesService bean with logging configuration.
      * 
      * <p>The logging settings are injected from DataQualityProperties:</p>
@@ -206,7 +136,6 @@ public class RulesEngineConfiguration {
         
         return new DataQualityRulesService(
             ruleRepositoryAdapter,
-            violationRepository,
             ruleExecutionService
         );
     }

@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.dataquality.infrastructure.database.repositories;
 
+import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
 import com.bcbs239.regtech.dataquality.domain.rules.RuleViolation;
 import com.bcbs239.regtech.dataquality.infrastructure.database.entities.RuleViolationEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,8 +22,8 @@ import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
-public class RuleViolationRepositoryAdapter {
-    private final RuleViolationRepository violationRepository;
+public class RuleViolationRepositoryAdapter implements RuleViolationRepository {
+    private final RuleViolationJpaRepository violationRepository;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
 
@@ -49,7 +50,7 @@ public class RuleViolationRepositoryAdapter {
     }
 
     @Override
-    public void insertViolations(String batchId, List<RuleViolation> violations, int chunkSize) {
+    public void insertViolations(String batchId, List<RuleViolation> violations) {
 
 
         String sql = "INSERT INTO dataquality.rule_violations (" +
@@ -57,7 +58,7 @@ public class RuleViolationRepositoryAdapter {
                 "violation_type, violation_description, severity, detected_at, violation_details, resolution_status" +
                 ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CAST(? AS jsonb), ?)";
 
-        for (List<RuleViolation> chunk : chunk(violations, chunkSize)) {
+        for (List<RuleViolation> chunk : chunk(violations, DEFAULT_CHUNK_SIZE)) {
             jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
                 @Override
                 public void setValues(@NonNull PreparedStatement ps, int i) throws SQLException {

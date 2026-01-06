@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.iam.presentation.usermanagement;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import com.bcbs239.regtech.iam.application.users.*;
 import jakarta.servlet.ServletException;
@@ -47,7 +48,7 @@ public class UserManagementController {
     }
     
     private ServerResponse getUsers(ServerRequest request) {
-        Long bankId = Long.parseLong(request.pathVariable("bankId"));
+        String bankId = request.pathVariable("bankId");
         String filter = request.param("filter").orElse("all");
         
         var query = new GetUsersByBankHandler.Query(bankId, filter);

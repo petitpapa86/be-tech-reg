@@ -1,11 +1,14 @@
 package com.bcbs239.regtech.iam.presentation.bankprofile;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.iam.application.bankprofile.*;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import jakarta.servlet.ServletException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.MediaType;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Validator;
@@ -63,7 +66,7 @@ public class BankProfileController {
     /**
      * PUT /api/v1/configuration/bank-profile/{bankId}
      */
-    private ServerResponse updateBankProfile(ServerRequest request) {
+    private ServerResponse updateBankProfile(ServerRequest request) throws ServletException {
         try {
             Long bankId = Long.parseLong(request.pathVariable("bankId"));
             
@@ -76,7 +79,7 @@ public class BankProfileController {
             
             if (errors.hasErrors()) {
                 var errorMessages = errors.getAllErrors().stream()
-                        .map(error -> error.getDefaultMessage())
+                        .map(DefaultMessageSourceResolvable::getDefaultMessage)
                         .toList();
                 return ServerResponse.badRequest()
                         .contentType(MediaType.APPLICATION_JSON)

@@ -16,7 +16,7 @@ ADD CONSTRAINT fk_users_bank_id
 CREATE INDEX IF NOT EXISTS idx_users_bank_id ON iam.users(bank_id);
 
 -- 2. Update email uniqueness: per bank, not globally
-DROP INDEX IF EXISTS iam.users_email_key;
+-- Drop constraint first (which automatically drops the associated index)
 ALTER TABLE iam.users DROP CONSTRAINT IF EXISTS users_email_key;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_bank_id ON iam.users(email, bank_id);
 

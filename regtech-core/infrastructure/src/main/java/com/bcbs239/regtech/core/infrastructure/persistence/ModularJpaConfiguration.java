@@ -58,15 +58,18 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
     "com.bcbs239.regtech.iam.domain",
     "com.bcbs239.regtech.billing.domain",
     "com.bcbs239.regtech.iam.infrastructure.database.entities",
+    "com.bcbs239.regtech.iam.infrastructure.persistence.bankprofile",
     "com.bcbs239.regtech.billing.infrastructure.database.entities",
     "com.bcbs239.regtech.billing.infrastructure.outbox",
     "com.bcbs239.regtech.core.inbox",
-    // data-quality domain and reporting entities
+    // data-quality domain and entities
     "com.bcbs239.regtech.dataquality.rulesengine.domain",
     "com.bcbs239.regtech.dataquality.domain",
+    "com.bcbs239.regtech.dataquality.infrastructure.database.entities",
     "com.bcbs239.regtech.dataquality.infrastructure.reporting",
     // report-generation entities
     "com.bcbs239.regtech.reportgeneration.infrastructure.database.entities",
+    "com.bcbs239.regtech.reportgeneration.infrastructure.persistence.configuration",
     // risk-calculation entities
     "com.bcbs239.regtech.riskcalculation.infrastructure.database.entities",
     // ingestion entities
@@ -80,11 +83,13 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(basePackages = {
     // Repository packages used by modules (consolidated JPA repositories)
     "com.bcbs239.regtech.iam.infrastructure.database.repositories",
+    "com.bcbs239.regtech.iam.infrastructure.persistence.bankprofile",
     "com.bcbs239.regtech.billing.infrastructure.database.repositories",
     "com.bcbs239.regtech.billing.infrastructure.outbox",
     "com.bcbs239.regtech.core.inbox",
     // report-generation repositories
     "com.bcbs239.regtech.reportgeneration.infrastructure.database.repositories",
+    "com.bcbs239.regtech.reportgeneration.infrastructure.persistence.configuration",
     // risk-calculation repositories
     "com.bcbs239.regtech.riskcalculation.infrastructure.database.repositories",
     // ingestion repositories
