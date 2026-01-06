@@ -256,6 +256,20 @@ postgres_data/
 mysql_data/
 redis_data/
 
+### Data Files ###
+data/
+*.csv
+*.xlsx
+*.xls
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!**/src/**/*.json
+*.xml
+!pom.xml
+!**/src/**/*.xml
+
 ### Security ###
 secrets/
 *.key
