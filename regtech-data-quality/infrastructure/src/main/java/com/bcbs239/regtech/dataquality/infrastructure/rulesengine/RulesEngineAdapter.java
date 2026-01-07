@@ -39,18 +39,15 @@ public class RulesEngineAdapter implements RuleExecutionPort {
 
     // Configuration thresholds
     private final int warnThresholdMs;
-    private final boolean logExecutions;
     private final boolean logViolations;
 
 
     public RulesEngineAdapter(
             RulesEngine rulesEngine,
             @Value("${data-quality.rules-engine.performance.warn-threshold-ms:100}") int warnThresholdMs,
-            @Value("${data-quality.rules-engine.logging.log-executions:true}") boolean logExecutions,
             @Value("${data-quality.rules-engine.logging.log-violations:true}") boolean logViolations) {
         this.rulesEngine = rulesEngine;
         this.warnThresholdMs = warnThresholdMs;
-        this.logExecutions = logExecutions;
         this.logViolations = logViolations;
     }
 
