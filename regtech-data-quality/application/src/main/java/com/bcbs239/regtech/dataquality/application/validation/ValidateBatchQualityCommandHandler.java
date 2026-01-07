@@ -92,9 +92,7 @@ public class ValidateBatchQualityCommandHandler {
             throw e;
         }
 
-        Result<List<ExposureRecord>> downloadResult = command.expectedExposureCount() > 0
-                ? s3StorageService.downloadExposures(command.s3Uri(), command.expectedExposureCount())
-                : s3StorageService.downloadExposures(command.s3Uri());
+        Result<List<ExposureRecord>> downloadResult = s3StorageService.downloadExposures(command.s3Uri(), command.expectedExposureCount());
 
         Result<List<ExposureRecord>> exposuresResult = downloadResult.map(exposures -> {
             logger.debug("Downloaded {} exposures for batchId={}",
@@ -113,7 +111,6 @@ public class ValidateBatchQualityCommandHandler {
         List<ValidationResults> allResults = batchResult.results();
         Map<String, ExposureValidationResult> exposureResults = batchResult.exposureResults();
 
-       // rulesService.batchPersistValidationResults(command.batchId().value(), allResults);
         violationRepository.insertViolations(command.batchId().value(), allResults.parallelStream().flatMap(r ->
                 r.ruleViolations().stream()
         ).toList());
