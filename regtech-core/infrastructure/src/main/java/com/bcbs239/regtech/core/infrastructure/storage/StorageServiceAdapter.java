@@ -228,11 +228,17 @@ public class StorageServiceAdapter implements IStorageService {
                     "Invalid S3 URI: " + uri, "storage.invalid_s3_uri"));
         }
         
-        // Let exceptions propagate to GlobalExceptionHandler
-        var stream = s3Service.getObjectStream(bucket, key);
-        String content = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
-        stream.close();
-        return Result.success(content);
+        try {
+            var stream = s3Service.getObjectStream(bucket, key);
+            String content = new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            stream.close();
+            return Result.success(content);
+        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
+            // Expected error: file not found
+            return Result.failure(
+                ErrorDetail.of("FILE_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, 
+                    "File not found: " + uri, "storage.file_not_found"));
+        }
     }
     
     private Result<byte[]> downloadBytesFromS3(StorageUri uri) throws java.io.IOException {
@@ -245,11 +251,17 @@ public class StorageServiceAdapter implements IStorageService {
                     "Invalid S3 URI: " + uri, "storage.invalid_s3_uri"));
         }
         
-        // Let exceptions propagate to GlobalExceptionHandler
-        var stream = s3Service.getObjectStream(bucket, key);
-        byte[] content = stream.readAllBytes();
-        stream.close();
-        return Result.success(content);
+        try {
+            var stream = s3Service.getObjectStream(bucket, key);
+            byte[] content = stream.readAllBytes();
+            stream.close();
+            return Result.success(content);
+        } catch (software.amazon.awssdk.services.s3.model.NoSuchKeyException e) {
+            // Expected error: file not found
+            return Result.failure(
+                ErrorDetail.of("FILE_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, 
+                    "File not found: " + uri, "storage.file_not_found"));
+        }
     }
     
     private Result<Boolean> existsInS3(StorageUri uri) {
