@@ -1,20 +1,30 @@
 package com.bcbs239.regtech.reportgeneration.application.generation;
 
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.storage.IStorageService;
+import com.bcbs239.regtech.core.domain.storage.StorageResult;
+import com.bcbs239.regtech.core.domain.storage.StorageUri;
 import com.bcbs239.regtech.reportgeneration.application.coordination.BatchEventTracker;
 import com.bcbs239.regtech.reportgeneration.application.coordination.CalculationEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.IComprehensiveReportOrchestrator;
 import com.bcbs239.regtech.reportgeneration.application.coordination.QualityEventData;
 import com.bcbs239.regtech.reportgeneration.domain.generation.*;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
-import com.bcbs239.regtech.reportgeneration.domain.storage.IReportStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import io.micrometer.core.annotation.Timed;
 import org.w3c.dom.Document;
 
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import java.io.StringWriter;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -33,7 +43,7 @@ import java.util.concurrent.TimeUnit;
  * - Aggregates data from both calculation and quality sources
  * - Generates quality recommendations
  * - Generates HTML and XBRL reports in parallel
- * - Uploads reports to S3
+ * - Uploads reports to S3 using shared IStorageService
  * - Persists report metadata
  * - Handles failures with appropriate status updates
  * 
@@ -48,11 +58,17 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
     private final QualityRecommendationsGenerator recommendationsGenerator;
     private final HtmlReportGenerator htmlGenerator;
     private final XbrlReportGenerator xbrlGenerator;
-    private final IReportStorageService storageService;
+    private final IStorageService storageService;  // Changed from IReportStorageService
     private final IGeneratedReportRepository reportRepository;
     private final BatchEventTracker eventTracker;
     private final ReportGenerationMetrics metrics;
     private final BaseUnitOfWork unitOfWork;
+    
+    @Value("${storage.s3.bucket-name:bcbs239-reports}")
+    private String s3BucketName;
+    
+    @Value("${storage.s3.report-prefix:reports/}")
+    private String reportPrefix;
     
     /**
      * Generates a comprehensive report asynchronously.
@@ -230,21 +246,43 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             metadataTags.put("reporting-date", reportData.getReportingDate().toString());
             metadataTags.put("quality-score", reportData.getQualityResults().getOverallScore().toString());
             metadataTags.put("generated-at", Instant.now().toString());
+            metadataTags.put("content-type", "text/html");
             
-            // Upload to S3
-            IReportStorageService.UploadResult uploadResult = 
-                storageService.uploadHtmlReport(htmlContent, fileName, metadataTags);
+            // Build S3 URI for upload using shared StorageUri
+            String s3Path = reportPrefix + "html/" + fileName;
+            StorageUri uri = StorageUri.parse("s3://" + s3BucketName + "/" + s3Path);
+            
+            // Upload to S3 using shared storage service
+            Result<StorageResult> uploadResult = storageService.upload(htmlContent, uri, metadataTags);
+            if (uploadResult.isFailure()) {
+                throw new HtmlGenerationException(
+                    "Failed to upload HTML report to storage: " + 
+                    uploadResult.getError().orElseThrow().getMessage()
+                );
+            }
+            
+            StorageResult storageResult = uploadResult.getValueOrThrow();
+            
+            // Generate presigned URL for 7 days
+            Result<String> presignedUrlResult = storageService.generatePresignedUrl(
+                storageResult.uri(), 
+                java.time.Duration.ofDays(7)
+            );
+            String presignedUrlStr = presignedUrlResult.isSuccess() 
+                ? presignedUrlResult.getValueOrThrow() 
+                : "";
             
             long duration = System.currentTimeMillis() - startTime;
             metrics.recordHtmlGenerationDuration(batchId, duration);
             
             log.info("HTML generation completed [batchId:{},fileName:{},size:{},duration:{}ms]",
-                batchId, fileName, uploadResult.fileSize().toHumanReadable(), duration);
+                batchId, fileName, FileSize.ofBytes(storageResult.sizeBytes()).toHumanReadable(), duration);
             
+            Instant expiresAt = Instant.now().plus(Duration.ofHours(24));
             return HtmlReportMetadata.create(
-                uploadResult.s3Uri(),
-                uploadResult.fileSize(),
-                uploadResult.presignedUrl()
+                new S3Uri(storageResult.uri().toString()),
+                FileSize.ofBytes(storageResult.sizeBytes()),
+                new PresignedUrl(presignedUrlStr, expiresAt)
             );
                 
         } catch (Exception e) {
@@ -274,6 +312,9 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             // Generate XBRL using domain service
             Document xbrlDocument = xbrlGenerator.generate(calculationResults, metadata);
             
+            // Convert DOM Document to String for upload
+            String xbrlContent = convertDocumentToString(xbrlDocument);
+            
             // Prepare file name
             String fileName = String.format("Large_Exposures_%s_%s.xml",
                 calculationResults.bankId().value(),
@@ -285,21 +326,43 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             metadataTags.put("bank-id", calculationResults.bankId().value());
             metadataTags.put("reporting-date", calculationResults.reportingDate().toString());
             metadataTags.put("generated-at", Instant.now().toString());
+            metadataTags.put("content-type", "application/xml");
             
-            // Upload to S3
-            IReportStorageService.UploadResult uploadResult = 
-                storageService.uploadXbrlReport(xbrlDocument, fileName, metadataTags);
+            // Build S3 URI for upload using shared StorageUri
+            String s3Path = reportPrefix + "xbrl/" + fileName;
+            StorageUri uri = StorageUri.parse("s3://" + s3BucketName + "/" + s3Path);
+            
+            // Upload to S3 using shared storage service
+            Result<StorageResult> uploadResult = storageService.upload(xbrlContent, uri, metadataTags);
+            if (uploadResult.isFailure()) {
+                throw new XbrlValidationException(
+                    "Failed to upload XBRL report to storage: " + 
+                    uploadResult.getError().orElseThrow().getMessage()
+                );
+            }
+            
+            StorageResult storageResult = uploadResult.getValueOrThrow();
+            
+            // Generate presigned URL for 7 days
+            Result<String> presignedUrlResult = storageService.generatePresignedUrl(
+                storageResult.uri(), 
+                java.time.Duration.ofDays(7)
+            );
+            String presignedUrlStr = presignedUrlResult.isSuccess() 
+                ? presignedUrlResult.getValueOrThrow() 
+                : "";
             
             long duration = System.currentTimeMillis() - startTime;
             metrics.recordXbrlGenerationDuration(batchId, duration);
             
             log.info("XBRL generation completed [batchId:{},fileName:{},size:{},duration:{}ms]",
-                batchId, fileName, uploadResult.fileSize().toHumanReadable(), duration);
+                batchId, fileName, FileSize.ofBytes(storageResult.sizeBytes()).toHumanReadable(), duration);
             
+            Instant expiresAt = Instant.now().plus(Duration.ofHours(24));
             return XbrlReportMetadata.create(
-                uploadResult.s3Uri(),
-                uploadResult.fileSize(),
-                uploadResult.presignedUrl(),
+                new S3Uri(storageResult.uri().toString()),
+                FileSize.ofBytes(storageResult.sizeBytes()),
+                new PresignedUrl(presignedUrlStr, expiresAt),
                 XbrlValidationStatus.VALID
             );
                 
@@ -307,6 +370,17 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             log.error("XBRL generation failed [batchId:{}]", batchId, e);
             throw new XbrlValidationException("Failed to generate XBRL report", e);
         }
+    }
+    
+    /**
+     * Converts DOM Document to String for upload.
+     */
+    private String convertDocumentToString(Document document) throws Exception {
+        TransformerFactory transformerFactory = TransformerFactory.newInstance();
+        Transformer transformer = transformerFactory.newTransformer();
+        StringWriter writer = new StringWriter();
+        transformer.transform(new DOMSource(document), new StreamResult(writer));
+        return writer.toString();
     }
     
     /**

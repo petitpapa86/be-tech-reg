@@ -68,29 +68,238 @@ Ingestion → Data Quality (validate + process + store to S3/local) → Report G
 
 ## Project-Specific Patterns
 
-### Result Pattern (Error Handling)
-ALL application handlers return `Result<T>` instead of throwing exceptions:
+### Error Handling Strategy: Exceptions vs Result Pattern
+
+**Critical Principle**: We distinguish between **expected errors** (validation failures) and **unexpected exceptions** (system failures).
+
+#### Exceptions vs Errors
+
+**Exceptions** = Unexpected system failures (let them propagate):
+- Database connection failures
+- Network timeouts
+- File system errors
+- External API failures
+- NullPointerException, IllegalStateException, etc.
+
+**Errors** = Expected validation/business rule failures (return Result.failure):
+- Invalid email format
+- Missing required field
+- Business rule violation (e.g., duplicate user)
+- Authorization failure
+
+#### Rule: Never Catch Exceptions (Except at Boundaries)
+
+```java
+// ❌ WRONG - Don't catch exceptions in domain/application/infrastructure
+public Result<StorageResult> uploadToS3(String content, StorageUri uri) {
+    try {
+        String bucket = uri.getBucket();
+        String key = uri.getKey();
+        coreS3Service.putString(bucket, key, content, "application/json", metadata, null);
+        return Result.success(buildStorageResult(uri, content.length()));
+    } catch (Exception e) {  // ❌ Don't catch!
+        log.error("S3 upload failed: {}", e.getMessage(), e);
+        return Result.failure(ErrorDetail.of(...));
+    }
+}
+
+// ✅ CORRECT - Let exceptions propagate to GlobalExceptionHandler
+public Result<StorageResult> uploadToS3(String content, StorageUri uri) {
+    // Validate inputs (expected errors)
+    if (uri.getBucket() == null || uri.getKey() == null) {
+        return Result.failure(
+            ErrorDetail.of("INVALID_S3_URI", ErrorType.VALIDATION_ERROR, 
+                "Invalid S3 URI: " + uri, "storage.invalid_s3_uri"));
+    }
+    
+    // Let exceptions propagate (unexpected system errors)
+    coreS3Service.putString(uri.getBucket(), uri.getKey(), content, 
+        "application/json", metadata, null);
+    
+    return Result.success(buildStorageResult(uri, content.length()));
+}
+```
+
+**Why?** GlobalExceptionHandler (`regtech-app/src/main/java/com/bcbs239/regtech/app/config/GlobalExceptionHandler.java`) handles ALL exceptions at the controller boundary with proper logging, metrics, and error responses.
+
+#### Result Pattern Usage
+
+**When to use Result.failure()**: Only for **expected validation errors**
+
 ```java
 // ✅ CORRECT - Domain validation returns Result
 public static Result<Email> of(String value) {
     if (value == null || value.isBlank()) {
-        return Result.failure(ErrorDetail.of("Email cannot be blank"));
+        return Result.failure(
+            ErrorDetail.of("EMAIL_REQUIRED", ErrorType.VALIDATION_ERROR, 
+                "Email is required", "validation.email_required"));
+    }
+    if (!value.matches(EMAIL_PATTERN)) {
+        return Result.failure(
+            ErrorDetail.of("EMAIL_INVALID_FORMAT", ErrorType.VALIDATION_ERROR, 
+                "Invalid email format", "validation.email_invalid_format"));
     }
     return Result.success(new Email(value));
 }
 
-// ✅ CORRECT - Application layer propagates failures
+// ✅ CORRECT - Application layer propagates validation failures
 public Result<User> handle(CreateUserCommand cmd) {
     Result<Email> emailResult = Email.of(cmd.email());
     if (emailResult.isFailure()) {
         return Result.failure(emailResult.getError());
     }
-    // ... continue with success path
+    
+    // Let exceptions from repository propagate (DB errors)
+    userRepository.save(user);  // IOException, SQLException, etc. propagate
+    
+    return Result.success(user);
+}
+```
+
+**ErrorDetail Structure**: Always use all 4 parameters
+
+```java
+ErrorDetail.of(
+    "ERROR_CODE",              // Unique code for this error
+    ErrorType.VALIDATION_ERROR, // VALIDATION_ERROR, BUSINESS_RULE_ERROR, SYSTEM_ERROR, etc.
+    "Human readable message",   // Display to user
+    "i18n.message.key"         // Translation key
+)
+```
+
+**Available ErrorTypes** (from `ErrorType` enum):
+- `VALIDATION_ERROR` - Input validation failures
+- `BUSINESS_RULE_ERROR` - Business logic violations
+- `SYSTEM_ERROR` - System/infrastructure failures
+- `AUTHENTICATION_ERROR` - Auth failures
+- `NOT_FOUND_ERROR` - Resource not found
+
+### Value Objects (Domain Validation)
+
+Use **value objects** to ensure type safety and validation at construction:
+
+```java
+// ✅ CORRECT - Value object with static factory method
+public record Email(String value) {
+    
+    private static final Pattern EMAIL_PATTERN = 
+        Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+    
+    // Static factory method that validates
+    public static Result<Email> of(String value) {
+        if (value == null || value.isBlank()) {
+            return Result.failure(
+                ErrorDetail.of("EMAIL_REQUIRED", ErrorType.VALIDATION_ERROR, 
+                    "Email is required", "validation.email_required"));
+        }
+        if (!EMAIL_PATTERN.matcher(value).matches()) {
+            return Result.failure(
+                ErrorDetail.of("EMAIL_INVALID_FORMAT", ErrorType.VALIDATION_ERROR, 
+                    "Invalid email format", "validation.email_invalid_format"));
+        }
+        return Result.success(new Email(value));
+    }
+    
+    // Compact constructor for internal use only (private would be ideal)
+    public Email {
+        // No validation here - already validated in of()
+    }
 }
 
-// ❌ WRONG - Never throw in domain/application
-throw new IllegalArgumentException("Invalid email");
+// ✅ Usage in application layer
+public Result<User> createUser(CreateUserCommand cmd) {
+    Result<Email> emailResult = Email.of(cmd.email());
+    if (emailResult.isFailure()) {
+        return Result.failure(emailResult.getError());
+    }
+    
+    Email email = emailResult.getValueOrThrow(); // Safe - already checked
+    User user = User.create(email, cmd.firstName(), cmd.lastName());
+    
+    userRepository.save(user);  // Exceptions propagate
+    return Result.success(user);
+}
 ```
+
+**Value Object Naming Conventions**:
+- `of()` - Validates and constructs from primitive types
+- `from()` - Converts from another type (e.g., `UserId.from(UUID)`)
+- `parse()` - Parses from string representation
+
+### Clean Boundaries Pattern
+
+**Controllers** validate input, then **internal layers work with clean data**:
+
+```java
+// ✅ CORRECT - Controller validates at boundary
+@RestController
+@RequestMapping("/api/v1/users")
+public class UserController {
+    
+    @PostMapping
+    public ResponseEntity<?> createUser(@Valid @RequestBody CreateUserRequest request) {
+        // 1. Controller validates HTTP input (Spring validation)
+        // 2. Convert to command (clean DTO)
+        CreateUserCommand command = CreateUserCommand.from(request);
+        
+        // 3. Application layer receives clean data
+        Result<User> result = createUserUseCase.execute(command);
+        
+        // 4. Convert Result to HTTP response
+        return result.isSuccess()
+            ? ResponseEntity.ok(UserResponse.from(result.getValueOrThrow()))
+            : toErrorResponse(result);
+    }
+    
+    private ResponseEntity<?> toErrorResponse(Result<?> result) {
+        ErrorDetail error = result.getError().orElseThrow();
+        HttpStatus status = switch (error.getErrorType()) {
+            case VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
+            case BUSINESS_RULE_ERROR -> HttpStatus.CONFLICT;
+            case NOT_FOUND_ERROR -> HttpStatus.NOT_FOUND;
+            case AUTHENTICATION_ERROR -> HttpStatus.UNAUTHORIZED;
+            default -> HttpStatus.INTERNAL_SERVER_ERROR;
+        };
+        return ResponseEntity.status(status).body(ErrorResponse.from(error));
+    }
+}
+
+// ✅ Application layer works with validated value objects
+@Component
+public class CreateUserUseCase {
+    
+    public Result<User> execute(CreateUserCommand command) {
+        // Data is already validated at boundary
+        // Use value objects for additional type safety
+        Result<Email> emailResult = Email.of(command.email());
+        if (emailResult.isFailure()) {
+            return Result.failure(emailResult.getError());
+        }
+        
+        Email email = emailResult.getValueOrThrow();
+        // No try-catch needed - exceptions propagate to GlobalExceptionHandler
+        User user = userRepository.save(User.create(email, ...));
+        
+        return Result.success(user);
+    }
+}
+```
+
+### Summary: Error Handling Checklist
+
+✅ **DO**:
+- Return `Result.failure()` for **expected validation errors**
+- Use value objects with `of()/from()` static factory methods
+- Let exceptions propagate to GlobalExceptionHandler
+- Validate at boundaries (controllers, domain constructors)
+- Use all 4 parameters in `ErrorDetail.of()`
+
+❌ **DON'T**:
+- Catch exceptions in domain/application/infrastructure layers
+- Throw exceptions for validation failures (use Result.failure instead)
+- Use Result.failure for unexpected system errors (let exceptions propagate)
+- Skip validation in value object constructors
+- Create value objects with `new` - always use `of()/from()`
 
 ### Event-Driven Communication
 

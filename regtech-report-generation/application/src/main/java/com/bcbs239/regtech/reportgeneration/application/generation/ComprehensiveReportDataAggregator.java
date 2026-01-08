@@ -1,10 +1,12 @@
 package com.bcbs239.regtech.reportgeneration.application.generation;
 
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.storage.IStorageService;
+import com.bcbs239.regtech.core.domain.storage.StorageUri;
 import com.bcbs239.regtech.reportgeneration.application.coordination.CalculationEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.QualityEventData;
 import com.bcbs239.regtech.reportgeneration.domain.generation.*;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
-import com.bcbs239.regtech.reportgeneration.domain.storage.IReportStorageService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -23,8 +25,8 @@ import java.util.*;
 /**
  * Comprehensive Report Data Aggregator
  * 
- * Fetches and aggregates calculation and quality data from S3 (production) or
- * local filesystem (development) for comprehensive report generation.
+ * Fetches and aggregates calculation and quality data from storage using shared IStorageService.
+ * Eliminates duplicate file I/O logic by delegating to regtech-core storage abstraction.
  * 
  * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 5.2
  */
@@ -33,7 +35,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class ComprehensiveReportDataAggregator {
     
-    private final IReportStorageService reportStorageService;
+    private final IStorageService storageService;
     private final ObjectMapper objectMapper;
     private final MeterRegistry meterRegistry;
     
@@ -98,7 +100,7 @@ public class ComprehensiveReportDataAggregator {
     }
     
     /**
-     * Fetch calculation data from storage
+     * Fetch calculation data from storage using shared IStorageService
      * 
      * Requirements: 3.1, 3.3
      */
@@ -108,7 +110,19 @@ public class ComprehensiveReportDataAggregator {
         try {
             log.debug("Fetching calculation data for batch: {}", event.getBatchId());
             
-            String jsonContent = reportStorageService.fetchCalculationData(event.getBatchId(), event.getResultFileUri());
+            // Parse URI using shared StorageUri
+            StorageUri uri = StorageUri.parse(event.getResultFileUri());
+            
+            // Download using shared storage service
+            Result<String> downloadResult = storageService.download(uri);
+            if (downloadResult.isFailure()) {
+                throw new DataAggregationException(
+                    "Failed to download calculation data from storage: " + 
+                    downloadResult.getError().orElseThrow().getMessage()
+                );
+            }
+            
+            String jsonContent = downloadResult.getValueOrThrow();
             
             // Parse JSON and map to domain object
             CalculationResults results = mapCalculationJson(jsonContent, event);
@@ -118,6 +132,17 @@ public class ComprehensiveReportDataAggregator {
             meterRegistry.counter("report.data.calculation.fetch.success").increment();
             
             return results;
+            
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid calculation data URI for batch: {}", event.getBatchId(), e);
+            
+            meterRegistry.counter("report.data.calculation.fetch.failure",
+                "failure_reason", "InvalidURI").increment();
+            
+            throw new DataAggregationException(
+                "Invalid storage URI for batch: " + event.getBatchId(),
+                e
+            );
             
         } catch (Exception e) {
             log.error("Failed to fetch calculation data for batch: {}", event.getBatchId(), e);
@@ -151,7 +176,19 @@ public class ComprehensiveReportDataAggregator {
         try {
             log.debug("Fetching quality data for batch: {}", event.getBatchId());
             
-            String jsonContent = reportStorageService.fetchQualityData(event.getBatchId(), event.getResultFileUri());
+            // Parse URI using shared StorageUri
+            StorageUri uri = StorageUri.parse(event.getResultFileUri());
+            
+            // Download using shared storage service
+            Result<String> downloadResult = storageService.download(uri);
+            if (downloadResult.isFailure()) {
+                throw new DataAggregationException(
+                    "Failed to download quality data from storage: " + 
+                    downloadResult.getError().orElseThrow().getMessage()
+                );
+            }
+            
+            String jsonContent = downloadResult.getValueOrThrow();
             
             // Parse JSON and map to domain object
             QualityResults results = mapQualityJson(jsonContent, event, canonicalBankId);
@@ -161,6 +198,17 @@ public class ComprehensiveReportDataAggregator {
             meterRegistry.counter("report.data.quality.fetch.success").increment();
             
             return results;
+            
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid quality data URI for batch: {}", event.getBatchId(), e);
+            
+            meterRegistry.counter("report.data.quality.fetch.failure",
+                "failure_reason", "InvalidURI").increment();
+            
+            throw new DataAggregationException(
+                "Invalid storage URI for batch: " + event.getBatchId(),
+                e
+            );
             
         } catch (Exception e) {
             log.error("Failed to fetch quality data for batch: {}", event.getBatchId(), e);

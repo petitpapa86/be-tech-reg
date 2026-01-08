@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.reportgeneration.presentation.health;
 
+import com.bcbs239.regtech.core.domain.storage.IStorageService;
 import com.bcbs239.regtech.reportgeneration.application.coordination.BatchEventTracker;
 import com.bcbs239.regtech.reportgeneration.domain.generation.IGeneratedReportRepository;
-import com.bcbs239.regtech.reportgeneration.domain.storage.IReportStorageService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -13,7 +13,8 @@ import java.util.Map;
 
 /**
  * Health checker for report generation module components.
- * Performs health checks on database, S3 storage, event tracker, and async executor.
+ * Performs health checks on database, storage service, event tracker, and async executor.
+ * Uses shared IStorageService for storage health checks.
  * 
  * Requirements: 24.3, 24.4
  */
@@ -29,13 +30,13 @@ public class ReportGenerationHealthChecker {
     private static final int PENDING_EVENTS_DOWN_THRESHOLD = 50;
     
     private final IGeneratedReportRepository reportRepository;
-    private final IReportStorageService storageService;
+    private final IStorageService storageService;  // Changed from IReportStorageService
     private final BatchEventTracker eventTracker;
     private final ThreadPoolTaskExecutor asyncExecutor;
     
     public ReportGenerationHealthChecker(
         IGeneratedReportRepository reportRepository,
-        IReportStorageService storageService,
+        IStorageService storageService,
         BatchEventTracker eventTracker,
         ThreadPoolTaskExecutor asyncExecutor
     ) {

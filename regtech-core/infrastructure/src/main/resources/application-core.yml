@@ -1,0 +1,197 @@
+# ============================================================================
+# RegTech Core Module - Storage Configuration
+# ============================================================================
+# Shared storage infrastructure configuration for S3 and local filesystem
+# Requirements: Phase 0A - Shared Storage Infrastructure
+# ============================================================================
+
+# ============================================================================
+# STORAGE CONFIGURATION
+# ============================================================================
+regtech:
+  storage:
+    # Default storage type (S3, LOCAL_ABSOLUTE, LOCAL_RELATIVE)
+    default-type: ${STORAGE_DEFAULT_TYPE:LOCAL_ABSOLUTE}
+    
+    # S3 configuration
+    s3:
+      # Default bucket for storage operations
+      default-bucket: ${S3_DEFAULT_BUCKET:regtech-storage}
+      
+      # S3 region
+      region: ${AWS_REGION:eu-central-1}
+      
+      # S3 endpoint (for LocalStack or custom endpoints)
+      endpoint: ${S3_ENDPOINT:}
+      
+      # Access credentials (use IAM roles in production)
+      access-key: ${AWS_ACCESS_KEY_ID:}
+      secret-key: ${AWS_SECRET_ACCESS_KEY:}
+      
+      # Presigned URL expiration (ISO-8601 duration format)
+      presigned-url-expiration: ${S3_PRESIGNED_URL_EXPIRATION:PT1H}
+      
+      # Path style access (true for LocalStack, false for AWS)
+      path-style-access: ${S3_PATH_STYLE_ACCESS:false}
+    
+    # Local filesystem configuration
+    local:
+      # Base directory for LOCAL_RELATIVE paths
+      base-directory: ${STORAGE_LOCAL_BASE_DIR:./data/storage}
+      
+      # Create base directory if it doesn't exist
+      auto-create-directories: ${STORAGE_AUTO_CREATE_DIRS:true}
+      
+      # Maximum file size for local storage (bytes)
+      max-file-size: ${STORAGE_MAX_FILE_SIZE:524288000}  # 500 MB
+    
+    # JSON storage configuration
+    json:
+      # Validate JSON content before uploading
+      validate-on-upload: ${STORAGE_JSON_VALIDATE:true}
+      
+      # Pretty-print JSON by default
+      pretty-print: ${STORAGE_JSON_PRETTY_PRINT:false}
+      
+      # Minify JSON before uploading (reduces size)
+      minify-on-upload: ${STORAGE_JSON_MINIFY:false}
+
+# ============================================================================
+# PROFILE-SPECIFIC OVERRIDES
+# ============================================================================
+
+---
+# ============================================================================
+# DEVELOPMENT PROFILE
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: development
+
+regtech:
+  storage:
+    # Use local storage in development
+    default-type: LOCAL_ABSOLUTE
+    
+    # LocalStack S3 endpoint
+    s3:
+      endpoint: http://localhost:4566
+      path-style-access: true
+      access-key: test
+      secret-key: test
+      default-bucket: regtech-dev
+    
+    # Development local storage
+    local:
+      base-directory: ./data/dev/storage
+      auto-create-directories: true
+    
+    # Pretty-print JSON in development for debugging
+    json:
+      validate-on-upload: true
+      pretty-print: true
+      minify-on-upload: false
+
+---
+# ============================================================================
+# PRODUCTION PROFILE
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: production
+
+regtech:
+  storage:
+    # Use S3 in production
+    default-type: S3
+    
+    # Production S3 settings (use IAM roles)
+    s3:
+      default-bucket: regtech-prod
+      region: eu-central-1
+      path-style-access: false
+      presigned-url-expiration: PT30M  # 30 minutes
+    
+    # Production local fallback
+    local:
+      base-directory: /var/regtech/storage
+      auto-create-directories: false
+      max-file-size: 524288000  # 500 MB
+    
+    # Minify JSON in production to save space
+    json:
+      validate-on-upload: true
+      pretty-print: false
+      minify-on-upload: true
+
+---
+# ============================================================================
+# HETZNER PROFILE (Cloud deployment)
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: hetzner
+
+regtech:
+  storage:
+    # Use S3-compatible storage (Hetzner Object Storage)
+    default-type: S3
+    
+    # Hetzner S3 settings
+    s3:
+      default-bucket: ${HETZNER_STORAGE_BUCKET:regtech-hetzner}
+      region: eu-central
+      endpoint: ${HETZNER_S3_ENDPOINT:https://s3.eu-central.io}
+      path-style-access: false
+      presigned-url-expiration: PT30M
+    
+    # Hetzner local fallback
+    local:
+      base-directory: /opt/regtech/storage
+      auto-create-directories: false
+    
+    # Minify JSON to save bandwidth
+    json:
+      validate-on-upload: true
+      pretty-print: false
+      minify-on-upload: true
+
+# ============================================================================
+# CONFIGURATION NOTES
+# ============================================================================
+# 1. Storage Types:
+#    - S3: AWS S3 or S3-compatible storage (Hetzner, LocalStack)
+#    - LOCAL_ABSOLUTE: Full file paths (e.g., /var/data/file.json)
+#    - LOCAL_RELATIVE: Paths relative to base-directory (e.g., reports/file.json)
+#    - MEMORY: In-memory storage (not yet implemented)
+#
+# 2. S3 Configuration:
+#    - Development: Use LocalStack with http://localhost:4566
+#    - Production: Use AWS S3 with IAM roles (no access keys in config)
+#    - Hetzner: Use Hetzner Object Storage with endpoint
+#    - Path style access: true for LocalStack, false for AWS/Hetzner
+#
+# 3. Local Storage:
+#    - base-directory: Root for LOCAL_RELATIVE paths
+#    - auto-create-directories: Create missing directories on upload
+#    - max-file-size: Prevent large file uploads (500 MB default)
+#
+# 4. JSON Configuration:
+#    - validate-on-upload: Check JSON syntax before storing
+#    - pretty-print: Format JSON with indentation (development)
+#    - minify-on-upload: Remove whitespace to save space (production)
+#
+# 5. Security:
+#    - Never commit AWS access keys to version control
+#    - Use IAM roles in production (set access-key/secret-key to empty)
+#    - Use environment variables for sensitive configuration
+#    - Presigned URLs expire after configured duration
+#
+# 6. Testing:
+#    - Use LocalStack for S3 integration tests
+#    - Use temporary directories for local storage tests
+#    - Mock IStorageService for unit tests
+# ============================================================================

@@ -1,5 +1,8 @@
 package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.storage.IStorageService;
+import com.bcbs239.regtech.core.domain.storage.StorageUri;
 import com.bcbs239.regtech.dataquality.application.reporting.DetailedExposureResult;
 import com.bcbs239.regtech.dataquality.application.reporting.StoredValidationResults;
 import com.bcbs239.regtech.dataquality.application.reporting.StoredValidationResultsReader;
@@ -8,73 +11,99 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
 
 /**
- * Infrastructure helper that loads the detailed validation results JSON.
+ * Infrastructure adapter that loads detailed validation results using shared storage service.
  *
- * <p>This logic previously lived in the controller. It belongs in infrastructure
- * because it performs I/O and knows about storage paths/URI mapping.</p>
+ * <p>Uses the centralized IStorageService from regtech-core to eliminate duplicate storage logic.</p>
+ * <p>Supports S3, local filesystem, and memory storage based on URI scheme.</p>
  */
 @Component
 public class LocalDetailedResultsReader implements StoredValidationResultsReader {
 
     private static final Logger logger = LoggerFactory.getLogger(LocalDetailedResultsReader.class);
 
+    private final IStorageService storageService;
     private final ObjectMapper objectMapper;
-    private final String localStorageBasePath;
 
     public LocalDetailedResultsReader(
-        ObjectMapper objectMapper,
-        @Value("${data-quality.storage.local.base-path:${user.dir}/data/quality}") String localStorageBasePath
+        IStorageService storageService,
+        ObjectMapper objectMapper
     ) {
+        this.storageService = storageService;
         this.objectMapper = objectMapper;
-        this.localStorageBasePath = localStorageBasePath;
     }
 
     /**
-     * Loads the stored validation results from a local-storage S3-style URI.
+     * Loads the stored validation results from any supported storage URI.
      *
-     * <p>Supported URI format: s3://local/&lt;relativePath&gt;</p>
+     * <p>Supported URI formats:</p>
+     * <ul>
+     *   <li>s3://bucket/key (S3 or S3-compatible storage)</li>
+     *   <li>file:///absolute/path (local filesystem)</li>
+     *   <li>C:/absolute/path (Windows local filesystem)</li>
+     *   <li>s3://local/path (legacy format, mapped to local storage)</li>
+     * </ul>
+     *
+     * @param detailsUri Storage URI pointing to the validation results JSON
+     * @return Parsed validation results, or null if loading fails
      */
     @Override
     public StoredValidationResults load(String detailsUri) {
+        if (detailsUri == null || detailsUri.isBlank()) {
+            logger.warn("Cannot load validation results: detailsUri is null or empty");
+            return null;
+        }
+
         try {
-            return loadInternal(detailsUri);
+            // Parse URI using shared StorageUri
+            StorageUri uri = StorageUri.parse(detailsUri);
+
+            // Download JSON content using shared storage service
+            Result<String> downloadResult = storageService.download(uri);
+            if (downloadResult.isFailure()) {
+                logger.warn("Failed to download validation results from '{}': {}", 
+                    detailsUri, downloadResult.getError().orElseThrow().getMessage());
+                return null;
+            }
+
+            String jsonContent = downloadResult.getValueOrThrow();
+
+            // Parse JSON structure
+            return parseValidationResults(jsonContent);
+
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid storage URI '{}': {}", detailsUri, e.getMessage());
+            return null;
         } catch (Exception e) {
-            logger.warn("Failed to load stored validation results from {}: {}", detailsUri, e.getMessage());
+            logger.warn("Unexpected error loading validation results from '{}': {}", 
+                detailsUri, e.getMessage(), e);
             return null;
         }
     }
 
     /**
      * Convenience method for callers that only need exposureResults.
+     *
+     * @param detailsUri Storage URI pointing to the validation results JSON
+     * @return List of exposure results, or empty list if loading fails
      */
-    public List<DetailedExposureResult> loadFromDetailsUri(String detailsUri) throws IOException {
-        return loadInternal(detailsUri).exposureResults();
+    public List<DetailedExposureResult> loadFromDetailsUri(String detailsUri) {
+        StoredValidationResults results = load(detailsUri);
+        return (results != null) ? results.exposureResults() : List.of();
     }
 
-    private StoredValidationResults loadInternal(String detailsUri) throws IOException {
-        if (detailsUri == null || !detailsUri.startsWith("s3://local/")) {
-            return null;
-        }
-
-        String relativePath = detailsUri.replace("s3://local/", "");
-        Path filePath = Paths.get(localStorageBasePath, relativePath);
-
-        if (!Files.exists(filePath)) {
-            logger.warn("Detailed results file not found: {}", filePath);
-            return null;
-        }
-
-        String jsonContent = Files.readString(filePath);
+    /**
+     * Parses the validation results JSON structure.
+     *
+     * @param jsonContent Raw JSON content
+     * @return Parsed validation results
+     * @throws Exception if JSON parsing fails
+     */
+    private StoredValidationResults parseValidationResults(String jsonContent) throws Exception {
         JsonNode rootNode = objectMapper.readTree(jsonContent);
 
         int totalExposures = rootNode.path("totalExposures").asInt(0);
