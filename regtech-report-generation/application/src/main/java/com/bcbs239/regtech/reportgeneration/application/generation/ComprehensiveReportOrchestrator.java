@@ -1,6 +1,9 @@
 package com.bcbs239.regtech.reportgeneration.application.generation;
 
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
+import com.bcbs239.regtech.core.application.recommendations.RecommendationEngine;
+import com.bcbs239.regtech.core.domain.recommendations.QualityInsight;
+import com.bcbs239.regtech.core.domain.recommendations.RecommendationSeverity;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.storage.IStorageService;
 import com.bcbs239.regtech.core.domain.storage.StorageResult;
@@ -24,6 +27,7 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.StringWriter;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -33,6 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Orchestrates the generation of comprehensive reports combining risk calculation
@@ -55,7 +60,7 @@ import java.util.concurrent.TimeUnit;
 public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrchestrator {
     
     private final ComprehensiveReportDataAggregator dataAggregator;
-    private final QualityRecommendationsGenerator recommendationsGenerator;
+    private final RecommendationEngine recommendationEngine;
     private final HtmlReportGenerator htmlGenerator;
     private final XbrlReportGenerator xbrlGenerator;
     private final IStorageService storageService;  // Changed from IReportStorageService
@@ -128,13 +133,27 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             unitOfWork.saveChanges();
             log.info("Created report aggregate [batchId:{},reportId:{}]", batchId, report.getReportId().value());
             
-            // Step 4: Generate quality recommendations
+            // Step 4: Generate quality recommendations using RecommendationEngine
             long recommendationsStart = System.currentTimeMillis();
-            List<RecommendationSection> recommendations = 
-                recommendationsGenerator.generateRecommendations(reportData.getQualityResults());
-            long recommendationsDuration = System.currentTimeMillis() - recommendationsStart;
             
-            log.info("Quality recommendations generated [batchId:{},count:{},duration:{}ms]", 
+            // Extract quality data for recommendation engine
+            BigDecimal overallScore = reportData.getQualityResults().getOverallScore();
+            Map<com.bcbs239.regtech.core.domain.quality.QualityDimension, BigDecimal> dimensionScoresCore = 
+                convertDimensionScores(reportData.getQualityResults().getDimensionScores());
+            String languageCode = "it"; // Default to Italian for BCBS 239 reporting
+            
+            // Generate insights using shared recommendation engine
+            List<QualityInsight> insights = recommendationEngine.generateInsights(
+                overallScore,
+                dimensionScoresCore,
+                languageCode
+            );
+            
+            // Map QualityInsight (regtech-core) to RecommendationSection (report-generation)
+            List<RecommendationSection> recommendations = mapToRecommendationSections(insights);
+            
+            long recommendationsDuration = System.currentTimeMillis() - recommendationsStart;
+            log.info("Quality recommendations generated using RecommendationEngine [batchId:{},count:{},duration:{}ms]", 
                 batchId, recommendations.size(), recommendationsDuration);
             
             // Step 5: Generate HTML and XBRL in parallel
@@ -381,6 +400,104 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
         StringWriter writer = new StringWriter();
         transformer.transform(new DOMSource(document), new StreamResult(writer));
         return writer.toString();
+    }
+    
+    /**
+     * Converts dimension scores from report-generation domain to regtech-core domain.
+     * 
+     * Maps QualityDimension enums between modules:
+     * - reportgeneration.domain.shared.valueobjects.QualityDimension
+     * → core.domain.quality.QualityDimension
+     */
+    private Map<com.bcbs239.regtech.core.domain.quality.QualityDimension, BigDecimal> convertDimensionScores(
+            Map<QualityDimension, BigDecimal> reportGenDimensionScores) {
+        
+        Map<com.bcbs239.regtech.core.domain.quality.QualityDimension, BigDecimal> coreScores = new HashMap<>();
+        
+        for (Map.Entry<QualityDimension, BigDecimal> entry : reportGenDimensionScores.entrySet()) {
+            // Map by name (enums have same values in both modules)
+            String dimensionName = entry.getKey().name();
+            com.bcbs239.regtech.core.domain.quality.QualityDimension coreDimension = 
+                com.bcbs239.regtech.core.domain.quality.QualityDimension.valueOf(dimensionName);
+            coreScores.put(coreDimension, entry.getValue());
+        }
+        
+        return coreScores;
+    }
+    
+    /**
+     * Maps QualityInsight (from regtech-core) to RecommendationSection (report-generation domain).
+     * 
+     * Transformation:
+     * - ruleId → used to derive title (e.g., "critical_situation" → "Situazione Critica")
+     * - severity → mapped to icon and colorClass (CRITICAL → 🚨/red, HIGH → ⚠️/yellow, etc.)
+     * - message → content
+     * - actionItems → bullets
+     * - locale → used for localization (already applied in message/actionItems)
+     */
+    private List<RecommendationSection> mapToRecommendationSections(List<QualityInsight> insights) {
+        return insights.stream()
+            .map(this::mapInsightToSection)
+            .collect(Collectors.toList());
+    }
+    
+    /**
+     * Maps a single QualityInsight to RecommendationSection
+     */
+    private RecommendationSection mapInsightToSection(QualityInsight insight) {
+        // Map severity to icon and color
+        String icon = mapSeverityToIcon(insight.severity());
+        String colorClass = mapSeverityToColorClass(insight.severity());
+        
+        // Derive title from rule ID or use message (first 50 chars)
+        String title = deriveTitleFromRuleId(insight.ruleId());
+        
+        return RecommendationSection.builder()
+            .icon(icon)
+            .colorClass(colorClass)
+            .title(title)
+            .content(insight.message())
+            .bullets(insight.actionItems())
+            .build();
+    }
+    
+    /**
+     * Maps RecommendationSeverity to emoji icon
+     */
+    private String mapSeverityToIcon(RecommendationSeverity severity) {
+        return switch (severity) {
+            case CRITICAL -> "🚨";  // Critical alert
+            case HIGH -> "⚠️";      // Warning
+            case MEDIUM -> "ℹ️";    // Information
+            case LOW -> "💡";       // Lightbulb (suggestion)
+            case SUCCESS -> "✅";   // Checkmark (excellent)
+        };
+    }
+    
+    /**
+     * Maps RecommendationSeverity to CSS color class
+     */
+    private String mapSeverityToColorClass(RecommendationSeverity severity) {
+        return switch (severity) {
+            case CRITICAL -> "red";     // Critical issues
+            case HIGH -> "orange";      // High priority
+            case MEDIUM -> "yellow";    // Medium priority
+            case LOW -> "blue";         // Low priority suggestions
+            case SUCCESS -> "green";    // Positive aspects
+        };
+    }
+    
+    /**
+     * Derives a human-readable title from rule ID
+     */
+    private String deriveTitleFromRuleId(String ruleId) {
+        return switch (ruleId) {
+            case "critical_situation" -> "Situazione Critica - Azione Immediata Richiesta";
+            case "dimension_below_threshold" -> "Dimensioni di Qualità da Migliorare";
+            case "excellent_dimensions" -> "Eccellenti Risultati di Qualità";
+            case "action_plan" -> "Piano d'Azione per il Miglioramento";
+            default -> "Raccomandazioni sulla Qualità dei Dati";  // Generic fallback
+        };
     }
     
     /**
