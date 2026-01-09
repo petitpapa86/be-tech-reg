@@ -45,6 +45,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
         "com.bcbs239.regtech.core.infrastructure.systemservices",
         "com.bcbs239.regtech.core.infrastructure.s3",
         "com.bcbs239.regtech.core.infrastructure.filestorage",
+        "com.bcbs239.regtech.core.infrastructure.storage",
+        "com.bcbs239.regtech.core.infrastructure.recommendations",
         "com.bcbs239.regtech.iam",
         "com.bcbs239.regtech.billing",
         "com.bcbs239.regtech.ingestion.infrastructure.configuration",
