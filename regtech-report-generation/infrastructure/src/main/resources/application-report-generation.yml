@@ -3,6 +3,19 @@
 report-generation:
   enabled: true
   
+  # Storage configuration (Requirement 12.1)
+  storage:
+    # Storage type: 's3' for AWS S3, 'local' for filesystem
+    # Default: local (for development), s3 (for production)
+    type: local
+    
+    # Local filesystem storage configuration
+    local:
+      # Base directory for storing generated reports
+      base-path: ./data/reports
+      # Automatically create directories if they don't exist
+      create-directories: true
+  
   # S3 storage configuration (Requirement 12.1)
   # Production: s3://risk-analysis-production/reports/{html|xbrl}/
   # Development: s3://risk-analysis-dev/reports/{html|xbrl}/

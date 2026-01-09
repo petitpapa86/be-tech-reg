@@ -289,7 +289,9 @@ public class LocalStorageServiceImpl implements S3StorageService {
         
         logger.info("Successfully stored file to local path: {}", fullPath);
         
-        return S3Reference.of("local", key, "0");
+        // Use file:// URI format for local storage with proper encoding
+        String fileUri = fullPath.toUri().toString();
+        return new S3Reference("local", key, "0", fileUri);
     }
 
     private String serializeValidationResult(ValidationResult validationResult) throws IOException {

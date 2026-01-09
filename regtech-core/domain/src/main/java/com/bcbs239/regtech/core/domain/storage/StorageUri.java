@@ -199,7 +199,21 @@ public record StorageUri(@NonNull String uri) {
         
         if (type == StorageType.LOCAL_ABSOLUTE) {
             if (uri.startsWith("file://")) {
-                return uri.substring(7); // Remove "file://"
+                try {
+                    // Use URI.create().getPath() and handle Windows paths
+                    // file:///C:/path returns /C:/path on Windows, need to strip leading /
+                    String path = java.net.URI.create(uri).getPath();
+                    
+                    // Windows: Strip leading / from /C:/... paths
+                    if (path.matches("^/[A-Za-z]:.*")) {
+                        path = path.substring(1);
+                    }
+                    
+                    return path;
+                } catch (IllegalArgumentException e) {
+                    // Fallback to simple string manipulation
+                    return uri.substring(7); // Remove "file://"
+                }
             }
             return uri;
         }

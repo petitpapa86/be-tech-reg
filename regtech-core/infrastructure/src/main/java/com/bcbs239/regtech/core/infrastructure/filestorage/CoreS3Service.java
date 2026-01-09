@@ -3,6 +3,7 @@ package com.bcbs239.regtech.core.infrastructure.filestorage;
 import com.bcbs239.regtech.core.infrastructure.s3.S3Properties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -26,10 +27,12 @@ import java.util.regex.Pattern;
 
 /**
  * Central S3 service used by other modules. Keeps S3 client creation and common behavior in core.
+ * Only created when S3 is enabled via ingestion.s3.enabled property.
  */
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "ingestion.s3.enabled", havingValue = "true", matchIfMissing = true)
 public class CoreS3Service {
 
     private final S3Properties s3Properties;

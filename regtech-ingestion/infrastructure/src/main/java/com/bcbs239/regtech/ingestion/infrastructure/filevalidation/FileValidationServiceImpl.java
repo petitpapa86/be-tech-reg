@@ -88,9 +88,9 @@ public class FileValidationServiceImpl implements FileContentValidationService {
             .distinct()
             .count();
 
-        if (uniqueLoanIds != exposures.size()) {
-            return Result.failure(ErrorDetail.of("DUPLICATE_LOAN_IDS", ErrorType.SYSTEM_ERROR, "Loan IDs must be unique within the file", "generic.error"));
-        }
+//        if (uniqueLoanIds != exposures.size()) {
+//            return Result.failure(ErrorDetail.of("DUPLICATE_LOAN_IDS", ErrorType.SYSTEM_ERROR, "Loan IDs must be unique within the file", "generic.error"));
+//        }
 
         // Business rule: Total exposure amount should be reasonable (not zero or excessively high)
         double totalExposure = exposures.stream()

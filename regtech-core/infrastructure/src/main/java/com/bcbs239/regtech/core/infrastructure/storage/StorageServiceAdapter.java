@@ -6,8 +6,10 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.storage.*;
 import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -30,10 +32,13 @@ public class StorageServiceAdapter implements IStorageService {
     
     private static final Logger log = LoggerFactory.getLogger(StorageServiceAdapter.class);
     
+    @Nullable
     private final CoreS3Service s3Service;
     private final JsonStorageHelper jsonHelper;
     
-    public StorageServiceAdapter(CoreS3Service s3Service, JsonStorageHelper jsonHelper) {
+    public StorageServiceAdapter(
+            @Autowired(required = false) @Nullable CoreS3Service s3Service,
+            JsonStorageHelper jsonHelper) {
         this.s3Service = s3Service;
         this.jsonHelper = jsonHelper;
     }
@@ -166,6 +171,13 @@ public class StorageServiceAdapter implements IStorageService {
     // ========================================================================
     
     private Result<StorageResult> uploadToS3(String content, StorageUri uri, Map<String, String> metadata) {
+        if (s3Service == null) {
+            return Result.failure(
+                ErrorDetail.of("S3_SERVICE_NOT_AVAILABLE", ErrorType.SYSTEM_ERROR,
+                    "S3 service is not available - S3 may be disabled in configuration",
+                    "storage.s3_not_available"));
+        }
+        
         String bucket = uri.getBucket();
         String key = uri.getKey();
         
@@ -195,6 +207,13 @@ public class StorageServiceAdapter implements IStorageService {
             String contentType,
             Map<String, String> metadata) {
         
+        if (s3Service == null) {
+            return Result.failure(
+                ErrorDetail.of("S3_SERVICE_NOT_AVAILABLE", ErrorType.SYSTEM_ERROR,
+                    "S3 service is not available - S3 may be disabled in configuration",
+                    "storage.s3_not_available"));
+        }
+        
         String bucket = uri.getBucket();
         String key = uri.getKey();
         
@@ -219,6 +238,13 @@ public class StorageServiceAdapter implements IStorageService {
     }
     
     private Result<String> downloadFromS3(StorageUri uri) throws java.io.IOException {
+        if (s3Service == null) {
+            return Result.failure(
+                ErrorDetail.of("S3_SERVICE_NOT_AVAILABLE", ErrorType.SYSTEM_ERROR,
+                    "S3 service is not available - S3 may be disabled in configuration",
+                    "storage.s3_not_available"));
+        }
+        
         String bucket = uri.getBucket();
         String key = uri.getKey();
         
@@ -242,6 +268,13 @@ public class StorageServiceAdapter implements IStorageService {
     }
     
     private Result<byte[]> downloadBytesFromS3(StorageUri uri) throws java.io.IOException {
+        if (s3Service == null) {
+            return Result.failure(
+                ErrorDetail.of("S3_SERVICE_NOT_AVAILABLE", ErrorType.SYSTEM_ERROR,
+                    "S3 service is not available - S3 may be disabled in configuration",
+                    "storage.s3_not_available"));
+        }
+        
         String bucket = uri.getBucket();
         String key = uri.getKey();
         

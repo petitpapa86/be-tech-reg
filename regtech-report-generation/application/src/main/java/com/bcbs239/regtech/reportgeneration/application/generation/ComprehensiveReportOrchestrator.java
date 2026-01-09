@@ -67,11 +67,36 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
     private final ReportGenerationMetrics metrics;
     private final BaseUnitOfWork unitOfWork;
     
+    @Value("${report-generation.storage.type:local}")
+    private String storageType;
+    
+    @Value("${report-generation.storage.local.base-path:./data/reports}")
+    private String localBasePath;
+    
     @Value("${storage.s3.bucket-name:bcbs239-reports}")
     private String s3BucketName;
     
     @Value("${storage.s3.report-prefix:reports/}")
     private String reportPrefix;
+    
+    /**
+     * Builds a storage URI based on configured storage type.
+     * 
+     * @param subPath The sub-path within the storage (e.g., "html/report.html")
+     * @return StorageUri for S3 or local filesystem
+     */
+    private StorageUri buildStorageUri(String subPath) {
+        if ("s3".equalsIgnoreCase(storageType)) {
+            String s3Path = reportPrefix + subPath;
+            return StorageUri.parse("s3://" + s3BucketName + "/" + s3Path);
+        } else {
+            // Local filesystem - build file:// URI
+            java.nio.file.Path basePath = java.nio.file.Paths.get(localBasePath);
+            java.nio.file.Path fullPath = basePath.resolve(subPath);
+            String fileUri = fullPath.toUri().toString();
+            return StorageUri.parse(fileUri);
+        }
+    }
     
     /**
      * Generates a comprehensive report asynchronously.
@@ -256,11 +281,10 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             metadataTags.put("generated-at", Instant.now().toString());
             metadataTags.put("content-type", "text/html");
             
-            // Build S3 URI for upload using shared StorageUri
-            String s3Path = reportPrefix + "html/" + fileName;
-            StorageUri uri = StorageUri.parse("s3://" + s3BucketName + "/" + s3Path);
+            // Build storage URI (S3 or local based on configuration)
+            StorageUri uri = buildStorageUri("html/" + fileName);
             
-            // Upload to S3 using shared storage service
+            // Upload using shared storage service
             Result<StorageResult> uploadResult = storageService.upload(htmlContent, uri, metadataTags);
             if (uploadResult.isFailure()) {
                 throw new HtmlGenerationException(
@@ -271,14 +295,15 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             
             StorageResult storageResult = uploadResult.getValueOrThrow();
             
-            // Generate presigned URL for 7 days
+            // Generate presigned URL for 7 days (S3 only)
+            // For local storage, use the file:// URI directly
             Result<String> presignedUrlResult = storageService.generatePresignedUrl(
                 storageResult.uri(), 
                 java.time.Duration.ofDays(7)
             );
             String presignedUrlStr = presignedUrlResult.isSuccess() 
                 ? presignedUrlResult.getValueOrThrow() 
-                : "";
+                : storageResult.uri().toString(); // Fallback to storage URI for local files
             
             long duration = System.currentTimeMillis() - startTime;
             metrics.recordHtmlGenerationDuration(batchId, duration);
@@ -336,11 +361,10 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             metadataTags.put("generated-at", Instant.now().toString());
             metadataTags.put("content-type", "application/xml");
             
-            // Build S3 URI for upload using shared StorageUri
-            String s3Path = reportPrefix + "xbrl/" + fileName;
-            StorageUri uri = StorageUri.parse("s3://" + s3BucketName + "/" + s3Path);
+            // Build storage URI (S3 or local based on configuration)
+            StorageUri uri = buildStorageUri("xbrl/" + fileName);
             
-            // Upload to S3 using shared storage service
+            // Upload using shared storage service
             Result<StorageResult> uploadResult = storageService.upload(xbrlContent, uri, metadataTags);
             if (uploadResult.isFailure()) {
                 throw new XbrlValidationException(
@@ -351,14 +375,15 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             
             StorageResult storageResult = uploadResult.getValueOrThrow();
             
-            // Generate presigned URL for 7 days
+            // Generate presigned URL for 7 days (S3 only)
+            // For local storage, use the file:// URI directly
             Result<String> presignedUrlResult = storageService.generatePresignedUrl(
                 storageResult.uri(), 
                 java.time.Duration.ofDays(7)
             );
             String presignedUrlStr = presignedUrlResult.isSuccess() 
                 ? presignedUrlResult.getValueOrThrow() 
-                : "";
+                : storageResult.uri().toString(); // Fallback to storage URI for local files
             
             long duration = System.currentTimeMillis() - startTime;
             metrics.recordXbrlGenerationDuration(batchId, duration);

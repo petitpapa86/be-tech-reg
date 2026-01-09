@@ -508,6 +508,11 @@ spring:
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:dracons86}
 
+# Disable S3 in development (use local filesystem)
+ingestion:
+  s3:
+    enabled: false
+
 # Development logging settings
 logging:
   level:

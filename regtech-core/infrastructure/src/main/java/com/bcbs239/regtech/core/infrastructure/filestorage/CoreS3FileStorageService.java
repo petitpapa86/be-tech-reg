@@ -17,7 +17,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Service
-@ConditionalOnProperty(name = "storage.type", havingValue = "s3", matchIfMissing = true)
+@ConditionalOnProperty(name = "ingestion.s3.enabled", havingValue = "true", matchIfMissing = true)
 public class CoreS3FileStorageService {
 
     private static final Logger logger = LoggerFactory.getLogger(CoreS3FileStorageService.class);
