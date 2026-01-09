@@ -1,10 +1,13 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
 import com.bcbs239.regtech.core.application.BaseUnitOfWork;
+import com.bcbs239.regtech.core.application.recommendations.RecommendationEngine;
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
+import com.bcbs239.regtech.core.domain.recommendations.QualityInsight;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
+import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
@@ -18,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +37,9 @@ public class ValidateBatchQualityCommandHandler {
     private final DataQualityRulesService rulesService;
     private final ParallelExposureValidationCoordinator coordinator;
     private final BaseUnitOfWork unitOfWork;
-
     private final RuleViolationRepository violationRepository;
+    private final RecommendationEngine recommendationEngine;
+    private final QualityDimensionMapper qualityDimensionMapper;
 
     public ValidateBatchQualityCommandHandler(
             IQualityReportRepository qualityReportRepository,
@@ -42,13 +47,17 @@ public class ValidateBatchQualityCommandHandler {
             DataQualityRulesService rulesService,
             ParallelExposureValidationCoordinator coordinator,
             BaseUnitOfWork unitOfWork,
-            RuleViolationRepository violationRepository) {
+            RuleViolationRepository violationRepository,
+            RecommendationEngine recommendationEngine,
+            QualityDimensionMapper qualityDimensionMapper) {
         this.qualityReportRepository = qualityReportRepository;
         this.s3StorageService = s3StorageService;
         this.rulesService = rulesService;
         this.coordinator = coordinator;
         this.unitOfWork = unitOfWork;
         this.violationRepository = violationRepository;
+        this.recommendationEngine = recommendationEngine;
+        this.qualityDimensionMapper = qualityDimensionMapper;
     }
 
     @Timed(value = "dataquality.validation.batch", description = "Time taken to validate batch quality")
@@ -135,6 +144,37 @@ public class ValidateBatchQualityCommandHandler {
                 validation.validExposures(), validation.totalExposures(), validation.allErrors().size(),
                 scores.overallScore());
 
+        // Generate recommendations using RecommendationEngine
+        // First, convert DimensionScores to a Map for the mapper
+        java.util.Map<com.bcbs239.regtech.dataquality.domain.quality.QualityDimension, java.math.BigDecimal> dimensionScoresMap = new java.util.HashMap<>();
+        DimensionScores dimensionScores = scores.getDimensionScores();
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.COMPLETENESS, 
+            java.math.BigDecimal.valueOf(dimensionScores.completeness()));
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.ACCURACY, 
+            java.math.BigDecimal.valueOf(dimensionScores.accuracy()));
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.CONSISTENCY, 
+            java.math.BigDecimal.valueOf(dimensionScores.consistency()));
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.TIMELINESS, 
+            java.math.BigDecimal.valueOf(dimensionScores.timeliness()));
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.UNIQUENESS, 
+            java.math.BigDecimal.valueOf(dimensionScores.uniqueness()));
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.VALIDITY, 
+            java.math.BigDecimal.valueOf(dimensionScores.validity()));
+        
+        java.util.Map<com.bcbs239.regtech.core.domain.quality.QualityDimension, java.math.BigDecimal> dimensionScoresCore = 
+            qualityDimensionMapper.toCoreQualityDimensions(dimensionScoresMap);
+
+        String languageCode = "it"; // Italian for BCBS 239
+
+        List<QualityInsight> recommendations = recommendationEngine.generateInsights(
+            BigDecimal.valueOf(scores.overallScore()),
+            dimensionScoresCore,
+            languageCode
+        );
+
+        logger.info("Generated {} quality recommendations for batchId={} with overall score={}",
+            recommendations.size(), command.batchId().value(), scores.overallScore());
+
         java.util.Map<String, String> metadata = java.util.Map.of(
                 "batch-id", command.batchId().value(),
                 "overall-score", String.valueOf(scores.overallScore()),
@@ -145,7 +185,8 @@ public class ValidateBatchQualityCommandHandler {
                 "total-errors", String.valueOf(validation.allErrors().size())
         );
 
-        Result<S3Reference> s3Result = s3StorageService.storeDetailedResults(command.batchId(), validation, metadata)
+        Result<S3Reference> s3Result = s3StorageService.storeDetailedResults(
+                command.batchId(), validation, metadata, recommendations)
                 .map(reference -> {
                     logger.debug("Detailed results stored in S3: {}", reference.uri());
                     return reference;

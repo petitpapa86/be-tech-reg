@@ -306,6 +306,52 @@ public class S3StorageServiceImpl implements S3StorageService {
             return Result.failure("S3_UPLOAD_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error storing detailed results: " + e.getMessage(), "system");
         }
     }
+    
+    @Override
+    public Result<S3Reference> storeDetailedResults(BatchId batchId, ValidationResult validationResult, 
+                                                     java.util.Map<String, String> metadata,
+                                                     java.util.List<com.bcbs239.regtech.core.domain.recommendations.QualityInsight> recommendations) {
+        logger.info("Starting storage of detailed validation results with recommendations for batch: {}", batchId.value());
+        long startTime = System.currentTimeMillis();
+
+        try {
+            // Create key for results
+            String key = String.format("quality/quality_%s.json", batchId.value());
+            
+            // Serialize validation result to JSON with recommendations
+            String jsonContent = serializeValidationResultWithRecommendations(validationResult, recommendations);
+
+            // Merge provided metadata with generated metadata
+            Map<String, String> merged = createMetadata(batchId, validationResult);
+            if (metadata != null) merged.putAll(metadata);
+            merged.put("recommendations-count", String.valueOf(recommendations != null ? recommendations.size() : 0));
+
+            // Store based on storage type
+            S3Reference reference;
+            if ("local".equalsIgnoreCase(storageType)) {
+                reference = storeToLocalFile(key, jsonContent, merged);
+            } else {
+                coreS3Service.putString(resultsBucket, key, jsonContent, "application/json", merged, encryptionKeyId);
+                reference = S3Reference.of(resultsBucket, key, "0");
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Successfully stored detailed results with {} recommendations for batch {} in {} ms", 
+                recommendations != null ? recommendations.size() : 0, batchId.value(), duration);
+
+            return Result.success(reference);
+
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            logger.error("S3 error storing detailed results for batch: {}", batchId.value(), e);
+            return Result.failure("S3_UPLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to upload to S3: " + e.getMessage(), "s3_upload");
+        } catch (IOException e) {
+            logger.error("IO error serializing results for batch: {}", batchId.value(), e);
+            return Result.failure("S3_SERIALIZE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to serialize validation results: " + e.getMessage(), "json_serialization");
+        } catch (Exception e) {
+            logger.error("Unexpected error storing results for batch: {}", batchId.value(), e);
+            return Result.failure("S3_UPLOAD_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error storing detailed results: " + e.getMessage(), "system");
+        }
+    }
 
     /**
      * Download and parse JSON using streaming to handle large files efficiently.
@@ -472,6 +518,100 @@ public class S3StorageServiceImpl implements S3StorageService {
             dimensionScores.put("uniqueness", validationResult.dimensionScores().uniqueness());
             dimensionScores.put("validity", validationResult.dimensionScores().validity());
             resultMap.put("dimensionScores", dimensionScores);
+        }
+        
+        // Exposure validation results (limited to avoid huge files)
+        List<Map<String, Object>> exposureResults = new ArrayList<>();
+        int count = 0;
+        for (Map.Entry<String, ExposureValidationResult> entry :
+             validationResult.exposureResults().entrySet()) {
+
+            if (count >= 10000) { // Limit to first 10,000 exposures for detailed results
+                break;
+            }
+            
+            Map<String, Object> exposureResult = new HashMap<>();
+            exposureResult.put("exposureId", entry.getKey());
+            exposureResult.put("isValid", entry.getValue().isValid());
+            exposureResult.put("errorCount", entry.getValue().errors().size());
+
+            // Include error details for invalid exposures
+            if (!entry.getValue().isValid()) {
+                List<Map<String, Object>> errors = new ArrayList<>();
+                for (ValidationError error : entry.getValue().errors()) {
+                    Map<String, Object> errorMap = new HashMap<>();
+                    errorMap.put("dimension", error.dimension().toString());
+                    errorMap.put("ruleCode", error.code());
+                    errorMap.put("message", error.message());
+                    errorMap.put("fieldName", error.fieldName());
+                    errorMap.put("severity", error.severity().toString());
+                    errors.add(errorMap);
+                }
+                exposureResult.put("errors", errors);
+            }
+            
+            exposureResults.add(exposureResult);
+            count++;
+        }
+        resultMap.put("exposureResults", exposureResults);
+        
+        // Batch errors
+        List<Map<String, Object>> batchErrors = new ArrayList<>();
+        for (ValidationError error : validationResult.batchErrors()) {
+            Map<String, Object> errorMap = new HashMap<>();
+            errorMap.put("dimension", error.dimension().toString());
+            errorMap.put("ruleCode", error.code());
+            errorMap.put("message", error.message());
+            errorMap.put("fieldName", error.fieldName());
+            errorMap.put("severity", error.severity().toString());
+            batchErrors.add(errorMap);
+        }
+        resultMap.put("batchErrors", batchErrors);
+        
+        return objectMapper.writeValueAsString(resultMap);
+    }
+    
+    /**
+     * Serialize validation result with recommendations to JSON string.
+     */
+    private String serializeValidationResultWithRecommendations(ValidationResult validationResult,
+                                                                  java.util.List<com.bcbs239.regtech.core.domain.recommendations.QualityInsight> recommendations) throws IOException {
+        // Start with base serialization
+        Map<String, Object> resultMap = new HashMap<>();
+        resultMap.put("totalExposures", validationResult.totalExposures());
+        resultMap.put("validExposures", validationResult.validExposures());
+        resultMap.put("invalidExposures", validationResult.totalExposures() - validationResult.validExposures());
+        resultMap.put("overallErrorCount", validationResult.allErrors().size());
+        
+        // Dimension scores
+        if (validationResult.dimensionScores() != null) {
+            Map<String, Object> dimensionScores = new HashMap<>();
+            dimensionScores.put("accuracy", validationResult.dimensionScores().accuracy());
+            dimensionScores.put("completeness", validationResult.dimensionScores().completeness());
+            dimensionScores.put("consistency", validationResult.dimensionScores().consistency());
+            dimensionScores.put("timeliness", validationResult.dimensionScores().timeliness());
+            dimensionScores.put("uniqueness", validationResult.dimensionScores().uniqueness());
+            dimensionScores.put("validity", validationResult.dimensionScores().validity());
+            resultMap.put("dimensionScores", dimensionScores);
+        }
+        
+        // Add recommendations
+        if (recommendations != null && !recommendations.isEmpty()) {
+            List<Map<String, Object>> recommendationsList = new ArrayList<>();
+            for (com.bcbs239.regtech.core.domain.recommendations.QualityInsight insight : recommendations) {
+                Map<String, Object> rec = new HashMap<>();
+                rec.put("ruleId", insight.ruleId());
+                rec.put("severity", insight.severity().name());
+                rec.put("priority", insight.severity().getPriority());
+                rec.put("icon", insight.severity().getIcon());
+                rec.put("color", insight.severity().getColor());
+                rec.put("message", insight.message());
+                rec.put("actionItems", insight.actionItems());
+                rec.put("locale", insight.locale().toLanguageTag());
+                rec.put("hasActions", insight.hasActions());
+                recommendationsList.add(rec);
+            }
+            resultMap.put("recommendations", recommendationsList);
         }
         
         // Exposure validation results (limited to avoid huge files)

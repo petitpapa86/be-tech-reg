@@ -245,17 +245,29 @@ public class LocalStorageServiceImpl implements S3StorageService {
 
     @Override
     public Result<S3Reference> storeDetailedResults(BatchId batchId, ValidationResult validationResult, Map<String, String> metadata) {
-        logger.info("Starting storage of detailed validation results for batch: {}", batchId.value());
+        return storeDetailedResults(batchId, validationResult, metadata, java.util.List.of());
+    }
+    
+    @Override
+    public Result<S3Reference> storeDetailedResults(BatchId batchId, ValidationResult validationResult, 
+                                                     Map<String, String> metadata,
+                                                     java.util.List<com.bcbs239.regtech.core.domain.recommendations.QualityInsight> recommendations) {
+        logger.info("Starting storage of detailed validation results with {} recommendations for batch: {}", 
+            recommendations != null ? recommendations.size() : 0, batchId.value());
         long startTime = System.currentTimeMillis();
         
         try {
             String key = String.format("quality/quality_%s.json", batchId.value());
-            String jsonContent = serializeValidationResult(validationResult);
+            String jsonContent = serializeValidationResultWithRecommendations(validationResult, recommendations);
             
-            S3Reference reference = storeToLocalFile(key, jsonContent, metadata);
+            Map<String, String> enrichedMetadata = new HashMap<>(metadata != null ? metadata : new HashMap<>());
+            enrichedMetadata.put("recommendations-count", String.valueOf(recommendations != null ? recommendations.size() : 0));
+            
+            S3Reference reference = storeToLocalFile(key, jsonContent, enrichedMetadata);
 
             long duration = System.currentTimeMillis() - startTime;
-            logger.info("Successfully stored detailed results for batch {} in {} ms", batchId.value(), duration);
+            logger.info("Successfully stored detailed results with {} recommendations for batch {} in {} ms", 
+                recommendations != null ? recommendations.size() : 0, batchId.value(), duration);
 
             return Result.success(reference);
             
@@ -297,6 +309,89 @@ public class LocalStorageServiceImpl implements S3StorageService {
             dimensionScores.put("uniqueness", validationResult.dimensionScores().uniqueness());
             dimensionScores.put("validity", validationResult.dimensionScores().validity());
             resultMap.put("dimensionScores", dimensionScores);
+        }
+        
+        List<Map<String, Object>> exposureResults = new ArrayList<>();
+        int count = 0;
+        for (Map.Entry<String, ExposureValidationResult> entry : validationResult.exposureResults().entrySet()) {
+            if (count >= 10000) break;
+            
+            Map<String, Object> exposureResult = new HashMap<>();
+            exposureResult.put("exposureId", entry.getKey());
+            exposureResult.put("isValid", entry.getValue().isValid());
+            exposureResult.put("errorCount", entry.getValue().errors().size());
+
+            if (!entry.getValue().isValid()) {
+                List<Map<String, Object>> errors = new ArrayList<>();
+                for (ValidationError error : entry.getValue().errors()) {
+                    Map<String, Object> errorMap = new HashMap<>();
+                    errorMap.put("dimension", error.dimension().toString());
+                    errorMap.put("ruleCode", error.code());
+                    errorMap.put("message", error.message());
+                    errorMap.put("fieldName", error.fieldName());
+                    errorMap.put("severity", error.severity().toString());
+                    errors.add(errorMap);
+                }
+                exposureResult.put("errors", errors);
+            }
+            
+            exposureResults.add(exposureResult);
+            count++;
+        }
+        resultMap.put("exposureResults", exposureResults);
+        
+        List<Map<String, Object>> batchErrors = new ArrayList<>();
+        for (ValidationError error : validationResult.batchErrors()) {
+            Map<String, Object> errorMap = new HashMap<>();
+            errorMap.put("dimension", error.dimension().toString());
+            errorMap.put("ruleCode", error.code());
+            errorMap.put("message", error.message());
+            errorMap.put("fieldName", error.fieldName());
+            errorMap.put("severity", error.severity().toString());
+            batchErrors.add(errorMap);
+        }
+        resultMap.put("batchErrors", batchErrors);
+        
+        return objectMapper.writeValueAsString(resultMap);
+    }
+    
+    private String serializeValidationResultWithRecommendations(ValidationResult validationResult,
+                                                                  java.util.List<com.bcbs239.regtech.core.domain.recommendations.QualityInsight> recommendations) throws IOException {
+        Map<String, Object> resultMap = new HashMap<>();
+        
+        resultMap.put("totalExposures", validationResult.totalExposures());
+        resultMap.put("validExposures", validationResult.validExposures());
+        resultMap.put("totalErrors", validationResult.allErrors().size());
+        resultMap.put("timestamp", Instant.now().toString());
+        
+        if (validationResult.dimensionScores() != null) {
+            Map<String, Double> dimensionScores = new HashMap<>();
+            dimensionScores.put("completeness", validationResult.dimensionScores().completeness());
+            dimensionScores.put("accuracy", validationResult.dimensionScores().accuracy());
+            dimensionScores.put("consistency", validationResult.dimensionScores().consistency());
+            dimensionScores.put("timeliness", validationResult.dimensionScores().timeliness());
+            dimensionScores.put("uniqueness", validationResult.dimensionScores().uniqueness());
+            dimensionScores.put("validity", validationResult.dimensionScores().validity());
+            resultMap.put("dimensionScores", dimensionScores);
+        }
+        
+        // Add recommendations
+        if (recommendations != null && !recommendations.isEmpty()) {
+            List<Map<String, Object>> recommendationsList = new ArrayList<>();
+            for (com.bcbs239.regtech.core.domain.recommendations.QualityInsight insight : recommendations) {
+                Map<String, Object> rec = new HashMap<>();
+                rec.put("ruleId", insight.ruleId());
+                rec.put("severity", insight.severity().name());
+                rec.put("priority", insight.severity().getPriority());
+                rec.put("icon", insight.severity().getIcon());
+                rec.put("color", insight.severity().getColor());
+                rec.put("message", insight.message());
+                rec.put("actionItems", insight.actionItems());
+                rec.put("locale", insight.locale().toLanguageTag());
+                rec.put("hasActions", insight.hasActions());
+                recommendationsList.add(rec);
+            }
+            resultMap.put("recommendations", recommendationsList);
         }
         
         List<Map<String, Object>> exposureResults = new ArrayList<>();

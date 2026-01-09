@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.reportgeneration.application.generation;
 
+import com.bcbs239.regtech.core.domain.recommendations.QualityInsight;
+import com.bcbs239.regtech.core.domain.recommendations.RecommendationSeverity;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.storage.IStorageService;
 import com.bcbs239.regtech.core.domain.storage.StorageUri;
@@ -569,6 +571,9 @@ public class ComprehensiveReportDataAggregator {
             // Extract exposure results
             List<QualityResults.ExposureResult> exposureResults = mapExposureResults(root.path("exposureResults"));
             
+            // Extract recommendations (if present)
+            List<QualityInsight> recommendations = mapRecommendations(root.path("recommendations"));
+            
             return new QualityResults(
                 BatchId.of(batchId),
                 BankId.of(bankId),
@@ -578,7 +583,8 @@ public class ComprehensiveReportDataAggregator {
                 totalErrors,
                 dimensionScores,
                 batchErrors,
-                exposureResults
+                exposureResults,
+                recommendations
             );
             
         } catch (Exception e) {
@@ -821,6 +827,68 @@ public class ComprehensiveReportDataAggregator {
         );
     }
 
+    /**
+     * Map recommendations JSON array to list of QualityInsight objects
+     * Parses recommendations generated during data quality validation
+     */
+    private List<QualityInsight> mapRecommendations(JsonNode recommendationsNode) {
+        List<QualityInsight> recommendations = new ArrayList<>();
+        
+        if (recommendationsNode == null || !recommendationsNode.isArray()) {
+            log.debug("No recommendations found in quality data");
+            return recommendations;
+        }
+        
+        recommendationsNode.forEach(node -> {
+            try {
+                String ruleId = node.path("ruleId").asText();
+                String severityStr = node.path("severity").asText();
+                String message = node.path("message").asText();
+                String localeStr = node.path("locale").asText("en-US");
+                
+                // Parse action items
+                List<String> actionItems = new ArrayList<>();
+                JsonNode actionItemsNode = node.path("actionItems");
+                if (actionItemsNode.isArray()) {
+                    actionItemsNode.forEach(item -> actionItems.add(item.asText()));
+                }
+                
+                // Map severity string to enum
+                RecommendationSeverity severity;
+                try {
+                    severity = RecommendationSeverity.valueOf(severityStr);
+                } catch (IllegalArgumentException e) {
+                    log.warn("Unknown recommendation severity: {}, defaulting to MEDIUM", severityStr);
+                    severity = RecommendationSeverity.MEDIUM;
+                }
+                
+                // Parse locale
+                Locale locale;
+                try {
+                    locale = Locale.forLanguageTag(localeStr);
+                } catch (Exception e) {
+                    log.warn("Invalid locale: {}, defaulting to en-US", localeStr);
+                    locale = Locale.US;
+                }
+                
+                recommendations.add(new QualityInsight(
+                    ruleId,
+                    severity,
+                    message,
+                    actionItems,
+                    locale
+                ));
+                
+            } catch (Exception e) {
+                log.error("Failed to parse recommendation: {}", node, e);
+                // Continue parsing other recommendations
+            }
+        });
+        
+        log.debug("Parsed {} recommendations from quality data", recommendations.size());
+        return recommendations;
+    }
+    
     private ConcentrationIndices mapConcentrationIndicesFromRisk(JsonNode node) {
         if (node == null || node.isMissingNode() || !node.isObject()) {
             return mapConcentrationIndices(objectMapper.createObjectNode());

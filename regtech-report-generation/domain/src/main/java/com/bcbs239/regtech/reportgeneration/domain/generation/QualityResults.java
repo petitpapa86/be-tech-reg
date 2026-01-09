@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.domain.generation;
 
+import com.bcbs239.regtech.core.domain.recommendations.QualityInsight;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
 import lombok.Getter;
 import lombok.NonNull;
@@ -36,6 +37,7 @@ public class QualityResults {
     private final Map<QualityDimension, BigDecimal> dimensionScores;
     private final List<Object> batchErrors;
     private final List<ExposureResult> exposureResults;
+    private final List<QualityInsight> recommendations;
     
     // Computed properties
     private final BigDecimal overallScore;
@@ -52,7 +54,8 @@ public class QualityResults {
             @NonNull Integer totalErrors,
             @NonNull Map<QualityDimension, BigDecimal> dimensionScores,
             @NonNull List<Object> batchErrors,
-            @NonNull List<ExposureResult> exposureResults) {
+            @NonNull List<ExposureResult> exposureResults,
+            @NonNull List<QualityInsight> recommendations) {
         
         this.batchId = batchId;
         this.bankId = bankId;
@@ -63,6 +66,7 @@ public class QualityResults {
         this.dimensionScores = dimensionScores;
         this.batchErrors = batchErrors;
         this.exposureResults = exposureResults;
+        this.recommendations = recommendations != null ? recommendations : List.of();
         
         // Calculate derived values
         this.overallScore = calculateOverallScore();
