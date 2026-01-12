@@ -2,6 +2,8 @@ package com.bcbs239.regtech.dataquality.application.validation;
 
 import com.bcbs239.regtech.dataquality.application.validation.consistency.ConsistencyValidator;
 import com.bcbs239.regtech.dataquality.application.validation.timeliness.TimelinessValidator;
+import com.bcbs239.regtech.dataquality.application.validation.uniqueness.UniquenessValidator;
+import com.bcbs239.regtech.dataquality.application.validation.uniqueness.UniquenessValidationResult;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureValidationResult;
@@ -22,7 +24,7 @@ import java.util.function.Function;
 /**
  * Coordinator for parallel exposure validation.
  * Handles the orchestration of validation across multiple exposures,
- * executes cross-field consistency checks, and calculates timeliness.
+ * executes cross-field consistency checks, calculates timeliness, and validates uniqueness.
  */
 @Component
 public class ParallelExposureValidationCoordinator {
@@ -33,6 +35,7 @@ public class ParallelExposureValidationCoordinator {
     private final int configuredChunkSize;
     private final ConsistencyValidator consistencyValidator;
     private final TimelinessValidator timelinessValidator;
+    private final UniquenessValidator uniquenessValidator;
 
     public ParallelExposureValidationCoordinator(
         @Value("${spring.datasource.hikari.maximum-pool-size:20}") int hikariMaxPoolSize,
@@ -40,7 +43,8 @@ public class ParallelExposureValidationCoordinator {
         @Value("${dataquality.validation.parallel-threshold:1000}") int configuredParallelThreshold,
         @Value("${dataquality.validation.chunk-size:0}") int configuredChunkSize,
         ConsistencyValidator consistencyValidator,
-        TimelinessValidator timelinessValidator
+        TimelinessValidator timelinessValidator,
+        UniquenessValidator uniquenessValidator
     ) {
         int safeHikariMaxPoolSize = Math.max(1, hikariMaxPoolSize);
         int safeConfiguredMaxInFlight = Math.max(0, configuredMaxInFlight);
@@ -70,6 +74,7 @@ public class ParallelExposureValidationCoordinator {
         this.configuredChunkSize = Math.max(0, configuredChunkSize);
         this.consistencyValidator = consistencyValidator;
         this.timelinessValidator = timelinessValidator;
+        this.uniquenessValidator = uniquenessValidator;
     }
 
     @PreDestroy
@@ -79,7 +84,7 @@ public class ParallelExposureValidationCoordinator {
 
     /**
      * Validates all exposures, using parallel processing for large batches.
-     * ALWAYS performs consistency checks and timeliness calculation at the end.
+     * ALWAYS performs consistency checks, timeliness calculation, and uniqueness validation at the end.
      *
      * @param exposures List of exposures to validate
      * @param validator The validator to use
@@ -87,7 +92,7 @@ public class ParallelExposureValidationCoordinator {
      * @param crmReferences Optional list of CRM reference IDs (for Check 2: Mappatura CRM)
      * @param uploadDate Optional upload date for timeliness calculation (if null, timeliness not calculated)
      * @param bankId Optional bank ID for loading timeliness threshold from DB
-     * @return ValidationBatchResult containing the results, exposure results map, consistency checks, and timeliness
+     * @return ValidationBatchResult containing the results, exposure results map, consistency checks, timeliness, and uniqueness
      */
     public ValidationBatchResult validateAll(
         List<ExposureRecord> exposures,
@@ -125,7 +130,60 @@ public class ParallelExposureValidationCoordinator {
                 timelinessResult = timelinessValidator.calculateTimeliness(exposures, uploadDate, null, bankId);
             }
             
-            return ValidationBatchResult.complete(results, exposureResults, consistencyResult, timelinessResult);
+            // ALWAYS execute uniqueness validation
+            // DIMENSIONE: UNICITÀ (Uniqueness) - detects duplicates
+            UniquenessValidationResult uniquenessResult = uniquenessValidator.validate(exposures);
+            
+            // Optimize: Group uniqueness errors by exposureId first, then update each exposure ONCE
+            // This reduces map operations from O(duplicate_count) to O(unique_exposures_with_duplicates)
+            if (uniquenessResult.hasDuplicates()) {
+                // Group errors by exposureId
+                Map<String, List<ValidationError>> uniquenessErrorsByExpId = new HashMap<>();
+                for (ValidationError error : uniquenessResult.errors()) {
+                    uniquenessErrorsByExpId.computeIfAbsent(error.exposureId(), k -> new ArrayList<>()).add(error);
+                }
+                
+                // Update each affected exposure ONCE with all its uniqueness errors
+                uniquenessErrorsByExpId.forEach((expId, uniquenessErrors) -> {
+                    ExposureValidationResult existing = exposureResults.get(expId);
+                    
+                    if (existing != null) {
+                        // Merge all uniqueness errors into existing result
+                        List<ValidationError> mergedErrors = new ArrayList<>(existing.errors());
+                        mergedErrors.addAll(uniquenessErrors);
+                        
+                        // Update dimension errors map
+                        Map<QualityDimension, List<ValidationError>> mergedDimensionErrors = 
+                            new HashMap<>(existing.dimensionErrors());
+                        mergedDimensionErrors.computeIfAbsent(QualityDimension.UNIQUENESS, k -> new ArrayList<>())
+                            .addAll(uniquenessErrors);
+                        
+                        // Replace with updated result (single map.put per exposure)
+                        exposureResults.put(expId, ExposureValidationResult.builder()
+                            .exposureId(expId)
+                            .errors(mergedErrors)
+                            .dimensionErrors(mergedDimensionErrors)
+                            .isValid(false)  // Has uniqueness error
+                            .build());
+                    } else {
+                        // Create new result for exposures not yet in map
+                        Map<QualityDimension, List<ValidationError>> dimensionErrors = new HashMap<>();
+                        for (QualityDimension dim : QualityDimension.values()) {
+                            dimensionErrors.put(dim, new ArrayList<>());
+                        }
+                        dimensionErrors.get(QualityDimension.UNIQUENESS).addAll(uniquenessErrors);
+                        
+                        exposureResults.put(expId, ExposureValidationResult.builder()
+                            .exposureId(expId)
+                            .errors(uniquenessErrors)
+                            .dimensionErrors(dimensionErrors)
+                            .isValid(false)
+                            .build());
+                    }
+                });
+            }
+            
+            return ValidationBatchResult.complete(results, exposureResults, consistencyResult, timelinessResult, uniquenessResult);
         } finally {
             validator.onBatchComplete();
         }

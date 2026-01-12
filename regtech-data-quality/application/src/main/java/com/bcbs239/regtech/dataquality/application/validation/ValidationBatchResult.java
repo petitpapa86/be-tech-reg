@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
 import com.bcbs239.regtech.dataquality.application.validation.timeliness.TimelinessValidator.TimelinessResult;
+import com.bcbs239.regtech.dataquality.application.validation.uniqueness.UniquenessValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.consistency.ConsistencyValidationResult;
 import org.jspecify.annotations.Nullable;
@@ -11,13 +12,14 @@ import java.util.Map;
 /**
  * Result of batch validation containing both the raw validation results,
  * the processed exposure results, optional cross-field consistency checks,
- * and optional timeliness calculation.
+ * optional timeliness calculation, and optional uniqueness validation.
  */
 public record ValidationBatchResult(
     List<ValidationResults> results,
     Map<String, ExposureValidationResult> exposureResults,
     @Nullable ConsistencyValidationResult consistencyResult,
-    @Nullable TimelinessResult timelinessResult
+    @Nullable TimelinessResult timelinessResult,
+    @Nullable UniquenessValidationResult uniquenessResult
 ) {
     /**
      * Factory method for backward compatibility - without consistency checks or timeliness.
@@ -26,30 +28,31 @@ public record ValidationBatchResult(
         List<ValidationResults> results,
         Map<String, ExposureValidationResult> exposureResults
     ) {
-        return new ValidationBatchResult(results, exposureResults, null, null);
+        return new ValidationBatchResult(results, exposureResults, null, null, null);
     }
     
     /**
-     * Factory method with consistency checks only (no timeliness).
+     * Factory method with consistency checks only (no timeliness or uniqueness).
      */
     public static ValidationBatchResult withConsistencyChecks(
         List<ValidationResults> results,
         Map<String, ExposureValidationResult> exposureResults,
         ConsistencyValidationResult consistencyResult
     ) {
-        return new ValidationBatchResult(results, exposureResults, consistencyResult, null);
+        return new ValidationBatchResult(results, exposureResults, consistencyResult, null, null);
     }
     
     /**
-     * Factory method with both consistency checks and timeliness calculation.
+     * Factory method with consistency checks, timeliness, and uniqueness validation.
      */
     public static ValidationBatchResult complete(
         List<ValidationResults> results,
         Map<String, ExposureValidationResult> exposureResults,
         ConsistencyValidationResult consistencyResult,
-        TimelinessResult timelinessResult
+        TimelinessResult timelinessResult,
+        UniquenessValidationResult uniquenessResult
     ) {
-        return new ValidationBatchResult(results, exposureResults, consistencyResult, timelinessResult);
+        return new ValidationBatchResult(results, exposureResults, consistencyResult, timelinessResult, uniquenessResult);
     }
     
     /**
@@ -64,5 +67,12 @@ public record ValidationBatchResult(
      */
     public boolean hasTimelinessResult() {
         return timelinessResult != null;
+    }
+    
+    /**
+     * Check if uniqueness validation was performed.
+     */
+    public boolean hasUniquenessResult() {
+        return uniquenessResult != null;
     }
 }

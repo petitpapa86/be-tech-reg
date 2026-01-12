@@ -144,7 +144,8 @@ public class ValidateBatchQualityCommandHandler {
                 batchResult.results(),
                 batchResult.exposureResults(),
                 batchResult.consistencyResult(),
-                metadataTimeliness  // Override with metadata-based calculation
+                metadataTimeliness,  // Override with metadata-based calculation
+                batchResult.uniquenessResult()  // Keep existing uniqueness result
             );
         }
 
