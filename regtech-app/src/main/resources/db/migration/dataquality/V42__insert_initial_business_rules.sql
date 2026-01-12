@@ -369,6 +369,164 @@ INSERT INTO dataquality.rule_parameters (
     CURRENT_TIMESTAMP
 );
 
+-- Rule 6: Valid Product Type
+INSERT INTO dataquality.business_rules (
+    rule_id, regulation_id, rule_name, rule_code, description,
+    rule_type, rule_category, severity, business_logic,
+    execution_order, effective_date, enabled, created_at, updated_at
+) VALUES (
+    'DQ_ACCURACY_VALID_PRODUCT_TYPE',
+    'BCBS_239_DATA_QUALITY',
+    'Valid Product Type',
+    'ACCURACY_VALID_PRODUCT_TYPE',
+    'Valida che il tipo di prodotto sia nell''elenco dei tipi validi',
+    'ACCURACY',
+    'DATA_QUALITY',
+    'HIGH',
+    '#productType == null || #validProductTypes.contains(#productType.toUpperCase())',
+    15,
+    '2024-01-01',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
+-- Rule 6 Parameter: Valid Product Types List
+INSERT INTO dataquality.rule_parameters (
+    rule_id, parameter_name, parameter_value, parameter_type, data_type,
+    description, is_configurable, created_at, updated_at
+) VALUES (
+    'DQ_ACCURACY_VALID_PRODUCT_TYPE',
+    'validProductTypes',
+    'LOAN,BOND,EQUITY,DERIVATIVE,DEPOSIT,GUARANTEE,LETTER_OF_CREDIT,OVERDRAFT,MORTGAGE,LEASING,FACTORING,REPO,REVERSE_REPO',
+    'LIST',
+    'STRING',
+    'Elenco separato da virgole dei tipi di prodotto validi',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
+-- Rule 7: Valid Internal Rating Format
+INSERT INTO dataquality.business_rules (
+    rule_id, regulation_id, rule_name, rule_code, description,
+    rule_type, rule_category, severity, business_logic,
+    execution_order, effective_date, enabled, created_at, updated_at
+) VALUES (
+    'DQ_ACCURACY_VALID_INTERNAL_RATING_FORMAT',
+    'BCBS_239_DATA_QUALITY',
+    'Valid Internal Rating Format',
+    'ACCURACY_VALID_INTERNAL_RATING_FORMAT',
+    'Valida che il rating interno abbia un formato valido (es. AAA, AA+, A-, BBB, ecc.)',
+    'ACCURACY',
+    'REGULATORY_COMPLIANCE',
+    'HIGH',
+    '#internalRating == null || #validInternalRatings.contains(#internalRating.toUpperCase())',
+    16,
+    '2024-01-01',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
+-- Rule 7 Parameter: Valid Internal Ratings List
+INSERT INTO dataquality.rule_parameters (
+    rule_id, parameter_name, parameter_value, parameter_type, data_type,
+    description, is_configurable, created_at, updated_at
+) VALUES (
+    'DQ_ACCURACY_VALID_INTERNAL_RATING_FORMAT',
+    'validInternalRatings',
+    'AAA,AA+,AA,AA-,A+,A,A-,BBB+,BBB,BBB-,BB+,BB,BB-,B+,B,B-,CCC+,CCC,CCC-,CC,C,D,NR',
+    'LIST',
+    'STRING',
+    'Elenco separato da virgole dei rating interni validi (scala S&P)',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
+-- Rule 8: Valid Maturity Date Format
+INSERT INTO dataquality.business_rules (
+    rule_id, regulation_id, rule_name, rule_code, description,
+    rule_type, rule_category, severity, business_logic,
+    execution_order, effective_date, enabled, created_at, updated_at
+) VALUES (
+    'DQ_ACCURACY_VALID_MATURITY_DATE_FORMAT',
+    'BCBS_239_DATA_QUALITY',
+    'Valid Maturity Date Format',
+    'ACCURACY_VALID_MATURITY_DATE_FORMAT',
+    'Valida che la data di scadenza sia nel formato corretto e nel futuro',
+    'ACCURACY',
+    'DATA_QUALITY',
+    'HIGH',
+    '#maturityDate == null || !#maturityDate.isBefore(T(java.time.LocalDate).now())',
+    17,
+    '2024-01-01',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
+-- Rule 9: Valid Risk Weight Range
+INSERT INTO dataquality.business_rules (
+    rule_id, regulation_id, rule_name, rule_code, description,
+    rule_type, rule_category, severity, business_logic,
+    execution_order, effective_date, enabled, created_at, updated_at
+) VALUES (
+    'DQ_ACCURACY_RISK_WEIGHT_POSITIVE',
+    'BCBS_239_DATA_QUALITY',
+    'Positive Risk Weight',
+    'ACCURACY_RISK_WEIGHT_POSITIVE',
+    'Valida che il peso del rischio sia positivo o zero',
+    'ACCURACY',
+    'REGULATORY_COMPLIANCE',
+    'HIGH',
+    '#riskWeight == null || #riskWeight >= 0',
+    18,
+    '2024-01-01',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
+-- Rule 10: Valid Counterparty Type
+INSERT INTO dataquality.business_rules (
+    rule_id, regulation_id, rule_name, rule_code, description,
+    rule_type, rule_category, severity, business_logic,
+    execution_order, effective_date, enabled, created_at, updated_at
+) VALUES (
+    'DQ_ACCURACY_VALID_COUNTERPARTY_TYPE',
+    'BCBS_239_DATA_QUALITY',
+    'Valid Counterparty Type',
+    'ACCURACY_VALID_COUNTERPARTY_TYPE',
+    'Valida che il tipo di controparte sia nell''elenco dei tipi validi',
+    'ACCURACY',
+    'DATA_QUALITY',
+    'HIGH',
+    '#counterpartyType == null || #validCounterpartyTypes.contains(#counterpartyType.toUpperCase())',
+    19,
+    '2024-01-01',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
+-- Rule 10 Parameter: Valid Counterparty Types List
+INSERT INTO dataquality.rule_parameters (
+    rule_id, parameter_name, parameter_value, parameter_type, data_type,
+    description, is_configurable, created_at, updated_at
+) VALUES (
+    'DQ_ACCURACY_VALID_COUNTERPARTY_TYPE',
+    'validCounterpartyTypes',
+    'CORPORATE,BANK,SOVEREIGN,RETAIL,SME,FINANCIAL_INSTITUTION,GOVERNMENT,PUBLIC_SECTOR,NON_PROFIT,INDIVIDUAL',
+    'LIST',
+    'STRING',
+    'Elenco separato da virgole dei tipi di controparte validi',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
 -- =====================================================
 -- TIMELINESS RULES (3 rules)
 -- =====================================================
@@ -665,12 +823,30 @@ INSERT INTO dataquality.business_rules (
 -- =====================================================
 -- Migration Summary
 -- =====================================================
--- Total Rules Created: 24
---   - Completeness: 8 rules (all enabled)
---   - Accuracy: 5 rules (all enabled)
+-- Total Rules Created: 30
+--   - Completeness: 9 rules (all enabled)
+--   - Accuracy: 10 rules (all enabled)
+--     • Positive Amount (importi positivi)
+--     • Valid Currency Codes (codici ISO 4217)
+--     • Valid Country Codes (codici ISO 3166)
+--     • Valid LEI Format (formato LEI 20 caratteri)
+--     • Reasonable Amount (importi entro limiti)
+--     • Valid Product Type (tipi di prodotto)
+--     • Valid Internal Rating Format (rating interni)
+--     • Valid Maturity Date Format (date scadenza future)
+--     • Positive Risk Weight (peso rischio positivo)
+--     • Valid Counterparty Type (tipo controparte)
 --   - Timeliness: 3 rules (all enabled)
 --   - Consistency: 3 rules (disabled - require custom implementation)
 --   - Uniqueness: 2 rules (disabled - require batch-level implementation)
 --   - Validity: 3 rules (all enabled)
--- Total Parameters: 6
+-- Total Parameters: 12
+--   - Valid Currencies (50+ codici ISO 4217)
+--   - Valid Countries (80+ codici ISO 3166)
+--   - Max Reasonable Amount (10 miliardi EUR)
+--   - Max Reporting Age (90 giorni)
+--   - Valid Sectors (11 settori economici)
+--   - Valid Product Types (13 tipi prodotto)
+--   - Valid Internal Ratings (23 rating scala S&P)
+--   - Valid Counterparty Types (10 tipi controparte)
 -- =====================================================
