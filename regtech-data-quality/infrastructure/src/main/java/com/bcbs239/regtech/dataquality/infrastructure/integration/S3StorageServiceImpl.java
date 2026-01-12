@@ -124,18 +124,54 @@ public class S3StorageServiceImpl implements S3StorageService {
         }
     }
     
+    @Override
+    public Result<com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata> downloadBatchWithMetadata(String s3Uri) {
+        logger.info("Starting download of batch with metadata from URI: {}", s3Uri);
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata batch;
+            
+            // Check if it's a local file URI
+            if (s3Uri != null && s3Uri.startsWith("file://")) {
+                batch = downloadBatchFromLocalFile(s3Uri);
+            } else {
+                // For S3, we currently don't have metadata extraction in streaming mode
+                // Fall back to downloading exposures without metadata
+                Result<List<ExposureRecord>> exposuresResult = downloadExposures(s3Uri);
+                if (exposuresResult.isFailure()) {
+                    return Result.failure(exposuresResult.getError().orElseThrow());
+                }
+                batch = com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata.withoutMetadata(exposuresResult.getValueOrThrow());
+            }
+            
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Successfully downloaded batch with {} exposures, declaredCount={}, reportDate={} in {} ms",
+                batch.exposures().size(), batch.declaredCount(), batch.reportDate(), duration);
+            
+            return Result.success(batch);
+            
+        } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
+            logger.error("S3 error downloading batch from: {}", s3Uri, e);
+            return Result.failure("S3_DOWNLOAD_ERROR", ErrorType.SYSTEM_ERROR, "Failed to download from S3: " + e.getMessage(), "s3_download");
+        } catch (IOException e) {
+            logger.error("IO error parsing batch from: {}", s3Uri, e);
+            return Result.failure("S3_PARSE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse JSON: " + e.getMessage(), "json_parsing");
+        } catch (Exception e) {
+            logger.error("Unexpected error downloading batch from: {}", s3Uri, e);
+            return Result.failure("S3_DOWNLOAD_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error downloading batch: " + e.getMessage(), "system");
+        }
+    }
+    
     /**
-     * Downloads and parses exposures from a local file URI.
-     * Supports multiple formats:
-     * 1. New format with "exposures" and "bank_info" fields (BatchDataDTO)
-     * 2. Old format with "loan_portfolio" field
-     * 3. Direct array format
+     * Downloads and parses batch with metadata from a local file URI.
+     * Extracts metadata from BatchDataDTO.bankInfo if available.
      */
-    private List<ExposureRecord> downloadFromLocalFile(String fileUri) throws IOException {
+    private com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata downloadBatchFromLocalFile(String fileUri) throws IOException {
         // Convert file:// URI to file path using proper parsing
         String filePath = parseFileUri(fileUri);
 
-        logger.info("Reading exposures from local file: {}", filePath);
+        logger.info("Reading batch with metadata from local file: {}", filePath);
         
         java.nio.file.Path path = java.nio.file.Paths.get(filePath);
         if (!java.nio.file.Files.exists(path)) {
@@ -151,36 +187,42 @@ public class S3StorageServiceImpl implements S3StorageService {
                 logger.info("Detected new BatchDataDTO format with exposures and bank_info fields");
                 BatchDataDTO batchData = objectMapper.treeToValue(rootNode, BatchDataDTO.class);
                 
+                // Extract metadata from bank_info
+                Integer declaredCount = batchData.bankInfo().totalExposures();
+                java.time.LocalDate reportDate = batchData.bankInfo().reportDate();
+                
                 // Log bank information if available
-                if (batchData.bankInfo() != null) {
-                    logger.info("Processing batch for bank: {} (ABI: {}, LEI: {}), Report date: {}, Total exposures: {}",
-                        batchData.bankInfo().bankName(),
-                        batchData.bankInfo().abiCode(),
-                        batchData.bankInfo().leiCode(),
-                        batchData.bankInfo().reportDate(),
-                        batchData.bankInfo().totalExposures());
-                }
+                logger.info("Processing batch for bank: {} (ABI: {}, LEI: {}), Report date: {}, Total exposures: {}",
+                    batchData.bankInfo().bankName(),
+                    batchData.bankInfo().abiCode(),
+                    batchData.bankInfo().leiCode(),
+                    reportDate,
+                    declaredCount);
                 
                 // Convert ExposureDTOs to ExposureRecords
                 List<ExposureRecord> exposures = batchData.exposures().stream()
                     .map(ExposureRecord::fromDTO)
                     .toList();
                 
-                logger.info("Successfully parsed {} exposures from BatchDataDTO format", exposures.size());
-                return exposures;
+                logger.info("Successfully parsed {} exposures from BatchDataDTO format with metadata (declaredCount={}, reportDate={})", 
+                    exposures.size(), declaredCount, reportDate);
+                
+                return new com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata(exposures, declaredCount, reportDate);
             }
             
-            // Backward compatibility: support old direct array format
+            // Backward compatibility: support old direct array format (no metadata)
             if (rootNode.isArray()) {
-                logger.info("Detected legacy direct array format");
-                return parseExposuresFromArray(rootNode);
+                logger.info("Detected legacy direct array format (no metadata)");
+                List<ExposureRecord> exposures = parseExposuresFromArray(rootNode);
+                return com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata.withoutMetadata(exposures);
             }
             
-            // Backward compatibility: support old loan_portfolio format
+            // Backward compatibility: support old loan_portfolio format (no metadata)
             if (rootNode.has("loan_portfolio")) {
-                logger.info("Detected legacy loan_portfolio format");
+                logger.info("Detected legacy loan_portfolio format (no metadata)");
                 JsonNode loanPortfolioNode = rootNode.get("loan_portfolio");
-                return parseExposuresFromArray(loanPortfolioNode);
+                List<ExposureRecord> exposures = parseExposuresFromArray(loanPortfolioNode);
+                return com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata.withoutMetadata(exposures);
             }
             
             // Unsupported format
@@ -201,6 +243,15 @@ public class S3StorageServiceImpl implements S3StorageService {
             );
             throw new IOException(errorMessage);
         }
+    }
+    
+    /**
+     * Downloads and parses exposures from a local file URI.
+     * Delegates to downloadBatchFromLocalFile and extracts only exposures.
+     */
+    private List<ExposureRecord> downloadFromLocalFile(String fileUri) throws IOException {
+        com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata batch = downloadBatchFromLocalFile(fileUri);
+        return batch.exposures();
     }
     
     /**
