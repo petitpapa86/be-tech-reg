@@ -22,13 +22,13 @@ public class RuleContextFactory {
 
         // Map exposure fields to context
         putIfNotNull(data, "exposureId", exposure.exposureId());
-        putIfNotNull(data, "amount", exposure.amount());
+        putIfNotNull(data, "amount", exposure.exposureAmount());
         putIfNotNull(data, "currency", exposure.currency());
-        putIfNotNull(data, "country", exposure.country());
+        putIfNotNull(data, "country", exposure.countryCode());
         putIfNotNull(data, "sector", exposure.sector());
         putIfNotNull(data, "counterpartyId", exposure.counterpartyId());
         putIfNotNull(data, "counterpartyType", exposure.counterpartyType());
-        putIfNotNull(data, "leiCode", exposure.leiCode());
+        putIfNotNull(data, "leiCode", exposure.counterpartyLei());
         putIfNotNull(data, "productType", exposure.productType());
         putIfNotNull(data, "internalRating", exposure.internalRating());
         putIfNotNull(data, "riskCategory", exposure.riskCategory());

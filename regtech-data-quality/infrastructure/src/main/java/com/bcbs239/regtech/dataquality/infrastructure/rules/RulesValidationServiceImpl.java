@@ -173,13 +173,13 @@ public class RulesValidationServiceImpl implements IRulesValidationService {
         // Map exposure fields to context.
         // Performance note: keep ONE canonical key per field (no aliasing / normalization).
         data.put("exposureId", exposure.exposureId());
-        data.put("amount", exposure.amount());
+        data.put("amount", exposure.exposureAmount());
         data.put("currency", exposure.currency());
-        data.put("country", exposure.country());
+        data.put("country", exposure.countryCode());
         data.put("sector", exposure.sector());
         data.put("counterpartyId", exposure.counterpartyId());
         data.put("counterpartyType", exposure.counterpartyType());
-        data.put("leiCode", exposure.leiCode());
+        data.put("leiCode", exposure.counterpartyLei());
         data.put("productType", exposure.productType());
         data.put("internalRating", exposure.internalRating());
         data.put("riskCategory", exposure.riskCategory());

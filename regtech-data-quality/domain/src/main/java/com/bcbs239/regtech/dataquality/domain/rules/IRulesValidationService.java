@@ -87,7 +87,7 @@ public interface IRulesValidationService {
      *             )
      *             .orElse(BigDecimal.valueOf(10_000_000_000)); // Fallback
      *             
-     *         return exposure -&gt; exposure.amount().compareTo(maxAmount) &lt;= 0;
+     *         return exposure -&gt; exposure.exposureAmount().compareTo(maxAmount) &lt;= 0;
      *     }
      * }
      * </pre>

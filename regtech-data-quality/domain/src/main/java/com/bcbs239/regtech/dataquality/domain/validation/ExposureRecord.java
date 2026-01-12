@@ -13,13 +13,13 @@ import java.time.LocalDate;
 public record ExposureRecord(
     String exposureId,
     String counterpartyId,
-    BigDecimal amount,
+    BigDecimal exposureAmount,
     String currency,
-    String country,
+    String countryCode,
     String sector,
     String counterpartyType,
     String productType,
-    String leiCode,
+    String counterpartyLei,
     String internalRating,
     String riskCategory,
     BigDecimal riskWeight,
@@ -41,12 +41,12 @@ public record ExposureRecord(
         return ExposureRecord.builder()
             .exposureId(dto.exposureId())
             .counterpartyId(dto.counterpartyId())
-            .amount(dto.exposureAmount())
+            .exposureAmount(dto.exposureAmount())
             .currency(dto.currency())
-            .country(dto.countryCode())
+            .countryCode(dto.countryCode())
             .sector(dto.sector())
             .productType(dto.productType())
-            .leiCode(dto.counterpartyLei())
+            .counterpartyLei(dto.counterpartyLei())
             // Fields not available in ExposureDTO - set to null
             .counterpartyType(null)
             .internalRating(dto.internalRating())
@@ -72,13 +72,13 @@ public record ExposureRecord(
     public static class Builder {
         private String exposureId;
         private String counterpartyId;
-        private BigDecimal amount;
+        private BigDecimal exposureAmount;
         private String currency;
-        private String country;
+        private String countryCode;
         private String sector;
         private String counterpartyType;
         private String productType;
-        private String leiCode;
+        private String counterpartyLei;
         private String internalRating;
         private String riskCategory;
         private BigDecimal riskWeight;
@@ -97,8 +97,8 @@ public record ExposureRecord(
             return this;
         }
         
-        public Builder amount(BigDecimal amount) {
-            this.amount = amount;
+        public Builder exposureAmount(BigDecimal exposureAmount) {
+            this.exposureAmount = exposureAmount;
             return this;
         }
         
@@ -107,8 +107,8 @@ public record ExposureRecord(
             return this;
         }
         
-        public Builder country(String country) {
-            this.country = country;
+        public Builder countryCode(String countryCode) {
+            this.countryCode = countryCode;
             return this;
         }
         
@@ -127,8 +127,8 @@ public record ExposureRecord(
             return this;
         }
         
-        public Builder leiCode(String leiCode) {
-            this.leiCode = leiCode;
+        public Builder counterpartyLei(String counterpartyLei) {
+            this.counterpartyLei = counterpartyLei;
             return this;
         }
         
@@ -171,13 +171,13 @@ public record ExposureRecord(
             return new ExposureRecord(
                 exposureId,
                 counterpartyId,
-                amount,
+                exposureAmount,
                 currency,
-                country,
+                countryCode,
                 sector,
                 counterpartyType,
                 productType,
-                leiCode,
+                counterpartyLei,
                 internalRating,
                 riskCategory,
                 riskWeight,
@@ -209,9 +209,9 @@ public record ExposureRecord(
      */
     public boolean hasRequiredFields() {
         return exposureId != null && !exposureId.trim().isEmpty() &&
-               amount != null &&
+               exposureAmount != null &&
                currency != null && !currency.trim().isEmpty() &&
-               country != null && !country.trim().isEmpty() &&
+               countryCode != null && !countryCode.trim().isEmpty() &&
                sector != null && !sector.trim().isEmpty();
     }
 }

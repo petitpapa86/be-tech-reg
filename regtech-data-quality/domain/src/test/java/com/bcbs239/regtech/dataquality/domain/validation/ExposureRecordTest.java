@@ -40,12 +40,12 @@ class ExposureRecordTest {
         assertNotNull(record);
         assertEquals("EXP_001", record.exposureId());
         assertEquals("COUNTER_001", record.counterpartyId());
-        assertEquals(new BigDecimal("100000.00"), record.amount());
+        assertEquals(new BigDecimal("100000.00"), record.exposureAmount());
         assertEquals("EUR", record.currency());
-        assertEquals("IT", record.country());
+        assertEquals("IT", record.countryCode());
         assertEquals("CORPORATE", record.sector());
         assertEquals("Business Loan", record.productType());
-        assertEquals("LEI123456789", record.leiCode());
+        assertEquals("LEI123456789", record.counterpartyLei());
         assertEquals("INST_001", record.referenceNumber());
         
         // Fields not in DTO should be null
@@ -85,11 +85,11 @@ class ExposureRecordTest {
         assertNotNull(record);
         assertEquals("EXP_002", record.exposureId());
         assertNull(record.counterpartyId());
-        assertEquals(new BigDecimal("50000.00"), record.amount());
+        assertEquals(new BigDecimal("50000.00"), record.exposureAmount());
         assertEquals("USD", record.currency());
-        assertEquals("US", record.country());
+        assertEquals("US", record.countryCode());
         assertNull(record.productType());
-        assertNull(record.leiCode());
+        assertNull(record.counterpartyLei());
         assertNull(record.referenceNumber());
     }
 
