@@ -11,6 +11,7 @@ public final class Tags {
     public static final String TRENDS = "Trends";
     public static final String HEALTH = "Health";
     public static final String METRICS = "Metrics";
+    public static final String CONFIGURATION = "Configuration";
     
     private Tags() {
         // Utility class - prevent instantiation
