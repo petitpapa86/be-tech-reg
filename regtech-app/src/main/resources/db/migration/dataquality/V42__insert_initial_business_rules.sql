@@ -182,6 +182,28 @@ INSERT INTO dataquality.business_rules (
     CURRENT_TIMESTAMP
 );
 
+-- Rule 9: Counterparty ID Required
+INSERT INTO dataquality.business_rules (
+    rule_id, regulation_id, rule_name, rule_code, description,
+    rule_type, rule_category, severity, business_logic,
+    execution_order, effective_date, enabled, created_at, updated_at
+) VALUES (
+    'DQ_COMPLETENESS_COUNTERPARTY_ID',
+    'BCBS_239_DATA_QUALITY',
+    'Counterparty ID Required',
+    'COMPLETENESS_COUNTERPARTY_ID_REQUIRED',
+    'Validates that counterparty ID is present and non-empty',
+    'COMPLETENESS',
+    'DATA_QUALITY',
+    'CRITICAL',
+    '#counterpartyId != null && !#counterpartyId.trim().isEmpty()',
+    9,
+    '2024-01-01',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
 -- =====================================================
 -- ACCURACY RULES (5 rules)
 -- =====================================================
