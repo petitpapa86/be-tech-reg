@@ -1,9 +1,11 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
+import com.bcbs239.regtech.dataquality.application.validation.consistency.ConsistencyValidator;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
+import com.bcbs239.regtech.dataquality.domain.validation.consistency.ConsistencyValidationResult;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -17,7 +19,8 @@ import java.util.function.Function;
 
 /**
  * Coordinator for parallel exposure validation.
- * Handles the orchestration of validation across multiple exposures.
+ * Handles the orchestration of validation across multiple exposures
+ * and executes cross-field consistency checks.
  */
 @Component
 public class ParallelExposureValidationCoordinator {
@@ -26,12 +29,14 @@ public class ParallelExposureValidationCoordinator {
     private final int maxInFlight;
     private final int parallelThreshold;
     private final int configuredChunkSize;
+    private final ConsistencyValidator consistencyValidator;
 
     public ParallelExposureValidationCoordinator(
         @Value("${spring.datasource.hikari.maximum-pool-size:20}") int hikariMaxPoolSize,
         @Value("${dataquality.validation.max-in-flight:0}") int configuredMaxInFlight,
         @Value("${dataquality.validation.parallel-threshold:1000}") int configuredParallelThreshold,
-        @Value("${dataquality.validation.chunk-size:0}") int configuredChunkSize
+        @Value("${dataquality.validation.chunk-size:0}") int configuredChunkSize,
+        ConsistencyValidator consistencyValidator
     ) {
         int safeHikariMaxPoolSize = Math.max(1, hikariMaxPoolSize);
         int safeConfiguredMaxInFlight = Math.max(0, configuredMaxInFlight);
@@ -59,6 +64,7 @@ public class ParallelExposureValidationCoordinator {
         this.parallelThreshold = Math.max(1, configuredParallelThreshold);
         // chunk-size=0 => auto-tune chunk size based on batch size.
         this.configuredChunkSize = Math.max(0, configuredChunkSize);
+        this.consistencyValidator = consistencyValidator;
     }
 
     @PreDestroy
@@ -68,14 +74,19 @@ public class ParallelExposureValidationCoordinator {
 
     /**
      * Validates all exposures, using parallel processing for large batches.
+     * ALWAYS performs consistency checks at the end (cross-field validation).
      *
      * @param exposures List of exposures to validate
      * @param validator The validator to use
-     * @return ValidationBatchResult containing the results and exposure results map
+     * @param declaredCount Optional declared count of exposures (for Check 1: Conteggio Esposizioni)
+     * @param crmReferences Optional list of CRM reference IDs (for Check 2: Mappatura CRM)
+     * @return ValidationBatchResult containing the results, exposure results map, and consistency checks
      */
     public ValidationBatchResult validateAll(
         List<ExposureRecord> exposures,
-        ExposureRuleValidator validator
+        ExposureRuleValidator validator,
+        @org.jspecify.annotations.Nullable Integer declaredCount,
+        @org.jspecify.annotations.Nullable List<String> crmReferences
     ) {
         if (validator == null) {
             throw new IllegalArgumentException("validator must not be null");
@@ -86,8 +97,19 @@ public class ParallelExposureValidationCoordinator {
             ConcurrentHashMap<String, ExposureValidationResult> exposureResults = new ConcurrentHashMap<>(
                 Math.max(16, (int) (exposures.size() / 0.75f) + 1)
             );
+            
+            // Execute per-exposure validation rules (sequential or parallel based on threshold)
             List<ValidationResults> results = validateAllWith(exposures, validator.prepareForBatch(), exposureResults);
-            return new ValidationBatchResult(results, exposureResults);
+            
+            // ALWAYS execute cross-field consistency checks at the end
+            // This is critical for BCBS 239 compliance - DIMENSIONE: COERENZA
+            ConsistencyValidationResult consistencyResult = consistencyValidator.validate(
+                exposures,
+                declaredCount,
+                crmReferences
+            );
+            
+            return ValidationBatchResult.withConsistencyChecks(results, exposureResults, consistencyResult);
         } finally {
             validator.onBatchComplete();
         }

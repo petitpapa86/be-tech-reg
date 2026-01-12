@@ -115,7 +115,14 @@ public class ValidateBatchQualityCommandHandler {
         }
         List<ExposureRecord> exposures = exposuresResult.getValueOrThrow();
 
-        ValidationBatchResult batchResult = coordinator.validateAll(exposures, rulesService);
+        // Execute validation with consistency checks
+        // declaredCount and crmReferences are optional - pass null for now
+        ValidationBatchResult batchResult = coordinator.validateAll(
+            exposures, 
+            rulesService,
+            null,  // declaredCount - TODO: get from batch metadata if available
+            null   // crmReferences - TODO: get from CRM system if needed
+        );
 
         List<ValidationResults> allResults = batchResult.results();
         Map<String, ExposureValidationResult> exposureResults = batchResult.exposureResults();
@@ -128,7 +135,17 @@ public class ValidateBatchQualityCommandHandler {
         List<ValidationError> batchErrors = new ArrayList<>();
 
         // Create ValidationResult from the validated exposures
-        ValidationResult validation = ValidationResult.fromValidatedExposures(exposureResults, batchErrors);
+        ValidationResult validation = ValidationResult.builder()
+            .exposureResults(exposureResults)
+            .batchErrors(batchErrors)
+            .allErrors(exposureResults.values().stream()
+                .flatMap(r -> r.errors().stream())
+                .toList())
+            .dimensionScores(ValidationResult.calculateDimensionScores(exposureResults, batchErrors, exposures.size()))
+            .totalExposures(exposures.size())
+            .validExposures((int) exposureResults.values().stream().filter(ExposureValidationResult::isValid).count())
+            .consistencyDetails(batchResult.hasConsistencyChecks() ? batchResult.consistencyResult() : null)
+            .build();
 
         // Tell the aggregate to record the results (domain logic)
         Result<ValidationResult> validationResult = report.recordValidationAndCalculateScores(validation, CorrelationContext.correlationId());

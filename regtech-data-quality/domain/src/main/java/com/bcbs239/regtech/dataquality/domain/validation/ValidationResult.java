@@ -2,6 +2,8 @@ package com.bcbs239.regtech.dataquality.domain.validation;
 
 import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
+import com.bcbs239.regtech.dataquality.domain.validation.consistency.ConsistencyValidationResult;
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,7 +26,8 @@ public record ValidationResult(
     ValidationSummary summary,
     DimensionScores dimensionScores,
     int totalExposures,
-    int validExposures
+    int validExposures,
+    @Nullable ConsistencyValidationResult consistencyDetails
 ) {
     
     /**
@@ -38,6 +41,7 @@ public record ValidationResult(
             .batchErrors(List.of())
             .allErrors(List.of())
             .dimensionScores(new DimensionScores(0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+            .consistencyDetails(null)
             .build();
     }
     
@@ -114,7 +118,7 @@ public record ValidationResult(
      * 
      * <p>Scores are calculated as percentages: (valid exposures / total exposures) * 100</p>
      */
-    private static DimensionScores calculateDimensionScores(
+    public static DimensionScores calculateDimensionScores(
         Map<String, ExposureValidationResult> exposureResults,
         List<ValidationError> batchErrors,
         int totalExposures
@@ -276,6 +280,7 @@ public record ValidationResult(
         private DimensionScores dimensionScores;
         private int totalExposures;
         private int validExposures;
+        private @Nullable ConsistencyValidationResult consistencyDetails;
         
         public Builder exposureResults(Map<String, ExposureValidationResult> exposureResults) {
             this.exposureResults = exposureResults != null ? exposureResults : Map.of();
@@ -312,6 +317,11 @@ public record ValidationResult(
             return this;
         }
         
+        public Builder consistencyDetails(@Nullable ConsistencyValidationResult consistencyDetails) {
+            this.consistencyDetails = consistencyDetails;
+            return this;
+        }
+        
         public ValidationResult build() {
             // Auto-calculate valid exposures if not set
             if (validExposures == 0 && !exposureResults.isEmpty()) {
@@ -337,7 +347,8 @@ public record ValidationResult(
                 summary,
                 dimensionScores,
                 totalExposures,
-                validExposures
+                validExposures,
+                consistencyDetails
             );
         }
         
