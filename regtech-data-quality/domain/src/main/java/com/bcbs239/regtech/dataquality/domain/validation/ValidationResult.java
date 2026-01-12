@@ -5,6 +5,7 @@ import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.consistency.ConsistencyValidationResult;
 import org.jspecify.annotations.Nullable;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -27,8 +28,21 @@ public record ValidationResult(
     DimensionScores dimensionScores,
     int totalExposures,
     int validExposures,
-    @Nullable ConsistencyValidationResult consistencyDetails
+    @Nullable ConsistencyValidationResult consistencyDetails,
+    @Nullable TimelinessDetails timelinessDetails
 ) {
+    
+    /**
+     * Details of timeliness dimension calculation.
+     */
+    public record TimelinessDetails(
+        LocalDate reportingDate,
+        LocalDate uploadDate,
+        long delayDays,
+        int thresholdDays,
+        double score,
+        boolean passed
+    ) {}
     
     /**
      * Creates an empty validation result (for zero exposures)
@@ -42,6 +56,7 @@ public record ValidationResult(
             .allErrors(List.of())
             .dimensionScores(new DimensionScores(0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
             .consistencyDetails(null)
+            .timelinessDetails(null)
             .build();
     }
     
@@ -281,6 +296,7 @@ public record ValidationResult(
         private int totalExposures;
         private int validExposures;
         private @Nullable ConsistencyValidationResult consistencyDetails;
+        private @Nullable TimelinessDetails timelinessDetails;
         
         public Builder exposureResults(Map<String, ExposureValidationResult> exposureResults) {
             this.exposureResults = exposureResults != null ? exposureResults : Map.of();
@@ -322,6 +338,11 @@ public record ValidationResult(
             return this;
         }
         
+        public Builder timelinessDetails(@Nullable TimelinessDetails timelinessDetails) {
+            this.timelinessDetails = timelinessDetails;
+            return this;
+        }
+        
         public ValidationResult build() {
             // Auto-calculate valid exposures if not set
             if (validExposures == 0 && !exposureResults.isEmpty()) {
@@ -348,7 +369,8 @@ public record ValidationResult(
                 dimensionScores,
                 totalExposures,
                 validExposures,
-                consistencyDetails
+                consistencyDetails,
+                timelinessDetails
             );
         }
         

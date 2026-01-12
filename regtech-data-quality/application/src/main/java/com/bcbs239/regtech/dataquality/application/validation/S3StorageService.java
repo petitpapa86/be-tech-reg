@@ -33,6 +33,15 @@ public interface S3StorageService {
     Result<List<ExposureRecord>> downloadExposures(String s3Uri, int expectedCount);
     
     /**
+     * Downloads and parses batch data including exposures and metadata.
+     * Extracts bank information (declared count, report date) from BatchDataDTO format.
+     * 
+     * @param s3Uri The S3 URI containing the batch data
+     * @return Batch with exposures and associated metadata
+     */
+    Result<BatchWithMetadata> downloadBatchWithMetadata(String s3Uri);
+    
+    /**
      * Stores detailed validation results in S3 with encryption.
      * 
      * @param batchId The batch ID for naming the results file

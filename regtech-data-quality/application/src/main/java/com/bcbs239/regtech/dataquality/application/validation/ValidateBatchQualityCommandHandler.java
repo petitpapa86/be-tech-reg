@@ -7,6 +7,7 @@ import com.bcbs239.regtech.core.domain.recommendations.QualityInsight;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.rulesengine.DataQualityRulesService;
 import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepository;
+import com.bcbs239.regtech.dataquality.application.validation.timeliness.TimelinessValidator;
 import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
@@ -40,6 +41,7 @@ public class ValidateBatchQualityCommandHandler {
     private final RuleViolationRepository violationRepository;
     private final RecommendationEngine recommendationEngine;
     private final QualityDimensionMapper qualityDimensionMapper;
+    private final TimelinessValidator timelinessValidator;
 
     public ValidateBatchQualityCommandHandler(
             IQualityReportRepository qualityReportRepository,
@@ -49,7 +51,8 @@ public class ValidateBatchQualityCommandHandler {
             BaseUnitOfWork unitOfWork,
             RuleViolationRepository violationRepository,
             RecommendationEngine recommendationEngine,
-            QualityDimensionMapper qualityDimensionMapper) {
+            QualityDimensionMapper qualityDimensionMapper,
+            TimelinessValidator timelinessValidator) {
         this.qualityReportRepository = qualityReportRepository;
         this.s3StorageService = s3StorageService;
         this.rulesService = rulesService;
@@ -58,6 +61,7 @@ public class ValidateBatchQualityCommandHandler {
         this.violationRepository = violationRepository;
         this.recommendationEngine = recommendationEngine;
         this.qualityDimensionMapper = qualityDimensionMapper;
+        this.timelinessValidator = timelinessValidator;
     }
 
     @Timed(value = "dataquality.validation.batch", description = "Time taken to validate batch quality")
@@ -101,28 +105,48 @@ public class ValidateBatchQualityCommandHandler {
             throw e;
         }
 
-        Result<List<ExposureRecord>> downloadResult = s3StorageService.downloadExposures(command.s3Uri(), command.expectedExposureCount());
+        // Download batch with metadata (declaredCount, reportDate)
+        Result<BatchWithMetadata> downloadResult = s3StorageService.downloadBatchWithMetadata(command.s3Uri());
 
-        Result<List<ExposureRecord>> exposuresResult = downloadResult.map(exposures -> {
-            logger.debug("Downloaded {} exposures for batchId={}",
-                    exposures.size(), command.batchId().value());
-            return exposures;
-        });
-
-        if (exposuresResult.isFailure()) {
-            markReportAsFailed(report, "Failed to download exposure data", CorrelationContext.correlationId());
-            return Result.failure(exposuresResult.errors());
+        if (downloadResult.isFailure()) {
+            markReportAsFailed(report, "Failed to download batch data", CorrelationContext.correlationId());
+            return Result.failure(downloadResult.errors());
         }
-        List<ExposureRecord> exposures = exposuresResult.getValueOrThrow();
+        BatchWithMetadata batchData = downloadResult.getValueOrThrow();
+        List<ExposureRecord> exposures = batchData.exposures();
 
-        // Execute validation with consistency checks
-        // declaredCount and crmReferences are optional - pass null for now
+        logger.info("Downloaded batch for batchId={}: exposures={}, declaredCount={}, reportDate={}",
+                command.batchId().value(), exposures.size(), batchData.declaredCount(), batchData.reportDate());
+
+        // Execute validation with consistency checks and timeliness calculation
+        // - declaredCount: From BatchDataDTO bank_info (or command if not in file)
+        // - crmReferences: Not available yet (would require external CRM system integration)
+        // - uploadDate: From command or current date for timeliness calculation
         ValidationBatchResult batchResult = coordinator.validateAll(
             exposures, 
             rulesService,
-            null,  // declaredCount - TODO: get from batch metadata if available
-            null   // crmReferences - TODO: get from CRM system if needed
+            batchData.declaredCount() != null ? batchData.declaredCount() : command.expectedExposureCount(),
+            null,  // crmReferences - requires bank CRM system integration
+            command.uploadDate() != null ? command.uploadDate() : java.time.LocalDate.now(),
+            command.bankId().value()
         );
+        
+        // Override timeliness calculation with metadata reportDate if available
+        if (batchData.reportDate() != null && command.uploadDate() != null) {
+            TimelinessValidator.TimelinessResult metadataTimeliness = 
+                timelinessValidator.calculateTimeliness(
+                    exposures,
+                    command.uploadDate() != null ? command.uploadDate() : java.time.LocalDate.now(),
+                    batchData.reportDate(),  // Use metadata report date
+                    command.bankId().value()
+                );
+            batchResult = ValidationBatchResult.complete(
+                batchResult.results(),
+                batchResult.exposureResults(),
+                batchResult.consistencyResult(),
+                metadataTimeliness  // Override with metadata-based calculation
+            );
+        }
 
         List<ValidationResults> allResults = batchResult.results();
         Map<String, ExposureValidationResult> exposureResults = batchResult.exposureResults();
@@ -134,6 +158,36 @@ public class ValidateBatchQualityCommandHandler {
         // Batch-level validation (if needed in the future)
         List<ValidationError> batchErrors = new ArrayList<>();
 
+        // Calculate dimension scores from per-exposure validation
+        DimensionScores dimensionScores = ValidationResult.calculateDimensionScores(exposureResults, batchErrors, exposures.size());
+        
+        // Override timeliness score with calculated value from TimelinessValidator (if available)
+        if (batchResult.hasTimelinessResult()) {
+            var timelinessResult = batchResult.timelinessResult();
+            dimensionScores = new DimensionScores(
+                dimensionScores.completeness(),
+                dimensionScores.accuracy(),
+                dimensionScores.consistency(),
+                timelinessResult.score(), // Override with calculated timeliness score
+                dimensionScores.uniqueness(),
+                dimensionScores.validity()
+            );
+        }
+        
+        // Map TimelinessResult to TimelinessDetails (if available)
+        ValidationResult.TimelinessDetails timelinessDetails = null;
+        if (batchResult.hasTimelinessResult()) {
+            var tr = batchResult.timelinessResult();
+            timelinessDetails = new ValidationResult.TimelinessDetails(
+                tr.reportingDate(),
+                tr.uploadDate(),
+                tr.delayDays(),
+                tr.thresholdDays(),
+                tr.score(),
+                tr.passed()
+            );
+        }
+
         // Create ValidationResult from the validated exposures
         ValidationResult validation = ValidationResult.builder()
             .exposureResults(exposureResults)
@@ -141,10 +195,11 @@ public class ValidateBatchQualityCommandHandler {
             .allErrors(exposureResults.values().stream()
                 .flatMap(r -> r.errors().stream())
                 .toList())
-            .dimensionScores(ValidationResult.calculateDimensionScores(exposureResults, batchErrors, exposures.size()))
+            .dimensionScores(dimensionScores)  // Use overridden dimension scores
             .totalExposures(exposures.size())
             .validExposures((int) exposureResults.values().stream().filter(ExposureValidationResult::isValid).count())
             .consistencyDetails(batchResult.hasConsistencyChecks() ? batchResult.consistencyResult() : null)
+            .timelinessDetails(timelinessDetails)
             .build();
 
         // Tell the aggregate to record the results (domain logic)
@@ -164,19 +219,19 @@ public class ValidateBatchQualityCommandHandler {
         // Generate recommendations using RecommendationEngine
         // First, convert DimensionScores to a Map for the mapper
         java.util.Map<com.bcbs239.regtech.dataquality.domain.quality.QualityDimension, java.math.BigDecimal> dimensionScoresMap = new java.util.HashMap<>();
-        DimensionScores dimensionScores = scores.getDimensionScores();
+        DimensionScores aggregateDimensionScores = scores.getDimensionScores();
         dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.COMPLETENESS, 
-            java.math.BigDecimal.valueOf(dimensionScores.completeness()));
+            java.math.BigDecimal.valueOf(aggregateDimensionScores.completeness()));
         dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.ACCURACY, 
-            java.math.BigDecimal.valueOf(dimensionScores.accuracy()));
+            java.math.BigDecimal.valueOf(aggregateDimensionScores.accuracy()));
         dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.CONSISTENCY, 
-            java.math.BigDecimal.valueOf(dimensionScores.consistency()));
+            java.math.BigDecimal.valueOf(aggregateDimensionScores.consistency()));
         dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.TIMELINESS, 
-            java.math.BigDecimal.valueOf(dimensionScores.timeliness()));
+            java.math.BigDecimal.valueOf(aggregateDimensionScores.timeliness()));
         dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.UNIQUENESS, 
-            java.math.BigDecimal.valueOf(dimensionScores.uniqueness()));
+            java.math.BigDecimal.valueOf(aggregateDimensionScores.uniqueness()));
         dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.VALIDITY, 
-            java.math.BigDecimal.valueOf(dimensionScores.validity()));
+            java.math.BigDecimal.valueOf(aggregateDimensionScores.validity()));
         
         java.util.Map<com.bcbs239.regtech.core.domain.quality.QualityDimension, java.math.BigDecimal> dimensionScoresCore = 
             qualityDimensionMapper.toCoreQualityDimensions(dimensionScoresMap);

@@ -2,6 +2,9 @@ package com.bcbs239.regtech.dataquality.application.validation;
 
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import org.jspecify.annotations.Nullable;
+
+import java.time.LocalDate;
 
 /**
  * Command to initiate quality validation for a batch of exposures.
@@ -12,6 +15,7 @@ public record ValidateBatchQualityCommand(
     BankId bankId,
     String s3Uri,
     int expectedExposureCount,
+    @Nullable LocalDate uploadDate,
     String correlationId
 ) {
     
@@ -29,6 +33,7 @@ public record ValidateBatchQualityCommand(
             bankId,
             s3Uri,
             expectedExposureCount,
+            null,
             null
         );
     }
@@ -48,6 +53,28 @@ public record ValidateBatchQualityCommand(
             bankId,
             s3Uri,
             expectedExposureCount,
+            null,
+            correlationId
+        );
+    }
+    
+    /**
+     * Creates a command with upload date and correlation ID.
+     */
+    public static ValidateBatchQualityCommand withUploadDate(
+        BatchId batchId,
+        BankId bankId,
+        String s3Uri,
+        int expectedExposureCount,
+        LocalDate uploadDate,
+        String correlationId
+    ) {
+        return new ValidateBatchQualityCommand(
+            batchId,
+            bankId,
+            s3Uri,
+            expectedExposureCount,
+            uploadDate,
             correlationId
         );
     }
@@ -115,6 +142,7 @@ public record ValidateBatchQualityCommand(
             bankId,
             s3Uri,
             expectedExposureCount,
+            uploadDate,
             newCorrelationId
         );
     }

@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
 import com.bcbs239.regtech.dataquality.application.validation.consistency.ConsistencyValidator;
+import com.bcbs239.regtech.dataquality.application.validation.timeliness.TimelinessValidator;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureValidationResult;
@@ -10,6 +11,7 @@ import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,8 +21,8 @@ import java.util.function.Function;
 
 /**
  * Coordinator for parallel exposure validation.
- * Handles the orchestration of validation across multiple exposures
- * and executes cross-field consistency checks.
+ * Handles the orchestration of validation across multiple exposures,
+ * executes cross-field consistency checks, and calculates timeliness.
  */
 @Component
 public class ParallelExposureValidationCoordinator {
@@ -30,13 +32,15 @@ public class ParallelExposureValidationCoordinator {
     private final int parallelThreshold;
     private final int configuredChunkSize;
     private final ConsistencyValidator consistencyValidator;
+    private final TimelinessValidator timelinessValidator;
 
     public ParallelExposureValidationCoordinator(
         @Value("${spring.datasource.hikari.maximum-pool-size:20}") int hikariMaxPoolSize,
         @Value("${dataquality.validation.max-in-flight:0}") int configuredMaxInFlight,
         @Value("${dataquality.validation.parallel-threshold:1000}") int configuredParallelThreshold,
         @Value("${dataquality.validation.chunk-size:0}") int configuredChunkSize,
-        ConsistencyValidator consistencyValidator
+        ConsistencyValidator consistencyValidator,
+        TimelinessValidator timelinessValidator
     ) {
         int safeHikariMaxPoolSize = Math.max(1, hikariMaxPoolSize);
         int safeConfiguredMaxInFlight = Math.max(0, configuredMaxInFlight);
@@ -65,6 +69,7 @@ public class ParallelExposureValidationCoordinator {
         // chunk-size=0 => auto-tune chunk size based on batch size.
         this.configuredChunkSize = Math.max(0, configuredChunkSize);
         this.consistencyValidator = consistencyValidator;
+        this.timelinessValidator = timelinessValidator;
     }
 
     @PreDestroy
@@ -74,19 +79,23 @@ public class ParallelExposureValidationCoordinator {
 
     /**
      * Validates all exposures, using parallel processing for large batches.
-     * ALWAYS performs consistency checks at the end (cross-field validation).
+     * ALWAYS performs consistency checks and timeliness calculation at the end.
      *
      * @param exposures List of exposures to validate
      * @param validator The validator to use
      * @param declaredCount Optional declared count of exposures (for Check 1: Conteggio Esposizioni)
      * @param crmReferences Optional list of CRM reference IDs (for Check 2: Mappatura CRM)
-     * @return ValidationBatchResult containing the results, exposure results map, and consistency checks
+     * @param uploadDate Optional upload date for timeliness calculation (if null, timeliness not calculated)
+     * @param bankId Optional bank ID for loading timeliness threshold from DB
+     * @return ValidationBatchResult containing the results, exposure results map, consistency checks, and timeliness
      */
     public ValidationBatchResult validateAll(
         List<ExposureRecord> exposures,
         ExposureRuleValidator validator,
         @org.jspecify.annotations.Nullable Integer declaredCount,
-        @org.jspecify.annotations.Nullable List<String> crmReferences
+        @org.jspecify.annotations.Nullable List<String> crmReferences,
+        @org.jspecify.annotations.Nullable LocalDate uploadDate,
+        @org.jspecify.annotations.Nullable String bankId
     ) {
         if (validator == null) {
             throw new IllegalArgumentException("validator must not be null");
@@ -109,7 +118,14 @@ public class ParallelExposureValidationCoordinator {
                 crmReferences
             );
             
-            return ValidationBatchResult.withConsistencyChecks(results, exposureResults, consistencyResult);
+            // Calculate timeliness if uploadDate and bankId are provided
+            // DIMENSIONE: TEMPESTIVITÀ (Timeliness)
+            TimelinessValidator.TimelinessResult timelinessResult = null;
+            if (uploadDate != null && bankId != null && !exposures.isEmpty()) {
+                timelinessResult = timelinessValidator.calculateTimeliness(exposures, uploadDate, null, bankId);
+            }
+            
+            return ValidationBatchResult.complete(results, exposureResults, consistencyResult, timelinessResult);
         } finally {
             validator.onBatchComplete();
         }

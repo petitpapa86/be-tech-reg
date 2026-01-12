@@ -3,6 +3,7 @@ package com.bcbs239.regtech.dataquality.infrastructure.integration;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.dto.BatchDataDTO;
+import com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata;
 import com.bcbs239.regtech.dataquality.application.validation.S3StorageService;
 import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
@@ -72,6 +73,29 @@ public class LocalStorageServiceImpl implements S3StorageService {
             return Result.failure("LOCAL_DOWNLOAD_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error downloading exposures: " + e.getMessage(), "system");
         }
     }
+    
+    @Override
+    public Result<BatchWithMetadata> downloadBatchWithMetadata(String s3Uri) {
+        logger.info("Starting download of batch with metadata from local URI: {}", s3Uri);
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            BatchWithMetadata batch = downloadBatchFromLocalFile(s3Uri);
+            
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Successfully downloaded batch with {} exposures, declaredCount={}, reportDate={} in {} ms",
+                batch.exposures().size(), batch.declaredCount(), batch.reportDate(), duration);
+            
+            return Result.success(batch);
+            
+        } catch (IOException e) {
+            logger.error("IO error parsing batch from: {}", s3Uri, e);
+            return Result.failure("LOCAL_PARSE_ERROR", ErrorType.SYSTEM_ERROR, "Failed to parse JSON: " + e.getMessage(), "json_parsing");
+        } catch (Exception e) {
+            logger.error("Unexpected error downloading batch from: {}", s3Uri, e);
+            return Result.failure("LOCAL_DOWNLOAD_UNEXPECTED_ERROR", ErrorType.SYSTEM_ERROR, "Unexpected error downloading batch: " + e.getMessage(), "system");
+        }
+    }
 
     private List<ExposureRecord> downloadFromLocalFile(String fileUri) throws IOException {
         String filePath = fileUri.replace("file:///", "").replace("file://", "");
@@ -107,6 +131,53 @@ public class LocalStorageServiceImpl implements S3StorageService {
             if (rootNode.has("loan_portfolio")) {
                 logger.info("Detected legacy loan_portfolio format");
                 return parseExposuresFromArray(rootNode.get("loan_portfolio"));
+            }
+            
+            throw new IOException("Unsupported JSON format");
+        }
+    }
+    
+    private BatchWithMetadata downloadBatchFromLocalFile(String fileUri) throws IOException {
+        String filePath = fileUri.replace("file:///", "").replace("file://", "");
+        filePath = java.net.URLDecoder.decode(filePath, StandardCharsets.UTF_8.name());
+
+        logger.info("Reading batch with metadata from local file: {}", filePath);
+        
+        Path path = Paths.get(filePath);
+        if (!Files.exists(path)) {
+            throw new IOException("File not found: " + filePath);
+        }
+        
+        try (JsonParser parser = jsonFactory.createParser(Files.newInputStream(path))) {
+            JsonNode rootNode = objectMapper.readTree(parser);
+            
+            if (rootNode.has("exposures") && rootNode.has("bank_info")) {
+                logger.info("Detected new BatchDataDTO format with metadata");
+                BatchDataDTO batchData = objectMapper.treeToValue(rootNode, BatchDataDTO.class);
+                
+                List<ExposureRecord> exposures = batchData.exposures().stream()
+                    .map(ExposureRecord::fromDTO)
+                    .toList();
+                
+                // Extract metadata from bank_info
+                Integer declaredCount = batchData.bankInfo().totalExposures();
+                java.time.LocalDate reportDate = batchData.bankInfo().reportDate();
+                
+                logger.info("Successfully parsed {} exposures with metadata: declaredCount={}, reportDate={}",
+                    exposures.size(), declaredCount, reportDate);
+                
+                return new BatchWithMetadata(exposures, declaredCount, reportDate);
+            }
+            
+            // Legacy formats don't have metadata
+            if (rootNode.isArray()) {
+                logger.info("Detected legacy array format (no metadata)");
+                return BatchWithMetadata.withoutMetadata(parseExposuresFromArray(rootNode));
+            }
+            
+            if (rootNode.has("loan_portfolio")) {
+                logger.info("Detected legacy loan_portfolio format (no metadata)");
+                return BatchWithMetadata.withoutMetadata(parseExposuresFromArray(rootNode.get("loan_portfolio")));
             }
             
             throw new IOException("Unsupported JSON format");
