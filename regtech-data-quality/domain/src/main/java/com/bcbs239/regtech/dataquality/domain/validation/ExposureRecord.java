@@ -1,9 +1,9 @@
 package com.bcbs239.regtech.dataquality.domain.validation;
 
-import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
+
+import com.bcbs239.regtech.core.domain.shared.dto.ExposureDTO;
 
 /**
  * Value object representing exposure data for validation.
@@ -26,7 +26,8 @@ public record ExposureRecord(
     LocalDate reportingDate,
     LocalDate valuationDate,
     LocalDate maturityDate,
-    String referenceNumber
+    String referenceNumber,
+    BigDecimal collateralValue
 ) {
     
     /**
@@ -56,6 +57,7 @@ public record ExposureRecord(
             .valuationDate(null)
             .maturityDate(dto.maturityDate())
             .referenceNumber(dto.instrumentId()) // Use instrumentId as reference
+            .collateralValue(null) // Collateral not in DTO yet
             .build();
     }
     
@@ -86,6 +88,7 @@ public record ExposureRecord(
         private LocalDate valuationDate;
         private LocalDate maturityDate;
         private String referenceNumber;
+        private BigDecimal collateralValue;
         
         public Builder exposureId(String exposureId) {
             this.exposureId = exposureId;
@@ -167,6 +170,11 @@ public record ExposureRecord(
             return this;
         }
         
+        public Builder collateralValue(BigDecimal collateralValue) {
+            this.collateralValue = collateralValue;
+            return this;
+        }
+        
         public ExposureRecord build() {
             return new ExposureRecord(
                 exposureId,
@@ -184,7 +192,8 @@ public record ExposureRecord(
                 reportingDate,
                 valuationDate,
                 maturityDate,
-                referenceNumber
+                referenceNumber,
+                collateralValue
             );
         }
     }
