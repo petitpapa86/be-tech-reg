@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.presentation.config;
 
+import com.bcbs239.regtech.reportgeneration.presentation.configuration.ReportConfigurationRoutes;
 import com.bcbs239.regtech.reportgeneration.presentation.health.ReportGenerationHealthRoutes;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,8 +21,10 @@ public class ReportGenerationWebConfig {
      */
     @Bean
     public RouterFunction<ServerResponse> reportGenerationRoutes(
-        ReportGenerationHealthRoutes healthRoutes
+        ReportGenerationHealthRoutes healthRoutes,
+        ReportConfigurationRoutes configurationRoutes
     ) {
-        return healthRoutes.createRoutes();
+        return healthRoutes.createRoutes()
+            .and(configurationRoutes.createRoutes());
     }
 }

@@ -26,7 +26,8 @@ import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 
 import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Command handler for calculating risk metrics.
@@ -51,8 +52,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class CalculateRiskMetricsCommandHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(CalculateRiskMetricsCommandHandler.class);
 
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
     private final BatchRepository batchRepository;

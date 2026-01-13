@@ -41,8 +41,14 @@ import java.util.concurrent.Executor;
 //@EnableAsync
 //@EnableScheduling
 @EnableConfigurationProperties({RiskCalculationProperties.class, CurrencyApiProperties.class})
-@EntityScan(basePackages = "com.bcbs239.regtech.riskcalculation.infrastructure.database.entities")
-@EnableJpaRepositories(basePackages = "com.bcbs239.regtech.riskcalculation.infrastructure.database.repositories")
+@EntityScan(basePackages = {
+        "com.bcbs239.regtech.riskcalculation.infrastructure.database.entities",
+        "com.bcbs239.regtech.riskcalculation.infrastructure.persistence.parameters"
+})
+@EnableJpaRepositories(basePackages = {
+        "com.bcbs239.regtech.riskcalculation.infrastructure.database.repositories",
+        "com.bcbs239.regtech.riskcalculation.infrastructure.persistence.parameters"
+})
 @org.springframework.context.annotation.ComponentScan(basePackages = {
         "com.bcbs239.regtech.riskcalculation.application",
         "com.bcbs239.regtech.riskcalculation.infrastructure",

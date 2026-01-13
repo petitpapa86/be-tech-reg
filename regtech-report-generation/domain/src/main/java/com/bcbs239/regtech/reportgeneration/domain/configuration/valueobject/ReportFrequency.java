@@ -9,10 +9,10 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum ReportFrequency {
-    MONTHLY("Mensile", 1),
-    QUARTERLY("Trimestrale", 3),
-    SEMI_ANNUAL("Semestrale", 6),
-    ANNUAL("Annuale", 12);
+    MENSILE("Mensile", 1),
+    TRIMESTRALE("Trimestrale", 3),
+    SEMESTRALE("Semestrale", 6),
+    ANNUALE("Annuale", 12);
     
     private final String displayName;
     private final int monthsInterval;
@@ -27,18 +27,26 @@ public enum ReportFrequency {
             ));
         }
         
-        try {
-            return Result.success(ReportFrequency.valueOf(value.trim().toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            return Result.failure(ErrorDetail.of(
-                "INVALID_FREQUENCY",
-                ErrorType.VALIDATION_ERROR,
-                "Invalid report frequency: " + value + ". Valid values: " +
-                String.join(", ", java.util.Arrays.stream(values())
-                    .map(Enum::name)
-                    .toList()),
-                "report.frequency.invalid"
-            ));
+        String trimmed = value.trim().toUpperCase();
+        
+        for (ReportFrequency frequency : values()) {
+            if (frequency.name().equals(trimmed) || frequency.displayName.toUpperCase().equals(trimmed)) {
+                return Result.success(frequency);
+            }
         }
+        
+        // Backward compatibility for MONTHLY, etc if needed? 
+        // Migration will handle DB, but if API receives old values:
+        if (trimmed.equals("MONTHLY")) return Result.success(MENSILE);
+        if (trimmed.equals("QUARTERLY")) return Result.success(TRIMESTRALE);
+        if (trimmed.equals("SEMI_ANNUAL")) return Result.success(SEMESTRALE);
+        if (trimmed.equals("ANNUAL")) return Result.success(ANNUALE);
+        
+        return Result.failure(ErrorDetail.of(
+            "INVALID_FREQUENCY",
+            ErrorType.VALIDATION_ERROR,
+            "Invalid report frequency: " + value + ". Valid values: MENSILE, TRIMESTRALE, SEMESTRALE, ANNUALE",
+            "report.frequency.invalid"
+        ));
     }
 }

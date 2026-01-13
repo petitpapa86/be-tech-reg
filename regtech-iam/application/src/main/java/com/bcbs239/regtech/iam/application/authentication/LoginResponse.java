@@ -18,12 +18,17 @@ import java.util.List;
 public record LoginResponse(
     String userId,
     String email,
+    String username,
+    String firstName,
+    String lastName,
+    String status,
     String accessToken,
     String refreshToken,
     Instant accessTokenExpiresAt,
     Instant refreshTokenExpiresAt,
     boolean requiresBankSelection,
     List<BankAssignmentDto> availableBanks,
+    List<BankAssignmentDto> bankAssignments,
     Maybe<TenantContext> tenantContext,
     String nextStep
 ) {
@@ -39,12 +44,17 @@ public record LoginResponse(
         return new LoginResponse(
             user.getId().getValue(),
             user.getEmail().getValue(),
+            user.getUsername(),
+            user.getFirstName(),
+            user.getLastName(),
+            user.getStatus().name(),
             accessToken.value(),
             refreshToken.getTokenValue(),
             accessToken.expiresAt(),
             refreshToken.getExpiresAt(),
             false,
             List.of(),
+            mapBankAssignments(user),
             Maybe.some(tenantContext),
             "DASHBOARD"
         );
@@ -62,12 +72,17 @@ public record LoginResponse(
         return new LoginResponse(
             user.getId().getValue(),
             user.getEmail().getValue(),
+            user.getUsername(),
+            user.getFirstName(),
+            user.getLastName(),
+            user.getStatus().name(),
             accessToken.value(),
             refreshToken.getTokenValue(),
             accessToken.expiresAt(),
             refreshToken.getExpiresAt(),
             true,
             availableBanks,
+            mapBankAssignments(user),
             Maybe.none(),
             "SELECT_BANK"
         );
@@ -84,14 +99,25 @@ public record LoginResponse(
         return new LoginResponse(
             user.getId().getValue(),
             user.getEmail().getValue(),
+            user.getUsername(),
+            user.getFirstName(),
+            user.getLastName(),
+            user.getStatus().name(),
             accessToken.value(),
             refreshToken.getTokenValue(),
             accessToken.expiresAt(),
             refreshToken.getExpiresAt(),
             false,
             List.of(),
+            mapBankAssignments(user),
             Maybe.none(),
             "CONFIGURE_BANK"
         );
+    }
+
+    private static List<BankAssignmentDto> mapBankAssignments(User user) {
+        return user.getBankAssignments().stream()
+            .map(ba -> BankAssignmentDto.from(ba.getBankId(), "Unknown Bank", ba.getRole()).getValue().get())
+            .toList();
     }
 }

@@ -5,6 +5,9 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.dataquality.application.rulesengine.QualityThresholdRepository;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityThreshold;
+import com.bcbs239.regtech.dataquality.domain.config.BankId;
+import com.bcbs239.regtech.dataquality.domain.config.ThresholdPercentage;
+import com.bcbs239.regtech.dataquality.domain.config.TimelinessDays;
 import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,85 +45,60 @@ public class UpdateConfigurationCommandHandler {
     public Result<ConfigurationDto> handle(UpdateConfigurationCommand command) {
         logger.info("Handling UpdateConfigurationCommand for bankId: {}", command.bankId());
         
-        try {
-            // Validate thresholds
-            Result<Void> validation = validateThresholds(command.configuration().thresholds());
-            if (validation.isFailure()) {
-                return Result.failure(validation.getError());
-            }
-            
-            // Persist thresholds
-            QualityThreshold threshold = new QualityThreshold(
-                command.bankId(),
-                command.configuration().thresholds().completenessMinPercent(),
-                command.configuration().thresholds().accuracyMaxErrorPercent(),
-                command.configuration().thresholds().timelinessDays(),
-                command.configuration().thresholds().consistencyPercent()
-            );
-            
-            thresholdRepository.save(threshold);
-            
-            logger.info("Successfully updated configuration for bankId: {}", command.bankId());
-            
-            // Return updated configuration via query handler
-            return queryHandler.handle(new GetConfigurationQuery(command.bankId()));
-            
-        } catch (Exception e) {
-            logger.error("Failed to update configuration for bankId: {}", command.bankId(), e);
-            return Result.failure(
-                ErrorDetail.of(
-                    "CONFIG_UPDATE_FAILED",
-                    ErrorType.SYSTEM_ERROR,
-                    "Failed to update configuration",
-                    "config.update.failed"
-                )
-            );
+        // Validate thresholds
+        Result<Void> validation = validateThresholds(command.configuration().thresholds());
+        if (validation.isFailure()) {
+            return Result.failure(validation.getError().orElseThrow());
         }
+        
+        // Persist thresholds
+        QualityThreshold threshold = new QualityThreshold(
+            command.bankId().value(),
+            command.configuration().thresholds().completenessMinPercent(),
+            command.configuration().thresholds().accuracyMaxErrorPercent(),
+            command.configuration().thresholds().timelinessDays(),
+            command.configuration().thresholds().consistencyPercent()
+        );
+        
+        thresholdRepository.save(threshold);
+        
+        logger.info("Successfully updated configuration for bankId: {}", command.bankId());
+        
+        // Return updated configuration via query handler
+        return queryHandler.handle(new GetConfigurationQuery(command.bankId()));
     }
     
     private Result<Void> validateThresholds(ConfigurationDto.ThresholdsDto thresholds) {
-        if (thresholds.completenessMinPercent() < 0 || thresholds.completenessMinPercent() > 100) {
-            return Result.failure(
-                ErrorDetail.of(
-                    "INVALID_COMPLETENESS_THRESHOLD",
-                    ErrorType.VALIDATION_ERROR,
-                    "Completeness threshold must be between 0 and 100",
-                    "validation.completeness.range"
-                )
-            );
+        // Validate completeness threshold
+        Result<ThresholdPercentage> completeness = ThresholdPercentage.of(
+            thresholds.completenessMinPercent(), "completeness"
+        );
+        if (completeness.isFailure()) {
+            return Result.failure(completeness.getError().orElseThrow());
         }
         
-        if (thresholds.accuracyMaxErrorPercent() < 0 || thresholds.accuracyMaxErrorPercent() > 100) {
-            return Result.failure(
-                ErrorDetail.of(
-                    "INVALID_ACCURACY_THRESHOLD",
-                    ErrorType.VALIDATION_ERROR,
-                    "Accuracy threshold must be between 0 and 100",
-                    "validation.accuracy.range"
-                )
-            );
+        // Validate accuracy threshold
+        Result<ThresholdPercentage> accuracy = ThresholdPercentage.of(
+            thresholds.accuracyMaxErrorPercent(), "accuracy"
+        );
+        if (accuracy.isFailure()) {
+            return Result.failure(accuracy.getError().orElseThrow());
         }
         
-        if (thresholds.timelinessDays() < 0) {
-            return Result.failure(
-                ErrorDetail.of(
-                    "INVALID_TIMELINESS_THRESHOLD",
-                    ErrorType.VALIDATION_ERROR,
-                    "Timeliness threshold must be positive",
-                    "validation.timeliness.positive"
-                )
-            );
+        // Validate timeliness threshold
+        Result<TimelinessDays> timeliness = TimelinessDays.of(
+            thresholds.timelinessDays()
+        );
+        if (timeliness.isFailure()) {
+            return Result.failure(timeliness.getError().orElseThrow());
         }
         
-        if (thresholds.consistencyPercent() < 0 || thresholds.consistencyPercent() > 100) {
-            return Result.failure(
-                ErrorDetail.of(
-                    "INVALID_CONSISTENCY_THRESHOLD",
-                    ErrorType.VALIDATION_ERROR,
-                    "Consistency threshold must be between 0 and 100",
-                    "validation.consistency.range"
-                )
-            );
+        // Validate consistency threshold
+        Result<ThresholdPercentage> consistency = ThresholdPercentage.of(
+            thresholds.consistencyPercent(), "consistency"
+        );
+        if (consistency.isFailure()) {
+            return Result.failure(consistency.getError().orElseThrow());
         }
         
         return Result.success(null);

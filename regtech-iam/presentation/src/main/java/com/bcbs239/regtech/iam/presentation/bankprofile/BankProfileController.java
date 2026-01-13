@@ -32,6 +32,7 @@ public class BankProfileController {
     
     private final GetBankProfileHandler getBankProfileHandler;
     private final UpdateBankProfileHandler updateBankProfileHandler;
+    private final ResetBankProfileHandler resetBankProfileHandler;
     private final Validator validator;
     
     @Bean
@@ -43,6 +44,9 @@ public class BankProfileController {
                 .PUT("/api/v1/configuration/bank-profile/{bankId}", 
                         accept(MediaType.APPLICATION_JSON), 
                         this::updateBankProfile)
+                .POST("/api/v1/configuration/bank-profile/{bankId}/reset", 
+                        accept(MediaType.APPLICATION_JSON), 
+                        this::resetBankProfile)
                 .build();
     }
     
@@ -109,6 +113,24 @@ public class BankProfileController {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(new ErrorResponse("Invalid request body: " + e.getMessage()));
         }
+    }
+    
+    /**
+     * POST /api/v1/configuration/bank-profile/{bankId}/reset
+     */
+    private ServerResponse resetBankProfile(ServerRequest request) {
+        Long bankId = Long.parseLong(request.pathVariable("bankId"));
+        
+        // TODO: Get actual user from security context
+        String currentUser = "system";
+        
+        // Execute command - no try-catch, let exceptions propagate
+        var profile = resetBankProfileHandler.handle(bankId, currentUser);
+        
+        var response = BankProfileResponse.from(profile);
+        return ServerResponse.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
     }
     
     private record ErrorResponse(String error) {}

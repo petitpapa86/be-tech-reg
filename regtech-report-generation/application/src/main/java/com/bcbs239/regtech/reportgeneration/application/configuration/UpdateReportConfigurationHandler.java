@@ -46,42 +46,42 @@ public class UpdateReportConfigurationHandler {
         // Create value objects using smart constructors
         Result<ReportTemplate> templateResult = ReportTemplate.of(command.template);
         if (templateResult.isFailure()) {
-            return Result.failure(templateResult.errors());
+            return Result.failure(templateResult.getError().orElseThrow());
         }
         
         Result<ReportLanguage> languageResult = ReportLanguage.of(command.language);
         if (languageResult.isFailure()) {
-            return Result.failure(languageResult.errors());
+            return Result.failure(languageResult.getError().orElseThrow());
         }
         
         Result<OutputFormat> outputFormatResult = OutputFormat.of(command.outputFormat);
         if (outputFormatResult.isFailure()) {
-            return Result.failure(outputFormatResult.errors());
+            return Result.failure(outputFormatResult.getError().orElseThrow());
         }
         
         Result<ReportFrequency> frequencyResult = ReportFrequency.of(command.frequency);
         if (frequencyResult.isFailure()) {
-            return Result.failure(frequencyResult.errors());
+            return Result.failure(frequencyResult.getError().orElseThrow());
         }
         
         Result<SubmissionDeadline> deadlineResult = SubmissionDeadline.of(command.submissionDeadline);
         if (deadlineResult.isFailure()) {
-            return Result.failure(deadlineResult.errors());
+            return Result.failure(deadlineResult.getError().orElseThrow());
         }
         
         Result<ScheduleDay> scheduleDayResult = ScheduleDay.of(command.scheduleDay);
         if (scheduleDayResult.isFailure()) {
-            return Result.failure(scheduleDayResult.errors());
+            return Result.failure(scheduleDayResult.getError().orElseThrow());
         }
         
         Result<ScheduleTime> scheduleTimeResult = ScheduleTime.of(command.scheduleTime);
         if (scheduleTimeResult.isFailure()) {
-            return Result.failure(scheduleTimeResult.errors());
+            return Result.failure(scheduleTimeResult.getError().orElseThrow());
         }
         
         Result<EmailRecipient> primaryRecipientResult = EmailRecipient.of(command.primaryRecipient);
         if (primaryRecipientResult.isFailure()) {
-            return Result.failure(primaryRecipientResult.errors());
+            return Result.failure(primaryRecipientResult.getError().orElseThrow());
         }
         
         Maybe<EmailRecipient> ccRecipient = EmailRecipient.ofOptional(command.ccRecipient);

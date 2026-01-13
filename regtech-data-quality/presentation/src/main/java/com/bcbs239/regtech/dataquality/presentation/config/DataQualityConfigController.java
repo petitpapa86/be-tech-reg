@@ -2,6 +2,7 @@ package com.bcbs239.regtech.dataquality.presentation.config;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.config.*;
+import com.bcbs239.regtech.dataquality.domain.config.BankId;
 import com.bcbs239.regtech.dataquality.presentation.common.IEndpoint;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityResponseHandler;
 import io.micrometer.observation.annotation.Observed;
@@ -75,15 +76,18 @@ public class DataQualityConfigController implements IEndpoint {
     public ServerResponse getConfiguration(ServerRequest request) {
         logger.info("Fetching data quality configuration");
 
-        String bankId = request.param("bankId")
+        String bankIdStr = request.param("bankId")
             .orElse("default-bank");
         
-        GetConfigurationQuery query = new GetConfigurationQuery(bankId);
+        Result<BankId> bankIdResult = BankId.of(bankIdStr);
+        if (bankIdResult.isFailure()) {
+            return responseHandler.handleErrorResponse(bankIdResult.getError().orElseThrow());
+        }
+        
+        GetConfigurationQuery query = new GetConfigurationQuery(bankIdResult.getValueOrThrow());
         Result<ConfigurationDto> result = getConfigurationQueryHandler.handle(query);
         
-        return result.isSuccess()
-            ? responseHandler.ok(result.getValueOrThrow())
-            : responseHandler.badRequest(result.getError().orElseThrow().message());
+        return responseHandler.handleSuccessResult(result, "Configuration retrieved successfully", "config.retrieved");
     }
 
     /**
@@ -101,21 +105,24 @@ public class DataQualityConfigController implements IEndpoint {
         logger.info("Updating data quality configuration");
 
         try {
-            String bankId = request.param("bankId")
+            String bankIdStr = request.param("bankId")
                 .orElse("default-bank");
+            
+            Result<BankId> bankIdResult = BankId.of(bankIdStr);
+            if (bankIdResult.isFailure()) {
+                return responseHandler.handleErrorResponse(bankIdResult.getError().orElseThrow());
+            }
             
             ConfigurationDto config = request.body(ConfigurationDto.class);
             
-            UpdateConfigurationCommand command = new UpdateConfigurationCommand(bankId, config);
+            UpdateConfigurationCommand command = new UpdateConfigurationCommand(bankIdResult.getValueOrThrow(), config);
             Result<ConfigurationDto> result = updateConfigurationCommandHandler.handle(command);
             
-            return result.isSuccess()
-                ? responseHandler.ok(result.getValueOrThrow())
-                : responseHandler.badRequest(result.getError().orElseThrow().message());
+            return responseHandler.handleSuccessResult(result, "Configuration updated successfully", "config.updated");
                 
         } catch (Exception e) {
             logger.error("Failed to update configuration", e);
-            return responseHandler.internalError("Failed to update configuration");
+            return responseHandler.handleSystemErrorResponse(e);
         }
     }
 
@@ -133,14 +140,17 @@ public class DataQualityConfigController implements IEndpoint {
     public ServerResponse resetToDefault(ServerRequest request) {
         logger.info("Resetting data quality configuration to defaults");
         
-        String bankId = request.param("bankId")
+        String bankIdStr = request.param("bankId")
             .orElse("default-bank");
         
-        ResetConfigurationCommand command = new ResetConfigurationCommand(bankId);
+        Result<BankId> bankIdResult = BankId.of(bankIdStr);
+        if (bankIdResult.isFailure()) {
+            return responseHandler.handleErrorResponse(bankIdResult.getError().orElseThrow());
+        }
+        
+        ResetConfigurationCommand command = new ResetConfigurationCommand(bankIdResult.getValueOrThrow());
         Result<ConfigurationDto> result = resetConfigurationCommandHandler.handle(command);
         
-        return result.isSuccess()
-            ? responseHandler.ok(result.getValueOrThrow())
-            : responseHandler.badRequest(result.getError().orElseThrow().message());
+        return responseHandler.handleSuccessResult(result, "Configuration reset to defaults", "config.reset");
     }
 }

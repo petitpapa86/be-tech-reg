@@ -26,7 +26,8 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 2: MaturityDate > Today
 INSERT INTO dataquality.business_rules (
@@ -48,7 +49,8 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 3: Sector in Valid Catalog
 INSERT INTO dataquality.business_rules (
@@ -70,7 +72,8 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 3 Parameter: Valid Sectors Catalog
 INSERT INTO dataquality.rule_parameters (
@@ -86,7 +89,8 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Rule 4: Currency ISO 4217
 INSERT INTO dataquality.business_rules (
@@ -108,7 +112,8 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 4 Parameter: Valid ISO 4217 Currencies
 INSERT INTO dataquality.rule_parameters (
@@ -124,7 +129,8 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Rule 5: InternalRating Format
 INSERT INTO dataquality.business_rules (
@@ -146,7 +152,8 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 5 Parameter: Valid Rating Formats
 INSERT INTO dataquality.rule_parameters (
@@ -162,7 +169,8 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Rule 6: Collateral_value ≤ 3 × Exposure_amount
 INSERT INTO dataquality.business_rules (
@@ -184,7 +192,8 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 6 Parameter: Max Collateral Multiplier
 INSERT INTO dataquality.rule_parameters (
@@ -200,7 +209,8 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+)
+ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Add comment explaining validity dimension
 COMMENT ON TABLE dataquality.business_rules IS 'Business rules for BCBS 239 data quality validation across 6 dimensions: COMPLETENESS, ACCURACY, CONSISTENCY, TIMELINESS, UNIQUENESS, VALIDITY';

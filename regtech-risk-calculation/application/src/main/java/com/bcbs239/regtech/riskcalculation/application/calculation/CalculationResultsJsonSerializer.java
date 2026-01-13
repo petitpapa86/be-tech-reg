@@ -14,7 +14,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -31,9 +32,9 @@ import java.util.Objects;
  * Requirements: 1.1, 1.2, 10.1, 10.2, 10.3, 10.4
  */
 @Component
-@Slf4j
 public class CalculationResultsJsonSerializer {
 
+    private static final Logger log = LoggerFactory.getLogger(CalculationResultsJsonSerializer.class);
     private final ObjectMapper objectMapper;
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT;
     private static final String FORMAT_VERSION = "1.0";

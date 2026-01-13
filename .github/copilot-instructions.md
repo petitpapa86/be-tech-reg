@@ -226,6 +226,178 @@ public Result<User> createUser(CreateUserCommand cmd) {
 - `from()` - Converts from another type (e.g., `UserId.from(UUID)`)
 - `parse()` - Parses from string representation
 
+**Value Object Constants**: Use value objects for default constants, not primitives
+
+```java
+// ❌ WRONG - Raw primitive constants
+private static final double DEFAULT_COMPLETENESS = 0.95;
+private static final double DEFAULT_ACCURACY = 0.05;
+
+// ✅ CORRECT - Value object constants
+private static final CompletenessThreshold DEFAULT_COMPLETENESS = 
+    CompletenessThreshold.of(0.95).getValueOrThrow();
+private static final AccuracyThreshold DEFAULT_ACCURACY = 
+    AccuracyThreshold.of(0.05).getValueOrThrow();
+
+// Usage
+return new QualityThreshold(
+    bankId,
+    DEFAULT_COMPLETENESS.value(),  // Extract validated value
+    DEFAULT_ACCURACY.value()
+);
+```
+
+**Benefits**: Constants are validated at class-load time, providing compile-time safety.
+
+### Value Object Usage Across Layers
+
+Value objects should flow through all layers to maintain type safety and validation:
+
+#### 1. Domain Layer: Define Value Objects
+```java
+// ✅ Domain value object with validation
+public record BankId(String value) {
+    
+    public static Result<BankId> of(String value) {
+        if (value == null || value.isBlank()) {
+            return Result.failure(
+                ErrorDetail.of("BANK_ID_REQUIRED", ErrorType.VALIDATION_ERROR,
+                    "Bank ID is required", "validation.bank_id_required"));
+        }
+        return Result.success(new BankId(value));
+    }
+}
+
+public record CompletenessThreshold(double value) {
+    
+    public static Result<CompletenessThreshold> of(double value) {
+        if (value < 0.0 || value > 1.0) {
+            return Result.failure(
+                ErrorDetail.of("INVALID_COMPLETENESS_THRESHOLD", ErrorType.VALIDATION_ERROR,
+                    "Completeness threshold must be between 0.0 and 1.0",
+                    "validation.completeness_threshold.out_of_range"));
+        }
+        return Result.success(new CompletenessThreshold(value));
+    }
+    
+    public double asPercentage() {
+        return value * 100.0;
+    }
+}
+```
+
+#### 2. Application Layer: Use Value Objects in Commands/Queries
+```java
+// ✅ Command with value object
+public record UpdateConfigurationCommand(
+    BankId bankId,  // Value object, not String
+    ConfigurationDto configuration
+) {}
+
+// ✅ Handler validates and uses value objects
+@Component
+public class UpdateConfigurationCommandHandler {
+    
+    public Result<ConfigurationDto> handle(UpdateConfigurationCommand command) {
+        // Value object already validated in command creation
+        String bankIdStr = command.bankId().value(); // Extract primitive for repository
+        
+        // Validate threshold value objects
+        Result<CompletenessThreshold> completenessResult = 
+            CompletenessThreshold.of(command.configuration().thresholds().completeness());
+        
+        if (completenessResult.isFailure()) {
+            return Result.failure(completenessResult.getError().orElseThrow());
+        }
+        
+        CompletenessThreshold completeness = completenessResult.getValueOrThrow();
+        
+        // Use validated value
+        QualityThreshold threshold = new QualityThreshold(
+            bankIdStr,
+            completeness.value(),  // Extract primitive
+            // ... other thresholds
+        );
+        
+        thresholdRepository.save(threshold);
+        return Result.success(config);
+    }
+}
+```
+
+#### 3. Presentation Layer: Validate at Boundary
+```java
+// ✅ Controller validates value objects from request parameters
+@Component
+public class DataQualityConfigController {
+    
+    public ServerResponse getConfiguration(ServerRequest request) {
+        // Extract String from request parameter
+        String bankIdStr = request.param("bankId").orElse("default-bank");
+        
+        // Validate and create value object
+        Result<BankId> bankIdResult = BankId.of(bankIdStr);
+        if (bankIdResult.isFailure()) {
+            return responseHandler.handleErrorResponse(
+                bankIdResult.getError().orElseThrow()
+            );
+        }
+        
+        // Pass value object to command/query
+        GetConfigurationQuery query = new GetConfigurationQuery(
+            bankIdResult.getValueOrThrow()  // Value object
+        );
+        
+        Result<ConfigurationDto> result = queryHandler.handle(query);
+        return responseHandler.handleSuccessResult(result, "Success", "config.retrieved");
+    }
+}
+```
+
+#### 4. Infrastructure Layer: Extract Primitives for Repositories
+```java
+// ✅ Handler extracts primitive values for repository calls
+@Component
+public class GetConfigurationQueryHandler {
+    
+    public Result<ConfigurationDto> handle(GetConfigurationQuery query) {
+        // Extract primitive from value object for repository
+        String bankIdStr = query.bankId().value();
+        
+        QualityThreshold threshold = thresholdRepository
+            .findByBankId(bankIdStr)  // Repository uses String
+            .orElseGet(() -> getDefaultThresholds(query.bankId()));
+        
+        return Result.success(config);
+    }
+    
+    private QualityThreshold getDefaultThresholds(BankId bankId) {
+        return new QualityThreshold(
+            bankId.value(),  // Extract String
+            DEFAULT_COMPLETENESS.value(),  // Extract double
+            DEFAULT_ACCURACY.value()
+        );
+    }
+}
+```
+
+#### Value Object Flow Summary
+```
+HTTP Request (String) 
+  → Controller validates → Result<BankId>
+    → Command/Query (BankId value object)
+      → Handler uses value object → Extract .value() for repository
+        → Repository (String primitive)
+          → Database
+```
+
+**Key Rules**:
+1. **Create value objects at boundaries** (controller, from external input)
+2. **Pass value objects through layers** (commands, queries, handlers)
+3. **Extract primitives only when needed** (repository calls, database persistence)
+4. **Never skip validation** - always check `isFailure()` before `getValueOrThrow()`
+5. **Use value object constants** for defaults, not raw primitives
+
 ### Clean Boundaries Pattern
 
 **Controllers** validate input, then **internal layers work with clean data**:
@@ -449,6 +621,47 @@ if (email.isBlank()) throw new ValidationException("Invalid email");
 public User(UserDto dto) { ... }
 ```
 ✅ **Do**: Map DTOs to commands/queries in presentation, use value objects in domain
+
+## Common API Gotchas
+
+### ErrorDetail API (Lombok @Getter)
+```java
+// ❌ WRONG - Record accessor syntax
+result.getError().orElseThrow().message()
+result.getError().orElseThrow().messageKey()
+
+// ✅ CORRECT - Lombok getter syntax
+result.getError().orElseThrow().getMessage()
+result.getError().orElseThrow().getMessageKey()
+```
+
+**Why**: `ErrorDetail` uses Lombok `@Getter` annotation, which generates `getMessage()` not `message()`.
+
+### QualityResponseHandler Methods
+```java
+// ❌ WRONG - These methods don't exist
+responseHandler.ok(data)
+responseHandler.badRequest(message)
+responseHandler.internalError(message)
+
+// ✅ CORRECT - Use these methods
+responseHandler.handleSuccessResult(result, "Success message", "message.key")
+responseHandler.handleErrorResponse(errorDetail)
+responseHandler.handleSystemErrorResponse(exception)
+```
+
+### Result Pattern with Value Objects
+```java
+// ✅ CORRECT - Check failure before using value
+Result<BankId> bankIdResult = BankId.of(bankIdStr);
+if (bankIdResult.isFailure()) {
+    return Result.failure(bankIdResult.getError().orElseThrow());
+}
+BankId bankId = bankIdResult.getValueOrThrow(); // Safe - already checked
+
+// ❌ WRONG - Don't skip validation check
+BankId bankId = BankId.of(bankIdStr).getValueOrThrow(); // May throw!
+```
 
 ## Technology Stack Notes
 

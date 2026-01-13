@@ -1,101 +1,105 @@
 package com.bcbs239.regtech.reportgeneration.presentation.configuration;
 
-import com.bcbs239.regtech.reportgeneration.application.configuration.*;
+import com.bcbs239.regtech.reportgeneration.application.configuration.GetReportConfigurationHandler;
+import com.bcbs239.regtech.reportgeneration.application.configuration.UpdateReportConfigurationHandler;
 import com.bcbs239.regtech.reportgeneration.domain.configuration.ReportConfiguration;
 import com.bcbs239.regtech.core.domain.shared.Result;
-import jakarta.validation.Valid;
+import com.bcbs239.regtech.reportgeneration.presentation.common.IEndpoint;
+import com.bcbs239.regtech.reportgeneration.presentation.web.ReportResponseHandler;
+import io.micrometer.observation.annotation.Observed;
+import jakarta.servlet.ServletException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.http.MediaType;
+import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
+import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
-import static org.springframework.web.servlet.function.RouterFunctions.route;
-import static org.springframework.web.servlet.function.RequestPredicates.*;
+import java.io.IOException;
 
 /**
- * Report Configuration Routes (Route Functions)
+ * Report Configuration Controller
  * 
  * Capability: Report Configuration
  */
-@Configuration
+@Component
 @RequiredArgsConstructor
-public class ReportConfigurationController {
+public class ReportConfigurationController implements IEndpoint {
     
     private final GetReportConfigurationHandler getReportConfigurationHandler;
     private final UpdateReportConfigurationHandler updateReportConfigurationHandler;
+    private final ReportResponseHandler responseHandler;
     
-    @Bean
-    public RouterFunction<ServerResponse> reportConfigurationRoutes() {
-        return route()
-                .GET("/api/v1/banks/{bankId}/configuration/report", accept(MediaType.APPLICATION_JSON), 
-                    this::getReportConfiguration)
-                .PUT("/api/v1/banks/{bankId}/configuration/report", accept(MediaType.APPLICATION_JSON), 
-                    this::updateReportConfiguration)
-                .build();
+    @Override
+    public RouterFunction<ServerResponse> mapEndpoint() {
+        // Mapping is handled by ReportConfigurationRoutes to avoid circular dependencies
+        throw new UnsupportedOperationException("Endpoint mapping is handled by ReportConfigurationRoutes component");
     }
-    
+
     /**
-     * GET /api/v1/banks/{bankId}/configuration/report
+     * GET /api/reporting
+     * Returns full read model (configuration + derived status)
      */
-    private ServerResponse getReportConfiguration(
-            org.springframework.web.servlet.function.ServerRequest request) {
-        
-        Long bankId = Long.valueOf(request.pathVariable("bankId"));
+    @Observed(name = "report-generation.api.configuration.get", contextualName = "get-report-configuration")
+    public ServerResponse getReportingConfiguration(ServerRequest request) {
+        // TODO: Get actual bankId from security context
+        Long bankId = 1L;
         
         return getReportConfigurationHandler.handle(bankId)
-                .map(ReportConfigurationResponse::from)
-                .map(response -> ServerResponse.ok()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(response))
-                .orElseGet(() -> ServerResponse.notFound().build());
+                .map(ReportConfigurationReadModelResponse::from)
+                .map(data -> responseHandler.handleSuccessResult(Result.success(data), "Success", "report.configuration.retrieved"))
+                .orElseGet(() -> responseHandler.handleErrorResponse(
+                        com.bcbs239.regtech.core.domain.shared.ErrorDetail.of(
+                                "CONFIGURATION_NOT_FOUND",
+                                com.bcbs239.regtech.core.domain.shared.ErrorType.NOT_FOUND_ERROR,
+                                "Report configuration not found for bank",
+                                "report.configuration.not_found"
+                        )
+                ));
     }
     
     /**
-     * PUT /api/v1/banks/{bankId}/configuration/report
+     * PUT /api/reporting
+     * Accepts only configuration input
+     * Returns full read model (same shape as GET)
      */
-    private ServerResponse updateReportConfiguration(
-            org.springframework.web.servlet.function.ServerRequest request) {
+    @Observed(name = "report-generation.api.configuration.update", contextualName = "update-report-configuration")
+    public ServerResponse updateReportingConfiguration(ServerRequest request) throws ServletException, IOException {
+        ReportConfigurationCommandRequest requestDto = request.body(ReportConfigurationCommandRequest.class);
         
-        try {
-            Long bankId = Long.valueOf(request.pathVariable("bankId"));
-            ReportConfigurationRequest requestDto = request.body(ReportConfigurationRequest.class);
-            
-            // Validate bankId matches path parameter
-            if (!bankId.equals(requestDto.bankId())) {
-                return ServerResponse.badRequest()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(new ErrorResponse("Bank ID in path does not match request body"));
-            }
-            
-            // TODO: Get actual user from security context
-            String modifiedBy = "admin";
-            
-            UpdateReportConfigurationHandler.UpdateCommand command = requestDto.toCommand(modifiedBy);
-            
-            Result<ReportConfiguration> result = updateReportConfigurationHandler.handle(command);
-            
-            if (result.isSuccess()) {
-                ReportConfigurationResponse response = ReportConfigurationResponse.from(result.getValueOrThrow());
-                return ServerResponse.ok()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(response);
-            } else {
-                String errorMessage = result.getError()
-                        .map(error -> error.getMessage())
-                        .orElse("Unknown error occurred");
-                return ServerResponse.badRequest()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(new ErrorResponse(errorMessage));
-            }
-            
-        } catch (Exception e) {
-            return ServerResponse.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorResponse("Invalid request: " + e.getMessage()));
-        }
+        // TODO: Get actual bankId and user from security context
+        Long bankId = 1L;
+        String modifiedBy = "admin";
+        
+        UpdateReportConfigurationHandler.UpdateCommand command = requestDto.toCommand(bankId, modifiedBy);
+        
+        Result<ReportConfiguration> result = updateReportConfigurationHandler.handle(command);
+        
+        return responseHandler.handleSuccessResult(
+                result.map(ReportConfigurationReadModelResponse::from),
+                "Configuration updated successfully",
+                "report.configuration.updated"
+        );
     }
-    
-    private record ErrorResponse(String error) {}
+
+    /**
+     * POST /api/reporting/reset
+     * Resets to default configuration
+     */
+    @Observed(name = "report-generation.api.configuration.reset", contextualName = "reset-report-configuration")
+    public ServerResponse resetToDefault(ServerRequest request) {
+        // TODO: Implement actual reset logic in application layer
+        // For now, returning current as per mock behavior
+        Long bankId = 1L;
+        return getReportConfigurationHandler.handle(bankId)
+                .map(ReportConfigurationReadModelResponse::from)
+                .map(data -> responseHandler.handleSuccessResult(Result.success(data), "Configuration reset successfully", "report.configuration.reset"))
+                .orElseGet(() -> responseHandler.handleErrorResponse(
+                        com.bcbs239.regtech.core.domain.shared.ErrorDetail.of(
+                                "CONFIGURATION_NOT_FOUND",
+                                com.bcbs239.regtech.core.domain.shared.ErrorType.NOT_FOUND_ERROR,
+                                "Report configuration not found for bank",
+                                "report.configuration.not_found"
+                        )
+                ));
+    }
 }

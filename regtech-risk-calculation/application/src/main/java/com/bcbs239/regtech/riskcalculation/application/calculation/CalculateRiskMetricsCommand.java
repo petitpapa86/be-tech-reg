@@ -11,11 +11,11 @@ import lombok.Value;
  */
 @Getter
 public class CalculateRiskMetricsCommand {
-    String batchId;
-    String bankId;
-    String s3Uri;
-    int totalExposures;
-    String correlationId;
+    private final String batchId;
+    private final String bankId;
+    private final String s3Uri;
+    private final int totalExposures;
+    private final String correlationId;
 
     private CalculateRiskMetricsCommand(String batchId, String bankId, String s3Uri, 
                                        int totalExposures, String correlationId) {

@@ -11,12 +11,13 @@ import com.bcbs239.regtech.riskcalculation.domain.analysis.PortfolioAnalysisRepo
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component("riskCalculationProcessBatchCompletedUseCase")
 @RequiredArgsConstructor
-@Slf4j
 public class ProcessBatchCompletedUseCase {
+    private static final Logger log = LoggerFactory.getLogger(ProcessBatchCompletedUseCase.class);
     private final CalculateRiskMetricsCommandHandler handler;
     private final PortfolioAnalysisRepository portfolioAnalysisRepository;
 

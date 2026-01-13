@@ -66,7 +66,7 @@ public class ReportConfiguration {
      * Domain behavior: Is this a high-frequency report?
      */
     public boolean isHighFrequency() {
-        return frequency == ReportFrequency.MONTHLY;
+        return frequency == ReportFrequency.MENSILE;
     }
     
     /**

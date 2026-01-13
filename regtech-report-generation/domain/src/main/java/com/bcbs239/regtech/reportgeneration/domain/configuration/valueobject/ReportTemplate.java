@@ -28,18 +28,22 @@ public enum ReportTemplate {
             ));
         }
         
-        try {
-            return Result.success(ReportTemplate.valueOf(value.trim().toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            return Result.failure(ErrorDetail.of(
-                "INVALID_TEMPLATE",
-                ErrorType.VALIDATION_ERROR,
-                "Invalid report template: " + value + ". Valid values: " +
-                String.join(", ", java.util.Arrays.stream(values())
-                    .map(Enum::name)
-                    .toList()),
-                "report.template.invalid"
-            ));
+        // Match by display name or enum name
+        for (ReportTemplate template : values()) {
+            if (template.name().equalsIgnoreCase(value.trim()) || 
+                template.displayName.equalsIgnoreCase(value.trim())) {
+                return Result.success(template);
+            }
         }
+        
+        return Result.failure(ErrorDetail.of(
+            "INVALID_TEMPLATE",
+            ErrorType.VALIDATION_ERROR,
+            "Invalid report template: " + value + ". Valid values: " +
+            String.join(", ", java.util.Arrays.stream(values())
+                .map(t -> t.name() + " (" + t.getDisplayName() + ")")
+                .toList()),
+            "report.template.invalid"
+        ));
     }
 }

@@ -27,19 +27,26 @@ public enum OutputFormat {
             ));
         }
         
-        try {
-            return Result.success(OutputFormat.valueOf(value.trim().toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            return Result.failure(ErrorDetail.of(
-                "INVALID_OUTPUT_FORMAT",
-                ErrorType.VALIDATION_ERROR,
-                "Invalid output format: " + value + ". Valid values: " +
-                String.join(", ", java.util.Arrays.stream(values())
-                    .map(Enum::name)
-                    .toList()),
-                "report.outputFormat.invalid"
-            ));
+        String trimmed = value.trim().toUpperCase();
+        
+        // Support name or BOTH/ENTRAMBI
+        for (OutputFormat format : values()) {
+            if (format.name().equals(trimmed) || format.displayName.toUpperCase().contains(trimmed)) {
+                return Result.success(format);
+            }
         }
+        
+        // Special case for "BOTH" vs "ENTRAMBI"
+        if (trimmed.equals("BOTH") || trimmed.equals("ENTRAMBI")) {
+            return Result.success(BOTH);
+        }
+        
+        return Result.failure(ErrorDetail.of(
+            "INVALID_OUTPUT_FORMAT",
+            ErrorType.VALIDATION_ERROR,
+            "Invalid output format: " + value + ". Valid values: PDF, EXCEL, BOTH",
+            "report.outputFormat.invalid"
+        ));
     }
     
     public boolean includesPdf() {

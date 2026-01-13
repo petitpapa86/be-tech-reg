@@ -26,18 +26,20 @@ public enum ReportLanguage {
             ));
         }
         
-        try {
-            return Result.success(ReportLanguage.valueOf(value.trim().toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            return Result.failure(ErrorDetail.of(
-                "INVALID_LANGUAGE",
-                ErrorType.VALIDATION_ERROR,
-                "Invalid report language: " + value + ". Valid values: " +
-                String.join(", ", java.util.Arrays.stream(values())
-                    .map(Enum::name)
-                    .toList()),
-                "report.language.invalid"
-            ));
+        String trimmed = value.trim().toUpperCase();
+        
+        // Support code (IT, EN) or enum name (ITALIAN, ENGLISH)
+        for (ReportLanguage language : values()) {
+            if (language.name().equals(trimmed) || language.code.equalsIgnoreCase(trimmed)) {
+                return Result.success(language);
+            }
         }
+        
+        return Result.failure(ErrorDetail.of(
+            "INVALID_LANGUAGE",
+            ErrorType.VALIDATION_ERROR,
+            "Invalid report language: " + value + ". Valid values: IT, EN, BILINGUAL",
+            "report.language.invalid"
+        ));
     }
 }
