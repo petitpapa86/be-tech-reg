@@ -37,6 +37,7 @@ public class BankProfileRepositoryAdapter implements BankProfileRepository {
     public BankProfile save(BankProfile profile) {
         var entity = toEntity(profile);
         var saved = jpaRepository.save(entity);
+        jpaRepository.flush(); // Force immediate write to database
         return toDomain(saved);
     }
     

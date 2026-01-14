@@ -9,6 +9,7 @@ import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ import java.util.List;
  * 
  * Returns Result&lt;BankProfile&gt; because validation can fail
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UpdateBankProfileHandler {
@@ -155,7 +157,7 @@ public class UpdateBankProfileHandler {
         }
         
         BankProfile saved = repository.save(profile);
-        
+
         return Result.success(saved);
     }
 }
