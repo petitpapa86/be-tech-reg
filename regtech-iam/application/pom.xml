@@ -15,15 +15,14 @@
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-iam-domain</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+			<version>${project.version}</version>
 		</dependency>
 
 
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-core-domain</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
+			<version>${project.version}</version>
 		</dependency>
 
 		<!-- Spring Boot Starter -->
@@ -76,8 +75,7 @@
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-core-application</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
+            <version>${project.version}</version>
         </dependency>
 
 

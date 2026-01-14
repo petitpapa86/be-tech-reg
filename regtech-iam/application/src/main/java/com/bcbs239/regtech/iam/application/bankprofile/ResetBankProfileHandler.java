@@ -33,7 +33,7 @@ public class ResetBankProfileHandler {
         LeiCode.of("549300ABCDEFGH123456").getValueOrThrow();
     
     @Transactional
-    public BankProfile handle(Long bankId, String modifiedBy) {
+    public BankProfile handle(String bankId, String modifiedBy) {
         // Load existing profile (if any) to preserve bankId
         Maybe<BankProfile> existingProfile = getBankProfileHandler.handle(bankId);
         

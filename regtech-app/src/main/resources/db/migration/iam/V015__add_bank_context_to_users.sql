@@ -3,13 +3,13 @@
 
 -- 1. Add bank_id for multi-tenancy
 ALTER TABLE iam.users 
-ADD COLUMN IF NOT EXISTS bank_id BIGINT;
+ADD COLUMN IF NOT EXISTS bank_id VARCHAR(50);
 
--- Add foreign key to bank_profile
+-- Add foreign key to iam.banks (not bank_profile)
 ALTER TABLE iam.users
 ADD CONSTRAINT fk_users_bank_id 
     FOREIGN KEY (bank_id) 
-    REFERENCES bank_profile(bank_id) 
+    REFERENCES iam.banks(id) 
     ON DELETE RESTRICT;
 
 -- Create indexes
@@ -21,7 +21,7 @@ ALTER TABLE iam.users DROP CONSTRAINT IF EXISTS users_email_key;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_bank_id ON iam.users(email, bank_id);
 
 -- 3. Backfill existing users with default bank_id
-UPDATE iam.users SET bank_id = 1 WHERE bank_id IS NULL;
+UPDATE iam.users SET bank_id = 'BANK-001' WHERE bank_id IS NULL;
 ALTER TABLE iam.users ALTER COLUMN bank_id SET NOT NULL;
 
 -- 4. Add invitation workflow columns

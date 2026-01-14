@@ -5,30 +5,25 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityContextHolder;
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.controllers.BaseController;
-import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommand;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommandHandler;
 import com.bcbs239.regtech.iam.application.users.RegisterUserResponse;
 import io.micrometer.observation.annotation.Observed;
 import jakarta.servlet.ServletException;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.servlet.function.RouterFunction;
-import org.springframework.web.servlet.function.RouterFunctions;
+import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
 import java.io.IOException;
 import java.util.Set;
 
-import static org.springframework.web.servlet.function.RequestPredicates.*;
-
 /**
- * Functional routing configuration for user management operations
+ * Controller handling user management operations logic.
+ * Routing is handled by UserRoutes.
  */
-@Configuration
+@Component
 public class UserController extends BaseController {
 
     private final RegisterUserCommandHandler registerUserCommandHandler;
@@ -37,25 +32,8 @@ public class UserController extends BaseController {
         this.registerUserCommandHandler = registerUserCommandHandler;
     }
 
-    @Bean
-    public RouterFunction<ServerResponse> userRoutes() {
-        // Build registration route (public)
-        RouterFunction<ServerResponse> registerRoute = RouterFunctions
-                .route(POST("/api/v1/users/register").and(accept(MediaType.APPLICATION_JSON)),
-                        this::registerUserHandler);
-
-        // Build profile route (protected with permissions)
-        RouterFunction<ServerResponse> profileRoute = RouterFunctions
-                .route(GET("/api/v1/users/profile").and(accept(MediaType.APPLICATION_JSON)),
-                        this::getUserProfileHandler);
-
-        // Apply security attributes and combine
-        return RouterAttributes.asPublic(registerRoute)
-                .and(RouterAttributes.withPermissions(profileRoute, "users:read"));
-    }
-
     @Observed(name = "iam.api.users.register", contextualName = "register-user")
-    private ServerResponse registerUserHandler(ServerRequest request) throws ServletException, IOException {
+    public ServerResponse registerUserHandler(ServerRequest request) throws ServletException, IOException {
 
             RegisterUserRequest req = request.body(RegisterUserRequest.class);
 
@@ -108,7 +86,7 @@ public class UserController extends BaseController {
     }
 
     @Observed(name = "iam.api.users.profile", contextualName = "get-user-profile")
-    private ServerResponse getUserProfileHandler(ServerRequest request) {
+    public ServerResponse getUserProfileHandler(ServerRequest request) {
         try {
             var ctx = SecurityContextHolder.getContext();
             String userId = ctx != null ? ctx.getUserId() : null;

@@ -15,19 +15,15 @@
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-iam-domain</artifactId>
+			<version>${project.version}</version>
 		</dependency>
 		
 		<dependency>
 			<groupId>com.bcbs239</groupId>
 			<artifactId>regtech-iam-application</artifactId>
-		</dependency>
-		
-		<dependency>
-			<groupId>com.bcbs239</groupId>
-			<artifactId>regtech-core</artifactId>
-			<type>pom</type>
 			<version>${project.version}</version>
 		</dependency>
+		
 		
 		<dependency>
 			<groupId>com.bcbs239</groupId>

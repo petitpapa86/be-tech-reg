@@ -24,15 +24,14 @@ public class BankMapper {
             return null;
         }
         
-        BankEntity entity = new BankEntity(
-            bank.getId().value(),
-            bank.getName().value(),
-            "IT", // Default country code - should be added to Bank domain
-            bank.getStatus().name()
-        );
-        
-        entity.setCreatedAt(bank.getCreatedAt());
-        entity.setUpdatedAt(bank.getUpdatedAt());
+        BankEntity entity = BankEntity.builder()
+            .id(bank.getId().value())
+            .name(bank.getName().value())
+            .countryCode("IT") // Default country code - should be added to Bank domain
+            .status(bank.getStatus().name())
+            .createdAt(bank.getCreatedAt())
+            .updatedAt(bank.getUpdatedAt())
+            .build();
         
         return entity;
     }

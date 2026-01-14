@@ -1,10 +1,107 @@
-# 🤖 GitHub Copilot Instructions - BCBS 239 Report Code Generation
+# 🤖 GitHub Copilot Instructions - RegTech Project
 
 ## 📋 Overview
 
-Questo file contiene istruzioni per GitHub Copilot su come generare codice dal file `color-rules-config-COMPLETE.yaml`.
+Questo file contiene istruzioni per GitHub Copilot su come generare codice per il progetto RegTech.
+Include linee guida per la generazione di report (basati su YAML) e per lo sviluppo di componenti Backend (Java Controllers e Routes).
 
-**CRITICAL:** Il file YAML è la **SINGLE SOURCE OF TRUTH** per TUTTO il codice dell'applicazione.
+---
+
+## 🏗️ Task 0: Generazione Java Controller e Routes (MANDATORIO)
+
+Ogni volta che viene creato un nuovo Controller o un sistema di Routing, devono essere seguite queste regole:
+
+### 1. Estendere `BaseController`
+Tutti i Controller devono estendere `com.bcbs239.regtech.core.presentation.controllers.BaseController`.
+Questo garantisce che tutte le risposte API seguano il formato standard `ApiResponse<T>`.
+
+### 2. Usare Functional Routing
+Non usare annotazioni `@RestController` o `@GetMapping`/`@PostMapping` sui metodi del controller.
+Il routing deve essere definito in una classe separata `*Routes` utilizzando `RouterFunction` e `RouterAttributes.withPermissions`.
+
+### 3. Gestione delle Risposte
+Usa esclusivamente i metodi helper di `BaseController`:
+- `handleResult(Result<T> result, String message, String messageKey)` per successi.
+- `handleError(ErrorDetail error)` per errori di business.
+- `handleValidationError(List<FieldError> errors, String message)` per errori di validazione input.
+- `handleSystemError(Exception e)` per eccezioni impreviste.
+
+### 4. Boilerplate per ogni Endpoint
+Ogni metodo del controller che gestisce una richiesta deve:
+1. Accettare `ServerRequest request`.
+2. Restituire `ServerResponse`.
+3. Estrarre i dati (path variables o body).
+4. Validare l'input se necessario.
+5. Chiamare l'Handler/Service appropriato (che restituisce un `Result<T>`).
+6. Restituire la risposta usando gli helper di `BaseController`, assicurandosi di fare l'assert sul body e impostare il `contentType`.
+
+### 💡 Esempio di Prompt per Copilot
+
+```
+Crea un Controller e una classe Routes per la gestione di [ENTITA'].
+
+Requisiti:
+1. Il Controller deve estendere BaseController.
+2. Usa functional routing con RouterFunction.
+3. Gestisci l'endpoint [METODO] [URL] che chiama [HANDLER].
+4. Assicurati di usare handleResult/handleError per la risposta.
+5. Includi i permessi [PERMESSO] usando RouterAttributes.
+```
+
+### 📦 Esempio di Codice Atteso
+
+**Controller:**
+```java
+@Component
+@RequiredArgsConstructor
+public class MyController extends BaseController {
+    private final MyHandler handler;
+
+    public ServerResponse myEndpoint(ServerRequest request) {
+        // ... logica ...
+        Result<MyResponse> result = handler.handle(request.pathVariable("id"));
+
+        if (result.isFailure()) {
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(result.getError().get());
+            assert responseEntity.getBody() != null;
+            return ServerResponse.status(responseEntity.getStatusCode())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(responseEntity.getBody());
+        }
+
+        ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(
+                result, "Success message", "message.key");
+        assert responseEntity.getBody() != null;
+        return ServerResponse.status(responseEntity.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(responseEntity.getBody());
+    }
+}
+```
+
+**Routes:**
+```java
+@Configuration
+public class MyRoutes {
+    private final MyController controller;
+
+    @Bean
+    public RouterFunction<ServerResponse> myRoutesConfig() {
+        return RouterAttributes.withPermissions(
+                route()
+                    .GET("/api/v1/my-path", controller::myEndpoint)
+                    .build(),
+                "my-permission:read"
+            );
+    }
+}
+```
+
+---
+
+## 📊 BCBS 239 Report Code Generation
+
+**CRITICAL:** Il file YAML `color-rules-config-COMPLETE.yaml` è la **SINGLE SOURCE OF TRUTH** per TUTTO il codice relativo ai report.
 
 ---
 

@@ -8,6 +8,9 @@ import jakarta.validation.constraints.*;
  */
 public record BankProfileRequest(
     
+    @NotBlank(message = "Bank ID is required")
+    String bankId,
+    
     @NotBlank(message = "Legal name is required")
     @Size(max = 255, message = "Legal name too long")
     String legalName,
@@ -54,7 +57,7 @@ public record BankProfileRequest(
     /**
      * Map DTO → Command
      */
-    public com.bcbs239.regtech.iam.application.bankprofile.UpdateBankProfileHandler.UpdateCommand toCommand(Long bankId, String modifiedBy) {
+    public com.bcbs239.regtech.iam.application.bankprofile.UpdateBankProfileHandler.UpdateCommand toCommand(String modifiedBy) {
         return new com.bcbs239.regtech.iam.application.bankprofile.UpdateBankProfileHandler.UpdateCommand(
                 bankId,
                 legalName,

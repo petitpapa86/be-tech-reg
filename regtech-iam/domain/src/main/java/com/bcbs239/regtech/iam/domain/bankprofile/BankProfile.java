@@ -17,7 +17,7 @@ import java.time.Instant;
 public class BankProfile {
     
     // Identity
-    Long bankId;
+    String bankId;
     
     // Required fields
     LegalName legalName;

@@ -1,137 +1,172 @@
 package com.bcbs239.regtech.iam.presentation.bankprofile;
 
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
+import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
+import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.iam.application.bankprofile.*;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import jakarta.servlet.ServletException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.Validator;
-import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
 import java.io.IOException;
-
-import static org.springframework.web.servlet.function.RouterFunctions.route;
-import static org.springframework.web.servlet.function.RequestPredicates.*;
+import java.util.List;
 
 /**
- * Bank Profile Routes (Route Functions)
- * 
- * Following the pattern from UserController in regtech-iam
+ * Bank Profile Controller
+ * <p>
+ * Handles business logic for bank profile operations.
+ * Routing is handled by BankProfileRoutes.
  */
-@Configuration
+@Component
 @RequiredArgsConstructor
-public class BankProfileController {
-    
+public class BankProfileController extends BaseController {
+
     private final GetBankProfileHandler getBankProfileHandler;
     private final UpdateBankProfileHandler updateBankProfileHandler;
     private final ResetBankProfileHandler resetBankProfileHandler;
     private final Validator validator;
-    
-    @Bean
-    public RouterFunction<ServerResponse> bankProfileRoutes() {
-        return route()
-                .GET("/api/v1/configuration/bank-profile/{bankId}", 
-                        accept(MediaType.APPLICATION_JSON), 
-                        this::getBankProfile)
-                .PUT("/api/v1/configuration/bank-profile/{bankId}", 
-                        accept(MediaType.APPLICATION_JSON), 
-                        this::updateBankProfile)
-                .POST("/api/v1/configuration/bank-profile/{bankId}/reset", 
-                        accept(MediaType.APPLICATION_JSON), 
-                        this::resetBankProfile)
-                .build();
-    }
-    
+
     /**
      * GET /api/v1/configuration/bank-profile/{bankId}
      */
-    private ServerResponse getBankProfile(ServerRequest request) {
-        Long bankId = Long.parseLong(request.pathVariable("bankId"));
-        var profileMaybe = getBankProfileHandler.handle(bankId);
-        
-        if (profileMaybe.isEmpty()) {
-            return ServerResponse.notFound().build();
-        }
-        
-        var response = BankProfileResponse.from(profileMaybe.getValue());
-        return ServerResponse.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(response);
-    }
-    
-    /**
-     * PUT /api/v1/configuration/bank-profile/{bankId}
-     */
-    private ServerResponse updateBankProfile(ServerRequest request) throws ServletException {
+    public ServerResponse getBankProfile(ServerRequest request) {
         try {
-            Long bankId = Long.parseLong(request.pathVariable("bankId"));
-            
-            // Parse request body
+            String bankId = request.pathVariable("bankId");
+            var profileMaybe = getBankProfileHandler.handle(bankId);
+
+            if (profileMaybe.isEmpty()) {
+                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(
+                        ErrorDetail.of("BANK_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, "Bank profile not found for ID: " + bankId, "bankprofile.notfound")
+                );
+                assert responseEntity.getBody() != null;
+                return ServerResponse.status(responseEntity.getStatusCode())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(responseEntity.getBody());
+            }
+
+            BankProfileResponse response = BankProfileResponse.from(profileMaybe.getValue());
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(
+                    Result.success(response),
+                    "Bank profile retrieved successfully",
+                    "bankprofile.get.success"
+            );
+            assert responseEntity.getBody() != null;
+            return ServerResponse.status(responseEntity.getStatusCode())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(responseEntity.getBody());
+        } catch (Exception e) {
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleSystemError(e);
+            assert responseEntity.getBody() != null;
+            return ServerResponse.status(responseEntity.getStatusCode())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(responseEntity.getBody());
+        }
+    }
+
+    /**
+     * PUT /api/v1/configuration/bank-profile
+     */
+    public ServerResponse updateBankProfile(ServerRequest request) {
+        try {
+            // 1. Parse request body
             BankProfileRequest dto = request.body(BankProfileRequest.class);
-            
-            // Validate
+
+            // 2. Validate DTO at the boundary
             var errors = new BeanPropertyBindingResult(dto, "bankProfileRequest");
             validator.validate(dto, errors);
-            
+
             if (errors.hasErrors()) {
-                var errorMessages = errors.getAllErrors().stream()
-                        .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                List<FieldError> presentationErrors = errors.getFieldErrors().stream()
+                        .map(fe -> new FieldError(fe.getField(), fe.getDefaultMessage(), fe.getCode()))
                         .toList();
-                return ServerResponse.badRequest()
+                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleValidationError(
+                        presentationErrors,
+                        "Validation failed for bank profile update"
+                );
+                assert responseEntity.getBody() != null;
+                return ServerResponse.status(responseEntity.getStatusCode())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(new ErrorResponse(String.join(", ", errorMessages)));
+                        .body(responseEntity.getBody());
             }
-            
+
             // TODO: Get actual user from security context
             String currentUser = "system";
-            
-            // Execute command
-            Result<com.bcbs239.regtech.iam.domain.bankprofile.BankProfile> result = 
-                    updateBankProfileHandler.handle(dto.toCommand(bankId, currentUser));
-            
+
+            // 3. Execute command via handler
+            Result<com.bcbs239.regtech.iam.domain.bankprofile.BankProfile> result =
+                    updateBankProfileHandler.handle(dto.toCommand(currentUser));
+
+            // 4. Handle domain/business results
             if (result.isFailure()) {
-                return ServerResponse.badRequest()
+                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(result.getError().get());
+                assert responseEntity.getBody() != null;
+                return ServerResponse.status(responseEntity.getStatusCode())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(new ErrorResponse(result.getError().map(ErrorDetail::getMessage).orElse("Unknown error")));
+                        .body(responseEntity.getBody());
             }
-            
-            var response = BankProfileResponse.from(result.getValueOrThrow());
-            return ServerResponse.ok()
+
+            // 5. Convert to response DTO and return success
+            BankProfileResponse response = BankProfileResponse.from(result.getValueOrThrow());
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(
+                    Result.success(response),
+                    "Bank profile updated successfully",
+                    "bankprofile.update.success"
+            );
+            assert responseEntity.getBody() != null;
+            return ServerResponse.status(responseEntity.getStatusCode())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(response);
-            
-        } catch (IOException e) {
-            return ServerResponse.badRequest()
+                    .body(responseEntity.getBody());
+
+        } catch (Exception e) {
+            // Handle unexpected exceptions consistently
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleSystemError(e);
+            assert responseEntity.getBody() != null;
+            return ServerResponse.status(responseEntity.getStatusCode())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(new ErrorResponse("Invalid request body: " + e.getMessage()));
+                    .body(responseEntity.getBody());
         }
     }
-    
+
     /**
      * POST /api/v1/configuration/bank-profile/{bankId}/reset
      */
-    private ServerResponse resetBankProfile(ServerRequest request) {
-        Long bankId = Long.parseLong(request.pathVariable("bankId"));
-        
-        // TODO: Get actual user from security context
-        String currentUser = "system";
-        
-        // Execute command - no try-catch, let exceptions propagate
-        var profile = resetBankProfileHandler.handle(bankId, currentUser);
-        
-        var response = BankProfileResponse.from(profile);
-        return ServerResponse.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(response);
+    public ServerResponse resetBankProfile(ServerRequest request) {
+        try {
+            String bankId = request.pathVariable("bankId");
+
+            // TODO: Get actual user from security context
+            String currentUser = "system";
+
+            // Execute command - no try-catch, let exceptions propagate
+            var profile = resetBankProfileHandler.handle(bankId, currentUser);
+
+            var response = BankProfileResponse.from(profile);
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(
+                    Result.success(response),
+                    "Bank profile reset successfully",
+                    "bankprofile.reset.success"
+            );
+            assert responseEntity.getBody() != null;
+            return ServerResponse.status(responseEntity.getStatusCode())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(responseEntity.getBody());
+        } catch (Exception e) {
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleSystemError(e);
+            assert responseEntity.getBody() != null;
+            return ServerResponse.status(responseEntity.getStatusCode())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(responseEntity.getBody());
+        }
     }
-    
-    private record ErrorResponse(String error) {}
 }

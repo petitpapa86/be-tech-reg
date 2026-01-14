@@ -2,13 +2,12 @@ package com.bcbs239.regtech.dataquality.presentation.config;
 
 import com.bcbs239.regtech.core.presentation.routing.RouterAttributes;
 import com.bcbs239.regtech.dataquality.presentation.common.Tags;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
 
-import static org.springframework.web.servlet.function.RequestPredicates.GET;
-import static org.springframework.web.servlet.function.RequestPredicates.POST;
-import static org.springframework.web.servlet.function.RequestPredicates.PUT;
+import static org.springframework.web.servlet.function.RequestPredicates.*;
 import static org.springframework.web.servlet.function.RouterFunctions.route;
 
 /**
@@ -50,7 +49,8 @@ public class DataQualityConfigRoutes {
             "Get current data quality configuration including thresholds, validation rules, and error handling policies"
         ).and(RouterAttributes.withAttributes(
             // Update configuration
-            route(PUT("/api/v1/data-quality/config"), controller::updateConfiguration),
+            route(PUT("/api/v1/data-quality/config"), 
+                    controller::updateConfiguration),
             new String[]{"data-quality:config:update"},
             new String[]{Tags.DATA_QUALITY, Tags.CONFIGURATION},
             "Update data quality configuration with new thresholds and validation rules"

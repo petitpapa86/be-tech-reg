@@ -11,7 +11,7 @@ public interface BankProfileRepository {
     /**
      * Find bank profile by ID
      */
-    Maybe<BankProfile> findById(Long bankId);
+    Maybe<BankProfile> findById(String bankId);
     
     /**
      * Save/update bank profile

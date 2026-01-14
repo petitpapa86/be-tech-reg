@@ -38,11 +38,11 @@ public class UserManagementController {
     @Bean
     public RouterFunction<ServerResponse> userManagementRoutes() {
         return route()
-            .GET("/api/banks/{bankId}/users", accept(MediaType.APPLICATION_JSON), this::getUsers)
-            .POST("/api/banks/{bankId}/users", accept(MediaType.APPLICATION_JSON), this::addUser)
-            .POST("/api/banks/{bankId}/users/invite", accept(MediaType.APPLICATION_JSON), this::inviteUser)
-            .PUT("/api/users/{userId}/role", accept(MediaType.APPLICATION_JSON), this::updateUserRole)
-            .PUT("/api/users/{userId}/suspend", accept(MediaType.APPLICATION_JSON), this::suspendUser)
+            .GET("/api/banks/{bankId}/users", this::getUsers)
+            .POST("/api/banks/{bankId}/users", this::addUser)
+            .POST("/api/banks/{bankId}/users/invite", this::inviteUser)
+            .PUT("/api/users/{userId}/role", this::updateUserRole)
+            .PUT("/api/users/{userId}/suspend", this::suspendUser)
             .DELETE("/api/users/{userId}/invitation", this::revokeInvitation)
             .build();
     }

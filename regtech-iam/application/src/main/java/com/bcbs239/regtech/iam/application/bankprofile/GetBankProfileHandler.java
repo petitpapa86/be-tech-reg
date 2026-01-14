@@ -20,7 +20,7 @@ public class GetBankProfileHandler {
     private final BankProfileRepository repository;
     
     @Transactional(readOnly = true)
-    public Maybe<BankProfile> handle(Long bankId) {
+    public Maybe<BankProfile> handle(String bankId) {
         return repository.findById(bankId);
     }
 }

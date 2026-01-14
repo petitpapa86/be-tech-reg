@@ -10,6 +10,7 @@ import org.springframework.web.servlet.function.ServerResponse;
 
 import static org.springframework.web.servlet.function.RequestPredicates.POST;
 import static org.springframework.web.servlet.function.RequestPredicates.accept;
+import static org.springframework.web.servlet.function.RequestPredicates.contentType;
 
 /**
  * Authentication Routes Configuration
@@ -31,17 +32,17 @@ public class AuthenticationRoutes {
         // Public routes (no authentication required)
         // Requirements: 7.5 - login, refresh, and select-bank are public endpoints
         RouterFunction<ServerResponse> publicRoutes = RouterFunctions
-            .route(POST("/api/v1/auth/login").and(accept(MediaType.APPLICATION_JSON)),
+            .route(POST("/api/v1/auth/login"),
                 controller::loginHandler)
-            .andRoute(POST("/api/v1/auth/refresh").and(accept(MediaType.APPLICATION_JSON)),
+            .andRoute(POST("/api/v1/auth/refresh"),
                 controller::refreshTokenHandler)
-            .andRoute(POST("/api/v1/auth/select-bank").and(accept(MediaType.APPLICATION_JSON)),
+            .andRoute(POST("/api/v1/auth/select-bank"),
                 controller::selectBankHandler);
 
         // Protected routes (requires authentication)
         // Requirements: 7.5 - logout requires authentication
         RouterFunction<ServerResponse> protectedRoutes = RouterFunctions
-            .route(POST("/api/v1/auth/logout").and(accept(MediaType.APPLICATION_JSON)),
+            .route(POST("/api/v1/auth/logout"),
                 controller::logoutHandler);
 
         // Apply security attributes and combine routes

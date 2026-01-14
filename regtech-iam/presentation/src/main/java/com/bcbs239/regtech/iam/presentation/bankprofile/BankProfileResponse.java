@@ -6,7 +6,7 @@ import java.time.format.DateTimeFormatter;
  * Response DTO for bank profile
  */
 public record BankProfileResponse(
-    Long bankId,
+    String bankId,
     String legalName,
     String abiCode,
     String leiCode,

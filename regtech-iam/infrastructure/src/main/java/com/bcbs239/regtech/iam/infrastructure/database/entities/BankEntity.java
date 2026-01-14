@@ -1,8 +1,7 @@
 package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -14,9 +13,11 @@ import java.util.Objects;
 @Getter
 @Entity
 @Table(name = "banks", schema = "iam")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class BankEntity {
 
-    // Getters and setters
     @Id
     @Column(name = "id", length = 36)
     private String id;
@@ -27,28 +28,68 @@ public class BankEntity {
     @Column(name = "country_code", nullable = false, length = 2)
     private String countryCode;
     
+    @Column(name = "status", nullable = false, length = 20)
+    private String status;
+
+    // Fields merged from BankProfileJpaEntity
+    @Column(name = "legal_name")
+    private String legalName;
+    
+    @Column(name = "abi_code", length = 5, unique = true)
+    private String abiCode;
+    
+    @Column(name = "lei_code", length = 20, unique = true)
+    private String leiCode;
+    
+    @Column(name = "group_type")
+    private String groupType;
+    
+    @Column(name = "bank_type")
+    private String bankType;
+    
+    @Column(name = "supervision_category")
+    private String supervisionCategory;
+    
+    @Column(name = "legal_address", columnDefinition = "TEXT")
+    private String legalAddress;
+    
+    @Column(name = "vat_number", length = 13)
+    private String vatNumber;
+    
+    @Column(name = "tax_code", length = 11)
+    private String taxCode;
+    
+    @Column(name = "company_registry", length = 100)
+    private String companyRegistry;
+    
+    @Column(name = "institutional_email")
+    private String institutionalEmail;
+    
+    @Column(name = "pec")
+    private String pec;
+    
+    @Column(name = "phone", length = 50)
+    private String phone;
+    
+    @Column(name = "website")
+    private String website;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
     
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
-    
-    @Column(name = "status", nullable = false, length = 20)
-    private String status;
-    
-    // Default constructor for JPA
-    protected BankEntity() {
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.createdAt == null) {
+            this.createdAt = Instant.now();
+        }
+        if (this.updatedAt == null) {
+            this.updatedAt = Instant.now();
+        }
     }
-    
-    public BankEntity(String id, String name, String countryCode, String status) {
-        this.id = id;
-        this.name = name;
-        this.countryCode = countryCode;
-        this.status = status;
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
-    }
-    
+
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = Instant.now();

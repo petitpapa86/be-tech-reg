@@ -35,7 +35,7 @@ public class UpdateBankProfileHandler {
     
     @Value
     public static class UpdateCommand {
-        Long bankId;
+        String bankId;
         String legalName;
         String abiCode;
         String leiCode;
