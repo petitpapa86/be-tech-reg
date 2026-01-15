@@ -1,18 +1,16 @@
 package com.bcbs239.regtech.dataquality.presentation.reports;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrendsQuery;
 import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrendsQueryHandler;
 import com.bcbs239.regtech.dataquality.application.monitoring.QualityTrendsDto;
 import com.bcbs239.regtech.dataquality.application.reporting.QualityReportPresentationService;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation;
-import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import com.bcbs239.regtech.dataquality.presentation.common.IEndpoint;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator.TrendsQueryParams;
-import com.bcbs239.regtech.dataquality.presentation.web.QualityResponseHandler;
 import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,33 +28,30 @@ import org.springframework.web.servlet.function.ServerResponse;
  * - QualityRequestValidator for input validation
  * - QualitySecurityService for authentication and authorization
  * - Query handlers for business logic execution
- * - QualityResponseHandler for response formatting
+ * - BaseController for consistent response formatting
  *
  * Requirements: 9.1, 9.2, 9.3, 9.4
  */
 @Component
-public class QualityReportController implements IEndpoint {
+public class QualityReportController extends BaseController implements IEndpoint {
 
     private static final Logger logger = LoggerFactory.getLogger(QualityReportController.class);
 
-        private final QualityReportPresentationService presentationService;
+    private final QualityReportPresentationService presentationService;
     private final BatchQualityTrendsQueryHandler trendsQueryHandler;
     private final QualityRequestValidator requestValidator;
     //private final QualitySecurityService securityService;
-    private final QualityResponseHandler responseHandler;
     
     public QualityReportController(
-                QualityReportPresentationService presentationService,
+        QualityReportPresentationService presentationService,
         BatchQualityTrendsQueryHandler trendsQueryHandler,
-        QualityRequestValidator requestValidator,
-      //  QualitySecurityService securityService,
-                QualityResponseHandler responseHandler
+        QualityRequestValidator requestValidator
+        //  QualitySecurityService securityService
     ) {
-                this.presentationService = presentationService;
+        this.presentationService = presentationService;
         this.trendsQueryHandler = trendsQueryHandler;
         this.requestValidator = requestValidator;
-      //  this.securityService = securityService;
-        this.responseHandler = responseHandler;
+        //  this.securityService = securityService;
     }
     
     /**
@@ -88,21 +83,21 @@ public class QualityReportController implements IEndpoint {
             // Extract and validate bankId
             Result<BankId> bankIdResult = requestValidator.validateBankId(bankIdStr);
             if (bankIdResult.isFailure()) {
-                return responseHandler.handleErrorResponse(bankIdResult.getError().orElseThrow());
+                return handleErrorResponse(bankIdResult.getError().orElseThrow());
             }
             BankId bankId = bankIdResult.getValue().orElseThrow();
 
             // Verify user has access to this batch (bank-level security)
 //            Result<Void> accessResult = securityService.verifyBatchAccess(batchId);
 //            if (accessResult.isFailure()) {
-//                return responseHandler.handleErrorResponse(accessResult.getError().orElseThrow());
+//                return handleErrorResponse(accessResult.getError().orElseThrow());
 //            }
 
             // Generate presentation model (new frontend payload)
             QualityReportPresentation presentation = presentationService.getLatestFrontendPresentation(bankId);
 
             // Handle response
-            return responseHandler.handleSuccessResult(
+            return handleSuccessResult(
                 Result.success(presentation),
                 "Quality report retrieved successfully",
                 "data-quality.report.retrieved"
@@ -110,7 +105,7 @@ public class QualityReportController implements IEndpoint {
 
         } catch (Exception e) {
             logger.error("Unexpected error processing quality report request: {}", e.getMessage(), e);
-            return responseHandler.handleSystemErrorResponse(e);
+            return handleSystemErrorResponse(e);
         }
     }
 
@@ -122,7 +117,7 @@ public class QualityReportController implements IEndpoint {
             // Extract current bank ID from security context
 //            Result<BankId> bankIdResult = securityService.getCurrentBankId();
 //            if (bankIdResult.isFailure()) {
-//                return responseHandler.handleErrorResponse(bankIdResult.getError().orElseThrow());
+//                return handleErrorResponse(bankIdResult.getError().orElseThrow());
 //            }
             
             BankId bankId = BankId.of("daa4a072");//bankIdResult.getValue().orElseThrow();
@@ -130,7 +125,7 @@ public class QualityReportController implements IEndpoint {
             // Parse query parameters
             Result<TrendsQueryParams> paramsResult = requestValidator.parseTrendsQueryParams(request);
             if (paramsResult.isFailure()) {
-                return responseHandler.handleErrorResponse(paramsResult.getError().orElseThrow());
+                return handleErrorResponse(paramsResult.getError().orElseThrow());
             }
             
             TrendsQueryParams params = paramsResult.getValue().orElseThrow();
@@ -146,7 +141,7 @@ public class QualityReportController implements IEndpoint {
             Result<QualityTrendsDto> result = trendsQueryHandler.handle(query);
             
             // Handle response
-            return responseHandler.handleSuccessResult(
+            return handleSuccessResult(
                 result,
                 "Quality trends retrieved successfully",
                 "data-quality.trends.retrieved"
@@ -154,7 +149,7 @@ public class QualityReportController implements IEndpoint {
                 
         } catch (Exception e) {
             logger.error("Unexpected error processing quality trends request: {}", e.getMessage(), e);
-            return responseHandler.handleSystemErrorResponse(e);
+            return handleSystemErrorResponse(e);
         }
     }
 

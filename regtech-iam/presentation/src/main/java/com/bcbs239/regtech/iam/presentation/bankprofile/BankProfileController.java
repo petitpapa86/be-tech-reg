@@ -41,132 +41,109 @@ public class BankProfileController extends BaseController {
      * GET /api/v1/configuration/bank-profile/{bankId}
      */
     public ServerResponse getBankProfile(ServerRequest request) {
-        try {
-            String bankId = request.pathVariable("bankId");
-            var profileMaybe = getBankProfileHandler.handle(bankId);
+        String bankId = request.pathVariable("bankId");
+        var profileMaybe = getBankProfileHandler.handle(bankId);
 
-            if (profileMaybe.isEmpty()) {
-                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(
-                        ErrorDetail.of("BANK_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, "Bank profile not found for ID: " + bankId, "bankprofile.notfound")
-                );
-                assert responseEntity.getBody() != null;
-                return ServerResponse.status(responseEntity.getStatusCode())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(responseEntity.getBody());
-            }
-
-            BankProfileResponse response = BankProfileResponse.from(profileMaybe.getValue());
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(
-                    Result.success(response),
-                    "Bank profile retrieved successfully",
-                    "bankprofile.get.success"
+        if (profileMaybe.isEmpty()) {
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(
+                    ErrorDetail.of("BANK_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, "Bank profile not found for ID: " + bankId, "bankprofile.notfound")
             );
             assert responseEntity.getBody() != null;
             return ServerResponse.status(responseEntity.getStatusCode())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(responseEntity.getBody());
-        } catch (Exception e) {
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleSystemError(e);
-            assert responseEntity.getBody() != null;
-            return ServerResponse.status(responseEntity.getStatusCode())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(responseEntity.getBody());
         }
+
+        BankProfileResponse response = BankProfileResponse.from(profileMaybe.getValue());
+        ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(
+                Result.success(response),
+                "Bank profile retrieved successfully",
+                "bankprofile.get.success"
+        );
+        assert responseEntity.getBody() != null;
+        return ServerResponse.status(responseEntity.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(responseEntity.getBody());
+
     }
 
     /**
      * PUT /api/v1/configuration/bank-profile
      */
-    public ServerResponse updateBankProfile(ServerRequest request) {
-        try {
-            // 1. Parse request body
-            BankProfileRequest dto = request.body(BankProfileRequest.class);
+    public ServerResponse updateBankProfile(ServerRequest request) throws ServletException, IOException {
+        // 1. Parse request body
+        BankProfileRequest dto = request.body(BankProfileRequest.class);
 
-            // 2. Validate DTO at the boundary
-            var errors = new BeanPropertyBindingResult(dto, "bankProfileRequest");
-            validator.validate(dto, errors);
+        // 2. Validate DTO at the boundary
+        var errors = new BeanPropertyBindingResult(dto, "bankProfileRequest");
+        validator.validate(dto, errors);
 
-            if (errors.hasErrors()) {
-                List<FieldError> presentationErrors = errors.getFieldErrors().stream()
-                        .map(fe -> new FieldError(fe.getField(), fe.getDefaultMessage(), fe.getCode()))
-                        .toList();
-                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleValidationError(
-                        presentationErrors,
-                        "Validation failed for bank profile update"
-                );
-                assert responseEntity.getBody() != null;
-                return ServerResponse.status(responseEntity.getStatusCode())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(responseEntity.getBody());
-            }
-
-            // TODO: Get actual user from security context
-            String currentUser = "system";
-
-            // 3. Execute command via handler
-            Result<com.bcbs239.regtech.iam.domain.bankprofile.BankProfile> result =
-                    updateBankProfileHandler.handle(dto.toCommand(currentUser));
-
-            // 4. Handle domain/business results
-            if (result.isFailure()) {
-                ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(result.getError().get());
-                assert responseEntity.getBody() != null;
-                return ServerResponse.status(responseEntity.getStatusCode())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(responseEntity.getBody());
-            }
-
-            // 5. Convert to response DTO and return success
-            BankProfileResponse response = BankProfileResponse.from(result.getValueOrThrow());
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(
-                    Result.success(response),
-                    "Bank profile updated successfully",
-                    "bankprofile.update.success"
+        if (errors.hasErrors()) {
+            List<FieldError> presentationErrors = errors.getFieldErrors().stream()
+                    .map(fe -> new FieldError(fe.getField(), fe.getDefaultMessage(), fe.getCode()))
+                    .toList();
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleValidationError(
+                    presentationErrors,
+                    "Validation failed for bank profile update"
             );
             assert responseEntity.getBody() != null;
             return ServerResponse.status(responseEntity.getStatusCode())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(responseEntity.getBody());
+        }
 
-        } catch (Exception e) {
-            // Handle unexpected exceptions consistently
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleSystemError(e);
+        // TODO: Get actual user from security context
+        String currentUser = "system";
+
+        // 3. Execute command via handler
+        Result<com.bcbs239.regtech.iam.domain.bankprofile.BankProfile> result =
+                updateBankProfileHandler.handle(dto.toCommand(currentUser));
+
+        // 4. Handle domain/business results
+        if (result.isFailure()) {
+            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleError(result.getError().get());
             assert responseEntity.getBody() != null;
             return ServerResponse.status(responseEntity.getStatusCode())
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(responseEntity.getBody());
         }
+
+        // 5. Convert to response DTO and return success
+        BankProfileResponse response = BankProfileResponse.from(result.getValueOrThrow());
+        ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(
+                Result.success(response),
+                "Bank profile updated successfully",
+                "bankprofile.update.success"
+        );
+        assert responseEntity.getBody() != null;
+        return ServerResponse.status(responseEntity.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(responseEntity.getBody());
+
     }
 
     /**
      * POST /api/v1/configuration/bank-profile/{bankId}/reset
      */
     public ServerResponse resetBankProfile(ServerRequest request) {
-        try {
-            String bankId = request.pathVariable("bankId");
+        String bankId = request.pathVariable("bankId");
 
-            // TODO: Get actual user from security context
-            String currentUser = "system";
+        // TODO: Get actual user from security context
+        String currentUser = "system";
 
-            // Execute command - no try-catch, let exceptions propagate
-            var profile = resetBankProfileHandler.handle(bankId, currentUser);
+        // Execute command - no try-catch, let exceptions propagate
+        var profile = resetBankProfileHandler.handle(bankId, currentUser);
 
-            var response = BankProfileResponse.from(profile);
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(
-                    Result.success(response),
-                    "Bank profile reset successfully",
-                    "bankprofile.reset.success"
-            );
-            assert responseEntity.getBody() != null;
-            return ServerResponse.status(responseEntity.getStatusCode())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(responseEntity.getBody());
-        } catch (Exception e) {
-            ResponseEntity<? extends ApiResponse<?>> responseEntity = handleSystemError(e);
-            assert responseEntity.getBody() != null;
-            return ServerResponse.status(responseEntity.getStatusCode())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(responseEntity.getBody());
-        }
+        var response = BankProfileResponse.from(profile);
+        ResponseEntity<? extends ApiResponse<?>> responseEntity = handleResult(
+                Result.success(response),
+                "Bank profile reset successfully",
+                "bankprofile.reset.success"
+        );
+        assert responseEntity.getBody() != null;
+        return ServerResponse.status(responseEntity.getStatusCode())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(responseEntity.getBody());
+
     }
 }

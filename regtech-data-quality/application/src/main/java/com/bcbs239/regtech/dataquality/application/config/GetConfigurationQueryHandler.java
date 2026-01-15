@@ -7,6 +7,7 @@ import com.bcbs239.regtech.dataquality.application.rulesengine.QualityThresholdR
 import com.bcbs239.regtech.dataquality.domain.quality.QualityThreshold;
 import com.bcbs239.regtech.dataquality.domain.rules.IBusinessRuleRepository;
 import com.bcbs239.regtech.dataquality.domain.rules.BusinessRuleDto;
+import com.bcbs239.regtech.dataquality.domain.rules.ValidationCategory;
 import com.bcbs239.regtech.dataquality.domain.config.BankId;
 import com.bcbs239.regtech.dataquality.domain.config.CompletenessThreshold;
 import com.bcbs239.regtech.dataquality.domain.config.AccuracyThreshold;
@@ -73,6 +74,7 @@ public class GetConfigurationQueryHandler {
         
         // Build configuration DTO
         ConfigurationDto config = new ConfigurationDto(
+            query.bankId().value(),
             new ConfigurationDto.ThresholdsDto(
                 (int) threshold.completenessMinPercent(),
                 threshold.accuracyMaxErrorPercent(),
@@ -82,11 +84,17 @@ public class GetConfigurationQueryHandler {
             new ConfigurationDto.ValidationDto(
                 "AUTOMATIC",
                 activeRules.stream()
-                    .map(rule -> new ConfigurationDto.ValidationRuleDto(
-                        rule.ruleCode(),
-                        rule.description(),
-                        rule.enabled()
-                    ))
+                    .map(rule -> {
+                        ValidationCategory category = ValidationCategory.fromRuleCode(rule.ruleCode());
+                        return new ConfigurationDto.ValidationRuleDto(
+                            rule.ruleCode(),
+                            rule.description(),
+                            rule.enabled(),
+                            category.name(),
+                            category.getDisplayName(),
+                            category.getIcon()
+                        );
+                    })
                     .collect(Collectors.toList())
             ),
             new ConfigurationDto.ErrorHandlingDto(

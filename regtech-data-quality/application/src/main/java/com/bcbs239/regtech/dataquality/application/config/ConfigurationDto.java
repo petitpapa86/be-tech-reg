@@ -12,8 +12,12 @@ import java.util.List;
  * 
  * <p><b>Top-Down Evolution:</b> Extracted from Map<String, Object> in controller
  * to provide type safety and validation.
+ * 
+ * <p><b>Security:</b> bankId is included in the request body to avoid exposing
+ * sensitive identifiers in URL parameters.
  */
 public record ConfigurationDto(
+    String bankId,
     ThresholdsDto thresholds,
     ValidationDto validation,
     ErrorHandlingDto errorHandling,
@@ -44,7 +48,10 @@ public record ConfigurationDto(
     public record ValidationRuleDto(
         String code,
         String description,
-        boolean enabled
+        boolean enabled,
+        String category,
+        String categoryDisplayName,
+        String categoryIcon
     ) {}
     
     /**

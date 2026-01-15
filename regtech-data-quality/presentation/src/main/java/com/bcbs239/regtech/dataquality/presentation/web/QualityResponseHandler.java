@@ -10,7 +10,13 @@ import org.springframework.web.servlet.function.ServerResponse;
 /**
  * Handler for converting application results to HTTP responses.
  * Provides consistent response formatting for quality report endpoints.
+ * 
+ * @deprecated This class is deprecated. Use {@link com.bcbs239.regtech.core.presentation.controllers.BaseController}
+ *             instead, which provides the same functionality for both traditional REST controllers 
+ *             and functional endpoints. All controllers should extend BaseController and use its 
+ *             handleSuccessResult(), handleErrorResponse(), and handleSystemErrorResponse() methods.
  */
+@Deprecated(since = "2026-01-15", forRemoval = true)
 @Component
 public class QualityResponseHandler {
 

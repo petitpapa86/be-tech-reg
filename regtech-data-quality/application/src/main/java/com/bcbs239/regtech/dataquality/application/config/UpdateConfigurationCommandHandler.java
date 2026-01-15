@@ -2,16 +2,17 @@ package com.bcbs239.regtech.dataquality.application.config;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.dataquality.application.rulesengine.QualityThresholdRepository;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityThreshold;
-import com.bcbs239.regtech.dataquality.domain.config.BankId;
 import com.bcbs239.regtech.dataquality.domain.config.ThresholdPercentage;
 import com.bcbs239.regtech.dataquality.domain.config.TimelinessDays;
 import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Command handler for updating data quality configuration.
@@ -69,12 +70,19 @@ public class UpdateConfigurationCommandHandler {
     }
     
     private Result<Void> validateThresholds(ConfigurationDto.ThresholdsDto thresholds) {
+        List<com.bcbs239.regtech.core.domain.shared.FieldError> fieldErrors = new ArrayList<>();
+        
         // Validate completeness threshold
         Result<ThresholdPercentage> completeness = ThresholdPercentage.of(
             thresholds.completenessMinPercent(), "completeness"
         );
         if (completeness.isFailure()) {
-            return Result.failure(completeness.getError().orElseThrow());
+            ErrorDetail error = completeness.getError().orElseThrow();
+            fieldErrors.add(new com.bcbs239.regtech.core.domain.shared.FieldError(
+                "thresholds.completenessMinPercent",
+                error.getMessage(),
+                error.getMessageKey()
+            ));
         }
         
         // Validate accuracy threshold
@@ -82,7 +90,12 @@ public class UpdateConfigurationCommandHandler {
             thresholds.accuracyMaxErrorPercent(), "accuracy"
         );
         if (accuracy.isFailure()) {
-            return Result.failure(accuracy.getError().orElseThrow());
+            ErrorDetail error = accuracy.getError().orElseThrow();
+            fieldErrors.add(new com.bcbs239.regtech.core.domain.shared.FieldError(
+                "thresholds.accuracyMaxErrorPercent",
+                error.getMessage(),
+                error.getMessageKey()
+            ));
         }
         
         // Validate timeliness threshold
@@ -90,7 +103,12 @@ public class UpdateConfigurationCommandHandler {
             thresholds.timelinessDays()
         );
         if (timeliness.isFailure()) {
-            return Result.failure(timeliness.getError().orElseThrow());
+            ErrorDetail error = timeliness.getError().orElseThrow();
+            fieldErrors.add(new com.bcbs239.regtech.core.domain.shared.FieldError(
+                "thresholds.timelinessDays",
+                error.getMessage(),
+                error.getMessageKey()
+            ));
         }
         
         // Validate consistency threshold
@@ -98,7 +116,17 @@ public class UpdateConfigurationCommandHandler {
             thresholds.consistencyPercent(), "consistency"
         );
         if (consistency.isFailure()) {
-            return Result.failure(consistency.getError().orElseThrow());
+            ErrorDetail error = consistency.getError().orElseThrow();
+            fieldErrors.add(new com.bcbs239.regtech.core.domain.shared.FieldError(
+                "thresholds.consistencyPercent",
+                error.getMessage(),
+                error.getMessageKey()
+            ));
+        }
+        
+        // If there are any validation errors, return them all
+        if (!fieldErrors.isEmpty()) {
+            return Result.failure(ErrorDetail.validationError(fieldErrors));
         }
         
         return Result.success(null);

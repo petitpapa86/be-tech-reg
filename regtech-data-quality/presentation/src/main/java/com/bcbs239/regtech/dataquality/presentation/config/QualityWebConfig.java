@@ -19,10 +19,12 @@ public class QualityWebConfig {
      */
     @Bean
     public RouterFunction<ServerResponse> qualityRoutes(
+        DataQualityConfigRoutes dataQualityConfigRoutes,
         QualityReportRoutes qualityReportRoutes,
         QualityHealthRoutes qualityHealthRoutes
     ) {
-        return qualityReportRoutes.createRoutes()
+        return dataQualityConfigRoutes.createRoutes()
+            .and(qualityReportRoutes.createRoutes())
             .and(qualityHealthRoutes.createRoutes());
     }
 }

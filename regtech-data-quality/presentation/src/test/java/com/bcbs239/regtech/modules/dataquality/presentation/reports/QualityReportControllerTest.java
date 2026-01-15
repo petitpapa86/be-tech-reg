@@ -4,7 +4,6 @@ import com.bcbs239.regtech.dataquality.application.monitoring.BatchQualityTrends
 import com.bcbs239.regtech.dataquality.application.reporting.QualityReportPresentationService;
 import com.bcbs239.regtech.dataquality.presentation.reports.QualityReportController;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator;
-import com.bcbs239.regtech.dataquality.presentation.web.QualityResponseHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,9 +29,6 @@ class QualityReportControllerTest {
     @Mock
     private QualityRequestValidator requestValidator;
     
-    @Mock
-    private QualityResponseHandler responseHandler;
-    
     private QualityReportController controller;
     
     @BeforeEach
@@ -40,8 +36,7 @@ class QualityReportControllerTest {
         controller = new QualityReportController(
             presentationService,
             trendsQueryHandler,
-            requestValidator,
-            responseHandler
+            requestValidator
         );
     }
     

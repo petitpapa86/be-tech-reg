@@ -47,6 +47,9 @@ public class BusinessRuleEntity {
     @Column(name = "rule_category", length = 50)
     private String ruleCategory;
 
+    @Column(name = "validation_category", length = 50)
+    private String validationCategory;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Severity severity;
