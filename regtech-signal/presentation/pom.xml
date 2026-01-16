@@ -1,0 +1,30 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.bcbs239</groupId>
+        <artifactId>regtech-signal</artifactId>
+        <version>${project.parent.version}</version>
+        <relativePath>..</relativePath>
+    </parent>
+
+    <artifactId>regtech-signal-presentation</artifactId>
+    <packaging>jar</packaging>
+
+    <name>regtech-signal-presentation</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-signal-infrastructure</artifactId>
+        </dependency>
+        <!-- Spring Boot Web starter for controllers and SSE endpoints -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>

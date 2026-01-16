@@ -27,17 +27,17 @@ public class ReportConfigurationRoutes {
      */
     public RouterFunction<ServerResponse> createRoutes() {
         return RouterAttributes.withAttributes(
-            route(GET("/api/reporting"), controller::getReportingConfiguration),
+            route(GET("/api/v1/report-config"), controller::getReportingConfiguration),
             new String[]{"BCBS239_VIEW_REPORTS"},
             new String[]{Tags.REPORT_GENERATION, "Configuration"},
             "Get report generation configuration"
         ).and(RouterAttributes.withAttributes(
-            route(PUT("/api/reporting"), controller::updateReportingConfiguration),
+            route(PUT("/api/v1/report-config"), controller::updateReportingConfiguration),
             new String[]{"BCBS239_MANAGE_REPORTS"},
             new String[]{Tags.REPORT_GENERATION, "Configuration"},
             "Update report generation configuration"
         )).and(RouterAttributes.withAttributes(
-            route(POST("/api/reporting/reset"), controller::resetToDefault),
+            route(POST("/api/v1/reporting/reset"), controller::resetToDefault),
             new String[]{"BCBS239_MANAGE_REPORTS"},
             new String[]{Tags.REPORT_GENERATION, "Configuration"},
             "Reset report generation configuration to defaults"

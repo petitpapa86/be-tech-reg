@@ -66,6 +66,9 @@ public class ValidateBatchQualityCommandHandler {
 
     @Timed(value = "dataquality.validation.batch", description = "Time taken to validate batch quality")
     public Result<Void> handle(ValidateBatchQualityCommand command) {
+        logger.info("ValidateBatchQualityCommandHandler.handle start | batchId={} bankId={}",
+            command.batchId().value(), command.bankId().value());
+
         command.validate();
 
         Optional<QualityReport> existingReport = qualityReportRepository.findByBatchId(command.batchId());
@@ -294,6 +297,10 @@ public class ValidateBatchQualityCommandHandler {
 
         unitOfWork.registerEntity(report);
         unitOfWork.saveChanges();
+
+        // Final completion log
+        logger.info("ValidateBatchQualityCommandHandler.handle completed | batchId={} reportId={} overallScore={}",
+            command.batchId().value(), report.getReportId().value(), scores.overallScore());
 
         return Result.success();
     }

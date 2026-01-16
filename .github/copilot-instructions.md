@@ -473,6 +473,89 @@ public class CreateUserUseCase {
 - Skip validation in value object constructors
 - Create value objects with `new` - always use `of()/from()`
 
+### Logging Strategy
+
+#### 🧭 Why log mainly in the command handler (and not everywhere)?
+
+You want clear, non-duplicated logs that tell the business story:
+
+**"User registration started → validated email → saved user → added outbox event → success."**
+
+If every internal class also logs, you'll get:
+- **Redundant noise** ("Email validation succeeded" repeated twice)
+- **Mixed layers** (domain logs in business flow)
+- **Harder debugging** (too much chatter obscures the root cause)
+
+Your handler already logs:
+- Start/end of process
+- Each validation or save step
+- Failures with ErrorDetail
+- Structured context (correlationId, email, bankId)
+
+That's already ideal granularity for the application layer.
+
+#### 🧩 When to also log in lower layers
+
+You **do** want logging in these cases:
+
+| Layer | When to log | Example |
+|-------|------------|---------|
+| **Repository / Infrastructure** | On I/O failure, retries, SQL exceptions, or latency warnings | `logger.error("Failed to save User", e)` |
+| **External API clients** | Request/response metadata, timeouts, retries | `"POST /payment-service took 2.3s — status 500"` |
+| **Event publishers / outbox processors** | When publishing fails or retries happen | `"Failed to dispatch UserRegisteredEvent to Kafka"` |
+| **Domain layer** | Only if debugging domain logic in rare cases; otherwise **avoid** | None (ideally pure logic) |
+
+So your repositories (e.g., `JpaUserRepository`, `OutboxEventRepository`) might log **only** around persistence:
+
+```java
+try {
+    // Save user
+} catch (DataAccessException e) {
+    logger.error("Database error while saving user", e);
+    throw e;
+}
+```
+
+That's it — no need to log inside every getter/setter or domain factory.
+
+#### 🧠 Practical guideline
+
+Think of it like layers of concern:
+
+| Layer | Logging Focus |
+|-------|--------------|
+| **Controller / CommandHandler (application)** | Business flow, structured audit trail |
+| **Infrastructure** | Technical I/O, performance, error details |
+| **Domain** | **No logging** — focus on correctness & immutability |
+
+#### ✅ Summary recommendation
+
+Your command handlers (e.g., `RegisterUserCommandHandler`) already do exactly the right amount of logging for the application layer.
+
+**You should:**
+1. **Keep this logging here** — it provides business flow visibility
+2. **Add minimal technical logs** inside repository or outbox persistence methods (only errors or performance issues)
+3. **Avoid logs inside domain entities** (`User`, `Email`, etc.) — they should stay pure
+
+**Example of good logging distribution:**
+```java
+// ✅ Application layer (CommandHandler)
+logger.info("Starting user registration | correlationId={} email={}", correlationId, email);
+// ... business steps with structured logs
+
+// ✅ Infrastructure layer (Repository)
+catch (DataAccessException e) {
+    logger.error("Failed to persist user | userId={}", userId, e);
+    throw e;
+}
+
+// ❌ Domain layer (Entity)
+// NO logging here - keep it pure
+public static Result<Email> of(String value) {
+    // Just validation logic, no logs
+}
+```
+
 ### Event-Driven Communication
 
 **Internal Events** (within module, Spring `@EventListener`):

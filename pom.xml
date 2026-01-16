@@ -59,6 +59,7 @@
 		<module>regtech-report-generation</module>
 		<module>regtech-app</module>
 		<module>metrics-context</module>
+		<module>regtech-signal</module>
 	</modules>
 	
 	<dependencyManagement>

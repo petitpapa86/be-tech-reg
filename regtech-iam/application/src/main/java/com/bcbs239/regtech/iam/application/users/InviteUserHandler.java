@@ -8,6 +8,8 @@ import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
@@ -26,6 +28,8 @@ import java.util.List;
 public class InviteUserHandler {
     
     private final UserRepository userRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(InviteUserHandler.class);
     private static final SecureRandom RANDOM = new SecureRandom();
     
     @Value
@@ -39,6 +43,7 @@ public class InviteUserHandler {
     
     @Transactional
     public Result<User> handle(Command command) {
+        log.info("InviteUserHandler.handle - email={}, bankId={}, invitedBy={}", command.email, command.bankId, command.invitedBy);
         List<FieldError> validationErrors = new ArrayList<>();
         
         // 1. Validate and create Email value object
@@ -76,11 +81,13 @@ public class InviteUserHandler {
 
         // Return validation errors if any
         if (!validationErrors.isEmpty()) {
+            log.warn("InviteUserHandler validation failed - errors={}", validationErrors);
             return Result.failure(ErrorDetail.validationError(validationErrors));
         }
         
         // 6. Check if user already exists in this bank (business rule validation)
         if (userRepository.existsByEmailAndBankId(email, bankId.getAsLong())) {
+            log.warn("InviteUserHandler - user already exists - email={}, bankId={}", command.email, bankId.getValue());
             return Result.failure(
                 ErrorDetail.of("USER_EXISTS", ErrorType.BUSINESS_RULE_ERROR,
                     "User with email " + command.email + " already exists in this bank",
@@ -109,8 +116,12 @@ public class InviteUserHandler {
         // 11. Save user
         Result<UserId> saveResult = userRepository.userSaver(user);
         if (saveResult.isFailure()) {
+            log.error("InviteUserHandler - failed to save user - email={}, error={}", command.email, saveResult.getError().get().getMessage());
             return Result.failure(saveResult.getError().get());
         }
+        
+        var newUserId = saveResult.getValue().get();
+        log.info("User invited - userId={}, email={}, bankId={}", newUserId.getValue(), user.getEmail().getValue(), bankId.getValue());
         
         // TODO: Send invitation email with token
         

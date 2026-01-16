@@ -4,6 +4,8 @@ import com.bcbs239.regtech.reportgeneration.domain.configuration.ReportConfigura
 import com.bcbs239.regtech.reportgeneration.domain.configuration.ReportConfigurationRepository;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,11 +17,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class GetReportConfigurationHandler {
+    private static final Logger logger = LoggerFactory.getLogger(GetReportConfigurationHandler.class);
     
     private final ReportConfigurationRepository repository;
     
     @Transactional(readOnly = true)
     public Maybe<ReportConfiguration> handle(Long bankId) {
-        return repository.findByBankId(bankId);
+        logger.info("GetReportConfigurationHandler.handle start | bankId={}", bankId);
+        Maybe<ReportConfiguration> result = repository.findByBankId(bankId);
+        logger.debug("GetReportConfigurationHandler.handle result present={}", result.isPresent());
+        logger.info("GetReportConfigurationHandler.handle end | bankId={}", bankId);
+        return result;
     }
 }

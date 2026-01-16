@@ -52,12 +52,21 @@ public record ReportConfigurationRequest(
      */
     public com.bcbs239.regtech.reportgeneration.application.configuration.UpdateReportConfigurationHandler.UpdateCommand 
             toCommand(String modifiedBy) {
+        // Convert frequency string to domain enum when possible; pass null if invalid so handler will validate
+        com.bcbs239.regtech.reportgeneration.domain.configuration.valueobject.ReportFrequency frequencyEnum = null;
+        if (frequency != null) {
+            var fr = com.bcbs239.regtech.reportgeneration.domain.configuration.valueobject.ReportFrequency.of(frequency);
+            if (fr.isSuccess()) {
+                frequencyEnum = fr.getValueOrThrow();
+            }
+        }
+
         return new com.bcbs239.regtech.reportgeneration.application.configuration.UpdateReportConfigurationHandler.UpdateCommand(
             bankId,
             template,
             language,
             outputFormat,
-            frequency,
+            frequencyEnum,
             submissionDeadline,
             autoGenerationEnabled,
             scheduleDay,

@@ -7,6 +7,8 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.FieldError;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,8 @@ import java.util.List;
 public class UpdateUserRoleHandler {
     
     private final UserRepository userRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(UpdateUserRoleHandler.class);
     
     @Value
     public static class Command {
@@ -34,6 +38,8 @@ public class UpdateUserRoleHandler {
     
     @Transactional
     public Result<UserRole> handle(Command command) {
+        log.info("UpdateUserRoleHandler.handle - userId={}, newRole={}, organizationId={}, modifiedBy={}",
+            command.userId, command.newRoleName, command.organizationId, command.modifiedBy);
         List<FieldError> validationErrors = new ArrayList<>();
         
         // 1. Validate and create UserId
@@ -62,12 +68,14 @@ public class UpdateUserRoleHandler {
 
         // Return validation errors if any
         if (!validationErrors.isEmpty()) {
+            log.warn("UpdateUserRoleHandler validation failed - errors={}", validationErrors);
             return Result.failure(ErrorDetail.validationError(validationErrors));
         }
         
         // 5. Find user (business rule validation)
         var userMaybe = userRepository.userLoader(userId);
         if (userMaybe.isEmpty()) {
+            log.warn("UpdateUserRoleHandler - user not found - userId={}", userId.getValue());
             return Result.failure(
                 ErrorDetail.of("USER_NOT_FOUND", ErrorType.NOT_FOUND_ERROR,
                     "User not found", "usermanagement.user.not.found")
@@ -88,8 +96,12 @@ public class UpdateUserRoleHandler {
         // 7. Save role
         Result<String> saveResult = userRepository.userRoleSaver(userRole);
         if (saveResult.isFailure()) {
+            log.error("UpdateUserRoleHandler - failed to save role - userId={}, role={}, error={}",
+                userId.getValue(), userRole.getRoleName(), saveResult.getError().get().getMessage());
             return Result.failure(saveResult.getError().get());
         }
+        
+        log.info("User role updated - userId={}, role={}, organizationId={}", userId.getValue(), userRole.getRoleName(), command.organizationId);
         
         return Result.success(userRole);
     }

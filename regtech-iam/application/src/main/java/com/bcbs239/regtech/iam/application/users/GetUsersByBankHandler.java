@@ -6,6 +6,8 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.FieldError;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
@@ -21,6 +23,8 @@ import java.util.List;
 public class GetUsersByBankHandler {
     
     private final UserRepository userRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(GetUsersByBankHandler.class);
     
     @Value
     public static class Query {
@@ -30,6 +34,7 @@ public class GetUsersByBankHandler {
     
     @Transactional(readOnly = true)
     public Result<List<User>> handle(Query query) {
+        log.info("GetUsersByBankHandler.handle - bankId={}, filter={}", query.bankId, query.filter);
         List<FieldError> validationErrors = new ArrayList<>();
         
         // 1. Validate and create BankId value object with numeric validation
@@ -47,6 +52,7 @@ public class GetUsersByBankHandler {
 
         // Return validation errors if any
         if (!validationErrors.isEmpty()) {
+            log.warn("GetUsersByBankHandler validation failed - errors={}", validationErrors);
             return Result.failure(ErrorDetail.validationError(validationErrors));
         }
 
@@ -58,6 +64,7 @@ public class GetUsersByBankHandler {
             default -> userRepository.findByBankId(bankIdLong);
         };
         
+        log.info("GetUsersByBankHandler success - bankId={}, filter={}, resultCount={}", bankIdLong, filter, users.size());
         return Result.success(users);
     }
 }

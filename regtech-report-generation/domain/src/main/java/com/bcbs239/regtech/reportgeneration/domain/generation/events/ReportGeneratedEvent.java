@@ -2,6 +2,9 @@ package com.bcbs239.regtech.reportgeneration.domain.generation.events;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -15,6 +18,7 @@ import java.time.Instant;
  * Requirements: 14.1, 15.1, 15.2
  */
 @Getter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ReportGeneratedEvent extends DomainEvent {
     
     private final ReportId reportId;
@@ -44,23 +48,24 @@ public class ReportGeneratedEvent extends DomainEvent {
     
     private final Instant generatedAt;
     
+    @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
     public ReportGeneratedEvent(
-            String correlationId,
-            ReportId reportId,
-            BatchId batchId,
-            BankId bankId,
-            ReportType reportType,
-            ReportingDate reportingDate,
-            S3Uri htmlS3Uri,
-            S3Uri xbrlS3Uri,
-            PresignedUrl htmlPresignedUrl,
-            PresignedUrl xbrlPresignedUrl,
-            FileSize htmlFileSize,
-            FileSize xbrlFileSize,
-            BigDecimal overallQualityScore,
-            ComplianceStatus complianceStatus,
-            Duration generationDuration,
-            Instant generatedAt) {
+            @JsonProperty("correlationId") String correlationId,
+            @JsonProperty("reportId") ReportId reportId,
+            @JsonProperty("batchId") BatchId batchId,
+            @JsonProperty("bankId") BankId bankId,
+            @JsonProperty("reportType") ReportType reportType,
+            @JsonProperty("reportingDate") ReportingDate reportingDate,
+            @JsonProperty("htmlS3Uri") S3Uri htmlS3Uri,
+            @JsonProperty("xbrlS3Uri") S3Uri xbrlS3Uri,
+            @JsonProperty("htmlPresignedUrl") PresignedUrl htmlPresignedUrl,
+            @JsonProperty("xbrlPresignedUrl") PresignedUrl xbrlPresignedUrl,
+            @JsonProperty("htmlFileSize") FileSize htmlFileSize,
+            @JsonProperty("xbrlFileSize") FileSize xbrlFileSize,
+            @JsonProperty("overallQualityScore") BigDecimal overallQualityScore,
+            @JsonProperty("complianceStatus") ComplianceStatus complianceStatus,
+            @JsonProperty("generationDuration") Duration generationDuration,
+            @JsonProperty("generatedAt") Instant generatedAt) {
         super(correlationId);
         this.reportId = reportId;
         this.batchId = batchId;

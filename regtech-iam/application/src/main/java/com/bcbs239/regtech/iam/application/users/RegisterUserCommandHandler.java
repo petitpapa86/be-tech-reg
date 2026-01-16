@@ -9,6 +9,8 @@ import com.bcbs239.regtech.iam.domain.authentication.PasswordHasher;
 import com.bcbs239.regtech.iam.domain.users.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,8 @@ import java.util.List;
  */
 @Service
 public class RegisterUserCommandHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(RegisterUserCommandHandler.class);
 
     private final UserRepository userRepository;
     private final BaseUnitOfWork unitOfWork;
@@ -38,6 +42,7 @@ public class RegisterUserCommandHandler {
      */
     @Transactional
     public Result<RegisterUserResponse> handle(RegisterUserCommand command) {
+        log.info("RegisterUserCommandHandler.handle - email={}, bankId={}", command.getEmail(), command.getBankId());
         List<FieldError> validationErrors = new ArrayList<>();
 
         // 1. Validate and create Email value object
@@ -82,6 +87,7 @@ public class RegisterUserCommandHandler {
 
         // Return validation errors if any
         if (!validationErrors.isEmpty()) {
+            log.warn("RegisterUserCommandHandler validation failed - errors={}", validationErrors);
             return Result.failure(ErrorDetail.validationError(validationErrors));
         }
 
@@ -123,6 +129,8 @@ public class RegisterUserCommandHandler {
 
         unitOfWork.registerEntity(newUser);
         unitOfWork.saveChanges();
+
+        log.info("User registered - userId={}, email={}", userId.getValue(), email.getValue());
 
         return Result.success(new RegisterUserResponse(userId, CorrelationContext.correlationId()));
     }

@@ -5,8 +5,14 @@ import com.bcbs239.regtech.reportgeneration.domain.configuration.ReportConfigura
 import com.bcbs239.regtech.reportgeneration.domain.configuration.valueobject.*;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class UpdateReportConfigurationHandler {
+    private static final Logger logger = LoggerFactory.getLogger(UpdateReportConfigurationHandler.class);
     
     private final ReportConfigurationRepository repository;
     
@@ -29,7 +36,7 @@ public class UpdateReportConfigurationHandler {
         String template;
         String language;
         String outputFormat;
-        String frequency;
+        ReportFrequency frequency;
         int submissionDeadline;
         boolean autoGenerationEnabled;
         String scheduleDay;
@@ -43,48 +50,87 @@ public class UpdateReportConfigurationHandler {
     
     @Transactional
     public Result<ReportConfiguration> handle(UpdateCommand command) {
-        // Create value objects using smart constructors
+        logger.info("UpdateReportConfigurationHandler.handle start | bankId={} modifiedBy={}", command.bankId, command.modifiedBy);
+        // Create value objects using smart constructors and collect validation errors
+        List<FieldError> fieldErrors = new ArrayList<>();
+
         Result<ReportTemplate> templateResult = ReportTemplate.of(command.template);
         if (templateResult.isFailure()) {
-            return Result.failure(templateResult.getError().orElseThrow());
+            ErrorDetail e = templateResult.getError().orElseThrow();
+            fieldErrors.add(new FieldError("template", e.getMessage(), e.getMessageKey()));
         }
-        
+
         Result<ReportLanguage> languageResult = ReportLanguage.of(command.language);
         if (languageResult.isFailure()) {
-            return Result.failure(languageResult.getError().orElseThrow());
+            ErrorDetail e = languageResult.getError().orElseThrow();
+            fieldErrors.add(new FieldError("language", e.getMessage(), e.getMessageKey()));
         }
-        
+
         Result<OutputFormat> outputFormatResult = OutputFormat.of(command.outputFormat);
         if (outputFormatResult.isFailure()) {
-            return Result.failure(outputFormatResult.getError().orElseThrow());
+            ErrorDetail e = outputFormatResult.getError().orElseThrow();
+            fieldErrors.add(new FieldError("outputFormat", e.getMessage(), e.getMessageKey()));
         }
-        
-        Result<ReportFrequency> frequencyResult = ReportFrequency.of(command.frequency);
-        if (frequencyResult.isFailure()) {
-            return Result.failure(frequencyResult.getError().orElseThrow());
+
+        // Frequency is provided as an enum in the command. Validate presence.
+        if (command.frequency == null) {
+            fieldErrors.add(new FieldError("frequency", "Report frequency cannot be null", "report.frequency.required"));
         }
-        
+
         Result<SubmissionDeadline> deadlineResult = SubmissionDeadline.of(command.submissionDeadline);
         if (deadlineResult.isFailure()) {
-            return Result.failure(deadlineResult.getError().orElseThrow());
+            ErrorDetail e = deadlineResult.getError().orElseThrow();
+            fieldErrors.add(new FieldError("submissionDeadline", e.getMessage(), e.getMessageKey()));
         }
-        
+
         Result<ScheduleDay> scheduleDayResult = ScheduleDay.of(command.scheduleDay);
         if (scheduleDayResult.isFailure()) {
-            return Result.failure(scheduleDayResult.getError().orElseThrow());
+            ErrorDetail e = scheduleDayResult.getError().orElseThrow();
+            fieldErrors.add(new FieldError("scheduleDay", e.getMessage(), e.getMessageKey()));
         }
-        
+
         Result<ScheduleTime> scheduleTimeResult = ScheduleTime.of(command.scheduleTime);
         if (scheduleTimeResult.isFailure()) {
-            return Result.failure(scheduleTimeResult.getError().orElseThrow());
+            ErrorDetail e = scheduleTimeResult.getError().orElseThrow();
+            fieldErrors.add(new FieldError("scheduleTime", e.getMessage(), e.getMessageKey()));
         }
-        
-        Result<EmailRecipient> primaryRecipientResult = EmailRecipient.of(command.primaryRecipient);
-        if (primaryRecipientResult.isFailure()) {
-            return Result.failure(primaryRecipientResult.getError().orElseThrow());
+
+        // Use shared Core Email value object for primary recipient validation,
+        // then map to domain EmailRecipient. Optional CC retains previous behaviour.
+        Result<EmailRecipient> primaryRecipientResult;
+        Maybe<EmailRecipient> ccRecipient;
+
+        var corePrimaryResult = com.bcbs239.regtech.core.domain.shared.valueobjects.Email.create(command.primaryRecipient);
+        if (corePrimaryResult.isFailure()) {
+            ErrorDetail e = corePrimaryResult.getError().orElseThrow();
+            fieldErrors.add(new FieldError("primaryRecipient", e.getMessage(), e.getMessageKey()));
+            primaryRecipientResult = Result.failure(e);
+        } else {
+            String normalized = corePrimaryResult.getValueOrThrow().getValue();
+            primaryRecipientResult = EmailRecipient.of(normalized);
+            if (primaryRecipientResult.isFailure()) {
+                ErrorDetail e = primaryRecipientResult.getError().orElseThrow();
+                fieldErrors.add(new FieldError("primaryRecipient", e.getMessage(), e.getMessageKey()));
+            }
         }
-        
-        Maybe<EmailRecipient> ccRecipient = EmailRecipient.ofOptional(command.ccRecipient);
+
+        if (command.ccRecipient == null || command.ccRecipient.isBlank()) {
+            ccRecipient = Maybe.none();
+        } else {
+            var coreCc = com.bcbs239.regtech.core.domain.shared.valueobjects.Email.create(command.ccRecipient);
+            if (coreCc.isFailure()) {
+                ccRecipient = Maybe.none();
+            } else {
+                var rr = EmailRecipient.of(coreCc.getValueOrThrow().getValue());
+                ccRecipient = rr.isSuccess() ? Maybe.some(rr.getValueOrThrow()) : Maybe.none();
+            }
+        }
+
+        // If there are validation errors, return them all together
+        if (!fieldErrors.isEmpty()) {
+            logger.warn("UpdateReportConfiguration validation failed | bankId={} errors={}", command.bankId, fieldErrors);
+            return Result.failure(ErrorDetail.validationError(fieldErrors));
+        }
         
         // Get existing configuration or create new one
         ReportConfiguration config = repository.findByBankId(command.bankId)
@@ -93,7 +139,7 @@ public class UpdateReportConfigurationHandler {
                         templateResult.getValueOrThrow(),
                         languageResult.getValueOrThrow(),
                         outputFormatResult.getValueOrThrow(),
-                        frequencyResult.getValueOrThrow(),
+                        command.frequency,
                         deadlineResult.getValueOrThrow(),
                         command.autoGenerationEnabled,
                         scheduleDayResult.getValueOrThrow(),
@@ -109,7 +155,7 @@ public class UpdateReportConfigurationHandler {
                         .template(templateResult.getValueOrThrow())
                         .language(languageResult.getValueOrThrow())
                         .outputFormat(outputFormatResult.getValueOrThrow())
-                        .frequency(frequencyResult.getValueOrThrow())
+                        .frequency(command.frequency)
                         .submissionDeadline(deadlineResult.getValueOrThrow())
                         .autoGenerationEnabled(command.autoGenerationEnabled)
                         .scheduleDay(scheduleDayResult.getValueOrThrow())
@@ -124,7 +170,7 @@ public class UpdateReportConfigurationHandler {
                 );
         
         ReportConfiguration saved = repository.save(config);
-        
+        logger.info("UpdateReportConfigurationHandler.handle end | bankId={}", command.bankId);
         return Result.success(saved);
     }
 }

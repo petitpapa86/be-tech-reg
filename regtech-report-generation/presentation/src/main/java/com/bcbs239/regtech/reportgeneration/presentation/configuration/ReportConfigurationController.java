@@ -23,11 +23,10 @@ import java.io.IOException;
  */
 @Component
 @RequiredArgsConstructor
-public class ReportConfigurationController implements IEndpoint {
-    
-    private final GetReportConfigurationHandler getReportConfigurationHandler;
-    private final UpdateReportConfigurationHandler updateReportConfigurationHandler;
-    private final ReportResponseHandler responseHandler;
+public class ReportConfigurationController extends ReportResponseHandler implements IEndpoint {
+
+        private final GetReportConfigurationHandler getReportConfigurationHandler;
+        private final UpdateReportConfigurationHandler updateReportConfigurationHandler;
     
     @Override
     public RouterFunction<ServerResponse> mapEndpoint() {
@@ -46,8 +45,8 @@ public class ReportConfigurationController implements IEndpoint {
         
         return getReportConfigurationHandler.handle(bankId)
                 .map(ReportConfigurationReadModelResponse::from)
-                .map(data -> responseHandler.handleSuccessResult(Result.success(data), "Success", "report.configuration.retrieved"))
-                .orElseGet(() -> responseHandler.handleErrorResponse(
+                .map(data -> handleSuccessResult(Result.success(data), "Success", "report.configuration.retrieved"))
+                .orElseGet(() -> handleErrorResponse(
                         com.bcbs239.regtech.core.domain.shared.ErrorDetail.of(
                                 "CONFIGURATION_NOT_FOUND",
                                 com.bcbs239.regtech.core.domain.shared.ErrorType.NOT_FOUND_ERROR,
@@ -73,8 +72,8 @@ public class ReportConfigurationController implements IEndpoint {
         UpdateReportConfigurationHandler.UpdateCommand command = requestDto.toCommand(bankId, modifiedBy);
         
         Result<ReportConfiguration> result = updateReportConfigurationHandler.handle(command);
-        
-        return responseHandler.handleSuccessResult(
+
+        return handleSuccessResult(
                 result.map(ReportConfigurationReadModelResponse::from),
                 "Configuration updated successfully",
                 "report.configuration.updated"
@@ -92,8 +91,8 @@ public class ReportConfigurationController implements IEndpoint {
         Long bankId = 1L;
         return getReportConfigurationHandler.handle(bankId)
                 .map(ReportConfigurationReadModelResponse::from)
-                .map(data -> responseHandler.handleSuccessResult(Result.success(data), "Configuration reset successfully", "report.configuration.reset"))
-                .orElseGet(() -> responseHandler.handleErrorResponse(
+                .map(data -> handleSuccessResult(Result.success(data), "Configuration reset successfully", "report.configuration.reset"))
+                .orElseGet(() -> handleErrorResponse(
                         com.bcbs239.regtech.core.domain.shared.ErrorDetail.of(
                                 "CONFIGURATION_NOT_FOUND",
                                 com.bcbs239.regtech.core.domain.shared.ErrorType.NOT_FOUND_ERROR,

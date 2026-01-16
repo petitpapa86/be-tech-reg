@@ -18,12 +18,22 @@ public record ReportConfigurationCommandRequest(
         Map<String, Object> distributionMap = (Map<String, Object>) configuration.get("distribution");
         Map<String, Object> boiMap = (Map<String, Object>) distributionMap.get("bankOfItaly");
 
+        // Convert frequency string to domain enum when possible; pass null if invalid so handler validates
+        String freqValue = (String) frequencyMap.get("frequency");
+        com.bcbs239.regtech.reportgeneration.domain.configuration.valueobject.ReportFrequency frequencyEnum = null;
+        if (freqValue != null) {
+            var freqResult = com.bcbs239.regtech.reportgeneration.domain.configuration.valueobject.ReportFrequency.of(freqValue);
+            if (freqResult.isSuccess()) {
+                frequencyEnum = freqResult.getValueOrThrow();
+            }
+        }
+
         return new com.bcbs239.regtech.reportgeneration.application.configuration.UpdateReportConfigurationHandler.UpdateCommand(
             bankId,
             (String) templateMap.get("templateName"),
             (String) templateMap.get("language"),
             (String) templateMap.get("outputFormat"),
-            (String) frequencyMap.get("frequency"),
+            frequencyEnum,
             ((Number) frequencyMap.get("submissionDaysAfterPeriod")).intValue(),
             (Boolean) schedulingMap.get("enabled"),
             (String) schedulingMap.get("dayOfWeek"),

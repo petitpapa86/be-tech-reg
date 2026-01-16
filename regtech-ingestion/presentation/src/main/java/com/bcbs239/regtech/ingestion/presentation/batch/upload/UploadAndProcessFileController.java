@@ -8,7 +8,6 @@ import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadAndProcessFileCommand;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadAndProcessFileCommandHandler;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
-import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import com.bcbs239.regtech.ingestion.presentation.common.MultipartFileUtils;
 import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +29,7 @@ import static org.springframework.web.servlet.function.RouterFunctions.route;
  */
 @Component
 @Slf4j
-public class UploadAndProcessFileController extends BaseController implements IEndpoint {
+public class UploadAndProcessFileController extends BaseController {
 
     private final UploadAndProcessFileCommandHandler uploadAndProcessFileCommandHandler;
     private final MultipartFileUtils multipartFileUtils;
@@ -42,19 +41,8 @@ public class UploadAndProcessFileController extends BaseController implements IE
         this.multipartFileUtils = multipartFileUtils;
     }
 
-    @Override
-    public RouterFunction<ServerResponse> mapEndpoint() {
-        return withAttributes(
-            route(POST("/api/v1/ingestion/upload-and-process"), this::handle),
-            new String[]{"ingestion:upload-process"},
-            new String[]{"File Upload and Processing", "Ingestion"},
-            "Upload a file and immediately begin processing it asynchronously"
-        );
-    }
-
     @Observed(name = "ingestion.api.upload.process", contextualName = "upload-and-process-file")
-    private ServerResponse handle(ServerRequest request) {
-        // Extract bank ID from header
+    public ServerResponse handle(ServerRequest request) {
         String bankIdValue = request.headers().firstHeader("X-Bank-Id");
         if (bankIdValue == null || bankIdValue.trim().isEmpty()) {
             return ServerResponse.badRequest()

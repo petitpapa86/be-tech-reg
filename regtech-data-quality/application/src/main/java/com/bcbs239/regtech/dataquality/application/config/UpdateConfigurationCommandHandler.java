@@ -45,10 +45,12 @@ public class UpdateConfigurationCommandHandler {
     @Observed(name = "config.command.update", contextualName = "Update Configuration Command")
     public Result<ConfigurationDto> handle(UpdateConfigurationCommand command) {
         logger.info("Handling UpdateConfigurationCommand for bankId: {}", command.bankId());
-        
+
         // Validate thresholds
         Result<Void> validation = validateThresholds(command.configuration().thresholds());
         if (validation.isFailure()) {
+            logger.warn("UpdateConfigurationCommand validation failed for bankId={} error={}",
+                command.bankId(), validation.getError().map(ErrorDetail::getMessage).orElse("unknown"));
             return Result.failure(validation.getError().orElseThrow());
         }
         
@@ -64,9 +66,12 @@ public class UpdateConfigurationCommandHandler {
         thresholdRepository.save(threshold);
         
         logger.info("Successfully updated configuration for bankId: {}", command.bankId());
-        
+
         // Return updated configuration via query handler
-        return queryHandler.handle(new GetConfigurationQuery(command.bankId()));
+        Result<ConfigurationDto> result = queryHandler.handle(new GetConfigurationQuery(command.bankId()));
+        logger.info("UpdateConfigurationCommandHandler.handle complete | bankId={} resultSuccess={}",
+            command.bankId(), result.isSuccess());
+        return result;
     }
     
     private Result<Void> validateThresholds(ConfigurationDto.ThresholdsDto thresholds) {
