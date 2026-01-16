@@ -25,8 +25,11 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
 
 /**
  * Command handler for uploading and immediately processing a file.
@@ -62,183 +65,167 @@ public class UploadAndProcessFileCommandHandler {
 
         BankId bankId = command.bankId();
 
-        try {
-            Result<Void> bankValidationResult = validateBankInfo(bankId);
-            if (bankValidationResult.isFailure()) {
-                return Result.failure(bankValidationResult.getError().orElseThrow());
-            }
-
-            // Store file FIRST before any other operations that might consume the stream
-            Result<String> tempStorageResult = temporaryFileStorage.storeFile(
-                command.fileStream(),
-                command.fileName(),
-                command.contentType(),
-                command.fileSizeBytes()
-            );
-            if (tempStorageResult.isFailure()) {
-                return Result.failure(tempStorageResult.getError().orElseThrow());
-            }
-
-            String tempFileKey = tempStorageResult.getValue().orElseThrow();
-
-            try {
-                Result<FileMetadata> fileValidationResult = validateFileMetadata(command, tempFileKey);
-                if (fileValidationResult.isFailure()) {
-                    temporaryFileStorage.removeFile(tempFileKey); // Clean up on validation failure
-                    return Result.failure(fileValidationResult.getError().orElseThrow());
-                }
-
-                FileMetadata fileMetadata = fileValidationResult.getValue().orElseThrow();
-
-                BatchId batchId = BatchId.generate();
-                IngestionBatch batch = new IngestionBatch(batchId, bankId, fileMetadata);
-
-                log.info("Upload and process started; details={}", Map.of("batchId", batchId.value(), "bankId", bankId.value(),
-                           "fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
-
-                Result<IngestionBatch> saveResult = ingestionBatchRepository.save(batch);
-                if (saveResult.isFailure()) {
-                    // No async processing will run; cleanup temp file now.
-                    temporaryFileStorage.removeFile(tempFileKey);
-                    return Result.failure(saveResult.getError().orElse(
-                            ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR,
-                                "Failed to save batch record", "database.error")
-                    ));
-                }
-
-                // Start batch processing asynchronously AFTER the upload transaction commits.
-                // This avoids the "UnexpectedRollbackException" pattern where an exception is caught
-                // inside a @Transactional method, leaving the transaction marked rollback-only.
-                Runnable startProcessing = () -> {
-                    CompletableFuture<Result<Void>> processFuture = asyncBatchProcessor.processBatchWithTempFile(batchId, tempFileKey);
-
-                    // Handle async processing completion (fire and forget)
-                    processFuture.whenComplete((processResult, throwable) -> {
-                        try {
-                            if (throwable != null) {
-                                log.error("Async batch processing failed with exception; details={}", Map.of("batchId", batchId.value()), throwable);
-                                publishProcessingFailureEvent(batchId, bankId, command.fileName(), throwable.getMessage(), "EXCEPTION", tempFileKey);
-                            } else if (processResult != null && processResult.isFailure()) {
-                                ErrorDetail error = processResult.getError().orElse(null);
-                                String errorMessage = error != null ? error.getMessage() : "Unknown error";
-                                String errorType = error != null ? error.getErrorType().name() : "UNKNOWN";
-                                log.info("Async batch processing failed; details={}", Map.of("batchId", batchId.value(), "error", errorMessage));
-                                publishProcessingFailureEvent(batchId, bankId, command.fileName(), errorMessage, errorType, tempFileKey);
-                            } else {
-                                log.info("Async batch processing completed successfully; details={}", Map.of("batchId", batchId.value()));
-                            }
-                        } finally {
-                            // IMPORTANT: cleanup temp file only after processing completes
-                            temporaryFileStorage.removeFile(tempFileKey);
-                        }
-                    });
-                };
-
-                if (TransactionSynchronizationManager.isActualTransactionActive()) {
-                    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                        @Override
-                        public void afterCommit() {
-                            startProcessing.run();
-                        }
-                    });
-                } else {
-                    startProcessing.run();
-                }
-
-                long duration = System.currentTimeMillis() - startTime;
-                log.info("Upload completed, batch processing started asynchronously; details={}", Map.of("batchId", batchId.value(), "bankId", bankId.value(), "duration", duration));
-
-                return Result.success(batchId);
-
-            } catch (Exception e) {
-                // If anything fails after storing the temp file but before async processing is scheduled,
-                // ensure we cleanup the temp file.
-                temporaryFileStorage.removeFile(tempFileKey);
-                throw e;
-            }
-
-        } catch (Exception e) {
-            log.error("Unexpected error during upload and process; details={}", Map.of("errorMessage", e.getMessage()), e);
-            return Result.failure(ErrorDetail.of("UPLOAD_PROCESS_ERROR", ErrorType.SYSTEM_ERROR,
-                "Unexpected error during file upload and processing: " + e.getMessage(),
-                "upload.process.error"));
-        }
-    }
-
-    private Result<Void> validateBankInfo(BankId bankId) {
+        // Validate bank info
         var bankInfo = bankInfoRepository.findByBankId(bankId);
         if (bankInfo.isEmpty()) {
             return Result.failure(ErrorDetail.of("BANK_NOT_FOUND", ErrorType.VALIDATION_ERROR,
                 String.format("Bank with ID '%s' not found", bankId.value()), "bank.not_found"));
         }
-
         if (!bankInfo.get().isActive()) {
             return Result.failure(ErrorDetail.of("BANK_INACTIVE", ErrorType.VALIDATION_ERROR,
                 String.format("Bank with ID '%s' is not active", bankId.value()), "bank.inactive"));
         }
-
-        return Result.success(null);
-    }
-
-    private Result<FileMetadata> validateFileMetadata(UploadAndProcessFileCommand command, String tempFileKey) {
+        // Validate file metadata
         Result<FileName> fileNameResult = FileName.create(command.fileName());
-        if (fileNameResult.isFailure()) {
-            return Result.failure(fileNameResult.getError().orElseThrow());
-        }
-
         Result<ContentType> contentTypeResult = ContentType.create(command.contentType());
-        if (contentTypeResult.isFailure()) {
-            return Result.failure(contentTypeResult.getError().orElseThrow());
-        }
-
         Result<FileSize> fileSizeResult = FileSize.create(command.fileSizeBytes());
-        if (fileSizeResult.isFailure()) {
-            return Result.failure(fileSizeResult.getError().orElseThrow());
+
+        // Collect validation failures into a list and return all at once
+        List<FieldError> validationErrors = new ArrayList<>();
+
+        if (fileNameResult.isFailure()) {
+            validationErrors.add(new FieldError("fileName",
+                    fileNameResult.getError().map(ErrorDetail::getMessage).orElse("Invalid file name"),
+                    "file.name.invalid"));
         }
 
-        // Get the value objects
+        if (contentTypeResult.isFailure()) {
+            validationErrors.add(new FieldError("contentType",
+                    contentTypeResult.getError().map(ErrorDetail::getMessage).orElse("Invalid content type"),
+                    "file.content_type.invalid"));
+        }
+
+        if (fileSizeResult.isFailure()) {
+            validationErrors.add(new FieldError("fileSize",
+                    fileSizeResult.getError().map(ErrorDetail::getMessage).orElse("Invalid file size"),
+                    "file.size.invalid"));
+        }
+
+        // Get the validated value objects
         FileName validatedFileName = fileNameResult.getValue().orElseThrow();
         ContentType validatedContentType = contentTypeResult.getValue().orElseThrow();
         FileSize validatedFileSize = fileSizeResult.getValue().orElseThrow();
 
         // Validate file extension based on content type
         if (validatedContentType.isJson() && !validatedFileName.hasJsonExtension()) {
-            return Result.failure(ErrorDetail.of("INVALID_FILE_EXTENSION", ErrorType.SYSTEM_ERROR,
-                "JSON files must have .json extension", "generic.error"));
-        } else if (validatedContentType.isExcel() && !validatedFileName.hasExcelExtension()) {
-            return Result.failure(ErrorDetail.of("INVALID_FILE_EXTENSION", ErrorType.SYSTEM_ERROR,
-                "Excel files must have .xlsx or .xls extension", "generic.error"));
+            validationErrors.add(new FieldError("fileName",
+                    "JSON files must have .json extension",
+                    "file.invalid_extension"));
+        }
+        if (validatedContentType.isExcel() && !validatedFileName.hasExcelExtension()) {
+            validationErrors.add(new FieldError("fileName",
+                    "Excel files must have .xlsx or .xls extension",
+                    "file.invalid_extension"));
         }
 
-        // Log warnings for large files
-        if (validatedContentType.isJson() && validatedFileSize.shouldWarnForJson()) {
-            log.info("Large JSON file detected; details={}", Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
-        } else if (validatedContentType.isExcel() && validatedFileSize.shouldWarnForExcel()) {
-            log.info("Large Excel file detected; details={}", Map.of("fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
+        if (!validationErrors.isEmpty()) {
+            return Result.failure(ErrorDetail.validationError(validationErrors));
         }
 
-        // Calculate MD5 checksum from stored file data (not from the already-consumed stream)
-        Result<TemporaryFileStorageService.FileData> fileDataResult = temporaryFileStorage.retrieveFile(tempFileKey);
-        if (fileDataResult.isFailure()) {
-            return Result.failure(fileDataResult.getError().orElseThrow());
+        // Store file FIRST before any other operations that might consume the stream
+        Result<String> tempStorageResult = temporaryFileStorage.storeFile(
+            command.fileStream(),
+            command.fileName(),
+            command.contentType(),
+            command.fileSizeBytes()
+        );
+        if (tempStorageResult.isFailure()) {
+            return Result.failure(tempStorageResult.getError().orElseThrow());
         }
-        
-        TemporaryFileStorageService.FileData fileData = fileDataResult.getValue().orElseThrow();
-        String md5Checksum = calculateMD5ChecksumFromBytes(fileData.data());
 
-        // Create file metadata
-        FileMetadata fileMetadata = new FileMetadata(
+        String tempFileKey = tempStorageResult.getValue().orElseThrow();
+
+        try {
+
+            // Calculate MD5 checksum from stored file data (not from the already-consumed stream)
+            Result<TemporaryFileStorageService.FileData> fileDataResult = temporaryFileStorage.retrieveFile(tempFileKey);
+            if (fileDataResult.isFailure()) {
+                temporaryFileStorage.removeFile(tempFileKey);
+                return Result.failure(fileDataResult.getError().orElseThrow());
+            }
+
+            TemporaryFileStorageService.FileData fileData = fileDataResult.getValue().orElseThrow();
+            Result<String> md5Result = calculateMD5ChecksumFromBytes(fileData.data());
+            if (md5Result.isFailure()) {
+                temporaryFileStorage.removeFile(tempFileKey);
+                return Result.failure(md5Result.getError().orElseThrow());
+            }
+            String md5Checksum = md5Result.getValue().orElseThrow();
+
+            // Create file metadata
+            FileMetadata fileMetadata = new FileMetadata(
                 command.fileName(),
                 command.contentType(),
-                command.fileSizeBytes(),
+                validatedFileSize.getBytes(),
                 md5Checksum,
                 null  // S3 reference will be set during processing
-        );
+            );
 
-        return Result.success(fileMetadata);
+            BatchId batchId = BatchId.generate();
+            IngestionBatch batch = new IngestionBatch(batchId, bankId, fileMetadata);
+
+            log.info("Upload and process started; details={}", Map.of("batchId", batchId.value(), "bankId", bankId.value(),
+                       "fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
+
+            Result<IngestionBatch> saveResult = ingestionBatchRepository.save(batch);
+            if (saveResult.isFailure()) {
+                temporaryFileStorage.removeFile(tempFileKey);
+                return Result.failure(saveResult.getError().orElse(
+                        ErrorDetail.of("DATABASE_ERROR", ErrorType.SYSTEM_ERROR,
+                            "Failed to save batch record", "database.error")
+                ));
+            }
+
+            // Start batch processing asynchronously AFTER the upload transaction commits.
+            // This avoids the "UnexpectedRollbackException" pattern where an exception is caught
+            // inside a @Transactional method, leaving the transaction marked rollback-only.
+            Runnable startProcessing = () -> {
+                CompletableFuture<Result<Void>> processFuture = asyncBatchProcessor.processBatchWithTempFile(batchId, tempFileKey);
+
+                // Handle async processing completion (fire and forget)
+                processFuture.whenComplete((processResult, throwable) -> {
+                    try {
+                        if (throwable != null) {
+                            log.error("Async batch processing failed with exception; details={}", Map.of("batchId", batchId.value()), throwable);
+                            publishProcessingFailureEvent(batchId, bankId, command.fileName(), throwable.getMessage(), "EXCEPTION", tempFileKey);
+                        } else if (processResult != null && processResult.isFailure()) {
+                            ErrorDetail error = processResult.getError().orElse(null);
+                            String errorMessage = error != null ? error.getMessage() : "Unknown error";
+                            String errorType = error != null ? error.getErrorType().name() : "UNKNOWN";
+                            log.info("Async batch processing failed; details={}", Map.of("batchId", batchId.value(), "error", errorMessage));
+                            publishProcessingFailureEvent(batchId, bankId, command.fileName(), errorMessage, errorType, tempFileKey);
+                        }
+                    } finally {
+                        // IMPORTANT: cleanup temp file only after processing completes
+                        temporaryFileStorage.removeFile(tempFileKey);
+                    }
+                });
+            };
+
+            if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        startProcessing.run();
+                    }
+                });
+            } else {
+                startProcessing.run();
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+            log.info("Upload completed, batch processing started asynchronously; details={}", Map.of("batchId", batchId.value(), "bankId", bankId.value(), "duration", duration));
+
+            return Result.success(batchId);
+
+        } catch (Exception e) {
+
+            temporaryFileStorage.removeFile(tempFileKey);
+            throw e;
+        }
     }
 
-    private String calculateMD5ChecksumFromBytes(byte[] data) {
+    private Result<String> calculateMD5ChecksumFromBytes(byte[] data) {
         try {
             MessageDigest md = MessageDigest.getInstance("MD5");
             byte[] digest = md.digest(data);
@@ -246,9 +233,10 @@ public class UploadAndProcessFileCommandHandler {
             for (byte b : digest) {
                 sb.append(String.format("%02x", b));
             }
-            return sb.toString();
+            return Result.success(sb.toString());
         } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("MD5 algorithm not available", e);
+            return Result.failure(ErrorDetail.of("MD5_NOT_AVAILABLE", ErrorType.SYSTEM_ERROR,
+                    "MD5 algorithm not available", "checksum.md5_unavailable"));
         }
     }
 
