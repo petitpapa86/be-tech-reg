@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.bcbs239</groupId>
         <artifactId>regtech-signal</artifactId>
-        <version>${project.parent.version}</version>
+        <version>0.0.1-SNAPSHOT</version>
         <relativePath>..</relativePath>
     </parent>
 
@@ -19,6 +19,7 @@
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-signal-infrastructure</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <!-- Spring Boot Web starter for controllers and SSE endpoints -->
         <dependency>
