@@ -19,6 +19,7 @@ public class IngestionBatch extends Entity {
 
     private final BatchId batchId;
     private final BankId bankId;
+    // Manual getters for Lombok compatibility issues
     private BatchStatus status;
     private final FileMetadata fileMetadata;
     private S3Reference s3Reference;
@@ -167,7 +168,7 @@ public class IngestionBatch extends Entity {
         this.completedAt = Instant.now();
         this.processingDurationMs = completedAt.toEpochMilli() - uploadedAt.toEpochMilli();
 
-        BatchCompletedEvent batchCompletedEvent = new BatchCompletedEvent(batchId, bankId, s3Reference, totalExposures, fileMetadata.fileSizeBytes(), completedAt, CorrelationContext.correlationId());
+        BatchProcessingCompletedEvent batchCompletedEvent = new BatchProcessingCompletedEvent(batchId, bankId, s3Reference, totalExposures, fileMetadata.fileSizeBytes(), completedAt, CorrelationContext.correlationId());
         batchCompletedEvent.setCausationId(Maybe.some(causationId));
 
         addDomainEvent(batchCompletedEvent);
@@ -200,46 +201,7 @@ public class IngestionBatch extends Entity {
         this.status = newStatus;
         this.updatedAt = Instant.now();
     }
-    
-    /**
-     * Clear the error message (used during recovery).
-     */
-    public void clearErrorMessage() {
-        this.errorMessage = null;
-        this.updatedAt = Instant.now();
-    }
-    
-    /**
-     * Increment recovery attempts counter.
-     */
-    public void incrementRecoveryAttempts() {
-        this.recoveryAttempts++;
-        this.updatedAt = Instant.now();
-    }
-    
-    /**
-     * Set the last checkpoint timestamp.
-     */
-    public void setLastCheckpoint(Instant checkpoint) {
-        this.lastCheckpoint = checkpoint;
-        this.updatedAt = Instant.now();
-    }
-    
-    /**
-     * Set checkpoint data for recovery purposes.
-     */
-    public void setCheckpointData(String data) {
-        this.checkpointData = data;
-        this.updatedAt = Instant.now();
-    }
-    
-    /**
-     * Set the completed timestamp.
-     */
-    public void setCompletedAt(Instant completedAt) {
-        this.completedAt = completedAt;
-        this.updatedAt = Instant.now();
-    }
+
 
     /**
      * Check if the batch is in a terminal state.
@@ -255,17 +217,5 @@ public class IngestionBatch extends Entity {
         return status == BatchStatus.COMPLETED;
     }
 
-    // Manual getters for Lombok compatibility issues
-    public BatchStatus getStatus() {
-        return status;
-    }
-
-    public S3Reference getS3Reference() {
-        return s3Reference;
-    }
-
-    public Integer getTotalExposures() {
-        return totalExposures;
-    }
 }
 

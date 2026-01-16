@@ -11,7 +11,7 @@ import java.util.Objects;
 /**
  * Domain event raised when batch processing completes successfully.
  */
-public class BatchCompletedEvent extends DomainEvent {
+public class BatchProcessingCompletedEvent extends DomainEvent {
     
     private final BatchId batchId;
     private final BankId bankId;
@@ -21,7 +21,7 @@ public class BatchCompletedEvent extends DomainEvent {
     private final Instant completedAt;
     
     @JsonCreator
-    public BatchCompletedEvent(
+    public BatchProcessingCompletedEvent(
             @JsonProperty("batchId") BatchId batchId, 
             @JsonProperty("bankId") BankId bankId, 
             @JsonProperty("s3Reference") S3Reference s3Reference, 

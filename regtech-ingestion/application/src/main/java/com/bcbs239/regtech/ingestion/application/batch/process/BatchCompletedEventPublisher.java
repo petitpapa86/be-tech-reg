@@ -4,7 +4,7 @@ import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedIntegrationEvent;
 import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.ingestion.domain.batch.BatchCompletedEvent;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchProcessingCompletedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
@@ -39,7 +39,7 @@ public class BatchCompletedEventPublisher {
      * @param event The domain event from the ingestion batch aggregate
      */
     @EventListener
-    public void handleBatchCompletedEvent(BatchCompletedEvent event) {
+    public void handleBatchCompletedEvent(BatchProcessingCompletedEvent event) {
         // Skip if this is an outbox replay to avoid duplicate publishing
         if (CorrelationContext.isOutboxReplay()) {
             logEventSkipped(event);
@@ -75,7 +75,7 @@ public class BatchCompletedEventPublisher {
         }
     }
 
-    private void logEventPublished(BatchCompletedEvent event) {
+    private void logEventPublished(BatchProcessingCompletedEvent event) {
         Map<String, Object> details = new HashMap<>();
         details.put("eventType", "BatchCompletedEvent");
         details.put("batchId", event.batchId().value());
@@ -86,7 +86,7 @@ public class BatchCompletedEventPublisher {
         log.info("Published BatchCompletedIntegrationEvent for batch: {} details={}", event.batchId().value(), details);
     }
 
-    private void logEventSkipped(BatchCompletedEvent event) {
+    private void logEventSkipped(BatchProcessingCompletedEvent event) {
         Map<String, Object> details = new HashMap<>();
         details.put("eventType", "BatchCompletedEvent");
         details.put("batchId", event.batchId().value());
@@ -95,7 +95,7 @@ public class BatchCompletedEventPublisher {
         log.info("Skipped BatchCompletedIntegrationEvent publishing for batch: {} details={}", event.batchId().value(), details);
     }
 
-    private void logEventPublishingError(BatchCompletedEvent event, Exception ex) {
+    private void logEventPublishingError(BatchProcessingCompletedEvent event, Exception ex) {
         Map<String, Object> details = new HashMap<>();
         details.put("eventType", "BatchCompletedEvent");
         details.put("batchId", event.batchId().value());
