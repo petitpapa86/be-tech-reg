@@ -1,8 +1,9 @@
 package com.bcbs239.regtech.ingestion.application.batch.upload;
 
-import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
-
 import java.io.InputStream;
+
+import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 
 
 public record UploadAndProcessFileCommand(
@@ -10,7 +11,8 @@ public record UploadAndProcessFileCommand(
     String fileName,
     String contentType,
     long fileSizeBytes,
-    BankId bankId
+    BankId bankId,
+    BatchId batchId
 ) {
 
     public UploadAndProcessFileCommand {

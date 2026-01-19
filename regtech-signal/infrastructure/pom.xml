@@ -16,15 +16,17 @@
     <name>regtech-signal-infrastructure</name>
 
     <dependencies>
+        <!-- Domain module -->
         <dependency>
             <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-signal-application</artifactId>
+            <artifactId>regtech-signal-domain</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
-        <!-- Spring Web for SseEmitter -->
+
+        <!-- Spring Boot Web starter for SseEmitter, annotations and logging -->
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-web</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
     </dependencies>
 

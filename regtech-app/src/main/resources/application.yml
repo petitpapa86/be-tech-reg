@@ -47,6 +47,7 @@ spring:
       - ingestion
       - risk-calculation
       - report-generation
+      - signal
       - observability
   
   mvc:
@@ -198,6 +199,7 @@ logging:
     com.bcbs239.regtech.dataquality: INFO
     com.bcbs239.regtech.riskcalculation: INFO
     com.bcbs239.regtech.reportgeneration: INFO
+    com.bcbs239.regtech.signal: INFO
     
     # Spring framework
     org.springframework.security: WARN
@@ -421,6 +423,10 @@ iam:
       # API documentation endpoints (public for developers)
       - /swagger-ui/**
       - /v3/api-docs/**
+      
+      # SSE (Server-Sent Events) endpoints (public for real-time updates)
+      - /api/v1/signal/stream
+      - /api/v1/signal/**
   
   # Authorization settings
   authorization:

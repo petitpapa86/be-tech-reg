@@ -7,6 +7,7 @@ import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadAndProcessFileCommand;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadAndProcessFileCommandHandler;
+import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.presentation.common.MultipartFileUtils;
 import io.micrometer.observation.annotation.Observed;
@@ -88,6 +89,21 @@ public class UploadAndProcessFileController extends BaseController {
 
         var file = fileResult.getValue().orElseThrow();
 
+        // Read batchId provided by frontend (header X-Batch-Id)
+        String batchIdValue = request.headers().firstHeader("X-Batch-Id");
+        if (batchIdValue == null || batchIdValue.trim().isEmpty()) {
+            return ServerResponse.badRequest()
+                .body(ApiResponse.businessRuleError("Batch ID is required (header: X-Batch-Id)"));
+        }
+
+        BatchId batchId;
+        try {
+            batchId = BatchId.of(batchIdValue.trim());
+        } catch (Exception e) {
+            return ServerResponse.badRequest()
+                .body(ApiResponse.businessRuleError("Invalid batch ID format"));
+        }
+
         // Create command
         UploadAndProcessFileCommand command;
         try {
@@ -96,7 +112,8 @@ public class UploadAndProcessFileController extends BaseController {
                 file.getSubmittedFileName(),
                 file.getContentType(),
                 file.getSize(),
-                bankId
+                bankId,
+                batchId
             );
         } catch (IOException e) {
             throw new RuntimeException("Failed to read uploaded file", e);
@@ -107,7 +124,6 @@ public class UploadAndProcessFileController extends BaseController {
             uploadAndProcessFileCommandHandler.handle(command);
 
         if (result.isSuccess()) {
-            com.bcbs239.regtech.ingestion.domain.batch.BatchId batchId = result.getValue().orElseThrow();
             UploadFileResponse response = UploadFileResponse.from(batchId);
 
             // Return HTTP 202 Accepted for asynchronous processing

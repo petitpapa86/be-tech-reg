@@ -281,6 +281,27 @@
             <artifactId>metrics-infrastructure</artifactId>
             <version>1.0.0-SNAPSHOT</version>
         </dependency>
+        <!-- Signal module (adds event/signal processing capabilities) -->
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-signal-domain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-signal-application</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-signal-infrastructure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-signal-presentation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

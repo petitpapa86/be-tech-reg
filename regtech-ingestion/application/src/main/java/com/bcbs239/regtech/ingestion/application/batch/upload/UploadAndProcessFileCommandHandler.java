@@ -1,7 +1,24 @@
 package com.bcbs239.regtech.ingestion.application.batch.upload;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.common.TemporaryFileStorageService;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
@@ -14,22 +31,6 @@ import com.bcbs239.regtech.ingestion.domain.batch.events.BatchProcessingFailedEv
 import com.bcbs239.regtech.ingestion.domain.file.ContentType;
 import com.bcbs239.regtech.ingestion.domain.file.FileName;
 import com.bcbs239.regtech.ingestion.domain.file.FileSize;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import com.bcbs239.regtech.core.domain.shared.FieldError;
 
 /**
  * Command handler for uploading and immediately processing a file.
@@ -161,7 +162,7 @@ public class UploadAndProcessFileCommandHandler {
                 null  // S3 reference will be set during processing
             );
 
-            BatchId batchId = BatchId.generate();
+            BatchId batchId = command.batchId();
             IngestionBatch batch = new IngestionBatch(batchId, bankId, fileMetadata);
 
             log.info("Upload and process started; details={}", Map.of("batchId", batchId.value(), "bankId", bankId.value(),

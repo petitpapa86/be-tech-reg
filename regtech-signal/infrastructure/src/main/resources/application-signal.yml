@@ -1,0 +1,93 @@
+# ============================================================================
+# Signal Module Configuration
+# ============================================================================
+# Server-Sent Events (SSE) real-time notification service
+# Requirements: Real-time updates for frontend clients
+# ============================================================================
+
+spring:
+  config:
+    activate:
+      on-profile: signal
+
+# ============================================================================
+# SIGNAL MODULE CONFIGURATION
+# ============================================================================
+signal:
+  sse:
+    # SSE connection timeout (in milliseconds)
+    timeout: 3600000  # 1 hour
+    
+    # Heartbeat interval to keep connections alive (in milliseconds)
+    heartbeat-interval: 15000  # 15 seconds
+    
+    # Enable SSE endpoint
+    enabled: true
+    
+    # Maximum concurrent SSE connections per client
+    max-connections-per-client: 5
+    
+    # Event types to publish
+    event-types:
+      - batch.completed
+      - data.quality.completed
+      - risk.calculation.completed
+      - report.generation.completed
+      - user.notification
+    
+    # CORS configuration for SSE endpoint
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200}
+      allowed-methods: GET,OPTIONS
+      allow-credentials: true
+
+# ============================================================================
+# LOGGING CONFIGURATION
+# ============================================================================
+logging:
+  level:
+    com.bcbs239.regtech.signal: INFO
+    com.bcbs239.regtech.signal.application: INFO
+    com.bcbs239.regtech.signal.presentation: INFO
+    com.bcbs239.regtech.signal.infrastructure: INFO
+
+---
+# ============================================================================
+# DEVELOPMENT PROFILE
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: development
+
+# Development logging settings
+logging:
+  level:
+    com.bcbs239.regtech.signal: DEBUG
+    com.bcbs239.regtech.signal.presentation.integration: DEBUG
+
+signal:
+  sse:
+    # Shorter timeout in development for testing
+    timeout: 600000  # 10 minutes
+    heartbeat-interval: 10000  # 10 seconds
+
+---
+# ============================================================================
+# PRODUCTION PROFILE
+# ============================================================================
+spring:
+  config:
+    activate:
+      on-profile: production
+
+# Production logging settings
+logging:
+  level:
+    com.bcbs239.regtech.signal: INFO
+
+signal:
+  sse:
+    # Standard production timeout
+    timeout: 3600000  # 1 hour
+    heartbeat-interval: 30000  # 30 seconds

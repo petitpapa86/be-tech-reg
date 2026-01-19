@@ -61,6 +61,15 @@ public class SecurityFilter implements Filter {
         if (logger.isDebugEnabled()) {
             publicPaths.forEach(path -> logger.debug("  Public path: {}", path));
         }
+        
+        // Log SSE endpoints specifically to verify they're loaded
+        boolean hasSignalPaths = publicPaths.stream()
+            .anyMatch(path -> path.contains("/signal"));
+        if (hasSignalPaths) {
+            logger.info("✓ SSE signal endpoints are configured as public paths");
+        } else {
+            logger.warn("⚠ SSE signal endpoints NOT found in public paths - SSE will require authentication!");
+        }
     }
     
     /**
@@ -301,16 +310,33 @@ public class SecurityFilter implements Filter {
     }
 
     private boolean isPublicPath(String path) {
-        return publicPaths.stream()
+        boolean isPublic = publicPaths.stream()
                 .anyMatch(pattern -> matchesPattern(path, pattern));
+        
+        if (logger.isDebugEnabled()) {
+            logger.debug("Checking if path '{}' is public: {}", path, isPublic);
+        }
+        
+        return isPublic;
     }
 
     private boolean matchesPattern(String path, String pattern) {
+        // Handle /** wildcard pattern (matches path and all sub-paths)
         if (pattern.endsWith("/**")) {
             String prefix = pattern.substring(0, pattern.length() - 3);
-            return path.startsWith(prefix);
+            boolean matches = path.startsWith(prefix);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Pattern '{}' {} path '{}'", pattern, matches ? "matches" : "does not match", path);
+            }
+            return matches;
         }
-        return path.equals(pattern);
+        
+        // Exact match
+        boolean matches = path.equals(pattern);
+        if (logger.isTraceEnabled()) {
+            logger.trace("Pattern '{}' {} path '{}'", pattern, matches ? "matches" : "does not match", path);
+        }
+        return matches;
     }
 
     private SecurityContext createAnonymousContext() {

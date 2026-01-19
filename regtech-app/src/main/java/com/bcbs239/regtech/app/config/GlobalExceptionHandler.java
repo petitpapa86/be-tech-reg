@@ -45,8 +45,26 @@ public class GlobalExceptionHandler {
         log.error("{}: {} - context={}", eventType, ex.getMessage(), context, ex);
     }
 
+    /**
+     * Checks if the request is for an SSE endpoint.
+     * SSE endpoints use streaming and cannot return JSON ApiResponse objects.
+     */
+    private boolean isSseEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String accept = request.getHeader("Accept");
+        
+        // Check if it's an SSE stream endpoint or if client accepts text/event-stream
+        return path.contains("/stream") || 
+               (accept != null && accept.contains("text/event-stream"));
+    }
+
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleNoResourceFound(NoResourceFoundException ex, HttpServletRequest request) {
+        // Skip SSE endpoints - they handle their own errors
+        if (isSseEndpoint(request)) {
+            return null;
+        }
+        
         // Log as a not-found event rather than an internal server error
         logError("RESOURCE_NOT_FOUND", ex, request, Map.of(
                 "reason", ex.getMessage()
@@ -60,6 +78,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleException(Exception ex, HttpServletRequest request) {
+        // Skip SSE endpoints - they handle their own errors
+        if (isSseEndpoint(request)) {
+            // Just log the error but don't try to return a JSON response for SSE
+            log.error("SSE endpoint error: {}", ex.getMessage(), ex);
+            return null;
+        }
+        
         logError("UNHANDLED_EXCEPTION", ex, request, null);
 
         return ResponseEntity.internalServerError().body(

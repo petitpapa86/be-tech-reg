@@ -4,7 +4,8 @@ import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedInboundEvent;
 import com.bcbs239.regtech.signal.application.SignalService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -12,8 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component("signalBatchCompletedIntegrationEventListener")
-@Slf4j
 public class BatchCompletedIntegrationEventListener {
+    private static final Logger log = LoggerFactory.getLogger(BatchCompletedIntegrationEventListener.class);
     private final SignalService signalService;
     private final ObjectMapper objectMapper;
 
