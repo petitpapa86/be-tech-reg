@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -23,7 +24,6 @@ import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.ingestion.application.common.TemporaryFileStorageService;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.IBankInfoRepository;
-import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
@@ -64,31 +64,29 @@ public class UploadAndProcessFileCommandHandler {
     public Result<BatchId> handle(UploadAndProcessFileCommand command) {
         long startTime = System.currentTimeMillis();
 
-        BankId bankId = command.bankId();
+        Result<BankId> bankIdResult = BankId.of(command.bankId());
+        if (bankIdResult.isFailure()) {
+            return Result.failure(bankIdResult.getError().orElseThrow());
+        }
+        BankId bankId = bankIdResult.getValueOrThrow();
 
-        // Validate bank info
-        var bankInfo = bankInfoRepository.findByBankId(bankId);
+        var bankInfo = bankInfoRepository.findByBankId(bankIdResult.getValueOrThrow());
         if (bankInfo.isEmpty()) {
             return Result.failure(ErrorDetail.of("BANK_NOT_FOUND", ErrorType.VALIDATION_ERROR,
                 String.format("Bank with ID '%s' not found", bankId.value()), "bank.not_found"));
         }
+
         if (!bankInfo.get().isActive()) {
             return Result.failure(ErrorDetail.of("BANK_INACTIVE", ErrorType.VALIDATION_ERROR,
                 String.format("Bank with ID '%s' is not active", bankId.value()), "bank.inactive"));
         }
-        // Validate file metadata
-        Result<FileName> fileNameResult = FileName.create(command.fileName());
+
+        // `FileName` is validated at the controller boundary and provided as a value object in the command
+        FileName validatedFileName = command.fileName();
         Result<ContentType> contentTypeResult = ContentType.create(command.contentType());
         Result<FileSize> fileSizeResult = FileSize.create(command.fileSizeBytes());
 
-        // Collect validation failures into a list and return all at once
         List<FieldError> validationErrors = new ArrayList<>();
-
-        if (fileNameResult.isFailure()) {
-            validationErrors.add(new FieldError("fileName",
-                    fileNameResult.getError().map(ErrorDetail::getMessage).orElse("Invalid file name"),
-                    "file.name.invalid"));
-        }
 
         if (contentTypeResult.isFailure()) {
             validationErrors.add(new FieldError("contentType",
@@ -103,7 +101,6 @@ public class UploadAndProcessFileCommandHandler {
         }
 
         // Get the validated value objects
-        FileName validatedFileName = fileNameResult.getValue().orElseThrow();
         ContentType validatedContentType = contentTypeResult.getValue().orElseThrow();
         FileSize validatedFileSize = fileSizeResult.getValue().orElseThrow();
 
@@ -126,7 +123,7 @@ public class UploadAndProcessFileCommandHandler {
         // Store file FIRST before any other operations that might consume the stream
         Result<String> tempStorageResult = temporaryFileStorage.storeFile(
             command.fileStream(),
-            command.fileName(),
+            command.fileName().getValue(),
             command.contentType(),
             command.fileSizeBytes()
         );
@@ -153,20 +150,20 @@ public class UploadAndProcessFileCommandHandler {
             }
             String md5Checksum = md5Result.getValue().orElseThrow();
 
-            // Create file metadata
+            // Create file metadata (domain FileMetadata expects a String file name)
             FileMetadata fileMetadata = new FileMetadata(
-                command.fileName(),
+                validatedFileName.getValue(),
                 command.contentType(),
                 validatedFileSize.getBytes(),
                 md5Checksum,
                 null  // S3 reference will be set during processing
             );
 
-            BatchId batchId = command.batchId();
+            BatchId batchId = BatchId.of(command.batchId());
             IngestionBatch batch = new IngestionBatch(batchId, bankId, fileMetadata);
 
             log.info("Upload and process started; details={}", Map.of("batchId", batchId.value(), "bankId", bankId.value(),
-                       "fileName", command.fileName(), "fileSize", command.fileSizeBytes()));
+                       "fileName", validatedFileName.getValue(), "fileSize", command.fileSizeBytes()));
 
             Result<IngestionBatch> saveResult = ingestionBatchRepository.save(batch);
             if (saveResult.isFailure()) {
@@ -181,20 +178,20 @@ public class UploadAndProcessFileCommandHandler {
             // This avoids the "UnexpectedRollbackException" pattern where an exception is caught
             // inside a @Transactional method, leaving the transaction marked rollback-only.
             Runnable startProcessing = () -> {
-                CompletableFuture<Result<Void>> processFuture = asyncBatchProcessor.processBatchWithTempFile(batchId, tempFileKey);
+                CompletableFuture<Result<Void>> processFuture = asyncBatchProcessor.processBatchWithTempFile(batchId, tempFileKey, validatedFileName.getValue());
 
                 // Handle async processing completion (fire and forget)
                 processFuture.whenComplete((processResult, throwable) -> {
                     try {
                         if (throwable != null) {
                             log.error("Async batch processing failed with exception; details={}", Map.of("batchId", batchId.value()), throwable);
-                            publishProcessingFailureEvent(batchId, bankId, command.fileName(), throwable.getMessage(), "EXCEPTION", tempFileKey);
+                            publishProcessingFailureEvent(batchId, bankId, validatedFileName.getValue(), throwable.getMessage(), "EXCEPTION", tempFileKey);
                         } else if (processResult != null && processResult.isFailure()) {
                             ErrorDetail error = processResult.getError().orElse(null);
                             String errorMessage = error != null ? error.getMessage() : "Unknown error";
                             String errorType = error != null ? error.getErrorType().name() : "UNKNOWN";
                             log.info("Async batch processing failed; details={}", Map.of("batchId", batchId.value(), "error", errorMessage));
-                            publishProcessingFailureEvent(batchId, bankId, command.fileName(), errorMessage, errorType, tempFileKey);
+                            publishProcessingFailureEvent(batchId, bankId, validatedFileName.getValue(), errorMessage, errorType, tempFileKey);
                         }
                     } finally {
                         // IMPORTANT: cleanup temp file only after processing completes
@@ -262,12 +259,12 @@ public class UploadAndProcessFileCommandHandler {
                 "batchId", batchId.value(),
                 "bankId", bankId.value(),
                 "fileName", fileName
-            ));
-        } catch (Exception e) {
-            log.error("Failed to publish batch processing failure event; details={}", Map.of(
-                "batchId", batchId.value(),
-                "errorMessage", e.getMessage()
-            ), e);
-        }
-    }
-}
+             ));
+         } catch (Exception e) {
+             log.error("Failed to publish batch processing failure event; details={}", Map.of(
+                 "batchId", batchId.value(),
+                 "errorMessage", e.getMessage()
+             ), e);
+         }
+     }
+ }

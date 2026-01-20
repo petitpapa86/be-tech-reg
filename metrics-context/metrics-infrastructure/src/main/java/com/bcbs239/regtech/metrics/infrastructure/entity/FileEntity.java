@@ -2,17 +2,27 @@ package com.bcbs239.regtech.metrics.infrastructure.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Persistence entity for file metrics. Simple mapping for now.
  */
+@Setter
+@Getter
 @Entity
 @Table(name = "metrics_file", schema = "metrics")
 public class FileEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
+    private Long id;
+
     @Column(name = "filename", nullable = false)
     private String filename;
 
@@ -34,13 +44,6 @@ public class FileEntity {
     public FileEntity() {
     }
 
-    public FileEntity(String filename, String date, Double score, String status) {
-        this.filename = filename;
-        this.date = date;
-        this.score = score;
-        this.status = status;
-    }
-
     public FileEntity(String filename, String date, Double score, String status, String batchId, String bankId) {
         this.filename = filename;
         this.date = date;
@@ -50,51 +53,4 @@ public class FileEntity {
         this.bankId = bankId;
     }
 
-    public String getFilename() {
-        return filename;
-    }
-
-    public void setFilename(String filename) {
-        this.filename = filename;
-    }
-
-    public String getDate() {
-        return date;
-    }
-
-    public void setDate(String date) {
-        this.date = date;
-    }
-
-    public Double getScore() {
-        return score;
-    }
-
-    public void setScore(Double score) {
-        this.score = score;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public String getBatchId() {
-        return batchId;
-    }
-
-    public void setBatchId(String batchId) {
-        this.batchId = batchId;
-    }
-
-    public String getBankId() {
-        return bankId;
-    }
-
-    public void setBankId(String bankId) {
-        this.bankId = bankId;
-    }
 }

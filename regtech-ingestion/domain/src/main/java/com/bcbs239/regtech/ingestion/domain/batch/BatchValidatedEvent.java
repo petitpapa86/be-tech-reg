@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.ingestion.domain.batch;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;

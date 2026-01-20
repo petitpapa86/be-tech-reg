@@ -1,5 +1,8 @@
 package com.bcbs239.regtech.ingestion.domain.bankinfo;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 
@@ -16,17 +19,25 @@ public record BankId(@JsonValue String value) {
         if (value.trim().isEmpty()) {
             throw new IllegalArgumentException("BankId value cannot be empty");
         }
-        if (value.length() > 20) {
-            throw new IllegalArgumentException("BankId value cannot exceed 20 characters");
-        }
+
     }
     
     /**
      * Create a BankId from a string value.
+     * Returns Result.success(BankId) when valid, otherwise Result.failure(ErrorDetail)
      */
-    public static BankId of(String value) {
-        return new BankId(value);
+    public static Result<BankId> of(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return Result.failure(ErrorDetail.of(
+                "BANK_ID_REQUIRED",
+                ErrorType.SYSTEM_ERROR,
+                "Bank ID is required",
+                "validation.bank_id_required"
+            ));
+        }
+
+        // Additional validation could be added here (pattern, length, etc.)
+        return Result.success(new BankId(value.trim()));
     }
 
 }
-

@@ -1,33 +1,11 @@
 package com.bcbs239.regtech.dataquality.application.validation;
 
-import com.bcbs239.regtech.core.application.BaseUnitOfWork;
-import com.bcbs239.regtech.core.domain.shared.ErrorType;
-import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
-import com.bcbs239.regtech.dataquality.domain.shared.BankId;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
-import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
-import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
-import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ValidateBatchQualityCommandHandler Unit Tests")

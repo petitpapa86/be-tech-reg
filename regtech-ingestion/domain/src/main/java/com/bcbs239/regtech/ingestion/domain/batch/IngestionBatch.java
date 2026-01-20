@@ -3,6 +3,7 @@ package com.bcbs239.regtech.ingestion.domain.batch;
 
 import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.shared.*;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
 import com.bcbs239.regtech.ingestion.domain.batch.rules.BatchSpecifications;
@@ -168,7 +169,16 @@ public class IngestionBatch extends Entity {
         this.completedAt = Instant.now();
         this.processingDurationMs = completedAt.toEpochMilli() - uploadedAt.toEpochMilli();
 
-        BatchProcessingCompletedEvent batchCompletedEvent = new BatchProcessingCompletedEvent(batchId, bankId, s3Reference, totalExposures, fileMetadata.fileSizeBytes(), completedAt, CorrelationContext.correlationId());
+        BatchProcessingCompletedEvent batchCompletedEvent = new BatchProcessingCompletedEvent(
+                batchId,
+                bankId,
+                s3Reference,
+                totalExposures,
+                fileMetadata.fileSizeBytes(),
+                completedAt,
+                CorrelationContext.correlationId(),
+                fileMetadata.fileName()
+        );
         batchCompletedEvent.setCausationId(Maybe.some(causationId));
 
         addDomainEvent(batchCompletedEvent);

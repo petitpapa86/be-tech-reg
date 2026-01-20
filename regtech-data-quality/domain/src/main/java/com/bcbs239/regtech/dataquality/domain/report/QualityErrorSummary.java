@@ -1,7 +1,7 @@
 package com.bcbs239.regtech.dataquality.domain.report;
 
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 
 import java.util.List;

@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.ingestion.infrastructure.batchtracking.persistence;
 
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankInfo;
 import com.bcbs239.regtech.ingestion.domain.batch.*;

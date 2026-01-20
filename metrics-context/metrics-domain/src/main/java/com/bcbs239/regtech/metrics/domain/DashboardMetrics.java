@@ -35,9 +35,6 @@ public class DashboardMetrics {
 
     private Long version;
 
-    protected DashboardMetrics() {
-    }
-
     public DashboardMetrics(
             BankId bankId,
             java.time.LocalDate periodStart,
@@ -74,27 +71,26 @@ public class DashboardMetrics {
 
     public void onDataQualityCompleted(Double dataQualityScore, Double completenessScore, Integer totalExposures, Integer validExposures, Integer totalErrors) {
         if (dataQualityScore != null) {
-            this.dataQualityScore = dataQualityScore;
+            this.dataQualityScore += dataQualityScore;
         }
         if (completenessScore != null) {
-            this.completenessScore = completenessScore;
+            this.completenessScore += completenessScore;
         }
         if (totalExposures != null) {
-            this.totalExposures = totalExposures;
+            this.totalExposures += totalExposures;
         }
         if (validExposures != null) {
-            this.validExposures = validExposures;
+            this.validExposures += validExposures;
         }
         if (totalErrors != null) {
-            this.totalErrors = totalErrors;
+            this.totalErrors += totalErrors;
         }
     }
 
 
-    // ASK WHAT METRICS CAN DO: Recalculate month-to-date
     public void recalculateMonthToDate(List<ComplianceFile> files) {
 
-        this.totalFilesProcessed = files.size();
+        this.totalFilesProcessed += files.size();
 
         OptionalDouble avg = files.stream()
                 .filter(f -> f.getScore() != null)
@@ -102,12 +98,10 @@ public class DashboardMetrics {
                 .average();
         this.overallScore = avg.orElse(0.0);
 
-        this.totalViolations = (int) files.stream().filter(f -> !f.isCompliant()).count();
+        this.totalViolations += (int) files.stream().filter(f -> !f.isCompliant()).count();
 
         // Keep sub-scores as simplified derivations for now.
-        this.dataQualityScore = this.overallScore + 5.0;
-        this.bcbsRulesScore = this.overallScore - 2.0;
-        this.completenessScore = this.overallScore + 7.0;
+        //this.bcbsRulesScore = this.overallScore - 2.0;
     }
 
 }

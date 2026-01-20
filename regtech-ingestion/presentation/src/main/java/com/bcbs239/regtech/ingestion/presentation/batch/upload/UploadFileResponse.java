@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.ingestion.presentation.batch.upload;
 
-import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 
 /**
  * Response DTO for successful file upload.

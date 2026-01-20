@@ -6,7 +6,7 @@ import com.bcbs239.regtech.dataquality.application.reporting.StoredValidationRes
 import com.bcbs239.regtech.dataquality.application.reporting.StoredValidationResultsReader;
 import com.bcbs239.regtech.dataquality.domain.model.valueobject.LargeExposure;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;

@@ -209,7 +209,7 @@ public class GeneratedReportEntity {
             htmlMetadata = new HtmlReportMetadata(
                     new S3Uri(this.htmlS3Uri),
                     FileSize.ofBytes(this.htmlFileSize),
-                    new PresignedUrl(this.htmlPresignedUrl, presignedExpiration),
+                    new PresignedUrl(this.htmlPresignedUrl, presignedExpiration, true),
                     this.generatedAt
             );
         }
@@ -227,7 +227,7 @@ public class GeneratedReportEntity {
             xbrlMetadata = new XbrlReportMetadata(
                     new S3Uri(this.xbrlS3Uri),
                     FileSize.ofBytes(this.xbrlFileSize),
-                    new PresignedUrl(this.xbrlPresignedUrl, presignedExpiration),
+                    new PresignedUrl(this.xbrlPresignedUrl, presignedExpiration, true),
                     validationStatus,
                     this.generatedAt
             );

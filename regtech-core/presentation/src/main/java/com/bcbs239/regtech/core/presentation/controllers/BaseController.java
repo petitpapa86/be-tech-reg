@@ -180,9 +180,10 @@ public abstract class BaseController {
             );
         } else {
             // Default to business rule error for domain/business logic violations
-            return ResponseEntity.badRequest().body(
-                ResponseUtils.businessRuleError(error.getMessage(), error.getMessageKey())
-            );
+            return ResponseEntity.status(401)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(ResponseUtils.systemError(error.getMessage()));
+
         }
     }
 

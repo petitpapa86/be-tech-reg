@@ -41,7 +41,7 @@ public class BankInfoEntity {
      */
     public BankInfo toDomain() {
         return new BankInfo(
-            BankId.of(this.bankId),
+            BankId.of(this.bankId).getValueOrThrow(),
             this.bankName,
             this.bankCountry,
             this.bankStatus,

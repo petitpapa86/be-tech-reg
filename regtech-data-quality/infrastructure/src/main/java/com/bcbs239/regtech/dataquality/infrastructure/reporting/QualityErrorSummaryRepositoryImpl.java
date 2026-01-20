@@ -6,7 +6,7 @@ import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityErrorSummaryRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityErrorSummary;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -36,7 +36,7 @@ public class MultipartFileUtils {
             ));
         }
 
-        jakarta.servlet.http.Part file = fileParts.get(0);
+        jakarta.servlet.http.Part file = fileParts.getFirst();
 
         // Validate file size
         if (file.getSize() > maxFileSizeBytes) {

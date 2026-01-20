@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.dataquality.application.reporting;
 
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 
 /**
  * Query to retrieve a quality report by batch ID.

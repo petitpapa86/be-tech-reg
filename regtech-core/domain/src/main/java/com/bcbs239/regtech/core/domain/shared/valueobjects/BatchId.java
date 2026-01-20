@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.dataquality.domain.shared;
+package com.bcbs239.regtech.core.domain.shared.valueobjects;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;

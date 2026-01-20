@@ -1,8 +1,11 @@
 package com.bcbs239.regtech.metrics.domain;
 
+import lombok.Getter;
+
 /**
  * Domain model representing file-level metrics (lightweight DTO for domain layer).
  */
+@Getter
 public class ComplianceFile {
     private final String filename;
     private final String date;
@@ -24,34 +27,11 @@ public class ComplianceFile {
         this.bankId = bankId;
     }
 
-    public String getFilename() {
-        return filename;
-    }
-
-    public String getDate() {
-        return date;
-    }
-
-    public Double getScore() {
-        return score;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
     /**
      * Domain helper: whether this file is considered compliant.
      */
     public boolean isCompliant() {
-        return status != null && "COMPLIANT".equalsIgnoreCase(status);
+        return "COMPLIANT".equalsIgnoreCase(status);
     }
 
-    public String getBatchId() {
-        return batchId;
-    }
-
-    public BankId getBankId() {
-        return bankId;
-    }
 }

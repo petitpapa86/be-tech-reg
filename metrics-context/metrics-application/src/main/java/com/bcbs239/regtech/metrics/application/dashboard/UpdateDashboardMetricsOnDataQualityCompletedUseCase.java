@@ -60,9 +60,7 @@ public class UpdateDashboardMetricsOnDataQualityCompletedUseCase {
         List<ComplianceFile> files = fileRepository.findByBankIdAndDateBetween(bankId, start, end);
 
         DashboardMetrics metrics = dashboardMetricsRepository.getForMonth(bankId, periodStart);
-        metrics.recalculateMonthToDate(files);
 
-        // Persist data-quality scores + counts when provided by the event
         metrics.onDataQualityCompleted(
                 event.getOverallScore(),
                 event.getCompletenessScore(),
@@ -70,8 +68,18 @@ public class UpdateDashboardMetricsOnDataQualityCompletedUseCase {
                 event.getValidExposures(),
                 event.getTotalErrors()
         );
+        metrics.recalculateMonthToDate(files);
 
         dashboardMetricsRepository.save(metrics);
+        ComplianceFile file = new ComplianceFile(
+                event.getFileName(),
+                completedDate.toString(),
+                event.getOverallScore(),
+                event.getComplianceStatus() ? "COMPLIANT" : "NON_COMPLIANT",
+                event.getBatchId(),
+                bankId
+        );
+        fileRepository.save(file);
         signalPublisher.publish(new DashboardMetricsUpdatedSignal(
                 event.getBankId(),
                 event.getBatchId(),

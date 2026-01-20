@@ -1,12 +1,11 @@
 package com.bcbs239.regtech.dataquality.application.batch;
 
 import com.bcbs239.regtech.core.domain.events.integration.BatchCompletedInboundEvent;
-import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommand;
 import com.bcbs239.regtech.dataquality.application.validation.ValidateBatchQualityCommandHandler;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;

@@ -1,6 +1,6 @@
 package com.bcbs239.regtech.ingestion.application.batch.queries;
 
-import com.bcbs239.regtech.ingestion.domain.batch.BatchId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 
 /**
  * Query for retrieving batch status information.

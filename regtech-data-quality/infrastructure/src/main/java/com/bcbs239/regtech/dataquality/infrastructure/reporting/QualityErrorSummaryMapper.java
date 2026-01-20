@@ -2,7 +2,7 @@ package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
 import com.bcbs239.regtech.dataquality.domain.report.QualityErrorSummary;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import org.springframework.stereotype.Component;
 
 /**

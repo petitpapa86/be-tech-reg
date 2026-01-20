@@ -315,7 +315,7 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             return HtmlReportMetadata.create(
                 new S3Uri(storageResult.uri().toString()),
                 FileSize.ofBytes(storageResult.sizeBytes()),
-                new PresignedUrl(presignedUrlStr, expiresAt)
+                new PresignedUrl(presignedUrlStr, expiresAt, true)
             );
                 
         } catch (Exception e) {
@@ -395,7 +395,7 @@ public class ComprehensiveReportOrchestrator implements IComprehensiveReportOrch
             return XbrlReportMetadata.create(
                 new S3Uri(storageResult.uri().toString()),
                 FileSize.ofBytes(storageResult.sizeBytes()),
-                new PresignedUrl(presignedUrlStr, expiresAt),
+                new PresignedUrl(presignedUrlStr, expiresAt, true),
                 XbrlValidationStatus.VALID
             );
                 

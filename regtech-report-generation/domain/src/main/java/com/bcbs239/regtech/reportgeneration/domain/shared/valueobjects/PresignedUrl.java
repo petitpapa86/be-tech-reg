@@ -8,7 +8,7 @@ import java.time.Instant;
  * Presigned URL value object with expiration tracking
  * Represents a temporary authenticated URL for secure file access
  */
-public record PresignedUrl(@NonNull String url, @NonNull Instant expiresAt) {
+public record PresignedUrl(@NonNull String url, @NonNull Instant expiresAt, boolean valid) {
     
     /**
      * Compact constructor with validation
@@ -36,6 +36,7 @@ public record PresignedUrl(@NonNull String url, @NonNull Instant expiresAt) {
      * Check if the URL is still valid
      */
     public boolean isValid() {
+        // derive validity from expiration time to avoid storing stale values
         return !isExpired();
     }
     

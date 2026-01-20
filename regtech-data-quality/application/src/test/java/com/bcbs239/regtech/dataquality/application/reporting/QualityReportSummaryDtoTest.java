@@ -3,7 +3,7 @@ package com.bcbs239.regtech.dataquality.application.reporting;
 import com.bcbs239.regtech.dataquality.application.scoring.QualityScoresDto;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
-import com.bcbs239.regtech.dataquality.domain.shared.BatchId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

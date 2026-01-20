@@ -67,7 +67,7 @@ public class ProcessBatchCommandHandler {
         try {
             // 0. Retrieve file data from temporary storage
             Result<TemporaryFileStorageService.FileData> fileDataResult =
-                temporaryFileStorage.retrieveFile(command.tempFileKey());
+                temporaryFileStorage.retrieveFile(command.getTempFileKey());
             if (fileDataResult.isFailure()) {
                 return Result.failure(fileDataResult.getError().orElseThrow());
             }
@@ -77,15 +77,15 @@ public class ProcessBatchCommandHandler {
             
             // Log file data for debugging
             log.info("Retrieved temporary file - key: {}, fileName: {}, contentType: {}, fileSize: {}, dataLength: {}", 
-                command.tempFileKey(), fileData.fileName(), fileData.contentType(), 
+                command.getTempFileKey(), fileData.fileName(), fileData.contentType(),
                 fileData.fileSize(), fileData.data() != null ? fileData.data().length : 0);
             
             // 1. Load batch from repository
-            IngestionBatch batch = ingestionBatchRepository.findByBatchId(command.batchId())
-                .orElse(null);
-            
+            IngestionBatch batch = ingestionBatchRepository.findByBatchId(command.getBatchId())
+                 .orElse(null);
+
             if (batch == null) {
-                return Result.failure(ErrorDetail.of("BATCH_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, "Batch not found: " + command.batchId().value(), "batch.not.found"));
+                return Result.failure(ErrorDetail.of("BATCH_NOT_FOUND", ErrorType.NOT_FOUND_ERROR, "Batch not found: " + command.getBatchId().value(), "batch.not.found"));
             }
             
             // 2. Start processing - update batch status
@@ -248,14 +248,14 @@ public class ProcessBatchCommandHandler {
             unitOfWork.saveChanges();
             
             // 13. Cleanup temporary file storage
-            temporaryFileStorage.removeFile(command.tempFileKey());
-            
+            temporaryFileStorage.removeFile(command.getTempFileKey());
+
             return Result.success(null);
             
         } catch (Exception e) {
             // Cleanup on error
             try {
-                temporaryFileStorage.removeFile(command.tempFileKey());
+                temporaryFileStorage.removeFile(command.getTempFileKey());
             } catch (Exception cleanupEx) {
                 // Log but don't fail - already have an error
             }

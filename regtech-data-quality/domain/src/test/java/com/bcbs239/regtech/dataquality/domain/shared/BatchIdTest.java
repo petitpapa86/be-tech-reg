@@ -11,7 +11,7 @@ class BatchIdTest {
     @Test
     @DisplayName("Should generate valid BatchId with correct format")
     void shouldGenerateValidBatchId() {
-        BatchId batchId = BatchId.generate();
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.generate();
         
         assertNotNull(batchId);
         assertNotNull(batchId.value());
@@ -21,8 +21,8 @@ class BatchIdTest {
     @Test
     @DisplayName("Should generate unique BatchIds")
     void shouldGenerateUniqueBatchIds() {
-        BatchId batchId1 = BatchId.generate();
-        BatchId batchId2 = BatchId.generate();
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId1 = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.generate();
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId2 = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.generate();
         
         assertNotEquals(batchId1, batchId2);
         assertNotEquals(batchId1.value(), batchId2.value());
@@ -32,7 +32,7 @@ class BatchIdTest {
     @DisplayName("Should create BatchId from valid string")
     void shouldCreateBatchIdFromValidString() {
         String validBatchId = "batch_20231115_143000_123e4567-e89b-12d3-a456-426614174000";
-        BatchId batchId = BatchId.of(validBatchId);
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of(validBatchId);
         
         assertEquals(validBatchId, batchId.value());
     }
@@ -40,40 +40,40 @@ class BatchIdTest {
     @Test
     @DisplayName("Should accept simple batch prefix format")
     void shouldAcceptSimpleBatchFormat() {
-        assertDoesNotThrow(() -> BatchId.of("batch_test"));
-        assertDoesNotThrow(() -> BatchId.of("batch_123"));
-        assertDoesNotThrow(() -> BatchId.of("batch_20231115_143000"));
+        assertDoesNotThrow(() -> com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("batch_test"));
+        assertDoesNotThrow(() -> com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("batch_123"));
+        assertDoesNotThrow(() -> com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("batch_20231115_143000"));
     }
 
     @Test
     @DisplayName("Should reject null value")
     void shouldRejectNullValue() {
-        assertThrows(NullPointerException.class, () -> BatchId.of(null));
-        assertThrows(NullPointerException.class, () -> new BatchId(null));
+        assertThrows(NullPointerException.class, () -> com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of(null));
+        assertThrows(NullPointerException.class, () -> new com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId(null));
     }
 
     @Test
     @DisplayName("Should reject empty value")
     void shouldRejectEmptyValue() {
-        assertThrows(IllegalArgumentException.class, () -> BatchId.of(""));
-        assertThrows(IllegalArgumentException.class, () -> BatchId.of("   "));
+        assertThrows(IllegalArgumentException.class, () -> com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of(""));
+        assertThrows(IllegalArgumentException.class, () -> com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("   "));
     }
 
     @Test
     @DisplayName("Should reject value without batch prefix")
     void shouldRejectValueWithoutBatchPrefix() {
-        assertThrows(IllegalArgumentException.class, () -> BatchId.of("notbatch_123"));
-        assertThrows(IllegalArgumentException.class, () -> BatchId.of("BATCH_123")); // wrong case
-        assertThrows(IllegalArgumentException.class, () -> BatchId.of("123_batch"));
+        assertThrows(IllegalArgumentException.class, () -> com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("notbatch_123"));
+        assertThrows(IllegalArgumentException.class, () -> com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("BATCH_123")); // wrong case
+        assertThrows(IllegalArgumentException.class, () -> com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("123_batch"));
     }
 
     @Test
     @DisplayName("Should implement equals correctly")
     void shouldImplementEqualsCorrectly() {
         String batchValue = "batch_20231115_143000_uuid";
-        BatchId batchId1 = BatchId.of(batchValue);
-        BatchId batchId2 = BatchId.of(batchValue);
-        BatchId batchId3 = BatchId.of("batch_20231115_143001_uuid");
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId1 = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of(batchValue);
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId2 = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of(batchValue);
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId3 = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("batch_20231115_143001_uuid");
         
         assertEquals(batchId1, batchId2);
         assertNotEquals(batchId1, batchId3);
@@ -83,8 +83,8 @@ class BatchIdTest {
     @DisplayName("Should implement hashCode correctly")
     void shouldImplementHashCodeCorrectly() {
         String batchValue = "batch_20231115_143000_uuid";
-        BatchId batchId1 = BatchId.of(batchValue);
-        BatchId batchId2 = BatchId.of(batchValue);
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId1 = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of(batchValue);
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId2 = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of(batchValue);
         
         assertEquals(batchId1.hashCode(), batchId2.hashCode());
     }
@@ -93,7 +93,7 @@ class BatchIdTest {
     @DisplayName("Should implement toString correctly")
     void shouldImplementToStringCorrectly() {
         String batchValue = "batch_20231115_143000_uuid";
-        BatchId batchId = BatchId.of(batchValue);
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of(batchValue);
         
         assertEquals(batchValue, batchId.toString());
     }
@@ -101,7 +101,7 @@ class BatchIdTest {
     @Test
     @DisplayName("Generated BatchId should contain timestamp and UUID")
     void generatedBatchIdShouldContainTimestampAndUuid() {
-        BatchId batchId = BatchId.generate();
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.generate();
         String value = batchId.value();
         
         // Should have format: batch_YYYYMMDD_HHMMSS_UUID
@@ -119,11 +119,11 @@ class BatchIdTest {
     @Test
     @DisplayName("Should be usable as map key")
     void shouldBeUsableAsMapKey() {
-        BatchId key1 = BatchId.of("batch_test1");
-        BatchId key2 = BatchId.of("batch_test1");
-        BatchId key3 = BatchId.of("batch_test2");
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId key1 = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("batch_test1");
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId key2 = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("batch_test1");
+        com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId key3 = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of("batch_test2");
         
-        java.util.Map<BatchId, String> map = new java.util.HashMap<>();
+        java.util.Map<com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId, String> map = new java.util.HashMap<>();
         map.put(key1, "Value1");
         
         assertEquals("Value1", map.get(key2)); // Same BatchId should retrieve value
@@ -134,6 +134,6 @@ class BatchIdTest {
     @DisplayName("Should handle long batch identifiers")
     void shouldHandleLongBatchIdentifiers() {
         String longBatchId = "batch_" + "a".repeat(100);
-        assertDoesNotThrow(() -> BatchId.of(longBatchId));
+        assertDoesNotThrow(() -> com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of(longBatchId));
     }
 }
