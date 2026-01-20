@@ -39,10 +39,6 @@ public record BatchId(String value) {
     public static BatchId of(String value) {
         return new BatchId(value);
     }
-    
-    @Override
-    public String toString() {
-        return value;
-    }
+
 }
 
