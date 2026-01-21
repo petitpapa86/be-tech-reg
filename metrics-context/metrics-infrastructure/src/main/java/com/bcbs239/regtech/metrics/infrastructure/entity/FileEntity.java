@@ -32,6 +32,9 @@ public class FileEntity {
     @Column(name = "score")
     private Double score;
 
+    @Column(name = "completeness_score")
+    private Double completenessScore;
+
     @Column(name = "status")
     private String status;
 
@@ -45,9 +48,14 @@ public class FileEntity {
     }
 
     public FileEntity(String filename, String date, Double score, String status, String batchId, String bankId) {
+        this(filename, date, score, null, status, batchId, bankId);
+    }
+
+    public FileEntity(String filename, String date, Double score, Double completenessScore, String status, String batchId, String bankId) {
         this.filename = filename;
         this.date = date;
         this.score = score;
+        this.completenessScore = completenessScore;
         this.status = status;
         this.batchId = batchId;
         this.bankId = bankId;

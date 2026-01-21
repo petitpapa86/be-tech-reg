@@ -36,6 +36,8 @@ public class DataQualityCompletedIntegrationEvent extends IntegrationEvent {
     private final String eventVersion;
     private final String correlationId;
 
+    private final String filename;
+
     @JsonCreator
     public DataQualityCompletedIntegrationEvent(
             @JsonProperty("batchId") String batchId,
@@ -54,7 +56,8 @@ public class DataQualityCompletedIntegrationEvent extends IntegrationEvent {
             @JsonProperty("timelinessScore") Double timelinessScore,
             @JsonProperty("uniquenessScore") Double uniquenessScore,
             @JsonProperty("validityScore") Double validityScore,
-            @JsonProperty("correlationId") String correlationId
+            @JsonProperty("correlationId") String correlationId,
+            @JsonProperty("filename") String filename
     ) {
         super(correlationId);
         this.batchId = batchId;
@@ -77,21 +80,8 @@ public class DataQualityCompletedIntegrationEvent extends IntegrationEvent {
 
         this.eventVersion = EVENT_VERSION;
         this.correlationId = correlationId;
-    }
 
-    public DataQualityCompletedIntegrationEvent(
-            String batchId,
-            String bankId,
-            String s3ReferenceUri,
-            double overallScore,
-            String qualityGrade,
-            Instant completedAt,
-            String correlationId
-    ) {
-        this(batchId, bankId, s3ReferenceUri, overallScore, qualityGrade, completedAt,
-            null, null, null, null,
-            null, null, null, null, null, null,
-            correlationId);
+        this.filename = filename;
     }
 
 }

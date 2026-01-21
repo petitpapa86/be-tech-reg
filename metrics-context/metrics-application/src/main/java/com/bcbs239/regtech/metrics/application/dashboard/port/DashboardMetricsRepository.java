@@ -18,4 +18,9 @@ public interface DashboardMetricsRepository {
     DashboardMetrics getForMonth(BankId bankId, LocalDate periodStart);
 
     DashboardMetrics save(DashboardMetrics metrics);
+
+    /**
+     * Merge provided samples into persisted sketches and return updated metrics (medians updated).
+     */
+    DashboardMetrics addSamplesAndGet(BankId bankId, LocalDate periodStart, Double dataQualitySample, Double completenessSample);
 }

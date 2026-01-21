@@ -37,7 +37,8 @@ public class ProcessBatchCompletedUseCase {
                     new BankId(event.getBankId()),
                     event.getS3Uri(),
                     event.getTotalExposures(),
-                    correlationId
+                    correlationId,
+                    event.getFilename()
             );
         }
 
@@ -45,7 +46,8 @@ public class ProcessBatchCompletedUseCase {
                 new BatchId(event.getBatchId()),
                 new BankId(event.getBankId()),
                 event.getS3Uri(),
-                event.getTotalExposures()
+                event.getTotalExposures(),
+                event.getFilename()
         );
     }
 }

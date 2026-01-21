@@ -312,7 +312,7 @@ public class QualityReport extends Entity {
      * Transitions to COMPLETED status and raises completion event.
      * Calculates processing duration for auditing purposes.
      */
-    public Result<Void> completeValidation() {
+    public Result<Void> completeValidation(String filename) {
         if (!isInProgress()) {
             return Result.failure(ErrorDetail.of(
                 "INVALID_STATE_TRANSITION",
@@ -355,7 +355,7 @@ public class QualityReport extends Entity {
         this.updatedAt = Instant.now();
         
         addDomainEvent(new QualityValidationCompletedEvent(
-            reportId, batchId, bankId, scores, qualityGrade, detailsReference, updatedAt
+            reportId, batchId, bankId, scores, qualityGrade, detailsReference, updatedAt, filename
         ));
         
         return Result.success();

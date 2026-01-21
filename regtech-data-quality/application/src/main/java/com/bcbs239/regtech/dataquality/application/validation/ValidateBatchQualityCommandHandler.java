@@ -67,7 +67,7 @@ public class ValidateBatchQualityCommandHandler {
     @Timed(value = "dataquality.validation.batch", description = "Time taken to validate batch quality")
     public Result<Void> handle(ValidateBatchQualityCommand command) {
         logger.info("ValidateBatchQualityCommandHandler.handle start | batchId={} bankId={}",
-            command.batchId().value(), command.bankId().value());
+                command.batchId().value(), command.bankId().value());
 
         command.validate();
 
@@ -121,34 +121,30 @@ public class ValidateBatchQualityCommandHandler {
         logger.info("Downloaded batch for batchId={}: exposures={}, declaredCount={}, reportDate={}",
                 command.batchId().value(), exposures.size(), batchData.declaredCount(), batchData.reportDate());
 
-        // Execute validation with consistency checks and timeliness calculation
-        // - declaredCount: From BatchDataDTO bank_info (or command if not in file)
-        // - crmReferences: Not available yet (would require external CRM system integration)
-        // - uploadDate: From command or current date for timeliness calculation
         ValidationBatchResult batchResult = coordinator.validateAll(
-            exposures, 
-            rulesService,
-            batchData.declaredCount() != null ? batchData.declaredCount() : command.expectedExposureCount(),
-            null,  // crmReferences - requires bank CRM system integration
-            command.uploadDate() != null ? command.uploadDate() : java.time.LocalDate.now(),
-            command.bankId().value()
+                exposures,
+                rulesService,
+                batchData.declaredCount() != null ? batchData.declaredCount() : command.expectedExposureCount(),
+                null,  // crmReferences - requires bank CRM system integration
+                command.uploadDate() != null ? command.uploadDate() : java.time.LocalDate.now(),
+                command.bankId().value()
         );
-        
+
         // Override timeliness calculation with metadata reportDate if available
         if (batchData.reportDate() != null && command.uploadDate() != null) {
-            TimelinessValidator.TimelinessResult metadataTimeliness = 
-                timelinessValidator.calculateTimeliness(
-                    exposures,
-                    command.uploadDate() != null ? command.uploadDate() : java.time.LocalDate.now(),
-                    batchData.reportDate(),  // Use metadata report date
-                    command.bankId().value()
-                );
+            TimelinessValidator.TimelinessResult metadataTimeliness =
+                    timelinessValidator.calculateTimeliness(
+                            exposures,
+                            command.uploadDate(),
+                            batchData.reportDate(),  // Use metadata report date
+                            command.bankId().value()
+                    );
             batchResult = ValidationBatchResult.complete(
-                batchResult.results(),
-                batchResult.exposureResults(),
-                batchResult.consistencyResult(),
-                metadataTimeliness,  // Override with metadata-based calculation
-                batchResult.uniquenessResult()  // Keep existing uniqueness result
+                    batchResult.results(),
+                    batchResult.exposureResults(),
+                    batchResult.consistencyResult(),
+                    metadataTimeliness,  // Override with metadata-based calculation
+                    batchResult.uniquenessResult()  // Keep existing uniqueness result
             );
         }
 
@@ -164,47 +160,47 @@ public class ValidateBatchQualityCommandHandler {
 
         // Calculate dimension scores from per-exposure validation
         DimensionScores dimensionScores = ValidationResult.calculateDimensionScores(exposureResults, batchErrors, exposures.size());
-        
+
         // Override timeliness score with calculated value from TimelinessValidator (if available)
         if (batchResult.hasTimelinessResult()) {
             var timelinessResult = batchResult.timelinessResult();
             dimensionScores = new DimensionScores(
-                dimensionScores.completeness(),
-                dimensionScores.accuracy(),
-                dimensionScores.consistency(),
-                timelinessResult.score(), // Override with calculated timeliness score
-                dimensionScores.uniqueness(),
-                dimensionScores.validity()
+                    dimensionScores.completeness(),
+                    dimensionScores.accuracy(),
+                    dimensionScores.consistency(),
+                    timelinessResult.score(), // Override with calculated timeliness score
+                    dimensionScores.uniqueness(),
+                    dimensionScores.validity()
             );
         }
-        
+
         // Map TimelinessResult to TimelinessDetails (if available)
         ValidationResult.TimelinessDetails timelinessDetails = null;
         if (batchResult.hasTimelinessResult()) {
             var tr = batchResult.timelinessResult();
             timelinessDetails = new ValidationResult.TimelinessDetails(
-                tr.reportingDate(),
-                tr.uploadDate(),
-                tr.delayDays(),
-                tr.thresholdDays(),
-                tr.score(),
-                tr.passed()
+                    tr.reportingDate(),
+                    tr.uploadDate(),
+                    tr.delayDays(),
+                    tr.thresholdDays(),
+                    tr.score(),
+                    tr.passed()
             );
         }
 
         // Create ValidationResult from the validated exposures
         ValidationResult validation = ValidationResult.builder()
-            .exposureResults(exposureResults)
-            .batchErrors(batchErrors)
-            .allErrors(exposureResults.values().stream()
-                .flatMap(r -> r.errors().stream())
-                .toList())
-            .dimensionScores(dimensionScores)  // Use overridden dimension scores
-            .totalExposures(exposures.size())
-            .validExposures((int) exposureResults.values().stream().filter(ExposureValidationResult::isValid).count())
-            .consistencyDetails(batchResult.hasConsistencyChecks() ? batchResult.consistencyResult() : null)
-            .timelinessDetails(timelinessDetails)
-            .build();
+                .exposureResults(exposureResults)
+                .batchErrors(batchErrors)
+                .allErrors(exposureResults.values().stream()
+                        .flatMap(r -> r.errors().stream())
+                        .toList())
+                .dimensionScores(dimensionScores)  // Use overridden dimension scores
+                .totalExposures(exposures.size())
+                .validExposures((int) exposureResults.values().stream().filter(ExposureValidationResult::isValid).count())
+                .consistencyDetails(batchResult.hasConsistencyChecks() ? batchResult.consistencyResult() : null)
+                .timelinessDetails(timelinessDetails)
+                .build();
 
         // Tell the aggregate to record the results (domain logic)
         Result<ValidationResult> validationResult = report.recordValidationAndCalculateScores(validation, CorrelationContext.correlationId());
@@ -224,32 +220,32 @@ public class ValidateBatchQualityCommandHandler {
         // First, convert DimensionScores to a Map for the mapper
         java.util.Map<com.bcbs239.regtech.dataquality.domain.quality.QualityDimension, java.math.BigDecimal> dimensionScoresMap = new java.util.HashMap<>();
         DimensionScores aggregateDimensionScores = scores.getDimensionScores();
-        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.COMPLETENESS, 
-            java.math.BigDecimal.valueOf(aggregateDimensionScores.completeness()));
-        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.ACCURACY, 
-            java.math.BigDecimal.valueOf(aggregateDimensionScores.accuracy()));
-        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.CONSISTENCY, 
-            java.math.BigDecimal.valueOf(aggregateDimensionScores.consistency()));
-        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.TIMELINESS, 
-            java.math.BigDecimal.valueOf(aggregateDimensionScores.timeliness()));
-        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.UNIQUENESS, 
-            java.math.BigDecimal.valueOf(aggregateDimensionScores.uniqueness()));
-        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.VALIDITY, 
-            java.math.BigDecimal.valueOf(aggregateDimensionScores.validity()));
-        
-        java.util.Map<com.bcbs239.regtech.core.domain.quality.QualityDimension, java.math.BigDecimal> dimensionScoresCore = 
-            qualityDimensionMapper.toCoreQualityDimensions(dimensionScoresMap);
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.COMPLETENESS,
+                java.math.BigDecimal.valueOf(aggregateDimensionScores.completeness()));
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.ACCURACY,
+                java.math.BigDecimal.valueOf(aggregateDimensionScores.accuracy()));
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.CONSISTENCY,
+                java.math.BigDecimal.valueOf(aggregateDimensionScores.consistency()));
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.TIMELINESS,
+                java.math.BigDecimal.valueOf(aggregateDimensionScores.timeliness()));
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.UNIQUENESS,
+                java.math.BigDecimal.valueOf(aggregateDimensionScores.uniqueness()));
+        dimensionScoresMap.put(com.bcbs239.regtech.dataquality.domain.quality.QualityDimension.VALIDITY,
+                java.math.BigDecimal.valueOf(aggregateDimensionScores.validity()));
+
+        java.util.Map<com.bcbs239.regtech.core.domain.quality.QualityDimension, java.math.BigDecimal> dimensionScoresCore =
+                qualityDimensionMapper.toCoreQualityDimensions(dimensionScoresMap);
 
         String languageCode = "it"; // Italian for BCBS 239
 
         List<QualityInsight> recommendations = recommendationEngine.generateInsights(
-            BigDecimal.valueOf(scores.overallScore()),
-            dimensionScoresCore,
-            languageCode
+                BigDecimal.valueOf(scores.overallScore()),
+                dimensionScoresCore,
+                languageCode
         );
 
         logger.info("Generated {} quality recommendations for batchId={} with overall score={}",
-            recommendations.size(), command.batchId().value(), scores.overallScore());
+                recommendations.size(), command.batchId().value(), scores.overallScore());
 
         java.util.Map<String, String> metadata = java.util.Map.of(
                 "batch-id", command.batchId().value(),
@@ -262,7 +258,7 @@ public class ValidateBatchQualityCommandHandler {
         );
 
         Result<S3Reference> s3Result = s3StorageService.storeDetailedResults(
-                command.batchId(), validation, metadata, recommendations)
+                        command.batchId(), validation, metadata, recommendations)
                 .map(reference -> {
                     logger.debug("Detailed results stored in S3: {}", reference.uri());
                     return reference;
@@ -282,7 +278,7 @@ public class ValidateBatchQualityCommandHandler {
         }
 
         // Complete validation
-        Result<Void> completeResult = report.completeValidation();
+        Result<Void> completeResult = report.completeValidation(command.filename());
         if (completeResult.isFailure()) {
             markReportAsFailed(report, "Failed to complete validation", CorrelationContext.correlationId());
             return completeResult;
@@ -300,7 +296,7 @@ public class ValidateBatchQualityCommandHandler {
 
         // Final completion log
         logger.info("ValidateBatchQualityCommandHandler.handle completed | batchId={} reportId={} overallScore={}",
-            command.batchId().value(), report.getReportId().value(), scores.overallScore());
+                command.batchId().value(), report.getReportId().value(), scores.overallScore());
 
         return Result.success();
     }

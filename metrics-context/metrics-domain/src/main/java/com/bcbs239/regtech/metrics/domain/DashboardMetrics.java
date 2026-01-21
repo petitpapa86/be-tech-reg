@@ -24,6 +24,8 @@ public class DashboardMetrics {
     private Double bcbsRulesScore;
     private Double completenessScore;
 
+    // Note: score-history/sketch is persisted in infrastructure (t-digest). Domain holds final medians.
+
     private Integer totalFilesProcessed;
     private Integer totalViolations;
     private Integer totalReportsGenerated;
@@ -56,6 +58,7 @@ public class DashboardMetrics {
         this.dataQualityScore = dataQualityScore == null ? 0.0 : dataQualityScore;
         this.bcbsRulesScore = bcbsRulesScore == null ? 0.0 : bcbsRulesScore;
         this.completenessScore = completenessScore == null ? 0.0 : completenessScore;
+        // TDigest sketches stored in infrastructure; domain keeps current median values only
         this.totalFilesProcessed = totalFilesProcessed == null ? 0 : totalFilesProcessed;
         this.totalViolations = totalViolations == null ? 0 : totalViolations;
         this.totalReportsGenerated = totalReportsGenerated == null ? 0 : totalReportsGenerated;
@@ -70,11 +73,12 @@ public class DashboardMetrics {
     }
 
     public void onDataQualityCompleted(Double dataQualityScore, Double completenessScore, Integer totalExposures, Integer validExposures, Integer totalErrors) {
+        // Domain receives final median values from repository; here we accept the provided values
         if (dataQualityScore != null) {
-            this.dataQualityScore += dataQualityScore;
+            this.dataQualityScore = dataQualityScore;
         }
         if (completenessScore != null) {
-            this.completenessScore += completenessScore;
+            this.completenessScore = completenessScore;
         }
         if (totalExposures != null) {
             this.totalExposures += totalExposures;
@@ -99,9 +103,8 @@ public class DashboardMetrics {
         this.overallScore = avg.orElse(0.0);
 
         this.totalViolations += (int) files.stream().filter(f -> !f.isCompliant()).count();
-
-        // Keep sub-scores as simplified derivations for now.
-        //this.bcbsRulesScore = this.overallScore - 2.0;
     }
+
+    // computeMedian removed: medians are computed from TDigest in infrastructure
 
 }

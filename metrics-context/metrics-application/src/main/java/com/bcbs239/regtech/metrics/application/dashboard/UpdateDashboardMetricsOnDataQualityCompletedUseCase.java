@@ -59,27 +59,38 @@ public class UpdateDashboardMetricsOnDataQualityCompletedUseCase {
 
         List<ComplianceFile> files = fileRepository.findByBankIdAndDateBetween(bankId, start, end);
 
+        // Load metrics entity
         DashboardMetrics metrics = dashboardMetricsRepository.getForMonth(bankId, periodStart);
 
-        metrics.onDataQualityCompleted(
-                event.getOverallScore(),
-                event.getCompletenessScore(),
-                event.getTotalExposures(),
-                event.getValidExposures(),
-                event.getTotalErrors()
-        );
-        metrics.recalculateMonthToDate(files);
-
-        dashboardMetricsRepository.save(metrics);
+        // Save file first (including completenessScore)
         ComplianceFile file = new ComplianceFile(
-                event.getFileName(),
-                completedDate.toString(),
-                event.getOverallScore(),
-                event.getComplianceStatus() ? "COMPLIANT" : "NON_COMPLIANT",
-                event.getBatchId(),
-                bankId
+            event.getFilename(),
+            completedDate.toString(),
+            event.getOverallScore(),
+            event.getCompletenessScore(),
+            event.getComplianceStatus() ? "COMPLIANT" : "NON_COMPLIANT",
+            event.getBatchId(),
+            bankId
         );
         fileRepository.save(file);
+
+        // Merge samples into persisted TDigest sketches and get updated medians
+        metrics = dashboardMetricsRepository.addSamplesAndGet(bankId, periodStart, event.getOverallScore(), event.getCompletenessScore());
+
+        // Recompute overall month-to-date from persisted files
+        metrics.recalculateMonthToDate(files);
+
+        // Update counts
+        metrics.onDataQualityCompleted(
+            metrics.getDataQualityScore(),
+            metrics.getCompletenessScore(),
+            event.getTotalExposures(),
+            event.getValidExposures(),
+            event.getTotalErrors()
+        );
+
+        dashboardMetricsRepository.save(metrics);
+        
         signalPublisher.publish(new DashboardMetricsUpdatedSignal(
                 event.getBankId(),
                 event.getBatchId(),

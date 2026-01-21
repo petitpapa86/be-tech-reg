@@ -26,38 +26,19 @@ public class QualityValidationCompletedEvent extends DomainEvent {
     private final QualityGrade qualityGrade;
     private final S3Reference detailsReference;
     private final Instant occurredAt;
+    private final String filename;
 
     @JsonCreator
     public QualityValidationCompletedEvent(
-            @JsonProperty("correlationId") String correlationId,
             @JsonProperty("reportId") QualityReportId reportId,
             @JsonProperty("batchId") BatchId batchId,
             @JsonProperty("bankId") BankId bankId,
             @JsonProperty("qualityScores") QualityScores qualityScores,
             @JsonProperty("qualityGrade") QualityGrade qualityGrade,
             @JsonProperty("detailsReference") S3Reference detailsReference,
-            @JsonProperty("occurredAt") Instant occurredAt) {
-        super(correlationId);
-        if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
-        if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
-        if (bankId == null) throw new IllegalArgumentException("Bank ID cannot be null");
-        if (qualityScores == null) throw new IllegalArgumentException("Quality scores cannot be null");
-        if (detailsReference == null) throw new IllegalArgumentException("Details reference cannot be null");
-        if (occurredAt == null) throw new IllegalArgumentException("Occurred at cannot be null");
-        if (qualityGrade == null) throw new IllegalArgumentException("Quality grade cannot be null");
-        this.qualityGrade = qualityGrade;
-        this.reportId = reportId;
-        this.batchId = batchId;
-        this.bankId = bankId;
-        this.qualityScores = qualityScores;
-        this.detailsReference = detailsReference;
-        this.occurredAt = occurredAt;
-    }
-
-    // Convenience constructor for programmatic creation
-    public QualityValidationCompletedEvent(QualityReportId reportId, BatchId batchId, BankId bankId, QualityScores qualityScores, QualityGrade qualityGrade, S3Reference detailsReference, Instant occurredAt) {
+            @JsonProperty("occurredAt") Instant occurredAt,
+            @JsonProperty("filename") String filename){
         super("QualityValidationCompletedEvent");
-
         if (reportId == null) throw new IllegalArgumentException("Report ID cannot be null");
         if (batchId == null) throw new IllegalArgumentException("Batch ID cannot be null");
         if (bankId == null) throw new IllegalArgumentException("Bank ID cannot be null");
@@ -65,6 +46,7 @@ public class QualityValidationCompletedEvent extends DomainEvent {
         if (detailsReference == null) throw new IllegalArgumentException("Details reference cannot be null");
         if (occurredAt == null) throw new IllegalArgumentException("Occurred at cannot be null");
         if (qualityGrade == null) throw new IllegalArgumentException("Quality grade cannot be null");
+        if (filename == null || filename.isEmpty()) throw new IllegalArgumentException("Filename cannot be null or empty");
         this.qualityGrade = qualityGrade;
         this.reportId = reportId;
         this.batchId = batchId;
@@ -72,6 +54,7 @@ public class QualityValidationCompletedEvent extends DomainEvent {
         this.qualityScores = qualityScores;
         this.detailsReference = detailsReference;
         this.occurredAt = occurredAt;
+        this.filename = filename;
     }
 
 }

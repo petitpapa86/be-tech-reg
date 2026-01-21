@@ -55,7 +55,8 @@ public class BatchCompletedEventPublisher {
                     event.totalExposures(),
                     event.fileSizeBytes(),
                     event.completedAt(),
-                    event.getCorrelationId()
+                    event.getCorrelationId(),
+                    event.filename()
             );
             integrationEvent.setCausationId(Maybe.some(event.getCorrelationId()));
 

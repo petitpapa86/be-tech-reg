@@ -32,9 +32,7 @@ ALTER TABLE metrics.metrics_file
 ALTER TABLE metrics.metrics_file
     ADD CONSTRAINT metrics_file_pkey PRIMARY KEY (id);
 
--- Make filename NOT NULL and unique
+-- Make filename NOT NULL (do NOT enforce uniqueness; filenames can repeat)
 ALTER TABLE metrics.metrics_file
     ALTER COLUMN filename SET NOT NULL;
-
-CREATE UNIQUE INDEX IF NOT EXISTS metrics_file_filename_uq ON metrics.metrics_file (filename);
 

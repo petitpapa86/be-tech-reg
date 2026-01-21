@@ -29,6 +29,13 @@ public class DashboardMetricsEntity {
     @Column(name = "completeness_score")
     private Double completenessScore = 0.0;
 
+    // Serialized TDigest sketches for medians (infrastructure-only)
+    @Column(name = "data_quality_digest", columnDefinition = "bytea")
+    private byte[] dataQualityDigest;
+
+    @Column(name = "completeness_digest", columnDefinition = "bytea")
+    private byte[] completenessDigest;
+
     @Column(name = "total_files_processed")
     private Integer totalFilesProcessed = 0;
 
@@ -91,6 +98,22 @@ public class DashboardMetricsEntity {
 
     public void setCompletenessScore(Double completenessScore) {
         this.completenessScore = completenessScore;
+    }
+
+    public byte[] getDataQualityDigest() {
+        return dataQualityDigest;
+    }
+
+    public void setDataQualityDigest(byte[] dataQualityDigest) {
+        this.dataQualityDigest = dataQualityDigest;
+    }
+
+    public byte[] getCompletenessDigest() {
+        return completenessDigest;
+    }
+
+    public void setCompletenessDigest(byte[] completenessDigest) {
+        this.completenessDigest = completenessDigest;
     }
 
     public Integer getTotalFilesProcessed() {

@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface SpringDataDashboardMetricsRepository extends JpaRepository<DashboardMetricsEntity, DashboardMetricsKey> {
 
 	Optional<DashboardMetricsEntity> findByKeyBankIdAndKeyPeriodStart(String bankId, LocalDate periodStart);
+
 }

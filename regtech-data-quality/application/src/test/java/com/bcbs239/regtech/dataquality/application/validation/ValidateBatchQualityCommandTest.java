@@ -20,7 +20,7 @@ class ValidateBatchQualityCommandTest {
         
         // Act
         ValidateBatchQualityCommand command = ValidateBatchQualityCommand.of(
-            batchId, bankId, s3Uri, 100
+            batchId, bankId, s3Uri, 100, "test.json"
         );
         
         // Assert
@@ -39,7 +39,8 @@ class ValidateBatchQualityCommandTest {
             BatchId.of("batch_batch-1"),
             BankId.of("bank-1"),
             "s3://bucket/path/file.json",
-            50
+            50,
+            "test.json"
         );
         
         // Act & Assert
@@ -55,7 +56,7 @@ class ValidateBatchQualityCommandTest {
             BankId.of("bank-1"),
             "s3://bucket/path/file.json",
             50,
-            null
+            null,null,"test.json"
         );
         
         // Act & Assert
@@ -71,7 +72,7 @@ class ValidateBatchQualityCommandTest {
             null,
             "s3://bucket/path/file.json",
             50,
-            null
+            null,null,"test.json"
         );
         
         // Act & Assert
@@ -87,7 +88,7 @@ class ValidateBatchQualityCommandTest {
             BankId.of("bank-1"),
             null,
             50,
-            null
+            null,null,"test.json"
         );
         
         // Act & Assert
@@ -103,7 +104,7 @@ class ValidateBatchQualityCommandTest {
             BankId.of("bank-1"),
             "s3://bucket/path/file.json",
             -1,
-            null
+            null,null,"test.json"
         );
         
         // Act & Assert
@@ -118,7 +119,8 @@ class ValidateBatchQualityCommandTest {
             BatchId.of("batch_batch-1"),
             BankId.of("bank-1"),
             "s3://my-bucket/path/to/file.json",
-            0
+            0,
+            "test.json"
         );
         
         // Act
@@ -136,7 +138,8 @@ class ValidateBatchQualityCommandTest {
             BatchId.of("batch_batch-1"),
             BankId.of("bank-1"),
             "s3://my-bucket/path/to/file.json",
-            0
+            0,
+            "test.json"
         );
         
         // Act

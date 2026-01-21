@@ -21,6 +21,7 @@ public class BatchCompletedInboundEvent extends DomainEvent {
     private final long fileSizeBytes;
     private final Instant completedAt;
     private final String eventVersion;
+    private final String filename;
 
     @JsonCreator
     public BatchCompletedInboundEvent(
@@ -29,7 +30,8 @@ public class BatchCompletedInboundEvent extends DomainEvent {
             @JsonProperty("s3Uri") String s3Uri,
             @JsonProperty("totalExposures") int totalExposures,
             @JsonProperty("fileSizeBytes") long fileSizeBytes,
-            @JsonProperty("completedAt") Instant completedAt) {
+            @JsonProperty("completedAt") Instant completedAt,
+            @JsonProperty("filename") String filename){
         super(batchId);
         this.batchId = batchId;
         this.bankId = bankId;
@@ -38,6 +40,7 @@ public class BatchCompletedInboundEvent extends DomainEvent {
         this.fileSizeBytes = fileSizeBytes;
         this.completedAt = completedAt;
         this.eventVersion = EVENT_VERSION;
+        this.filename = filename;
     }
 
 
@@ -47,6 +50,7 @@ public class BatchCompletedInboundEvent extends DomainEvent {
         return batchId != null && !batchId.isEmpty()
                 && bankId != null && !bankId.isEmpty()
                 && s3Uri != null && !s3Uri.isEmpty()
+                && filename != null && !filename.isEmpty()
                 && totalExposures >= 0
                 && fileSizeBytes >= 0;
     }

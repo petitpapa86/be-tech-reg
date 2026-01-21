@@ -20,7 +20,7 @@ public class BatchProcessingCompletedEvent extends DomainEvent {
     private final int totalExposures;
     private final long fileSizeBytes;
     private final Instant completedAt;
-    private final String fileName;
+    private final String filename;
     
     @JsonCreator
     public BatchProcessingCompletedEvent(
@@ -39,7 +39,7 @@ public class BatchProcessingCompletedEvent extends DomainEvent {
         this.totalExposures = totalExposures;
         this.fileSizeBytes = fileSizeBytes;
         this.completedAt = Objects.requireNonNull(completedAt, "completedAt cannot be null");
-        this.fileName = Objects.requireNonNull(fileName, "fileName cannot be null");
+        this.filename = Objects.requireNonNull(fileName, "fileName cannot be null");
     }
 
     
@@ -62,6 +62,6 @@ public class BatchProcessingCompletedEvent extends DomainEvent {
     @JsonProperty("completedAt")
     public Instant completedAt() { return completedAt; }
     @JsonProperty("fileName")
-    public String fileName() { return fileName;}
+    public String filename() { return filename;}
 }
 

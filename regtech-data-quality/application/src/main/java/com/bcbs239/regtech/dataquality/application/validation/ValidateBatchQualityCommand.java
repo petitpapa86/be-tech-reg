@@ -11,74 +11,58 @@ import java.time.LocalDate;
  * Contains all necessary metadata to process the batch validation workflow.
  */
 public record ValidateBatchQualityCommand(
-    BatchId batchId,
-    BankId bankId,
-    String s3Uri,
-    int expectedExposureCount,
-    @Nullable LocalDate uploadDate,
-    String correlationId
+        BatchId batchId,
+        BankId bankId,
+        String s3Uri,
+        int expectedExposureCount,
+        @Nullable LocalDate uploadDate,
+        String correlationId,
+        String filename
 ) {
-    
+
     /**
      * Creates a command with required parameters.
      */
     public static ValidateBatchQualityCommand of(
-        BatchId batchId,
-        BankId bankId,
-        String s3Uri,
-        int expectedExposureCount
+            BatchId batchId,
+            BankId bankId,
+            String s3Uri,
+            int expectedExposureCount,
+            String filename
     ) {
         return new ValidateBatchQualityCommand(
-            batchId,
-            bankId,
-            s3Uri,
-            expectedExposureCount,
-            null,
-            null
+                batchId,
+                bankId,
+                s3Uri,
+                expectedExposureCount,
+                null,
+                null,
+                filename
         );
     }
-    
+
     /**
      * Creates a command with correlation ID for tracing.
      */
     public static ValidateBatchQualityCommand withCorrelation(
-        BatchId batchId,
-        BankId bankId,
-        String s3Uri,
-        int expectedExposureCount,
-        String correlationId
+            BatchId batchId,
+            BankId bankId,
+            String s3Uri,
+            int expectedExposureCount,
+            String correlationId,
+            String filename
     ) {
         return new ValidateBatchQualityCommand(
-            batchId,
-            bankId,
-            s3Uri,
-            expectedExposureCount,
-            null,
-            correlationId
+                batchId,
+                bankId,
+                s3Uri,
+                expectedExposureCount,
+                null,
+                correlationId,
+                filename
         );
     }
-    
-    /**
-     * Creates a command with upload date and correlation ID.
-     */
-    public static ValidateBatchQualityCommand withUploadDate(
-        BatchId batchId,
-        BankId bankId,
-        String s3Uri,
-        int expectedExposureCount,
-        LocalDate uploadDate,
-        String correlationId
-    ) {
-        return new ValidateBatchQualityCommand(
-            batchId,
-            bankId,
-            s3Uri,
-            expectedExposureCount,
-            uploadDate,
-            correlationId
-        );
-    }
-    
+
     /**
      * Validates the command parameters.
      */
@@ -96,7 +80,7 @@ public record ValidateBatchQualityCommand(
             throw new IllegalArgumentException("Expected exposure count cannot be negative");
         }
     }
-    
+
     /**
      * Gets the S3 bucket name from the URI.
      */
@@ -104,17 +88,17 @@ public record ValidateBatchQualityCommand(
         if (s3Uri == null || !s3Uri.startsWith("s3://")) {
             throw new IllegalArgumentException("Invalid S3 URI format: " + s3Uri);
         }
-        
+
         String withoutProtocol = s3Uri.substring(5); // Remove "s3://"
         int slashIndex = withoutProtocol.indexOf('/');
-        
+
         if (slashIndex == -1) {
             return withoutProtocol;
         }
-        
+
         return withoutProtocol.substring(0, slashIndex);
     }
-    
+
     /**
      * Gets the S3 key from the URI.
      */
@@ -122,29 +106,17 @@ public record ValidateBatchQualityCommand(
         if (s3Uri == null || !s3Uri.startsWith("s3://")) {
             throw new IllegalArgumentException("Invalid S3 URI format: " + s3Uri);
         }
-        
+
         String withoutProtocol = s3Uri.substring(5); // Remove "s3://"
         int slashIndex = withoutProtocol.indexOf('/');
-        
+
         if (slashIndex == -1) {
             throw new IllegalArgumentException("S3 URI must contain a key: " + s3Uri);
         }
-        
+
         return withoutProtocol.substring(slashIndex + 1);
     }
-    
-    /**
-     * Creates a copy with a new correlation ID.
-     */
-    public ValidateBatchQualityCommand withCorrelationId(String newCorrelationId) {
-        return new ValidateBatchQualityCommand(
-            batchId,
-            bankId,
-            s3Uri,
-            expectedExposureCount,
-            uploadDate,
-            newCorrelationId
-        );
-    }
+
+
 }
 

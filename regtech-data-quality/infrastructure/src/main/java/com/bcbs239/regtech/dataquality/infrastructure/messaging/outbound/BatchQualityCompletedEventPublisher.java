@@ -58,13 +58,14 @@ public class BatchQualityCompletedEventPublisher {
                     validExposures,
                     totalErrors,
                     complianceStatus,
-                        completenessScore,
-                        accuracyScore,
-                        consistencyScore,
-                        timelinessScore,
-                        uniquenessScore,
-                        validityScore,
-                    event.getCorrelationId()
+                    completenessScore,
+                    accuracyScore,
+                    consistencyScore,
+                    timelinessScore,
+                    uniquenessScore,
+                    validityScore,
+                    event.getCorrelationId(),
+                    event.getFilename()
 
             );
 

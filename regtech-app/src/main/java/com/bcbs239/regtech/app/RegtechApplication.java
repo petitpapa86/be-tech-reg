@@ -60,10 +60,12 @@ import org.springframework.scheduling.annotation.EnableAsync;
 }, excludeFilters = {
 })
 @EntityScan(basePackages = {
-        "com.bcbs239.regtech.core.infrastructure"
+    "com.bcbs239.regtech.core.infrastructure",
+    "com.bcbs239.regtech.metrics.infrastructure"
 })
 @EnableJpaRepositories(basePackages = {
-        "com.bcbs239.regtech.core.infrastructure"
+    "com.bcbs239.regtech.core.infrastructure",
+    "com.bcbs239.regtech.metrics.infrastructure"
 })
 @EnableAspectJAutoProxy
 public class RegtechApplication {

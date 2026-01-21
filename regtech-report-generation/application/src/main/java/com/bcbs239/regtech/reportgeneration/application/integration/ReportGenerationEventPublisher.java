@@ -4,6 +4,7 @@ import com.bcbs239.regtech.core.domain.context.CorrelationContext;
 import com.bcbs239.regtech.core.domain.events.IIntegrationEventBus;
 import com.bcbs239.regtech.core.domain.events.integration.ComplianceReportGeneratedIntegrationEvent;
 import com.bcbs239.regtech.reportgeneration.application.integration.events.ReportGenerationFailedIntegrationEvent;
+import com.bcbs239.regtech.reportgeneration.application.integration.events.ReportGeneratedIntegrationEvent;
 import com.bcbs239.regtech.reportgeneration.domain.generation.events.ReportGeneratedEvent;
 import com.bcbs239.regtech.reportgeneration.domain.generation.events.ReportGenerationFailedEvent;
 import lombok.RequiredArgsConstructor;
@@ -76,6 +77,34 @@ public class ReportGenerationEventPublisher {
             // Publish to other bounded contexts
             // The OutboxProcessor will handle retry if publication fails
             integrationEventBus.publish(integrationEvent);
+
+            // Publish module-specific ReportGeneratedIntegrationEvent as well
+            try {
+                ReportGeneratedIntegrationEvent reportEvent = new ReportGeneratedIntegrationEvent(
+                        event.getReportId().value().toString(),
+                        event.getBatchId().value(),
+                        event.getBankId().value(),
+                        event.getReportType().name(),
+                        event.getReportingDate().value().toString(),
+                        event.getHtmlS3Uri() != null ? event.getHtmlS3Uri().value() : null,
+                        event.getXbrlS3Uri() != null ? event.getXbrlS3Uri().value() : null,
+                        event.getHtmlPresignedUrl() != null ? event.getHtmlPresignedUrl().url() : null,
+                        event.getXbrlPresignedUrl() != null ? event.getXbrlPresignedUrl().url() : null,
+                        event.getHtmlFileSize() != null ? event.getHtmlFileSize().bytes() : null,
+                        event.getXbrlFileSize() != null ? event.getXbrlFileSize().bytes() : null,
+                        event.getOverallQualityScore(),
+                        event.getComplianceStatus().name(),
+                        event.getGenerationDuration() != null ? event.getGenerationDuration().toMillis() : null,
+                        event.getGeneratedAt(),
+                        CorrelationContext.correlationId()
+                );
+
+                integrationEventBus.publish(reportEvent);
+                log.info("Published ReportGeneratedIntegrationEvent for report: {}", event.getReportId().value());
+            } catch (Exception ex) {
+                log.error("Failed to publish ReportGeneratedIntegrationEvent for report: {}", event.getReportId().value(), ex);
+                throw ex;
+            }
 
             logEventPublished(event);
 

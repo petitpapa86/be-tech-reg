@@ -27,6 +27,7 @@ public class BatchCompletedIntegrationEvent extends IntegrationEvent {
     private final long fileSizeBytes;
     private final Instant completedAt;
     private final String eventVersion;
+    private final String filename;
     
     @JsonCreator
     public BatchCompletedIntegrationEvent(
@@ -36,7 +37,8 @@ public class BatchCompletedIntegrationEvent extends IntegrationEvent {
             @JsonProperty("totalExposures") int totalExposures,
             @JsonProperty("fileSizeBytes") long fileSizeBytes,
             @JsonProperty("completedAt") Instant completedAt,
-            @JsonProperty("correlationId") String correlationId) {
+            @JsonProperty("correlationId") String correlationId,
+            @JsonProperty("filename") String filename){
         super(correlationId);
         this.batchId = batchId;
         this.bankId = bankId;
@@ -45,6 +47,7 @@ public class BatchCompletedIntegrationEvent extends IntegrationEvent {
         this.fileSizeBytes = fileSizeBytes;
         this.completedAt = completedAt;
         this.eventVersion = EVENT_VERSION;
+        this.filename = filename;
     }
 
     //verify event fields are correctly  set
