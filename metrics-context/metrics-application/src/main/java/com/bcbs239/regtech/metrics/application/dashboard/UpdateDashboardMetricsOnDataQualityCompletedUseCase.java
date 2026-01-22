@@ -64,6 +64,7 @@ public class UpdateDashboardMetricsOnDataQualityCompletedUseCase {
 
         // Save file first (including completenessScore)
         ComplianceFile file = new ComplianceFile(
+                null, // id will be generated on save
             event.getFilename(),
             completedDate.toString(),
             event.getOverallScore(),

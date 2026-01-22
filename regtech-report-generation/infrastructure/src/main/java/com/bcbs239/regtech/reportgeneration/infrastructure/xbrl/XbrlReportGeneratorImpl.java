@@ -1,5 +1,8 @@
 package com.bcbs239.regtech.reportgeneration.infrastructure.xbrl;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.reportgeneration.domain.generation.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -55,7 +58,7 @@ public class XbrlReportGeneratorImpl implements XbrlReportGenerator {
     }
     
     @Override
-    public Document generate(CalculationResults results, ReportMetadata metadata) {
+    public Result<Document> generate(CalculationResults results, ReportMetadata metadata) {
         try {
             log.info("Starting XBRL generation for batch: {}", results.batchId().value());
             
@@ -115,14 +118,32 @@ public class XbrlReportGeneratorImpl implements XbrlReportGenerator {
             log.info("XBRL generation completed for batch: {}, exposures: {}", 
                 results.batchId().value(), largeExposures.size());
             
-            return document;
+            // Validate generated document
+            Result<ValidationResult> validationResult = validator.validate(document);
+            if (validationResult.isFailure()) {
+                return Result.failure(validationResult.getError().orElseThrow());
+            }
             
-        } catch (ParserConfigurationException e) {
-            log.error("Failed to create XML document for batch: {}", results.batchId().value(), e);
-            throw new XbrlGenerationException("Failed to create XML document", e);
+            ValidationResult result = validationResult.getValue().orElseThrow();
+            if (result.hasErrors()) {
+                return Result.failure(ErrorDetail.of(
+                    "XBRL_VALIDATION_FAILED",
+                    ErrorType.BUSINESS_RULE_ERROR,
+                    result.getFormattedErrorMessage(),
+                    "report.generation.xbrl_validation_failed"
+                ));
+            }
+            
+            return Result.success(document);
+            
         } catch (Exception e) {
             log.error("XBRL generation failed for batch: {}", results.batchId().value(), e);
-            throw new XbrlGenerationException("XBRL generation failed", e);
+            return Result.failure(ErrorDetail.of(
+                "XBRL_GENERATION_FAILED",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to generate XBRL report: " + e.getMessage(),
+                "report.generation.xbrl_failed"
+            ));
         }
     }
     
@@ -178,19 +199,19 @@ public class XbrlReportGeneratorImpl implements XbrlReportGenerator {
         // CP dimension (counterparty)
         Element cpDimension = document.createElementNS(XBRL_NAMESPACE, XBRLI_PREFIX + ":explicitMember");
         cpDimension.setAttribute("dimension", EBA_PREFIX + ":CP");
-        cpDimension.setTextContent(EBA_PREFIX + ":" + sanitizeForXml(exposure.counterpartyName()));
+        cpDimension.setTextContent(EBA_PREFIX + ":" + sanitizeForXml(exposure.counterpartyName().value()));
         segment.appendChild(cpDimension);
         
         // CT dimension (country)
         Element ctDimension = document.createElementNS(XBRL_NAMESPACE, XBRLI_PREFIX + ":explicitMember");
         ctDimension.setAttribute("dimension", EBA_PREFIX + ":CT");
-        ctDimension.setTextContent(EBA_PREFIX + ":" + exposure.countryCode());
+        ctDimension.setTextContent(EBA_PREFIX + ":" + exposure.countryCode().value());
         segment.appendChild(ctDimension);
         
         // SC dimension (sector)
         Element scDimension = document.createElementNS(XBRL_NAMESPACE, XBRLI_PREFIX + ":explicitMember");
         scDimension.setAttribute("dimension", EBA_PREFIX + ":SC");
-        scDimension.setTextContent(EBA_PREFIX + ":" + exposure.sectorCode());
+        scDimension.setTextContent(EBA_PREFIX + ":" + exposure.sectorCode().value());
         segment.appendChild(scDimension);
         
         entity.appendChild(segment);
@@ -241,27 +262,27 @@ public class XbrlReportGeneratorImpl implements XbrlReportGenerator {
     private void addLE1Facts(Document document, Element xbrl, String contextId, CalculatedExposure exposure) {
         // Counterparty name
         addFact(document, xbrl, "eba:LE1_CounterpartyName", contextId, null, 
-            exposure.counterpartyName());
+            exposure.counterpartyName().value());
         
         // LEI code or CONCAT identifier
         if (exposure.hasLeiCode()) {
             addFact(document, xbrl, "eba:LE1_LEICode", contextId, null, 
-                exposure.leiCode().get());
+                exposure.leiCode().get().value());
             addFact(document, xbrl, "eba:LE1_IdentifierType", contextId, null, "LEI");
         } else {
             // Use CONCAT for missing LEI
             addFact(document, xbrl, "eba:LE1_IdentifierType", contextId, null, "CONCAT");
             addFact(document, xbrl, "eba:LE1_AlternateIdentifier", contextId, null, 
-                exposure.identifierType());
+                exposure.identifierType().name());
         }
         
         // Country code
         addFact(document, xbrl, "eba:LE1_CountryCode", contextId, null, 
-            exposure.countryCode());
+            exposure.countryCode().value());
         
         // Sector code
         addFact(document, xbrl, "eba:LE1_SectorCode", contextId, null, 
-            exposure.sectorCode());
+            exposure.sectorCode().value());
     }
     
     /**
@@ -271,23 +292,23 @@ public class XbrlReportGeneratorImpl implements XbrlReportGenerator {
     private void addLE2Facts(Document document, Element xbrl, String contextId, CalculatedExposure exposure) {
         // Original exposure amount
         addFact(document, xbrl, "eba:LE2_OriginalExposure", contextId, "EUR", 
-            formatAmount(exposure.amountEur()));
+            formatAmount(exposure.amountEur().value()));
         
         // Exposure after CRM
         addFact(document, xbrl, "eba:LE2_ExposureAfterCRM", contextId, "EUR", 
-            formatAmount(exposure.amountAfterCrm()));
+            formatAmount(exposure.amountAfterCrm().value()));
         
         // Trading book portion
         addFact(document, xbrl, "eba:LE2_TradingBookPortion", contextId, "EUR", 
-            formatAmount(exposure.tradingBookPortion()));
+            formatAmount(exposure.tradingBookPortion().value()));
         
         // Non-trading book portion
         addFact(document, xbrl, "eba:LE2_NonTradingBookPortion", contextId, "EUR", 
-            formatAmount(exposure.nonTradingBookPortion()));
+            formatAmount(exposure.nonTradingBookPortion().value()));
         
         // Percentage of eligible capital
         addFact(document, xbrl, "eba:LE2_PercentageOfCapital", contextId, "pure", 
-            formatPercentage(exposure.percentageOfCapital()));
+            formatPercentage(exposure.percentageOfCapital().value()));
     }
     
     /**

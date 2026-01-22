@@ -74,4 +74,18 @@ public record QualityInsight(
     public String getLanguageCode() {
         return locale.getLanguage();
     }
+
+    /**
+     * Derive a human-readable title from the rule id.
+     * This keeps presentation logic centralized in the domain value.
+     */
+    public String getTitle() {
+        return switch (ruleId) {
+            case "critical_situation" -> "Situazione Critica - Azione Immediata Richiesta";
+            case "dimension_below_threshold" -> "Dimensioni di Qualità da Migliorare";
+            case "excellent_dimensions" -> "Eccellenti Risultati di Qualità";
+            case "action_plan" -> "Piano d'Azione per il Miglioramento";
+            default -> "Raccomandazioni sulla Qualità dei Dati";
+        };
+    }
 }

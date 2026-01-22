@@ -2,54 +2,83 @@ package com.bcbs239.regtech.reportgeneration.application.generation;
 
 import com.bcbs239.regtech.reportgeneration.domain.generation.CalculationResults;
 import com.bcbs239.regtech.reportgeneration.domain.generation.QualityResults;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
+import com.bcbs239.regtech.reportgeneration.domain.generation.CalculatedExposure;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDate;
+import java.util.List;
 
 /**
- * Comprehensive Report Data DTO
- * 
- * Aggregates both calculation and quality results for comprehensive report generation.
- * This DTO is the output of the ComprehensiveReportDataAggregator service.
+ * Comprehensive report data value object (flattened)
+ *
+ * Contains a small set of value objects for use by report generators so callers
+ * don't need to drill into nested structures.
  */
 @Getter
-@Builder
 public class ComprehensiveReportData {
-    
-    private final String batchId;
-    private final String bankId;
-    private final String bankName;
-    private final LocalDate reportingDate;
-    private final CalculationResults calculationResults;
+
+    // All value objects (no primitives at this level)
+    private final BatchId batchId;
+    private final BankId bankId;
+    private final BankName bankName;
+    private final ReportingDate reportingDate;
+
+    // Flattened quality data
+    private final QualityScore overallScore;
+    private final ComplianceStatus complianceStatus;
+    private final List<com.bcbs239.regtech.core.domain.recommendations.QualityInsight> recommendations;
+
+    // Flattened calculation data
+    private final AmountEur tierOneCapital;
+    private final int totalExposures;
+    private final List<CalculatedExposure> largeExposures;
+
+    // Keep originals for complex queries
     private final QualityResults qualityResults;
-    
+    private final CalculationResults calculationResults;
+
+    @Builder
+    private ComprehensiveReportData(QualityResults qualityResults, CalculationResults calculationResults) {
+        validate(qualityResults, calculationResults);
+
+        this.qualityResults = qualityResults;
+        this.calculationResults = calculationResults;
+
+        // Extract with consistent types
+        this.batchId = calculationResults.batchId();
+        this.bankId = calculationResults.bankId();
+        this.bankName = calculationResults.bankName();
+        this.reportingDate = calculationResults.reportingDate();
+
+        // Flatten quality (BigDecimal -> QualityScore)
+        this.overallScore = QualityScore.of(qualityResults.getOverallScore());
+        this.complianceStatus = qualityResults.getComplianceStatus();
+        this.recommendations = qualityResults.getRecommendations();
+
+        // Flatten calculation
+        this.tierOneCapital = calculationResults.tierOneCapital();
+        this.totalExposures = calculationResults.totalExposures();
+        this.largeExposures = calculationResults.getLargeExposures();
+    }
+
+    private void validate(QualityResults quality, CalculationResults calc) {
+        if (quality == null || calc == null) {
+            throw new IllegalArgumentException("Both results required");
+        }
+        if (!quality.getBatchId().value().equals(calc.batchId().value())) {
+            throw new IllegalStateException("Batch ID mismatch");
+        }
+        if (!quality.getBankId().value().equals(calc.bankId().value())) {
+            throw new IllegalStateException("Bank ID mismatch");
+        }
+    }
+
     /**
-     * Validate that both calculation and quality results are present
+     * Convenience accessor returning the overall quality score as BigDecimal.
+     * Some legacy callers expect a numeric score; use this to obtain it.
      */
-    public void validate() {
-        if (calculationResults == null) {
-            throw new IllegalStateException("Calculation results are missing");
-        }
-        if (qualityResults == null) {
-            throw new IllegalStateException("Quality results are missing");
-        }
-        
-        // Validate consistency between calculation and quality results
-        if (!calculationResults.batchId().value().equals(qualityResults.getBatchId().value())) {
-            throw new IllegalStateException(
-                String.format("Batch ID mismatch: calculation=%s, quality=%s",
-                    calculationResults.batchId().value(),
-                    qualityResults.getBatchId().value())
-            );
-        }
-        
-        if (!calculationResults.bankId().value().equals(qualityResults.getBankId().value())) {
-            throw new IllegalStateException(
-                String.format("Bank ID mismatch: calculation=%s, quality=%s",
-                    calculationResults.bankId().value(),
-                    qualityResults.getBankId().value())
-            );
-        }
+    public java.math.BigDecimal getOverallScoreAsBigDecimal() {
+        return this.qualityResults.getOverallScore();
     }
 }

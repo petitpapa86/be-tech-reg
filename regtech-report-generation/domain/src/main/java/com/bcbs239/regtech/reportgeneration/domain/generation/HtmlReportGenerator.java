@@ -1,5 +1,7 @@
 package com.bcbs239.regtech.reportgeneration.domain.generation;
 
+import com.bcbs239.regtech.core.domain.shared.Result;
+
 import java.util.List;
 
 /**
@@ -31,10 +33,9 @@ public interface HtmlReportGenerator {
      * 
      * @param results the calculation results containing exposure data
      * @param metadata the report metadata (bank ID, reporting date, etc.)
-     * @return the generated HTML content as a string
-     * @throws HtmlGenerationException if HTML generation fails
+     * @return a Result containing the generated HTML content as a string, or an error
      */
-    String generate(CalculationResults results, ReportMetadata metadata);
+    Result<String> generate(CalculationResults results, ReportMetadata metadata);
     
     /**
      * Generate a comprehensive HTML report with both calculation and quality data
@@ -49,10 +50,9 @@ public interface HtmlReportGenerator {
      * @param qualityResults the quality validation results
      * @param recommendations the quality recommendations
      * @param metadata the report metadata (bank ID, reporting date, etc.)
-     * @return the generated HTML content as a string
-     * @throws HtmlGenerationException if HTML generation fails
+     * @return a Result containing the generated HTML content as a string, or an error
      */
-    String generateComprehensive(
+    Result<String> generateComprehensive(
         CalculationResults calculationResults,
         QualityResults qualityResults,
         List<RecommendationSection> recommendations,

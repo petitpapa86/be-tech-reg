@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.reportgeneration.domain.generation;
 
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BankId;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BankName;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportingDate;
 import lombok.NonNull;
@@ -16,7 +17,7 @@ import java.time.Instant;
 public record ReportMetadata(
     @NonNull BatchId batchId,
     @NonNull BankId bankId,
-    @NonNull String bankName,
+    @NonNull BankName bankName,
     @NonNull ReportingDate reportingDate,
     @NonNull Instant generatedAt
 ) {
@@ -31,8 +32,8 @@ public record ReportMetadata(
         if (bankId == null) {
             throw new IllegalArgumentException("Bank ID cannot be null");
         }
-        if (bankName == null || bankName.isBlank()) {
-            throw new IllegalArgumentException("Bank name cannot be null or blank");
+        if (bankName == null) {
+            throw new IllegalArgumentException("Bank name cannot be null");
         }
         if (reportingDate == null) {
             throw new IllegalArgumentException("Reporting date cannot be null");
@@ -49,7 +50,7 @@ public record ReportMetadata(
         return new ReportMetadata(
             new BatchId(batchId),
             new BankId(bankId),
-            bankName,
+            BankName.of(bankName),
             ReportingDate.fromString(reportingDate),
             Instant.now()
         );
@@ -63,7 +64,7 @@ public record ReportMetadata(
         return new ReportMetadata(
             new BatchId(batchId),
             new BankId(bankId),
-            bankName,
+            BankName.of(bankName),
             ReportingDate.fromString(reportingDate),
             generatedAt
         );

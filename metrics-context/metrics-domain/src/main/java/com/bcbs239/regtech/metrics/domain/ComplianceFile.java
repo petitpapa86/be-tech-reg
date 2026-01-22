@@ -7,6 +7,7 @@ import lombok.Getter;
  */
 @Getter
 public class ComplianceFile {
+    private final Long id;
     private final String filename;
     private final String date;
     private final Double score;
@@ -16,10 +17,15 @@ public class ComplianceFile {
     private final BankId bankId;
 
     public ComplianceFile(String filename, String date, Double score, Double completenessScore, String status) {
-        this(filename, date, score, completenessScore, status, null, null);
+        this(null, filename, date, score, completenessScore, status, null, null);
     }
 
     public ComplianceFile(String filename, String date, Double score, Double completenessScore, String status, String batchId, BankId bankId) {
+        this(null, filename, date, score, completenessScore, status, batchId, bankId);
+    }
+
+    public ComplianceFile(Long id, String filename, String date, Double score, Double completenessScore, String status, String batchId, BankId bankId) {
+        this.id = id;
         this.filename = filename;
         this.date = date;
         this.score = score;

@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.reportgeneration.application.generation;
+package com.bcbs239.regtech.reportgeneration.infrastructure.filestorage;
 
 import com.bcbs239.regtech.core.domain.recommendations.QualityInsight;
 import com.bcbs239.regtech.core.domain.recommendations.RecommendationSeverity;
@@ -9,6 +9,8 @@ import com.bcbs239.regtech.core.domain.storage.IStorageService;
 import com.bcbs239.regtech.core.domain.storage.StorageUri;
 import com.bcbs239.regtech.reportgeneration.application.coordination.CalculationEventData;
 import com.bcbs239.regtech.reportgeneration.application.coordination.QualityEventData;
+import com.bcbs239.regtech.reportgeneration.application.generation.ComprehensiveReportData;
+import com.bcbs239.regtech.reportgeneration.application.generation.IReportDataSource;
 import com.bcbs239.regtech.reportgeneration.domain.generation.*;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -303,6 +305,7 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
                 if (totalAmount.compareTo(BigDecimal.ZERO) <= 0 && !exposures.isEmpty()) {
                     totalAmount = exposures.stream()
                         .map(CalculatedExposure::amountEur)
+                        .map(AmountEur::value)
                         .reduce(BigDecimal.ZERO, BigDecimal::add);
                 }
 
@@ -339,7 +342,7 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
             return Result.success(new CalculationResults(
                 BatchId.of(batchId),
                 BankId.of(bankId),
-                bankName,
+                BankName.of(bankName),
                 ReportingDate.of(reportingDate),
                 AmountEur.of(tierOneCapital),
                 totalExposures,
@@ -466,19 +469,19 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
             boolean compliant = pctCapital.compareTo(new BigDecimal("25")) <= 0;
 
             exposures.add(new CalculatedExposure(
-                counterpartyName,
-                leiCode,
-                identifierType,
-                countryCode,
-                sectorCode,
-                rating,
-                originalAmount,
-                originalCurrency,
-                amountEur,
-                amountAfterCrm,
-                BigDecimal.ZERO,
-                amountAfterCrm,
-                pctCapital,
+                CounterpartyName.of(counterpartyName),
+                leiCode.map(LeiCode::of),
+                IdentifierType.fromString(identifierType),
+                CountryCode.of(countryCode),
+                SectorCode.of(sectorCode),
+                rating.map(CreditRating::of),
+                Amount.of(originalAmount),
+                CurrencyCode.of(originalCurrency),
+                AmountEur.of(amountEur),
+                AmountEur.of(amountAfterCrm),
+                AmountEur.of(BigDecimal.ZERO),
+                AmountEur.of(amountAfterCrm),
+                Percentage.of(pctCapital),
                 compliant
             ));
         });
@@ -586,19 +589,19 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
         if (exposuresNode.isArray()) {
             exposuresNode.forEach(node -> {
                 exposures.add(new CalculatedExposure(
-                    node.path("counterpartyName").asText(),
-                    Optional.ofNullable(node.path("leiCode").asText("")).filter(s -> !s.isEmpty()),
-                    node.path("identifierType").asText("CONCAT"),
-                    node.path("countryCode").asText(),
-                    node.path("sectorCode").asText(),
-                    Optional.ofNullable(node.path("rating").asText("")).filter(s -> !s.isEmpty()),
-                    new BigDecimal(node.path("originalAmount").asText("0")),
-                    node.path("originalCurrency").asText("EUR"),
-                    new BigDecimal(node.path("amountEur").asText()),
-                    new BigDecimal(node.path("amountAfterCrm").asText("0")),
-                    new BigDecimal(node.path("tradingBookPortion").asText("0")),
-                    new BigDecimal(node.path("nonTradingBookPortion").asText("0")),
-                    new BigDecimal(node.path("percentageOfCapital").asText()),
+                    CounterpartyName.of(node.path("counterpartyName").asText()),
+                    Optional.ofNullable(node.path("leiCode").asText("")).filter(s -> !s.isEmpty()).map(LeiCode::of),
+                    IdentifierType.fromString(node.path("identifierType").asText("CONCAT")),
+                    CountryCode.of(node.path("countryCode").asText()),
+                    SectorCode.of(node.path("sectorCode").asText()),
+                    Optional.ofNullable(node.path("rating").asText("")).filter(s -> !s.isEmpty()).map(CreditRating::of),
+                    Amount.of(new BigDecimal(node.path("originalAmount").asText("0"))),
+                    CurrencyCode.of(node.path("originalCurrency").asText("EUR")),
+                    AmountEur.of(new BigDecimal(node.path("amountEur").asText())),
+                    AmountEur.of(new BigDecimal(node.path("amountAfterCrm").asText("0"))),
+                    AmountEur.of(new BigDecimal(node.path("tradingBookPortion").asText("0"))),
+                    AmountEur.of(new BigDecimal(node.path("nonTradingBookPortion").asText("0"))),
+                    Percentage.of(new BigDecimal(node.path("percentageOfCapital").asText())),
                     node.path("compliant").asBoolean()
                 ));
             });

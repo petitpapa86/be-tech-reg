@@ -17,8 +17,9 @@ public interface IComprehensiveReportOrchestrator {
      * 
      * @param riskEventData the risk calculation event data
      * @param qualityEventData the quality validation event data
+     * @return a CompletableFuture containing the result of the report generation
      */
-    void generateComprehensiveReport(
+    CompletableFuture<com.bcbs239.regtech.core.domain.shared.Result<com.bcbs239.regtech.reportgeneration.domain.generation.GeneratedReport>> generateComprehensiveReport(
         CalculationEventData riskEventData,
         QualityEventData qualityEventData
     );

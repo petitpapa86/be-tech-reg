@@ -12,6 +12,12 @@
 	<description>Infrastructure layer for Report Generation module</description>
 	
 	<dependencies>
+		<!-- Application layer dependency -->
+		<dependency>
+			<groupId>com.bcbs239</groupId>
+			<artifactId>regtech-report-generation-application</artifactId>
+		</dependency>
+
 		<!-- Domain layer dependency -->
 		<dependency>
 			<groupId>com.bcbs239</groupId>
@@ -146,5 +152,9 @@
 			<artifactId>jqwik</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-report-generation-application</artifactId>
+        </dependency>
+    </dependencies>
 </project>

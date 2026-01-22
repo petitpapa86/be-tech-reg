@@ -1,5 +1,8 @@
 package com.bcbs239.regtech.reportgeneration.application.coordination;
 
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.reportgeneration.application.generation.ComprehensiveReportOrchestrator;
+import com.bcbs239.regtech.reportgeneration.domain.generation.GeneratedReport;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -21,11 +24,11 @@ import java.util.concurrent.CompletableFuture;
 public class ReportCoordinator {
     
     private final BatchEventTracker eventTracker;
-    private final IComprehensiveReportOrchestrator reportOrchestrator;
+    private final ComprehensiveReportOrchestrator reportOrchestrator;
     
     public ReportCoordinator(
             BatchEventTracker eventTracker,
-            IComprehensiveReportOrchestrator reportOrchestrator) {
+            ComprehensiveReportOrchestrator reportOrchestrator) {
         this.eventTracker = eventTracker;
         this.reportOrchestrator = reportOrchestrator;
         
@@ -38,8 +41,9 @@ public class ReportCoordinator {
      * If both events are present, triggers comprehensive report generation.
      *
      * @param eventData the calculation event data
+     * @return a CompletableFuture containing the result of the report generation, or success(null) if not triggered
      */
-    public void handleCalculationCompleted(CalculationEventData eventData) {
+    public CompletableFuture<Result<GeneratedReport>> handleCalculationCompleted(CalculationEventData eventData) {
         String batchId = eventData.getBatchId();
         
         log.info("Handling calculation completed event for batch: {}", batchId);
@@ -53,11 +57,13 @@ public class ReportCoordinator {
             BatchEventTracker.BatchEvents events = eventTracker.getBothEvents(batchId);
             
             // Trigger asynchronous report generation
-            reportOrchestrator.generateComprehensiveReport(
+            return reportOrchestrator.generateComprehensiveReport(
                 events.getRiskEventData(),
                 events.getQualityEventData()
             );
         }
+        
+        return CompletableFuture.completedFuture(Result.success(null));
     }
     
     /**
@@ -66,8 +72,9 @@ public class ReportCoordinator {
      * If both events are present, triggers comprehensive report generation.
      *
      * @param eventData the quality event data
+     * @return a CompletableFuture containing the result of the report generation, or success(null) if not triggered
      */
-    public void handleQualityCompleted(QualityEventData eventData) {
+    public CompletableFuture<Result<GeneratedReport>> handleQualityCompleted(QualityEventData eventData) {
         String batchId = eventData.getBatchId();
         
         log.info("Handling quality completed event for batch: {}", batchId);
@@ -82,12 +89,13 @@ public class ReportCoordinator {
             BatchEventTracker.BatchEvents events = eventTracker.getBothEvents(batchId);
             
             // Trigger asynchronous report generation
-            reportOrchestrator.generateComprehensiveReport(
+            return reportOrchestrator.generateComprehensiveReport(
                 events.getRiskEventData(),
                 events.getQualityEventData()
             );
         } else {
             log.info("Waiting for both events to be present for batch: {}", batchId);
+            return CompletableFuture.completedFuture(Result.success(null));
         }
     }
 

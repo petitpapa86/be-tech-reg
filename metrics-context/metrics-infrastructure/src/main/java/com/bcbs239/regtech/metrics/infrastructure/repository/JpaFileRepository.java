@@ -42,7 +42,7 @@ public class JpaFileRepository implements FileRepository {
 
     private ComplianceFile toDomain(FileEntity e) {
         BankId bid = e.getBankId() == null ? BankId.unknown() : BankId.of(e.getBankId());
-        return new ComplianceFile(e.getFilename(), e.getDate(), e.getScore(), e.getCompletenessScore(), e.getStatus(), e.getBatchId(), bid);
+        return new ComplianceFile(e.getId(), e.getFilename(), e.getDate(), e.getScore(), e.getCompletenessScore(), e.getStatus(), e.getBatchId(), bid);
     }
 
     private FileEntity toEntity(ComplianceFile f) {

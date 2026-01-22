@@ -25,11 +25,11 @@ import com.bcbs239.regtech.metrics.domain.ComplianceReport;
 
 @Component
 public class DashboardController {
-        private final DashboardUseCase dashboardUseCase;
+    private final DashboardUseCase dashboardUseCase;
 
-        public DashboardController(DashboardUseCase dashboardUseCase) {
-                this.dashboardUseCase = dashboardUseCase;
-        }
+    public DashboardController(DashboardUseCase dashboardUseCase) {
+        this.dashboardUseCase = dashboardUseCase;
+    }
 
     public RouterFunction<ServerResponse> mapEndpoint() {
         return RouterFunctions.route(
@@ -39,11 +39,10 @@ public class DashboardController {
     }
 
     public ServerResponse getDashboard(ServerRequest request) {
-                String bankIdParam = request.param("bankId").orElse(null);
-                BankId bankId = BankId.of(bankIdParam);
+        String bankIdParam = request.param("bankId").orElse(null);
+        BankId bankId = BankId.of(bankIdParam);
 
-
-                DashboardResult result = dashboardUseCase.execute(bankId);
+        DashboardResult result = dashboardUseCase.execute(bankId);
 
         List<ComplianceFile> filesDomain = result.files;
 
@@ -89,65 +88,65 @@ public class DashboardController {
         return raw; // simple passthrough for now; formatting can be added later
     }
 
-        private ReportItem toReportItem(ComplianceReport report) {
-                String filename = firstNonBlank(
-                        extractFileNameFromS3Uri(report.getHtmlS3Uri()),
-                        extractFileNameFromS3Uri(report.getXbrlS3Uri()),
-                        report.getReportType() + "_" + report.getReportingDate() + "_" + report.getReportId()
-                );
+    private ReportItem toReportItem(ComplianceReport report) {
+        String filename = firstNonBlank(
+                extractFileNameFromS3Uri(report.getHtmlS3Uri()),
+                extractFileNameFromS3Uri(report.getXbrlS3Uri()),
+                report.getReportType() + "_" + report.getReportingDate() + "_" + report.getReportId()
+        );
 
-                Long htmlSize = java.util.Objects.requireNonNullElse(report.getHtmlFileSize(), 0L);
-                Long xbrlSize = java.util.Objects.requireNonNullElse(report.getXbrlFileSize(), 0L);
-                long totalSize = htmlSize + xbrlSize;
+        Long htmlSize = java.util.Objects.requireNonNullElse(report.getHtmlFileSize(), 0L);
+        Long xbrlSize = java.util.Objects.requireNonNullElse(report.getXbrlFileSize(), 0L);
+        long totalSize = htmlSize + xbrlSize;
 
-                String generatedAt = report.getGeneratedAt() == null
-                                ? "unknown"
-                                : DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(report.getGeneratedAt().atZone(ZoneId.systemDefault()).toLocalDateTime());
+        String generatedAt = report.getGeneratedAt() == null
+                ? "unknown"
+                : DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(report.getGeneratedAt().atZone(ZoneId.systemDefault()).toLocalDateTime());
 
-                String details = "Generated: " + generatedAt
-                        + " • Size: " + formatBytes(totalSize)
-                                + (report.getComplianceStatus() != null ? " • Compliance: " + report.getComplianceStatus() : "")
-                                + (report.getOverallQualityScore() != null ? " • Score: " + report.getOverallQualityScore() : "");
+        String details = "Generated: " + generatedAt
+                + " • Size: " + formatBytes(totalSize)
+                + (report.getComplianceStatus() != null ? " • Compliance: " + report.getComplianceStatus() : "")
+                + (report.getOverallQualityScore() != null ? " • Score: " + report.getOverallQualityScore() : "");
 
-                return new ReportItem(filename, report.getStatus(), details);
+        return new ReportItem(filename, report.getStatus(), details);
+    }
+
+    private String extractFileNameFromS3Uri(String s3Uri) {
+        if (s3Uri == null || s3Uri.isBlank()) {
+            return null;
         }
-
-        private String extractFileNameFromS3Uri(String s3Uri) {
-                if (s3Uri == null || s3Uri.isBlank()) {
-                        return null;
-                }
-                int lastSlash = s3Uri.lastIndexOf('/');
-                if (lastSlash < 0 || lastSlash == s3Uri.length() - 1) {
-                        return null;
-                }
-                return s3Uri.substring(lastSlash + 1);
+        int lastSlash = s3Uri.lastIndexOf('/');
+        if (lastSlash < 0 || lastSlash == s3Uri.length() - 1) {
+            return null;
         }
+        return s3Uri.substring(lastSlash + 1);
+    }
 
-        private String firstNonBlank(String... values) {
-                if (values == null) {
-                        return null;
-                }
-                for (String value : values) {
-                        if (value != null && !value.isBlank()) {
-                                return value;
-                        }
-                }
-                return null;
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
         }
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
+        return null;
+    }
 
-        private String formatBytes(long bytes) {
-                if (bytes < 1024) {
-                        return bytes + " B";
-                }
-                double kb = bytes / 1024.0;
-                if (kb < 1024) {
-                        return String.format(java.util.Locale.ROOT, "%.1f KB", kb);
-                }
-                double mb = kb / 1024.0;
-                if (mb < 1024) {
-                        return String.format(java.util.Locale.ROOT, "%.1f MB", mb);
-                }
-                double gb = mb / 1024.0;
-                return String.format(java.util.Locale.ROOT, "%.1f GB", gb);
+    private String formatBytes(long bytes) {
+        if (bytes < 1024) {
+            return bytes + " B";
         }
+        double kb = bytes / 1024.0;
+        if (kb < 1024) {
+            return String.format(java.util.Locale.ROOT, "%.1f KB", kb);
+        }
+        double mb = kb / 1024.0;
+        if (mb < 1024) {
+            return String.format(java.util.Locale.ROOT, "%.1f MB", mb);
+        }
+        double gb = mb / 1024.0;
+        return String.format(java.util.Locale.ROOT, "%.1f GB", gb);
+    }
 }

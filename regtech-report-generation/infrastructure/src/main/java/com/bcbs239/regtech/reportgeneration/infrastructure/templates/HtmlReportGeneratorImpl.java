@@ -1,6 +1,15 @@
 package com.bcbs239.regtech.reportgeneration.infrastructure.templates;
 
-import com.bcbs239.regtech.reportgeneration.domain.generation.*;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.reportgeneration.domain.generation.CalculationResults;
+import com.bcbs239.regtech.reportgeneration.domain.generation.CalculatedExposure;
+import com.bcbs239.regtech.reportgeneration.domain.generation.HtmlReportGenerator;
+import com.bcbs239.regtech.reportgeneration.domain.generation.QualityResults;
+import com.bcbs239.regtech.reportgeneration.domain.generation.RecommendationSection;
+import com.bcbs239.regtech.reportgeneration.domain.generation.ReportMetadata;
+import com.bcbs239.regtech.reportgeneration.domain.generation.SectorBreakdown;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.AmountEur;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.QualityDimension;
 import lombok.RequiredArgsConstructor;
@@ -50,11 +59,10 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
      * 
      * @param results the calculation results
      * @param metadata the report metadata
-     * @return generated HTML content
-     * @throws HtmlGenerationException if generation fails
+     * @return Result containing generated HTML content or error
      */
     @Override
-    public String generate(CalculationResults results, ReportMetadata metadata) {
+    public Result<String> generate(CalculationResults results, ReportMetadata metadata) {
         try {
             log.info("Generating HTML report (calculation only) [batchId:{},bankId:{}]", 
                 results.batchId().value(), results.bankId().value());
@@ -89,12 +97,14 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
             log.info("HTML report generated successfully [batchId:{},size:{}]", 
                 results.batchId().value(), html.length());
             
-            return html;
+            return Result.success(html);
             
         } catch (Exception e) {
             log.error("Failed to generate HTML report [batchId:{}]", 
                 results.batchId().value(), e);
-            throw new HtmlGenerationException("Failed to generate HTML report", e);
+            ErrorDetail error = ErrorDetail.of("HTML_GENERATION_FAILED", ErrorType.SYSTEM_ERROR, 
+                "Failed to generate HTML report: " + e.getMessage(), "report.generation.html_failed");
+            return Result.failure(error);
         }
     }
     
@@ -111,11 +121,10 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
      * @param qualityResults the quality results
      * @param recommendations the quality recommendations
      * @param metadata the report metadata
-     * @return generated HTML content
-     * @throws HtmlGenerationException if generation fails
+     * @return Result containing generated HTML content or error
      */
     @Override
-    public String generateComprehensive(
+    public Result<String> generateComprehensive(
             CalculationResults calculationResults,
             QualityResults qualityResults,
             List<RecommendationSection> recommendations,
@@ -161,11 +170,13 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
             log.info("Comprehensive HTML report generated successfully [batchId:{},size:{}]", 
                 calculationResults.batchId().value(), html.length());
             
-            return html;
+            return Result.success(html);
             
         } catch (Exception e) {
             log.error("Failed to generate comprehensive HTML report", e);
-            throw new HtmlGenerationException("Failed to generate comprehensive HTML report", e);
+            ErrorDetail error = ErrorDetail.of("HTML_GENERATION_FAILED", ErrorType.SYSTEM_ERROR, 
+                "Failed to generate comprehensive HTML report: " + e.getMessage(), "report.generation.html_failed");
+            return Result.failure(error);
         }
     }
     
@@ -208,10 +219,10 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
         // Group exposures by sector
         Map<String, BigDecimal> sectorTotals = results.exposures().stream()
             .collect(Collectors.groupingBy(
-                CalculatedExposure::sectorCode,
+                e -> e.sectorCode().value(),
                 Collectors.reducing(
                     BigDecimal.ZERO,
-                    CalculatedExposure::amountEur,
+                    e -> e.amountEur().value(),
                     BigDecimal::add
                 )
             ));
@@ -249,23 +260,23 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
         
         // Get top 10 exposures by amount
         List<CalculatedExposure> topExposures = results.exposures().stream()
-            .sorted(Comparator.comparing(CalculatedExposure::amountEur).reversed())
+            .sorted(Comparator.comparing((CalculatedExposure e) -> e.amountEur().value()).reversed())
             .limit(10)
             .collect(Collectors.toList());
         
         // Extract labels (counterparty names, truncated if too long)
         List<String> labels = topExposures.stream()
-            .map(exposure -> truncateCounterpartyName(exposure.counterpartyName(), 30))
+            .map(exposure -> truncateCounterpartyName(exposure.counterpartyName().value(), 30))
             .collect(Collectors.toList());
         
         // Extract values
         List<BigDecimal> values = topExposures.stream()
-            .map(CalculatedExposure::amountEur)
+            .map(e -> e.amountEur().value())
             .collect(Collectors.toList());
 
         // Provide sectors + limit flags so the template can apply semantic color rules.
         List<String> sectors = topExposures.stream()
-            .map(exposure -> getSectorDisplayName(exposure.sectorCode()))
+            .map(exposure -> getSectorDisplayName(exposure.sectorCode().value()))
             .collect(Collectors.toList());
 
         List<Boolean> limitExceeded = topExposures.stream()
@@ -507,7 +518,7 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
         }
 
         Map<String, List<CalculatedExposure>> grouped = results.exposures().stream()
-            .collect(Collectors.groupingBy(CalculatedExposure::sectorCode));
+            .collect(Collectors.groupingBy(e -> e.sectorCode().value()));
 
         return grouped.entrySet().stream()
             .map(entry -> {
@@ -515,7 +526,7 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
                 List<CalculatedExposure> exposures = entry.getValue();
                 int count = exposures.size();
                 BigDecimal amountSum = exposures.stream()
-                    .map(CalculatedExposure::amountEur)
+                    .map(e -> e.amountEur().value())
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
                 BigDecimal percentTotal = safePercent(amountSum, totalAmount);
@@ -537,7 +548,7 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
 
         // If exposures exist but sector codes are not informative, prefer the summary breakdown.
         boolean allPlaceholder = results.exposures().stream().allMatch(e -> {
-            String code = e.sectorCode();
+            String code = e.sectorCode().value();
             String normalized = code.trim().toLowerCase();
             return normalized.isBlank() || normalized.equals("other") || normalized.equals("unknown") || normalized.equals("n/a");
         });
@@ -571,22 +582,22 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
                 CalculatedExposure exposure = top.get(i);
                 int rank = i + 1;
                 String medal = rank == 1 ? "🥇" : rank == 2 ? "🥈" : rank == 3 ? "🥉" : "";
-                String sectorLabel = getSectorDisplayName(exposure.sectorCode());
+                String sectorLabel = getSectorDisplayName(exposure.sectorCode().value());
                 boolean limitExceeded = exposure.exceedsLimit();
 
                 String theme = switch (rank) {
                     case 1 -> "rank1";
                     case 2 -> "rank2";
                     case 3 -> "rank3";
-                    default -> riskThemeForSector(exposure.sectorCode(), sectorLabel);
+                    default -> riskThemeForSector(exposure.sectorCode().value(), sectorLabel);
                 };
 
                 return new RiskTopExposureCard(
                     rank,
                     medal,
-                    exposure.counterpartyName(),
-                    exposure.amountEur(),
-                    exposure.percentageOfCapital(),
+                    exposure.counterpartyName().value(),
+                    exposure.amountEur().value(),
+                    exposure.percentageOfCapital().value(),
                     sectorLabel,
                     limitExceeded,
                     theme
@@ -603,8 +614,8 @@ public class HtmlReportGeneratorImpl implements HtmlReportGenerator {
             .sorted(Comparator.comparing(CalculatedExposure::amountEur).reversed())
             .collect(Collectors.toList());
 
-        BigDecimal top3 = sorted.stream().limit(3).map(CalculatedExposure::amountEur).reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal top5 = sorted.stream().limit(5).map(CalculatedExposure::amountEur).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal top3 = sorted.stream().limit(3).map(e -> e.amountEur().value()).reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal top5 = sorted.stream().limit(5).map(e -> e.amountEur().value()).reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal avgAmount = BigDecimal.ZERO;
         BigDecimal avgPctCapital = BigDecimal.ZERO;

@@ -532,9 +532,9 @@ logging:
     com.bcbs239.regtech.reportgeneration: INFO
     org.flywaydb: DEBUG
     org.springframework.boot.autoconfigure.flyway: DEBUG
-    # Enable Hibernate SQL + parameter binder tracing for development troubleshooting
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    # Disable Hibernate SQL + parameter binder tracing for development
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
 
 # ============================================================================
 # DATA QUALITY & RULES ENGINE CONFIGURATION

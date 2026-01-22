@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.domain.generation;
 
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
 import lombok.NonNull;
 
 import java.math.BigDecimal;
@@ -22,19 +23,19 @@ import java.util.Optional;
  * @see com.bcbs239.regtech.reportgeneration.domain.generation
  */
 public record CalculatedExposure(
-    @NonNull String counterpartyName,
-    Optional<String> leiCode,
-    @NonNull String identifierType,
-    @NonNull String countryCode,
-    @NonNull String sectorCode,
-    Optional<String> rating,
-    @NonNull BigDecimal originalAmount,
-    @NonNull String originalCurrency,
-    @NonNull BigDecimal amountEur,
-    @NonNull BigDecimal amountAfterCrm,
-    @NonNull BigDecimal tradingBookPortion,
-    @NonNull BigDecimal nonTradingBookPortion,
-    @NonNull BigDecimal percentageOfCapital,
+    @NonNull CounterpartyName counterpartyName,
+    Optional<LeiCode> leiCode,
+    @NonNull IdentifierType identifierType,
+    @NonNull CountryCode countryCode,
+    @NonNull SectorCode sectorCode,
+    Optional<CreditRating> rating,
+    @NonNull Amount originalAmount,
+    @NonNull CurrencyCode originalCurrency,
+    @NonNull AmountEur amountEur,
+    @NonNull AmountEur amountAfterCrm,
+    @NonNull AmountEur tradingBookPortion,
+    @NonNull AmountEur nonTradingBookPortion,
+    @NonNull Percentage percentageOfCapital,
     boolean compliant
 ) {
     
@@ -42,38 +43,38 @@ public record CalculatedExposure(
      * Compact constructor with validation
      */
     public CalculatedExposure {
-        if (counterpartyName == null || counterpartyName.isBlank()) {
-            throw new IllegalArgumentException("Counterparty name cannot be null or blank");
+        if (counterpartyName == null) {
+            throw new IllegalArgumentException("Counterparty name cannot be null");
         }
-        if (identifierType == null || identifierType.isBlank()) {
-            throw new IllegalArgumentException("Identifier type cannot be null or blank");
+        if (identifierType == null) {
+            throw new IllegalArgumentException("Identifier type cannot be null");
         }
-        if (countryCode == null || countryCode.isBlank()) {
-            throw new IllegalArgumentException("Country code cannot be null or blank");
+        if (countryCode == null) {
+            throw new IllegalArgumentException("Country code cannot be null");
         }
-        if (sectorCode == null || sectorCode.isBlank()) {
-            throw new IllegalArgumentException("Sector code cannot be null or blank");
+        if (sectorCode == null) {
+            throw new IllegalArgumentException("Sector code cannot be null");
         }
-        if (originalAmount == null || originalAmount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Original amount cannot be negative");
+        if (originalAmount == null) {
+            throw new IllegalArgumentException("Original amount cannot be null");
         }
-        if (originalCurrency == null || originalCurrency.isBlank()) {
-            throw new IllegalArgumentException("Original currency cannot be null or blank");
+        if (originalCurrency == null) {
+            throw new IllegalArgumentException("Original currency cannot be null");
         }
-        if (amountEur == null || amountEur.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Amount EUR cannot be negative");
+        if (amountEur == null) {
+            throw new IllegalArgumentException("Amount EUR cannot be null");
         }
-        if (amountAfterCrm == null || amountAfterCrm.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Amount after CRM cannot be negative");
+        if (amountAfterCrm == null) {
+            throw new IllegalArgumentException("Amount after CRM cannot be null");
         }
-        if (tradingBookPortion == null || tradingBookPortion.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Trading book portion cannot be negative");
+        if (tradingBookPortion == null) {
+            throw new IllegalArgumentException("Trading book portion cannot be null");
         }
-        if (nonTradingBookPortion == null || nonTradingBookPortion.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Non-trading book portion cannot be negative");
+        if (nonTradingBookPortion == null) {
+            throw new IllegalArgumentException("Non-trading book portion cannot be null");
         }
-        if (percentageOfCapital == null || percentageOfCapital.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException("Percentage of capital cannot be negative");
+        if (percentageOfCapital == null) {
+            throw new IllegalArgumentException("Percentage of capital cannot be null");
         }
     }
     
@@ -81,34 +82,34 @@ public record CalculatedExposure(
      * Check if the exposure has a valid LEI code
      */
     public boolean hasLeiCode() {
-        return leiCode.isPresent() && !leiCode.get().isBlank();
+        return leiCode.isPresent();
     }
     
     /**
      * Check if the exposure has a credit rating
      */
     public boolean hasRating() {
-        return rating.isPresent() && !rating.get().isBlank();
+        return rating.isPresent();
     }
     
     /**
      * Check if the exposure exceeds the 25% limit
      */
     public boolean exceedsLimit() {
-        return percentageOfCapital.compareTo(new BigDecimal("25")) > 0;
+        return percentageOfCapital.isGreaterThan(new BigDecimal("25"));
     }
     
     /**
      * Get the LEI code or a default value for missing LEI
      */
     public String getLeiCodeOrDefault() {
-        return leiCode.orElse("N/A");
+        return leiCode.map(LeiCode::value).orElse("N/A");
     }
     
     /**
      * Get the rating or a default value for missing rating
      */
     public String getRatingOrDefault() {
-        return rating.orElse("Not Rated");
+        return rating.map(CreditRating::value).orElse("Not Rated");
     }
 }

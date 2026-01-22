@@ -11,7 +11,7 @@ import java.util.Locale;
  * Immutable value object that ensures consistent currency handling
  * Used for representing financial amounts in reports
  */
-public record AmountEur(BigDecimal value) {
+public record AmountEur(BigDecimal value) implements Comparable<AmountEur> {
     
     /**
      * Compact constructor with validation
@@ -124,6 +124,11 @@ public record AmountEur(BigDecimal value) {
     @Override
     public String toString() {
         return "€" + value.toPlainString();
+    }
+
+    @Override
+    public int compareTo(AmountEur other) {
+        return this.value.compareTo(other.value);
     }
 
     /**

@@ -1,5 +1,8 @@
 package com.bcbs239.regtech.reportgeneration.infrastructure.xbrl;
 
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.reportgeneration.domain.generation.ValidationError;
 import com.bcbs239.regtech.reportgeneration.domain.generation.ValidationResult;
 import com.bcbs239.regtech.reportgeneration.domain.generation.XbrlValidationException;
@@ -39,7 +42,7 @@ public class XbrlSchemaValidator implements XbrlValidator {
     private static final String EBA_SCHEMA_PATH = "xbrl/eba-corep-schema.xsd";
     
     private final Schema schema;
-    
+
     public XbrlSchemaValidator() {
         this.schema = loadSchema();
     }
@@ -48,9 +51,9 @@ public class XbrlSchemaValidator implements XbrlValidator {
      * Validate XBRL document against EBA schema
      * 
      * @param document the XBRL document to validate
-     * @return validation result with any errors found
+     * @return Result containing validation result or system error
      */
-    public ValidationResult validate(Document document) {
+    public Result<ValidationResult> validate(Document document) {
         try {
             log.debug("Starting XBRL schema validation");
             
@@ -71,23 +74,27 @@ public class XbrlSchemaValidator implements XbrlValidator {
             
             if (errors.isEmpty()) {
                 log.info("XBRL validation successful");
-                return ValidationResult.success();
+                return Result.success(ValidationResult.success());
             } else {
                 log.warn("XBRL validation failed with {} error(s)", errors.size());
-                return ValidationResult.failure(errors);
+                return Result.success(ValidationResult.failure(errors));
             }
             
         } catch (SAXException e) {
             log.error("SAX exception during XBRL validation", e);
-            return ValidationResult.failure(List.of(
+            return Result.success(ValidationResult.failure(List.of(
                 ValidationError.of("Schema validation error: " + e.getMessage())
-            ));
+            )));
         } catch (IOException e) {
             log.error("IO exception during XBRL validation", e);
-            throw new XbrlValidationException("Failed to read XBRL document for validation", e);
+            ErrorDetail error = ErrorDetail.of("XBRL_VALIDATION_ERROR", ErrorType.SYSTEM_ERROR, 
+                "Failed to read XBRL document for validation: " + e.getMessage(), "report.generation.xbrl_validation_io_error");
+            return Result.failure(error);
         } catch (Exception e) {
             log.error("Unexpected error during XBRL validation", e);
-            throw new XbrlValidationException("XBRL validation failed", e);
+            ErrorDetail error = ErrorDetail.of("XBRL_VALIDATION_ERROR", ErrorType.SYSTEM_ERROR, 
+                "XBRL validation failed: " + e.getMessage(), "report.generation.xbrl_validation_failed");
+            return Result.failure(error);
         }
     }
     

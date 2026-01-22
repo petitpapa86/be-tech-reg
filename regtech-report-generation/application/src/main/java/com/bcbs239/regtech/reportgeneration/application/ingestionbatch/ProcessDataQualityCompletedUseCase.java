@@ -20,6 +20,10 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.reportgeneration.domain.generation.GeneratedReport;
+import java.util.concurrent.CompletableFuture;
+
 @Component("ProcessDataQualityCompletedUseCase")
 @RequiredArgsConstructor
 public class ProcessDataQualityCompletedUseCase {
@@ -33,7 +37,14 @@ public class ProcessDataQualityCompletedUseCase {
                 return;
             }
 
-            handle(event);
+            handle(event).thenAccept(result -> {
+                if (result != null && result.isFailure()) {
+                    handleEventProcessingError(event, new RuntimeException(result.getError().get().getMessage()));
+                }
+            }).exceptionally(e -> {
+                handleEventProcessingError(event, (Exception) e);
+                return null;
+            });
 
         } catch (Exception e) {
 
@@ -41,8 +52,7 @@ public class ProcessDataQualityCompletedUseCase {
         }
     }
 
-    @Async("qualityEventExecutor")
-    private void handle(DataQualityCompletedInboundEvent event) {
+    private CompletableFuture<Result<GeneratedReport>> handle(DataQualityCompletedInboundEvent event) {
         QualityEventData qualityEventData = new QualityEventData(
                 event.getBatchId(),
                 event.getBankId(),
@@ -51,7 +61,7 @@ public class ProcessDataQualityCompletedUseCase {
                 event.getQualityGrade(),
                 event.getCompletedAt()
         );
-        reportCoordinator.handleQualityCompleted(qualityEventData);
+        return reportCoordinator.handleQualityCompleted(qualityEventData);
 
     }
 

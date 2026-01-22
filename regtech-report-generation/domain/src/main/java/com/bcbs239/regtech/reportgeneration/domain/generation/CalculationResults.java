@@ -19,7 +19,7 @@ import java.util.stream.Collectors;
 public record CalculationResults(
     @NonNull BatchId batchId,
     @NonNull BankId bankId,
-    @NonNull String bankName,
+    @NonNull BankName bankName,
     @NonNull ReportingDate reportingDate,
     @NonNull AmountEur tierOneCapital,
     int totalExposures,
@@ -42,8 +42,8 @@ public record CalculationResults(
         if (bankId == null) {
             throw new IllegalArgumentException("Bank ID cannot be null");
         }
-        if (bankName == null || bankName.isBlank()) {
-            throw new IllegalArgumentException("Bank name cannot be null or blank");
+        if (bankName == null) {
+            throw new IllegalArgumentException("Bank name cannot be null");
         }
         if (reportingDate == null) {
             throw new IllegalArgumentException("Reporting date cannot be null");
@@ -83,7 +83,7 @@ public record CalculationResults(
      */
     public List<CalculatedExposure> getLargeExposures() {
         return exposures.stream()
-            .filter(exposure -> exposure.percentageOfCapital().compareTo(new BigDecimal("10")) >= 0)
+            .filter(exposure -> exposure.percentageOfCapital().isGreaterThanOrEqualTo(new BigDecimal("10")))
             .collect(Collectors.toList());
     }
     
@@ -93,7 +93,7 @@ public record CalculationResults(
      */
     public List<CalculatedExposure> getNonCompliantExposures() {
         return exposures.stream()
-            .filter(exposure -> exposure.percentageOfCapital().compareTo(new BigDecimal("25")) > 0)
+            .filter(exposure -> exposure.percentageOfCapital().isGreaterThan(new BigDecimal("25")))
             .collect(Collectors.toList());
     }
 

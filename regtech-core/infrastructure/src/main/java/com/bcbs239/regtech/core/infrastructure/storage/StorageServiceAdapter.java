@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -35,6 +36,18 @@ public class StorageServiceAdapter implements IStorageService {
     @Nullable
     private final CoreS3Service s3Service;
     private final JsonStorageHelper jsonHelper;
+
+    @Value("${report-generation.storage.type:${storage.type:local}}")
+    private String storageType;
+
+    @Value("${report-generation.storage.local.base-path:${storage.local.base-path:./data/reports}}")
+    private String localBasePath;
+
+    @Value("${storage.s3.bucket-name:bcbs239-reports}")
+    private String s3BucketName;
+
+    @Value("${storage.s3.report-prefix:reports/}")
+    private String reportPrefix;
     
     public StorageServiceAdapter(
             @Autowired(required = false) @Nullable CoreS3Service s3Service,
@@ -543,5 +556,35 @@ public class StorageServiceAdapter implements IStorageService {
             .build();
         
         return Result.success(result);
+    }
+
+    // ------------------------------------------------------------------------
+    // Convenience: build URI from configured settings and proxy to existing methods
+    // ------------------------------------------------------------------------
+
+    @Override
+    public Result<StorageResult> uploadToStorage(String content, String subPath, Map<String, String> metadata) throws java.io.IOException, com.fasterxml.jackson.core.JsonProcessingException {
+        StorageUri uri = buildStorageUri(subPath);
+        return upload(content, uri, metadata);
+    }
+
+    @Override
+    public Result<String> generatePresignedUrlForPath(String subPath, Duration expiration) {
+        StorageUri uri = buildStorageUri(subPath);
+        return generatePresignedUrl(uri, expiration);
+    }
+
+    private StorageUri buildStorageUri(String subPath) {
+        String type = storageType == null ? "local" : storageType;
+        if (type.equalsIgnoreCase("s3")) {
+            // ensure prefix and subPath combine without duplicate slashes
+            String key = (reportPrefix == null ? "" : reportPrefix).replaceAll("^/|/$", "") + "/" + subPath.replaceAll("^/", "");
+            key = key.replaceAll("\\\\", "/");
+            return StorageUri.s3(s3BucketName, key);
+        } else {
+            String base = localBasePath == null ? "./data/reports" : localBasePath;
+            String path = base.endsWith("/") ? base + subPath : base + "/" + subPath;
+            return StorageUri.local(path);
+        }
     }
 }

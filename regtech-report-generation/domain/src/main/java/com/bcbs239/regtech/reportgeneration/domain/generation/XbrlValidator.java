@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.domain.generation;
 
+import com.bcbs239.regtech.core.domain.shared.Result;
 import org.w3c.dom.Document;
 
 /**
@@ -24,8 +25,7 @@ public interface XbrlValidator {
      * - Automatic correction suggestions (trim whitespace, round decimals)
      * 
      * @param xbrlDocument the XBRL document to validate
-     * @return the validation result with status and any error details
-     * @throws XbrlValidationException if validation process itself fails
+     * @return a Result containing the validation result (which itself contains validation status), or a system error
      */
-    ValidationResult validate(Document xbrlDocument);
+    Result<ValidationResult> validate(Document xbrlDocument);
 }

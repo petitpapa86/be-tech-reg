@@ -129,6 +129,34 @@ public interface IStorageService {
         @NonNull StorageUri uri,
         @NonNull Duration expiration
     );
+
+    /**
+     * Convenience method: build storage URI from configured settings and upload content.
+     *
+     * @param content content to upload
+     * @param subPath sub-path within configured storage (e.g. "html/report.html")
+     * @param metadata metadata to attach
+     * @return Result with StorageResult or failure
+     * @throws IOException on I/O errors
+     * @throws com.fasterxml.jackson.core.JsonProcessingException on JSON validation errors
+     */
+    Result<StorageResult> uploadToStorage(
+        @NonNull String content,
+        @NonNull String subPath,
+        @NonNull Map<String, String> metadata
+    ) throws IOException, com.fasterxml.jackson.core.JsonProcessingException;
+
+    /**
+     * Convenience method: generate presigned URL for a configured storage sub-path.
+     *
+     * @param subPath sub-path within configured storage
+     * @param expiration expiration duration
+     * @return Result containing presigned URL or error
+     */
+    Result<String> generatePresignedUrlForPath(
+        @NonNull String subPath,
+        @NonNull Duration expiration
+    );
     
     /**
      * Gets metadata about stored content

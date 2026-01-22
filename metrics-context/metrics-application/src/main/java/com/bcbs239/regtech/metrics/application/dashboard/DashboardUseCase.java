@@ -43,9 +43,9 @@ public class DashboardUseCase {
         String start = startOfMonth.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         String end = now.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
 
-        signalPublisher.publish(new DashboardQueriedSignal(bankId == null ? null : bankId.getValue(), start, end));
+        signalPublisher.publish(new DashboardQueriedSignal(bankId.getValue(), start, end));
 
-        List<ComplianceFile> files = fileRepository.findByBankIdAndDateBetween(bankId, start, end);
+
 
         List<ComplianceReport> reports = complianceReportRepository.findRecentForMonth(
                 bankId,
@@ -71,7 +71,7 @@ public class DashboardUseCase {
                 metrics.getBcbsRulesScore(),
                 metrics.getCompletenessScore()
         );
-
+        List<ComplianceFile> files = fileRepository.findByBankIdAndDateBetween(bankId, start, end);
         // Keep behavior minimal for now: last-batch violations derived from the displayed file list.
         return new DashboardResult(summary, compliance, files, reports, computeLastBatchViolations(files));
     }

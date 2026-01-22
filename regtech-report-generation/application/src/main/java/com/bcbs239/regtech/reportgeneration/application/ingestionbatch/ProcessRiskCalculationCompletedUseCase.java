@@ -20,6 +20,10 @@ import java.math.BigDecimal;
 import java.util.Map;
 
 
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.reportgeneration.domain.generation.GeneratedReport;
+import java.util.concurrent.CompletableFuture;
+
 @Component("ProcessRiskCalculationCompletedUseCase")
 @RequiredArgsConstructor
 public class ProcessRiskCalculationCompletedUseCase {
@@ -33,7 +37,14 @@ public class ProcessRiskCalculationCompletedUseCase {
                 return;
             }
 
-            handle(event);
+            handle(event).thenAccept(result -> {
+                if (result != null && result.isFailure()) {
+                    handleEventProcessingError(event, new RuntimeException(result.getError().get().getMessage()));
+                }
+            }).exceptionally(e -> {
+                handleEventProcessingError(event, (Exception) e);
+                return null;
+            });
 
         } catch (Exception e) {
 
@@ -41,8 +52,7 @@ public class ProcessRiskCalculationCompletedUseCase {
         }
     }
 
-    @Async("reportGenerationExecutor")
-    private void handle(RiskCalculationCompletedInboundEvent event) {
+    private CompletableFuture<Result<GeneratedReport>> handle(RiskCalculationCompletedInboundEvent event) {
         CalculationEventData calculationEventData = new CalculationEventData(
                 event.getBatchId(),
                 event.getBankId(),
@@ -51,7 +61,7 @@ public class ProcessRiskCalculationCompletedUseCase {
                 event.getTotalAmountEur(),
                 event.getCompletedAt()
         );
-        reportCoordinator.handleCalculationCompleted(calculationEventData);
+        return reportCoordinator.handleCalculationCompleted(calculationEventData);
 
     }
 

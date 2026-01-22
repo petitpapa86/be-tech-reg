@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.domain.generation;
 
+import com.bcbs239.regtech.core.domain.shared.Result;
 import org.w3c.dom.Document;
 
 /**
@@ -30,8 +31,7 @@ public interface XbrlReportGenerator {
      * 
      * @param results the calculation results containing exposure data
      * @param metadata the report metadata (bank ID, reporting date, etc.)
-     * @return the generated XBRL document as a DOM Document
-     * @throws XbrlGenerationException if XBRL generation fails
+     * @return a Result containing the generated XBRL document as a DOM Document, or an error
      */
-    Document generate(CalculationResults results, ReportMetadata metadata);
+    Result<Document> generate(CalculationResults results, ReportMetadata metadata);
 }
