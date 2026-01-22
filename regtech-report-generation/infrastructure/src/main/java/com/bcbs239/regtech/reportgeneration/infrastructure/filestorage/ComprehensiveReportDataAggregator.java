@@ -2,6 +2,8 @@ package com.bcbs239.regtech.reportgeneration.application.generation;
 
 import com.bcbs239.regtech.core.domain.recommendations.QualityInsight;
 import com.bcbs239.regtech.core.domain.recommendations.RecommendationSeverity;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.domain.storage.IStorageService;
 import com.bcbs239.regtech.core.domain.storage.StorageUri;
@@ -35,7 +37,7 @@ import java.util.*;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class ComprehensiveReportDataAggregator {
+public class ComprehensiveReportDataAggregator implements IReportDataSource {
     
     private final IStorageService storageService;
     private final ObjectMapper objectMapper;
@@ -47,7 +49,7 @@ public class ComprehensiveReportDataAggregator {
      * 
      * Requirements: 3.1, 3.2, 5.2
      */
-    public ComprehensiveReportData fetchAllData(
+    public Result<ComprehensiveReportData> fetchAllData(
             CalculationEventData calculationEvent,
             QualityEventData qualityEvent) {
         
@@ -56,43 +58,22 @@ public class ComprehensiveReportDataAggregator {
         try {
             log.info("Fetching comprehensive report data for batch: {}", calculationEvent.getBatchId());
             
-            // Fetch both data sources
-            CalculationResults calculationResults = fetchCalculationData(calculationEvent);
-            QualityResults qualityResults = fetchQualityData(qualityEvent, calculationEvent.getBankId());
-            
-            // Validate data consistency
-            validateDataConsistency(calculationResults, qualityResults);
-            
-            // Build comprehensive data
-            ComprehensiveReportData reportData = ComprehensiveReportData.builder()
-                .batchId(calculationEvent.getBatchId())
-                .bankId(calculationEvent.getBankId())
-                .bankName(calculationResults.bankName())
-                .reportingDate(calculationResults.reportingDate().value())
-                .calculationResults(calculationResults)
-                .qualityResults(qualityResults)
-                .build();
-            
-            reportData.validate();
-            
-            log.info("Successfully fetched comprehensive report data for batch: {}", 
-                calculationEvent.getBatchId());
-            
-            meterRegistry.counter("report.data.aggregation.success").increment();
-            
-            return reportData;
-            
-        } catch (Exception e) {
-            log.error("Failed to fetch comprehensive report data for batch: {}", 
-                calculationEvent.getBatchId(), e);
-            
-            meterRegistry.counter("report.data.aggregation.failure",
-                "failure_reason", e.getClass().getSimpleName()).increment();
-            
-            throw new DataAggregationException(
-                "Failed to fetch comprehensive report data for batch: " + calculationEvent.getBatchId(),
-                e
-            );
+            return fetchCalculationData(calculationEvent)
+                .flatMap(calculationResults -> fetchQualityData(qualityEvent, calculationEvent.getBankId())
+                    .flatMap(qualityResults -> validateDataConsistency(calculationResults, qualityResults)
+                        .map(valid -> {
+                            log.info("Successfully fetched comprehensive report data for batch: {}", 
+                                calculationEvent.getBatchId());
+                            
+                            meterRegistry.counter("report.data.aggregation.success").increment();
+                            
+                            return ComprehensiveReportData.builder()
+                                .calculationResults(calculationResults)
+                                .qualityResults(qualityResults)
+                                .build();
+                        })
+                    )
+                );
             
         } finally {
             sample.stop(Timer.builder("report.data.aggregation.duration")
@@ -105,7 +86,8 @@ public class ComprehensiveReportDataAggregator {
      * 
      * Requirements: 3.1, 3.3
      */
-    public CalculationResults fetchCalculationData(CalculationEventData event) {
+    @Override
+    public Result<CalculationResults> fetchCalculationData(CalculationEventData event) {
         Timer.Sample sample = Timer.start(meterRegistry);
         
         try {
@@ -115,24 +97,13 @@ public class ComprehensiveReportDataAggregator {
             StorageUri uri = StorageUri.parse(event.getResultFileUri());
             
             // Download using shared storage service
-            Result<String> downloadResult = storageService.download(uri);
-            if (downloadResult.isFailure()) {
-                throw new DataAggregationException(
-                    "Failed to download calculation data from storage: " + 
-                    downloadResult.getError().orElseThrow().getMessage()
-                );
-            }
-            
-            String jsonContent = downloadResult.getValueOrThrow();
-            
-            // Parse JSON and map to domain object
-            CalculationResults results = mapCalculationJson(jsonContent, event);
-            
-            log.debug("Successfully fetched calculation data for batch: {}", event.getBatchId());
-            
-            meterRegistry.counter("report.data.calculation.fetch.success").increment();
-            
-            return results;
+            return storageService.download(uri)
+                .flatMap(jsonContent -> mapCalculationJson(jsonContent, event))
+                .map(results -> {
+                    log.debug("Successfully fetched calculation data for batch: {}", event.getBatchId());
+                    meterRegistry.counter("report.data.calculation.fetch.success").increment();
+                    return results;
+                });
             
         } catch (IllegalArgumentException e) {
             log.error("Invalid calculation data URI for batch: {}", event.getBatchId(), e);
@@ -140,22 +111,25 @@ public class ComprehensiveReportDataAggregator {
             meterRegistry.counter("report.data.calculation.fetch.failure",
                 "failure_reason", "InvalidURI").increment();
             
-            throw new DataAggregationException(
-                "Invalid storage URI for batch: " + event.getBatchId(),
-                e
-            );
+            return Result.failure(ErrorDetail.of(
+                "INVALID_STORAGE_URI",
+                ErrorType.VALIDATION_ERROR,
+                "Invalid storage URI: " + e.getMessage(),
+                "storage.uri.invalid"
+            ));
             
-        } catch (Exception e) {
-            log.error("Failed to fetch calculation data for batch: {}", event.getBatchId(), e);
+        } catch (java.io.IOException e) {
+            log.error("Failed to download calculation data for batch: {}", event.getBatchId(), e);
             
             meterRegistry.counter("report.data.calculation.fetch.failure",
-                "failure_reason", e.getClass().getSimpleName()).increment();
+                "failure_reason", "IOError").increment();
             
-            throw new DataAggregationException(
-                "Failed to fetch calculation data for batch: " + event.getBatchId(),
-                e
-            );
-            
+            return Result.failure(ErrorDetail.of(
+                "STORAGE_IO_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to download calculation data: " + e.getMessage(),
+                "storage.io.error"
+            ));
         } finally {
             sample.stop(Timer.builder("report.data.calculation.fetch.duration")
                 .register(meterRegistry));
@@ -167,11 +141,13 @@ public class ComprehensiveReportDataAggregator {
      * 
      * Requirements: 3.2, 3.4
      */
-    public QualityResults fetchQualityData(QualityEventData event) {
+    @Override
+    public Result<QualityResults> fetchQualityData(QualityEventData event) {
         return fetchQualityData(event, null);
     }
 
-    private QualityResults fetchQualityData(QualityEventData event, String canonicalBankId) {
+    @Override
+    public Result<QualityResults> fetchQualityData(QualityEventData event, String canonicalBankId) {
         Timer.Sample sample = Timer.start(meterRegistry);
         
         try {
@@ -181,24 +157,13 @@ public class ComprehensiveReportDataAggregator {
             StorageUri uri = StorageUri.parse(event.getResultFileUri());
             
             // Download using shared storage service
-            Result<String> downloadResult = storageService.download(uri);
-            if (downloadResult.isFailure()) {
-                throw new DataAggregationException(
-                    "Failed to download quality data from storage: " + 
-                    downloadResult.getError().orElseThrow().getMessage()
-                );
-            }
-            
-            String jsonContent = downloadResult.getValueOrThrow();
-            
-            // Parse JSON and map to domain object
-            QualityResults results = mapQualityJson(jsonContent, event, canonicalBankId);
-            
-            log.debug("Successfully fetched quality data for batch: {}", event.getBatchId());
-            
-            meterRegistry.counter("report.data.quality.fetch.success").increment();
-            
-            return results;
+            return storageService.download(uri)
+                .flatMap(jsonContent -> mapQualityJson(jsonContent, event, canonicalBankId))
+                .map(results -> {
+                    log.debug("Successfully fetched quality data for batch: {}", event.getBatchId());
+                    meterRegistry.counter("report.data.quality.fetch.success").increment();
+                    return results;
+                });
             
         } catch (IllegalArgumentException e) {
             log.error("Invalid quality data URI for batch: {}", event.getBatchId(), e);
@@ -206,22 +171,25 @@ public class ComprehensiveReportDataAggregator {
             meterRegistry.counter("report.data.quality.fetch.failure",
                 "failure_reason", "InvalidURI").increment();
             
-            throw new DataAggregationException(
-                "Invalid storage URI for batch: " + event.getBatchId(),
-                e
-            );
+            return Result.failure(ErrorDetail.of(
+                "INVALID_STORAGE_URI",
+                ErrorType.VALIDATION_ERROR,
+                "Invalid storage URI: " + e.getMessage(),
+                "storage.uri.invalid"
+            ));
             
-        } catch (Exception e) {
-            log.error("Failed to fetch quality data for batch: {}", event.getBatchId(), e);
+        } catch (java.io.IOException e) {
+            log.error("Failed to download quality data for batch: {}", event.getBatchId(), e);
             
             meterRegistry.counter("report.data.quality.fetch.failure",
-                "failure_reason", e.getClass().getSimpleName()).increment();
+                "failure_reason", "IOError").increment();
             
-            throw new DataAggregationException(
-                "Failed to fetch quality data for batch: " + event.getBatchId(),
-                e
-            );
-            
+            return Result.failure(ErrorDetail.of(
+                "STORAGE_IO_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to download quality data: " + e.getMessage(),
+                "storage.io.error"
+            ));
         } finally {
             sample.stop(Timer.builder("report.data.quality.fetch.duration")
                 .register(meterRegistry));
@@ -233,7 +201,7 @@ public class ComprehensiveReportDataAggregator {
      * 
      * Requirements: 4.2, 4.3, 4.4
      */
-    public void validateDataConsistency(
+    public Result<Void> validateDataConsistency(
             CalculationResults calculationResults,
             QualityResults qualityResults) {
         
@@ -243,21 +211,27 @@ public class ComprehensiveReportDataAggregator {
         // Validate batch ID consistency
         if (!calculationResults.batchId().value().equals(
                 qualityResults.getBatchId().value())) {
-            throw new DataAggregationException(
+            return Result.failure(ErrorDetail.of(
+                "DATA_CONSISTENCY_ERROR",
+                ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Batch ID mismatch: calculation=%s, quality=%s",
                     calculationResults.batchId().value(),
-                    qualityResults.getBatchId().value())
-            );
+                    qualityResults.getBatchId().value()),
+                "data.consistency.mismatch"
+            ));
         }
         
         // Validate bank ID consistency
         if (!calculationResults.bankId().value().equals(
                 qualityResults.getBankId().value())) {
-            throw new DataAggregationException(
+            return Result.failure(ErrorDetail.of(
+                "DATA_CONSISTENCY_ERROR",
+                ErrorType.BUSINESS_RULE_ERROR,
                 String.format("Bank ID mismatch: calculation=%s, quality=%s",
                     calculationResults.bankId().value(),
-                    qualityResults.getBankId().value())
-            );
+                    qualityResults.getBankId().value()),
+                "data.consistency.mismatch"
+            ));
         }
         
         // Validate exposure count consistency (with tolerance for filtering)
@@ -272,12 +246,14 @@ public class ComprehensiveReportDataAggregator {
         
         log.debug("Data consistency validation passed for batch: {}", 
             calculationResults.batchId().value());
+            
+        return Result.success();
     }
     
     /**
      * Map calculation JSON to domain object
      */
-    private CalculationResults mapCalculationJson(String jsonContent, CalculationEventData event) {
+    private Result<CalculationResults> mapCalculationJson(String jsonContent, CalculationEventData event) {
         try {
             JsonNode root = objectMapper.readTree(jsonContent);
 
@@ -360,7 +336,7 @@ public class ComprehensiveReportDataAggregator {
                 timestamps = mapProcessingTimestamps(root.path("processingTimestamps"));
             }
             
-            return new CalculationResults(
+            return Result.success(new CalculationResults(
                 BatchId.of(batchId),
                 BankId.of(bankId),
                 bankName,
@@ -374,11 +350,16 @@ public class ComprehensiveReportDataAggregator {
                 sectorBreakdown,
                 concentrationIndices,
                 timestamps
-            );
+            ));
             
         } catch (Exception e) {
             log.error("Failed to parse calculation JSON", e);
-            throw new DataAggregationException("Failed to parse calculation JSON", e);
+            return Result.failure(ErrorDetail.of(
+                "JSON_PARSE_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to parse calculation JSON: " + e.getMessage(),
+                "json.parse.error"
+            ));
         }
     }
 
@@ -536,7 +517,7 @@ public class ComprehensiveReportDataAggregator {
     /**
      * Map quality JSON to domain object
      */
-    private QualityResults mapQualityJson(String jsonContent, QualityEventData event, String canonicalBankId) {
+    private Result<QualityResults> mapQualityJson(String jsonContent, QualityEventData event, String canonicalBankId) {
         try {
             JsonNode root = objectMapper.readTree(jsonContent);
             
@@ -573,7 +554,7 @@ public class ComprehensiveReportDataAggregator {
             // Extract recommendations (if present)
             List<QualityInsight> recommendations = mapRecommendations(root.path("recommendations"));
             
-            return new QualityResults(
+            return Result.success(new QualityResults(
                 BatchId.of(batchId),
                 BankId.of(bankId),
                 timestamp,
@@ -584,11 +565,16 @@ public class ComprehensiveReportDataAggregator {
                 batchErrors,
                 exposureResults,
                 recommendations
-            );
+            ));
             
         } catch (Exception e) {
             log.error("Failed to parse quality JSON", e);
-            throw new DataAggregationException("Failed to parse quality JSON", e);
+            return Result.failure(ErrorDetail.of(
+                "JSON_PARSE_ERROR",
+                ErrorType.SYSTEM_ERROR,
+                "Failed to parse quality JSON: " + e.getMessage(),
+                "json.parse.error"
+            ));
         }
     }
     
