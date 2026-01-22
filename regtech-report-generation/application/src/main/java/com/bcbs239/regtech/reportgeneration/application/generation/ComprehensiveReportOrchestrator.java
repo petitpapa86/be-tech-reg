@@ -43,6 +43,8 @@ import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.S3Uri;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.XbrlReportMetadata;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.XbrlValidationStatus;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.annotation.Timed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -73,7 +75,7 @@ public class ComprehensiveReportOrchestrator {
     private final IStorageService storageService;  // Changed from IReportStorageService
     private final IGeneratedReportRepository reportRepository;
     private final BatchEventTracker eventTracker;
-    private final ReportGenerationMetrics metrics;
+    private final MeterRegistry meterRegistry;
     private final BaseUnitOfWork unitOfWork;
     private final StorageMetadataService storageMetadataService;
     private final XmlSerializer xmlSerializer;
@@ -106,13 +108,13 @@ public class ComprehensiveReportOrchestrator {
 
         try {
             log.info("Starting comprehensive report generation [batchId:{}]", batchId);
-            metrics.recordReportGenerationStart(batchId);
+            // Report generation start is implicitly tracked by @Timed
 
             // Step 1: Check for existing COMPLETED report (idempotency)
             Optional<GeneratedReport> existingReport = reportRepository.findByBatchId(BatchId.of(batchId));
             if (existingReport.isPresent() && existingReport.get().getStatus() == ReportStatus.COMPLETED) {
                 log.info("Report already exists with COMPLETED status [batchId:{}], skipping generation", batchId);
-                metrics.recordDuplicateSkipped(batchId);
+                meterRegistry.counter("report.generation.skipped", "reason", "duplicate").increment();
                 return CompletableFuture.completedFuture(Result.success(existingReport.get()));
             }
 
@@ -120,7 +122,7 @@ public class ComprehensiveReportOrchestrator {
             long dataFetchStart = System.currentTimeMillis();
             Result<ComprehensiveReportData> aggregationResult = dataAggregator.fetchAllData(riskEventData, qualityEventData);
             long dataFetchDuration = System.currentTimeMillis() - dataFetchStart;
-            metrics.recordDataFetchDuration(batchId, dataFetchDuration);
+            meterRegistry.timer("report.generation.data.fetch").record(dataFetchDuration, TimeUnit.MILLISECONDS);
 
             if (aggregationResult.isFailure()) {
                 log.error("Data aggregation failed [batchId:{}]: {}", batchId, aggregationResult.getError().map(ErrorDetail::getMessage).orElse("Unknown error"));
@@ -191,13 +193,13 @@ public class ComprehensiveReportOrchestrator {
                 report.markHtmlGenerated(htmlMetadata);
                 String reason = xbrlResult.getError().map(ErrorDetail::getMessage).orElse("XBRL generation failed");
                 handlePartialFailure(batchId, reason);
-                metrics.recordReportGenerationPartial(batchId, "xbrl_failed");
+                meterRegistry.counter("report.generation.partial", "reason", "xbrl_failed").increment();
             } else if (xbrlOk) {
                 XbrlReportMetadata xbrlMetadata = xbrlResult.getValueOrThrow();
                 report.markXbrlGenerated(xbrlMetadata);
                 String reason = htmlResult.getError().map(ErrorDetail::getMessage).orElse("HTML generation failed");
                 handlePartialFailure(batchId, reason);
-                metrics.recordReportGenerationPartial(batchId, "html_failed");
+                meterRegistry.counter("report.generation.partial", "reason", "html_failed").increment();
             } else {
                 // Both failed
                 String reason = String.format("HTML: %s | XBRL: %s",
@@ -205,7 +207,7 @@ public class ComprehensiveReportOrchestrator {
                         xbrlResult.getError().map(ErrorDetail::getMessage).orElse("unknown")
                 );
                 handleGenerationFailure(batchId, new Exception(reason));
-                metrics.recordReportGenerationFailure(batchId, "both_failed", System.currentTimeMillis() - startTime);
+                meterRegistry.counter("report.generation.failed", "reason", "both_failed").increment();
                 return CompletableFuture.completedFuture(Result.failure(ErrorDetail.of("GENERATION_FAILED", ErrorType.SYSTEM_ERROR, reason, "report.generation.failed")));
             }
 
@@ -218,7 +220,7 @@ public class ComprehensiveReportOrchestrator {
             eventTracker.cleanup(batchId);
 
             long totalDuration = System.currentTimeMillis() - startTime;
-            metrics.recordReportGenerationSuccess(batchId, totalDuration);
+            // Success metric handled by @Timed
 
             log.info("Comprehensive report generation completed [batchId:{},reportId:{},duration:{}ms]",
                     batchId, report.getReportId().value(), totalDuration);
@@ -231,7 +233,7 @@ public class ComprehensiveReportOrchestrator {
             handleGenerationFailure(batchId, e);
 
             long totalDuration = System.currentTimeMillis() - startTime;
-            metrics.recordReportGenerationFailure(batchId, e.getClass().getSimpleName(), totalDuration);
+            meterRegistry.counter("report.generation.failed", "reason", e.getClass().getSimpleName()).increment();
 
             return CompletableFuture.completedFuture(Result.failure(ErrorDetail.of(
                     "REPORT_GENERATION_FAILED",
@@ -311,7 +313,7 @@ public class ComprehensiveReportOrchestrator {
                     : storageResult.uri().toString(); // Fallback to storage URI for local files
 
             long duration = System.currentTimeMillis() - startTime;
-            metrics.recordHtmlGenerationDuration(batchId, duration);
+            meterRegistry.timer("report.generation.html").record(duration, TimeUnit.MILLISECONDS);
 
             log.info("HTML generation completed [batchId:{},fileName:{},size:{},duration:{}ms]",
                     batchId, fileName, FileSize.ofBytes(storageResult.sizeBytes()).toHumanReadable(), duration);
@@ -403,7 +405,7 @@ public class ComprehensiveReportOrchestrator {
                     : storageResult.uri().toString(); // Fallback to storage URI for local files
 
             long duration = System.currentTimeMillis() - startTime;
-            metrics.recordXbrlGenerationDuration(batchId, duration);
+            meterRegistry.timer("report.generation.xbrl").record(duration, TimeUnit.MILLISECONDS);
 
             log.info("XBRL generation completed [batchId:{},fileName:{},size:{},duration:{}ms]",
                     batchId, fileName, FileSize.ofBytes(storageResult.sizeBytes()).toHumanReadable(), duration);
