@@ -90,25 +90,5 @@ public class ReportCoordinator {
             log.info("Waiting for both events to be present for batch: {}", batchId);
         }
     }
-    
-    /**
-     * Checks if a batch is currently being tracked (has at least one event).
-     * Useful for monitoring and debugging.
-     * 
-     * @param batchId the batch identifier
-     * @return true if batch is being tracked, false otherwise
-     */
-    public boolean isTracking(String batchId) {
-        return eventTracker.isTracking(batchId);
-    }
-    
-    /**
-     * Returns the current number of batches being coordinated.
-     * Useful for monitoring and health checks.
-     * 
-     * @return number of batches being tracked
-     */
-    public int getTrackedBatchCount() {
-        return eventTracker.getTrackedBatchCount();
-    }
+
 }

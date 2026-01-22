@@ -41,8 +41,7 @@ public class ComprehensiveReportDataAggregator {
     private final ObjectMapper objectMapper;
     private final MeterRegistry meterRegistry;
     
-    private static final long FILE_DOWNLOAD_TIMEOUT_MS = 30000; // 30 seconds
-    
+
     /**
      * Fetch all data required for comprehensive report generation
      * 
@@ -407,7 +406,7 @@ public class ComprehensiveReportDataAggregator {
                 exposureId.isBlank() ? "Unknown" : ("Exposure " + exposureId)
             );
 
-            Optional<String> leiCode = Optional.ofNullable(firstNonBlank(node.path("lei_code").asText(), node.path("leiCode").asText()))
+            Optional<String> leiCode = Optional.of(firstNonBlank(node.path("lei_code").asText(), node.path("leiCode").asText()))
                 .filter(s -> !s.isBlank());
 
             String identifierType;
@@ -436,7 +435,7 @@ public class ComprehensiveReportDataAggregator {
                 "other"
             );
 
-            Optional<String> rating = Optional.ofNullable(firstNonBlank(node.path("rating").asText(), node.path("credit_rating").asText()))
+            Optional<String> rating = Optional.of(firstNonBlank(node.path("rating").asText(), node.path("credit_rating").asText()))
                 .filter(s -> !s.isBlank());
 
             BigDecimal originalAmount = safeBigDecimal(firstNumberNode(node,
