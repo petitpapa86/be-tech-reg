@@ -95,7 +95,7 @@ class BatchIdTest {
         String batchValue = "batch_20231115_143000_uuid";
         com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId batchId = com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId.of(batchValue);
         
-        assertEquals(batchValue, batchId.toString());
+        assertEquals("BatchId[value=" + batchValue + "]", batchId.toString());
     }
 
     @Test

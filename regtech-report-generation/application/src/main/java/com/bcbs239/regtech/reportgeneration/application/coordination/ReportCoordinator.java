@@ -66,14 +66,7 @@ public class ReportCoordinator {
         return CompletableFuture.completedFuture(Result.success(null));
     }
     
-    /**
-     * Handles the arrival of a quality completed event.
-     * Marks the event as received and checks if both events are now present.
-     * If both events are present, triggers comprehensive report generation.
-     *
-     * @param eventData the quality event data
-     * @return a CompletableFuture containing the result of the report generation, or success(null) if not triggered
-     */
+
     public CompletableFuture<Result<GeneratedReport>> handleQualityCompleted(QualityEventData eventData) {
         String batchId = eventData.getBatchId();
         
@@ -82,13 +75,11 @@ public class ReportCoordinator {
         // Mark quality validation as complete
         eventTracker.markQualityComplete(batchId, eventData);
         
-        // Check if both events are now present
         if (eventTracker.areBothComplete(batchId)) {
             log.info("Both events present for batch: {}. Triggering comprehensive report generation", batchId);
             
             BatchEventTracker.BatchEvents events = eventTracker.getBothEvents(batchId);
             
-            // Trigger asynchronous report generation
             return reportOrchestrator.generateComprehensiveReport(
                 events.getRiskEventData(),
                 events.getQualityEventData()

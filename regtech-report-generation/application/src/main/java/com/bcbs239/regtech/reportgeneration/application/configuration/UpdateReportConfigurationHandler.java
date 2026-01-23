@@ -95,8 +95,7 @@ public class UpdateReportConfigurationHandler {
             fieldErrors.add(new FieldError("scheduleTime", e.getMessage(), e.getMessageKey()));
         }
 
-        // Use shared Core Email value object for primary recipient validation,
-        // then map to domain EmailRecipient. Optional CC retains previous behaviour.
+
         Result<EmailRecipient> primaryRecipientResult;
         Maybe<EmailRecipient> ccRecipient;
 
@@ -132,7 +131,6 @@ public class UpdateReportConfigurationHandler {
             return Result.failure(ErrorDetail.validationError(fieldErrors));
         }
         
-        // Get existing configuration or create new one
         ReportConfiguration config = repository.findByBankId(command.bankId)
                 .map(existing -> existing.update(
                         command.bankId,

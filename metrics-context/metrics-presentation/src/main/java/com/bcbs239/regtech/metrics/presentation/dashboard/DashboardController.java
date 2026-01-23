@@ -48,6 +48,7 @@ public class DashboardController {
 
         List<FileItem> fileItems = filesDomain.stream()
                 .map(file -> new FileItem(
+                        file.getId(),
                         file.getFilename(),
                         formatDate(file.getDate()),
                         file.getScore(),

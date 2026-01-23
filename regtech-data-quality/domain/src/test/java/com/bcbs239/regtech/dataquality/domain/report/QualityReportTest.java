@@ -145,7 +145,7 @@ class QualityReportTest {
         QualityReport report = setupCompleteReport();
         
         // When
-        Result<Void> result = report.completeValidation();
+        Result<Void> result = report.completeValidation("test-file.json");
         
         // Then
         assertTrue(result.isSuccess());
@@ -176,7 +176,7 @@ class QualityReportTest {
         report.storeDetailedResults(s3Reference);
         
         // When
-        Result<Void> result = report.completeValidation();
+        Result<Void> result = report.completeValidation("test-file.json");
         
         // Then
         assertFalse(result.isSuccess());
@@ -200,7 +200,7 @@ class QualityReportTest {
         report.calculateScores(scores, correlationId);
         
         // When (don't store details reference)
-        Result<Void> result = report.completeValidation();
+        Result<Void> result = report.completeValidation("test-file.json");
         
         // Then
         assertFalse(result.isSuccess());
@@ -236,7 +236,7 @@ class QualityReportTest {
     void markAsFailed_FromTerminalStatus_ShouldFail() {
         // Given
         QualityReport report = setupCompleteReport();
-        report.completeValidation(); // Move to COMPLETED (terminal)
+        report.completeValidation("test-file.json"); // Move to COMPLETED (terminal)
         
         // When
         Result<Void> result = report.markAsFailed("Some error", correlationId);

@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.modules.ingestion.infrastructure;
 
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.*;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -305,7 +306,7 @@ class S3FileUploadIntegrationTest {
         // Use the domain constructor for reconstituting a batch from persistence
         IngestionBatch batch = new IngestionBatch(
             batchId,
-            BankId.of(BANK_ID),
+            BankId.of(BANK_ID).getValueOrThrow(),
             BatchStatus.UPLOADED,
             fileMetadata,
             s3Reference,

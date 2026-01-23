@@ -132,7 +132,7 @@ public class ConsistencyValidator {
             (matchedCount * 100.0) / crmReferences.size();
         boolean passed = score >= 90.0; // 90% threshold
 
-        String summary = String.format(
+        String summary = String.format(Locale.US,
             "CRM dichiarati: %d, CRM abbinati: %d/%d (%.0f%%) - %s",
             crmReferences.size(),
             matchedCount,
@@ -261,7 +261,7 @@ public class ConsistencyValidator {
                             .affectedEntity("Currency: " + entry.getKey())
                             .expectedValue(dominantCurrency.get().getKey())
                             .actualValue(entry.getKey())
-                            .description(String.format(
+                            .description(String.format(Locale.US,
                                 "%d esposizioni in %s (%.1f%%) invece di %s",
                                 entry.getValue(),
                                 entry.getKey(),
@@ -279,7 +279,7 @@ public class ConsistencyValidator {
             String.format(
                 "Valute: %s - %s",
                 currencyDistribution.entrySet().stream()
-                    .map(e -> String.format("%s: %d (%.1f%%)", 
+                    .map(e -> String.format(Locale.US, "%s: %d (%.1f%%)", 
                         e.getKey(), 
                         e.getValue(),
                         (e.getValue() * 100.0) / totalWithCurrency))

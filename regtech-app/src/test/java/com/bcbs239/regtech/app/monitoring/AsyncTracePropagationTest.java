@@ -33,7 +33,6 @@ class AsyncTracePropagationTest {
     private Tracer tracer;
     private TraceContextManager traceContextManager;
     private TaskDecorator observationTaskDecorator;
-    private AsyncObservabilityConfiguration.AsyncObservabilityExampleService asyncService;
 
     @BeforeEach
     void setUp() {
@@ -43,8 +42,6 @@ class AsyncTracePropagationTest {
         
         AsyncObservabilityConfiguration config = new AsyncObservabilityConfiguration(observationRegistry);
         observationTaskDecorator = config.observationTaskDecorator();
-        
-        asyncService = new AsyncObservabilityConfiguration.AsyncObservabilityExampleService(traceContextManager);
     }
 
     @Test

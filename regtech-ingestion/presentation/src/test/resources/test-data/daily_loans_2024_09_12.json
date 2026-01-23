@@ -1,0 +1,14 @@
+[
+  {
+    "loanId": "L001",
+    "amount": 10000.00,
+    "borrower": "John Doe",
+    "date": "2024-09-12"
+  },
+  {
+    "loanId": "L002",
+    "amount": 50000.00,
+    "borrower": "Jane Smith",
+    "date": "2024-09-12"
+  }
+]

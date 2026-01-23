@@ -320,7 +320,8 @@ class ConsistencyValidatorTest {
             LocalDate.now(),
             LocalDate.now(),
             LocalDate.now().plusYears(5),
-            "REF_" + exposureId
+            "REF_" + exposureId,
+            BigDecimal.ZERO // collateralValue
         );
     }
 

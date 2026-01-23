@@ -4,6 +4,7 @@ package com.bcbs239.regtech.modules.ingestion.domain.batch.rules;
 import com.bcbs239.regtech.core.application.monitoring.InMemoryTransitionMetrics;
 import com.bcbs239.regtech.core.application.monitoring.TransitionMetricsHolder;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.*;
 import org.junit.jupiter.api.AfterEach;
@@ -42,7 +43,7 @@ class BatchTransitionsMetricsTest {
         InMemoryTransitionMetrics metrics = new InMemoryTransitionMetrics();
         TransitionMetricsHolder.set(metrics);
 
-        IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1"), sampleMetadata());
+        IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1").getValueOrThrow(), sampleMetadata());
 
         // success: UPLOADED -> PARSING
         Result<Void> r1 = BatchTransitions.validateTransition(batch, BatchStatus.PARSING);
@@ -62,7 +63,7 @@ class BatchTransitionsMetricsTest {
         InMemoryTransitionMetrics metrics = new InMemoryTransitionMetrics();
         TransitionMetricsHolder.set(metrics);
 
-        IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1"), sampleMetadata());
+        IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1").getValueOrThrow(), sampleMetadata());
         BatchTransitions.applyTransition(batch, BatchStatus.PARSING);
 
         assertThat(batch.getStatus()).isEqualTo(BatchStatus.PARSING);

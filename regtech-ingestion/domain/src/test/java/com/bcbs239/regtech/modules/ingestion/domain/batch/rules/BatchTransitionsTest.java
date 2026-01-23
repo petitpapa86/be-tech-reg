@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.modules.ingestion.domain.batch.rules;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.ingestion.domain.bankinfo.BankId;
 import com.bcbs239.regtech.ingestion.domain.batch.*;
 import org.junit.jupiter.api.DisplayName;
@@ -17,14 +18,14 @@ class BatchTransitionsTest {
 
     @Test
     void validateTransition_should_allow_uploaded_to_parsing() {
-        IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1"), sampleMetadata());
+        IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1").getValueOrThrow(), sampleMetadata());
         Result<Void> r = BatchTransitions.validateTransition(batch, BatchStatus.PARSING);
         assertThat(r.isSuccess()).isTrue();
     }
 
     @Test
     void validateTransition_should_reject_invalid_transitions() {
-        IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1"), sampleMetadata());
+        IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1").getValueOrThrow(), sampleMetadata());
         // cannot go directly to COMPLETED from UPLOADED
         Result<Void> r = BatchTransitions.validateTransition(batch, BatchStatus.COMPLETED);
         assertThat(r.isFailure()).isTrue();
@@ -32,7 +33,7 @@ class BatchTransitionsTest {
 
     @Test
     void applyTransition_should_update_status() {
-        IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1"), sampleMetadata());
+        IngestionBatch batch = new IngestionBatch(BatchId.generate(), BankId.of("B1").getValueOrThrow(), sampleMetadata());
         BatchTransitions.applyTransition(batch, BatchStatus.PARSING);
         assertThat(batch.getStatus()).isEqualTo(BatchStatus.PARSING);
     }
