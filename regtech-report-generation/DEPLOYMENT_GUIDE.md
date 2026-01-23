@@ -569,23 +569,7 @@ scrape_configs:
 - `report_async_executor_queue_size` (gauge)
 - `report_circuit_breaker_state` (gauge)
 
-### Grafana Dashboard
 
-Import the provided Grafana dashboard:
-
-```bash
-# Dashboard JSON location
-regtech-report-generation/monitoring/grafana-dashboard.json
-```
-
-**Dashboard Panels**:
-- Report generation rate (reports/minute)
-- Success vs failure rate
-- P95 generation duration
-- Circuit breaker state
-- Database connection pool usage
-- Async executor queue size
-- Error distribution by type
 
 ## Rollback Procedure
 
