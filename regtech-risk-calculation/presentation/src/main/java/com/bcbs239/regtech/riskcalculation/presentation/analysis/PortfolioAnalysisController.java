@@ -53,7 +53,6 @@ public class PortfolioAnalysisController implements IEndpoint {
      * Get complete portfolio analysis for a batch.
      * Endpoint: GET /api/v1/risk-calculation/portfolio-analysis/{batchId}
      */
-    @Observed(name = "risk-calculation.api.portfolio.analysis", contextualName = "get-portfolio-analysis")
     public ServerResponse getPortfolioAnalysis(ServerRequest request) {
         String batchId = request.pathVariable("batchId");
         logger.debug("Processing portfolio analysis request for batchId: {}", batchId);
@@ -76,7 +75,6 @@ public class PortfolioAnalysisController implements IEndpoint {
      * Get concentration indices for a batch.
      * Endpoint: GET /api/v1/risk-calculation/portfolio-analysis/{batchId}/concentrations
      */
-    @Observed(name = "risk-calculation.api.portfolio.concentrations", contextualName = "get-concentration-indices")
     public ServerResponse getConcentrationIndices(ServerRequest request) {
         String batchId = request.pathVariable("batchId");
         logger.debug("Processing concentration indices request for batchId: {}", batchId);
@@ -99,8 +97,7 @@ public class PortfolioAnalysisController implements IEndpoint {
      * Get breakdowns for a batch with optional type filter.
      * Endpoint: GET /api/v1/risk-calculation/portfolio-analysis/{batchId}/breakdowns
      */
-    @Observed(name = "risk-calculation.api.portfolio.breakdowns", contextualName = "get-breakdowns-by-type")
-    public ServerResponse getBreakdownsByType(ServerRequest request) {
+    public ServerResponse getBreakdowns(ServerRequest request) {
         String batchId = request.pathVariable("batchId");
         Optional<String> type = request.param("type");
         

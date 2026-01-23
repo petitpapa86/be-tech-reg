@@ -11,7 +11,6 @@ import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPr
 import com.bcbs239.regtech.dataquality.presentation.common.IEndpoint;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator;
 import com.bcbs239.regtech.dataquality.presentation.web.QualityRequestValidator.TrendsQueryParams;
-import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -73,7 +72,6 @@ public class QualityReportController extends BaseController implements IEndpoint
      *
      * Returns the most recent COMPLETED report for the given bank.
      */
-    @Observed(name = "data-quality.api.report.get", contextualName = "get-quality-report")
     public ServerResponse getQualityReport(ServerRequest request) {
         try {
             String bankIdStr = request.param("bankId").orElse(null);
@@ -109,7 +107,6 @@ public class QualityReportController extends BaseController implements IEndpoint
         }
     }
 
-    @Observed(name = "data-quality.api.trends.get", contextualName = "get-quality-trends")
     public ServerResponse getQualityTrends(ServerRequest request) {
         try {
             logger.debug("Processing quality trends request");

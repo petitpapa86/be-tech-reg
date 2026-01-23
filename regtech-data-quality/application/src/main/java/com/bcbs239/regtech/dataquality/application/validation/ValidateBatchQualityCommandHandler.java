@@ -17,7 +17,6 @@ import com.bcbs239.regtech.dataquality.domain.validation.ExposureRecord;
 import com.bcbs239.regtech.dataquality.domain.validation.ExposureValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
-import io.micrometer.core.annotation.Timed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -64,7 +63,6 @@ public class ValidateBatchQualityCommandHandler {
         this.timelinessValidator = timelinessValidator;
     }
 
-    @Timed(value = "dataquality.validation.batch", description = "Time taken to validate batch quality")
     public Result<Void> handle(ValidateBatchQualityCommand command) {
         logger.info("ValidateBatchQualityCommandHandler.handle start | batchId={} bankId={}",
                 command.batchId().value(), command.bankId().value());

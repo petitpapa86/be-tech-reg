@@ -56,7 +56,6 @@ public class ComplianceReportsController extends BaseController implements IEndp
         ));
     }
     
-    @Observed(name = "ingestion.api.compliance.report.generate", contextualName = "generate-compliance-report")
     private ServerResponse generateComplianceReport(ServerRequest request) {
         // TODO: Implement when compliance services are available
         log.info("Compliance report generation not yet implemented");
@@ -64,7 +63,6 @@ public class ComplianceReportsController extends BaseController implements IEndp
             .body(ResponseUtils.systemError("Compliance features not yet implemented"));
     }
     
-    @Observed(name = "ingestion.api.compliance.status.get", contextualName = "get-compliance-status")
     private ServerResponse getComplianceStatus(ServerRequest request) {
         // TODO: Implement when compliance services are available
         log.info("Compliance status retrieval not yet implemented");

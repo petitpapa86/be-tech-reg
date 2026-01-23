@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.app;
 
-import com.bcbs239.regtech.app.monitoring.ApplicationMetricsCollector;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -19,7 +18,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * This module orchestrates all domain modules (IAM, Billing, etc.)
  * and provides centralized configuration and startup.
  * 
- * Includes observability configuration for Micrometer 2 and OpenTelemetry.
+ * Includes observability configuration for OpenTelemetry.
  * Requirements: 10.1, 10.2, 10.3
  */
 @SpringBootApplication
@@ -54,18 +53,15 @@ import org.springframework.scheduling.annotation.EnableAsync;
         "com.bcbs239.regtech.riskcalculation.infrastructure.config",
         "com.bcbs239.regtech.riskcalculation.presentation",
         "com.bcbs239.regtech.reportgeneration",
-        "com.bcbs239.regtech.signal",
-        "com.bcbs239.regtech.metrics"
+        "com.bcbs239.regtech.signal"
         // Ensure module presentation packages are scanned so functional RouterFunction beans are registered
 }, excludeFilters = {
 })
 @EntityScan(basePackages = {
-    "com.bcbs239.regtech.core.infrastructure",
-    "com.bcbs239.regtech.metrics.infrastructure"
+    "com.bcbs239.regtech.core.infrastructure"
 })
 @EnableJpaRepositories(basePackages = {
-    "com.bcbs239.regtech.core.infrastructure",
-    "com.bcbs239.regtech.metrics.infrastructure"
+    "com.bcbs239.regtech.core.infrastructure"
 })
 @EnableAspectJAutoProxy
 public class RegtechApplication {
@@ -76,20 +72,5 @@ public class RegtechApplication {
     public static void main(String[] args) {
         startTime = System.currentTimeMillis();
         SpringApplication.run(RegtechApplication.class, args);
-    }
-    
-    /**
-     * Records application startup metrics when the application is ready.
-     * Requirement 10.1: Micrometer 2 metrics collection
-     */
-    @Bean
-    public ApplicationListener<ApplicationReadyEvent> applicationReadyListener(
-            ApplicationMetricsCollector metricsCollector) {
-        return event -> {
-            long startupTime = System.currentTimeMillis() - startTime;
-            metricsCollector.recordApplicationStart();
-            metricsCollector.recordApplicationStartupTime(startupTime);
-            logger.info("Application started successfully in {}ms", startupTime);
-        };
     }
 }

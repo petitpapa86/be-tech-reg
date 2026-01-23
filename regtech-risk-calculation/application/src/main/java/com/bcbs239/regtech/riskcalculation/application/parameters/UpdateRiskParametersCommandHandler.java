@@ -2,7 +2,6 @@ package com.bcbs239.regtech.riskcalculation.application.parameters;
 
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.riskcalculation.domain.parameters.*;
-import io.micrometer.observation.annotation.Observed;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +20,6 @@ public class UpdateRiskParametersCommandHandler {
     }
 
     @NonNull
-    @Observed(name = "update-risk-parameters", contextualName = "Update Risk Parameters")
     public Result<RiskParametersDto> handle(@NonNull UpdateRiskParametersCommand command) {
         Optional<RiskParameters> existingParams = repository.findByBankId(command.bankId());
         

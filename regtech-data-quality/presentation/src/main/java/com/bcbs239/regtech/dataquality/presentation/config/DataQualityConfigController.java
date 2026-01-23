@@ -5,7 +5,6 @@ import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.dataquality.application.config.*;
 import com.bcbs239.regtech.dataquality.domain.config.BankId;
 import com.bcbs239.regtech.dataquality.presentation.common.IEndpoint;
-import io.micrometer.observation.annotation.Observed;
 import jakarta.servlet.ServletException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +74,6 @@ public class DataQualityConfigController extends BaseController implements IEndp
      * @param request ServerRequest containing bankId query parameter
      * @return ServerResponse with configuration object
      */
-    @Observed(name = "data-quality.config.get", contextualName = "Get Data Quality Configuration")
     public ServerResponse getConfiguration(ServerRequest request) {
         logger.info("Fetching data quality configuration");
 
@@ -104,7 +102,6 @@ public class DataQualityConfigController extends BaseController implements IEndp
      * @param request ServerRequest containing configuration payload with bankId
      * @return ServerResponse with updated configuration
      */
-    @Observed(name = "data-quality.config.update", contextualName = "Update Data Quality Configuration")
     public ServerResponse updateConfiguration(ServerRequest request) throws ServletException, IOException {
         logger.info("Updating data quality configuration");
 
@@ -133,7 +130,6 @@ public class DataQualityConfigController extends BaseController implements IEndp
      * @param request ServerRequest containing bankId query parameter
      * @return ServerResponse with default configuration
      */
-    @Observed(name = "data-quality.config.reset", contextualName = "Reset Data Quality Configuration")
     public ServerResponse resetToDefault(ServerRequest request) {
         logger.info("Resetting data quality configuration to defaults");
 

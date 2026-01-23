@@ -74,8 +74,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
     "com.bcbs239.regtech.riskcalculation.infrastructure.database.entities",
     // ingestion entities
     "com.bcbs239.regtech.ingestion.infrastructure",
-    // metrics entities
-    "com.bcbs239.regtech.metrics.infrastructure",
     // core infrastructure entities
     "com.bcbs239.regtech.core.infrastructure.eventprocessing",
     "com.bcbs239.regtech.core.infrastructure.saga"
@@ -96,8 +94,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
     "com.bcbs239.regtech.ingestion.infrastructure",
     // data-quality repositories
     "com.bcbs239.regtech.dataquality.infrastructure",
-    // metrics repositories
-    "com.bcbs239.regtech.metrics.infrastructure",
     // core infrastructure repositories
     "com.bcbs239.regtech.core.infrastructure.eventprocessing",
     "com.bcbs239.regtech.core.infrastructure.saga"

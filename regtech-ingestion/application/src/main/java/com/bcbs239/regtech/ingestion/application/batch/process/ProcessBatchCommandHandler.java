@@ -19,7 +19,6 @@ import com.bcbs239.regtech.ingestion.application.serialization.ParsedDataSeriali
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import io.micrometer.observation.annotation.Observed;
 
 import java.io.InputStream;
 import java.util.Map;
@@ -62,7 +61,6 @@ public class ProcessBatchCommandHandler {
     }
 
     @Transactional
-    @Observed(name = "ingestion.batch.process", contextualName = "process-batch")
     public Result<Void> handle(ProcessBatchCommand command) {
         try {
             // 0. Retrieve file data from temporary storage

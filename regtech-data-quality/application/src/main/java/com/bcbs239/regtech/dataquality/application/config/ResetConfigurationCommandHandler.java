@@ -10,7 +10,6 @@ import com.bcbs239.regtech.dataquality.domain.config.CompletenessThreshold;
 import com.bcbs239.regtech.dataquality.domain.config.AccuracyThreshold;
 import com.bcbs239.regtech.dataquality.domain.config.TimelinessThreshold;
 import com.bcbs239.regtech.dataquality.domain.config.ConsistencyThreshold;
-import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -53,7 +52,6 @@ public class ResetConfigurationCommandHandler {
         this.queryHandler = queryHandler;
     }
     
-    @Observed(name = "config.command.reset", contextualName = "Reset Configuration Command")
     public Result<ConfigurationDto> handle(ResetConfigurationCommand command) {
         logger.info("Handling ResetConfigurationCommand for bankId: {}", command.bankId().value());
         

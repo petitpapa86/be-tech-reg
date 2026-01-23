@@ -7,7 +7,6 @@ import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadAndProcessFileCommand;
 import com.bcbs239.regtech.ingestion.application.batch.upload.UploadAndProcessFileCommandHandler;
 import com.bcbs239.regtech.ingestion.presentation.common.MultipartFileUtils;
-import io.micrometer.observation.annotation.Observed;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +36,6 @@ public class UploadAndProcessFileController extends BaseController {
         this.maxFileSizeBytes = maxFileSizeBytes;
     }
 
-    @Observed(name = "ingestion.api.upload.process", contextualName = "upload-and-process-file")
     public ServerResponse handle(ServerRequest request) {
         String bankIdValue = request.headers().firstHeader("X-Bank-Id");
 

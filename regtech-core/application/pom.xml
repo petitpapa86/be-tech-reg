@@ -58,11 +58,6 @@
 			<artifactId>spring-data-jpa</artifactId>
 		</dependency>
 		
-		<!-- Spring Boot Actuator for health indicators -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-actuator</artifactId>
-		</dependency>
 		
 		<!-- Lombok for boilerplate reduction -->
 		<dependency>

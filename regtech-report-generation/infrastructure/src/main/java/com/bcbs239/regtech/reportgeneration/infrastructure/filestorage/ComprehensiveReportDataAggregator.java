@@ -15,8 +15,6 @@ import com.bcbs239.regtech.reportgeneration.domain.generation.*;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -43,8 +41,6 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
     
     private final IStorageService storageService;
     private final ObjectMapper objectMapper;
-    private final MeterRegistry meterRegistry;
-    
 
     /**
      * Fetch all data required for comprehensive report generation
@@ -55,32 +51,22 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
             CalculationEventData calculationEvent,
             QualityEventData qualityEvent) {
         
-        Timer.Sample sample = Timer.start(meterRegistry);
+        log.info("Fetching comprehensive report data for batch: {}", calculationEvent.getBatchId());
         
-        try {
-            log.info("Fetching comprehensive report data for batch: {}", calculationEvent.getBatchId());
-            
-            return fetchCalculationData(calculationEvent)
-                .flatMap(calculationResults -> fetchQualityData(qualityEvent, calculationEvent.getBankId())
-                    .flatMap(qualityResults -> validateDataConsistency(calculationResults, qualityResults)
-                        .map(valid -> {
-                            log.info("Successfully fetched comprehensive report data for batch: {}", 
-                                calculationEvent.getBatchId());
-                            
-                            meterRegistry.counter("report.data.aggregation.success").increment();
-                            
-                            return ComprehensiveReportData.builder()
-                                .calculationResults(calculationResults)
-                                .qualityResults(qualityResults)
-                                .build();
-                        })
-                    )
-                );
-            
-        } finally {
-            sample.stop(Timer.builder("report.data.aggregation.duration")
-                .register(meterRegistry));
-        }
+        return fetchCalculationData(calculationEvent)
+            .flatMap(calculationResults -> fetchQualityData(qualityEvent, calculationEvent.getBankId())
+                .flatMap(qualityResults -> validateDataConsistency(calculationResults, qualityResults)
+                    .map(valid -> {
+                        log.info("Successfully fetched comprehensive report data for batch: {}", 
+                            calculationEvent.getBatchId());
+                        
+                        return ComprehensiveReportData.builder()
+                            .calculationResults(calculationResults)
+                            .qualityResults(qualityResults)
+                            .build();
+                    })
+                )
+            );
     }
     
     /**
@@ -90,7 +76,6 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
      */
     @Override
     public Result<CalculationResults> fetchCalculationData(CalculationEventData event) {
-        Timer.Sample sample = Timer.start(meterRegistry);
         
         try {
             log.debug("Fetching calculation data for batch: {}", event.getBatchId());
@@ -103,15 +88,11 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
                 .flatMap(jsonContent -> mapCalculationJson(jsonContent, event))
                 .map(results -> {
                     log.debug("Successfully fetched calculation data for batch: {}", event.getBatchId());
-                    meterRegistry.counter("report.data.calculation.fetch.success").increment();
                     return results;
                 });
             
         } catch (IllegalArgumentException e) {
             log.error("Invalid calculation data URI for batch: {}", event.getBatchId(), e);
-            
-            meterRegistry.counter("report.data.calculation.fetch.failure",
-                "failure_reason", "InvalidURI").increment();
             
             return Result.failure(ErrorDetail.of(
                 "INVALID_STORAGE_URI",
@@ -123,18 +104,12 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
         } catch (java.io.IOException e) {
             log.error("Failed to download calculation data for batch: {}", event.getBatchId(), e);
             
-            meterRegistry.counter("report.data.calculation.fetch.failure",
-                "failure_reason", "IOError").increment();
-            
             return Result.failure(ErrorDetail.of(
                 "STORAGE_IO_ERROR",
                 ErrorType.SYSTEM_ERROR,
                 "Failed to download calculation data: " + e.getMessage(),
                 "storage.io.error"
             ));
-        } finally {
-            sample.stop(Timer.builder("report.data.calculation.fetch.duration")
-                .register(meterRegistry));
         }
     }
     
@@ -150,8 +125,6 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
 
     @Override
     public Result<QualityResults> fetchQualityData(QualityEventData event, String canonicalBankId) {
-        Timer.Sample sample = Timer.start(meterRegistry);
-        
         try {
             log.debug("Fetching quality data for batch: {}", event.getBatchId());
             
@@ -163,15 +136,11 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
                 .flatMap(jsonContent -> mapQualityJson(jsonContent, event, canonicalBankId))
                 .map(results -> {
                     log.debug("Successfully fetched quality data for batch: {}", event.getBatchId());
-                    meterRegistry.counter("report.data.quality.fetch.success").increment();
                     return results;
                 });
             
         } catch (IllegalArgumentException e) {
             log.error("Invalid quality data URI for batch: {}", event.getBatchId(), e);
-            
-            meterRegistry.counter("report.data.quality.fetch.failure",
-                "failure_reason", "InvalidURI").increment();
             
             return Result.failure(ErrorDetail.of(
                 "INVALID_STORAGE_URI",
@@ -183,18 +152,12 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
         } catch (java.io.IOException e) {
             log.error("Failed to download quality data for batch: {}", event.getBatchId(), e);
             
-            meterRegistry.counter("report.data.quality.fetch.failure",
-                "failure_reason", "IOError").increment();
-            
             return Result.failure(ErrorDetail.of(
                 "STORAGE_IO_ERROR",
                 ErrorType.SYSTEM_ERROR,
                 "Failed to download quality data: " + e.getMessage(),
                 "storage.io.error"
             ));
-        } finally {
-            sample.stop(Timer.builder("report.data.quality.fetch.duration")
-                .register(meterRegistry));
         }
     }
     

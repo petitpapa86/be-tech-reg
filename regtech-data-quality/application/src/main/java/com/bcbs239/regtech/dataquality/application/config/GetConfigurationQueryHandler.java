@@ -13,7 +13,6 @@ import com.bcbs239.regtech.dataquality.domain.config.CompletenessThreshold;
 import com.bcbs239.regtech.dataquality.domain.config.AccuracyThreshold;
 import com.bcbs239.regtech.dataquality.domain.config.TimelinessThreshold;
 import com.bcbs239.regtech.dataquality.domain.config.ConsistencyThreshold;
-import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -61,7 +60,6 @@ public class GetConfigurationQueryHandler {
         this.businessRuleRepository = businessRuleRepository;
     }
     
-    @Observed(name = "config.query.get", contextualName = "Get Configuration Query")
     public Result<ConfigurationDto> handle(GetConfigurationQuery query) {
         logger.info("Handling GetConfigurationQuery for bankId: {}", query.bankId().value());
         

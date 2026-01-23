@@ -40,7 +40,7 @@ public class PortfolioAnalysisRoutes {
             new String[]{Tags.RISK_CALCULATION, Tags.PORTFOLIO_ANALYSIS},
             "Get concentration indices for a batch"
         )).and(RouterAttributes.withAttributes(
-            route(GET("/api/v1/risk-calculation/portfolio-analysis/{batchId}/breakdowns"), controller::getBreakdownsByType),
+            route(GET("/api/v1/risk-calculation/portfolio-analysis/{batchId}/breakdowns"), controller::getBreakdowns),
             new String[]{"risk-calculation:portfolio:view"},
             new String[]{Tags.RISK_CALCULATION, Tags.PORTFOLIO_ANALYSIS},
             "Get breakdowns for a batch with optional type filter"

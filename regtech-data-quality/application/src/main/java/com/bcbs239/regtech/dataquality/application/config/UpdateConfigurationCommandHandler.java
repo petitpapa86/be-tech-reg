@@ -6,7 +6,6 @@ import com.bcbs239.regtech.dataquality.application.rulesengine.QualityThresholdR
 import com.bcbs239.regtech.dataquality.domain.quality.QualityThreshold;
 import com.bcbs239.regtech.dataquality.domain.config.ThresholdPercentage;
 import com.bcbs239.regtech.dataquality.domain.config.TimelinessDays;
-import io.micrometer.observation.annotation.Observed;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -42,7 +41,6 @@ public class UpdateConfigurationCommandHandler {
         this.queryHandler = queryHandler;
     }
     
-    @Observed(name = "config.command.update", contextualName = "Update Configuration Command")
     public Result<ConfigurationDto> handle(UpdateConfigurationCommand command) {
         logger.info("Handling UpdateConfigurationCommand for bankId: {}", command.bankId());
 

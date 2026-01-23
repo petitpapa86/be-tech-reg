@@ -12,7 +12,6 @@ import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQuery;
 import com.bcbs239.regtech.ingestion.application.batch.queries.BatchStatusQueryHandler;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
 import com.bcbs239.regtech.ingestion.presentation.constants.Tags;
-import io.micrometer.observation.annotation.Observed;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
@@ -59,7 +58,6 @@ public class BatchStatusController extends BaseController implements IEndpoint {
         ));
     }
     
-    @Observed(name = "ingestion.api.batch.status", contextualName = "get-batch-status")
     private ServerResponse handle(ServerRequest request) {
         // Extract batch ID from path variable
         String batchIdStr = request.pathVariable("batchId");

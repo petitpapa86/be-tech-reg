@@ -6,7 +6,6 @@ import com.bcbs239.regtech.reportgeneration.domain.configuration.ReportConfigura
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.reportgeneration.presentation.common.IEndpoint;
 import com.bcbs239.regtech.reportgeneration.presentation.web.ReportResponseHandler;
-import io.micrometer.observation.annotation.Observed;
 import jakarta.servlet.ServletException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -38,7 +37,6 @@ public class ReportConfigurationController extends ReportResponseHandler impleme
      * GET /api/reporting
      * Returns full read model (configuration + derived status)
      */
-    @Observed(name = "report-generation.api.configuration.get", contextualName = "get-report-configuration")
     public ServerResponse getReportingConfiguration(ServerRequest request) {
         // TODO: Get actual bankId from security context
         Long bankId = 1L;
@@ -61,7 +59,6 @@ public class ReportConfigurationController extends ReportResponseHandler impleme
      * Accepts only configuration input
      * Returns full read model (same shape as GET)
      */
-    @Observed(name = "report-generation.api.configuration.update", contextualName = "update-report-configuration")
     public ServerResponse updateReportingConfiguration(ServerRequest request) throws ServletException, IOException {
         ReportConfigurationCommandRequest requestDto = request.body(ReportConfigurationCommandRequest.class);
         
@@ -84,7 +81,6 @@ public class ReportConfigurationController extends ReportResponseHandler impleme
      * POST /api/reporting/reset
      * Resets to default configuration
      */
-    @Observed(name = "report-generation.api.configuration.reset", contextualName = "reset-report-configuration")
     public ServerResponse resetToDefault(ServerRequest request) {
         // TODO: Implement actual reset logic in application layer
         // For now, returning current as per mock behavior

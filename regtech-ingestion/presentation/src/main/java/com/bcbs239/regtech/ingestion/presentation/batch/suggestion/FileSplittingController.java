@@ -6,7 +6,6 @@ import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.performance.FileSplittingSuggestion;
 import com.bcbs239.regtech.ingestion.presentation.common.IEndpoint;
-import io.micrometer.observation.annotation.Observed;
 import jakarta.servlet.ServletException;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
@@ -42,7 +41,6 @@ public class FileSplittingController extends BaseController implements IEndpoint
                 .withAttribute("permissions", new String[]{"ingestion:suggestions"});
     }
 
-    @Observed(name = "ingestion.api.suggestions.splitting", contextualName = "suggest-file-splitting")
     private ServerResponse handle(ServerRequest request) throws ServletException, IOException {
         FileMetadataDto dto = request.body(FileMetadataDto.class);
 

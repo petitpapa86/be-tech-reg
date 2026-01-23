@@ -3,7 +3,6 @@ package com.bcbs239.regtech.riskcalculation.application.parameters;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.riskcalculation.domain.parameters.RiskParameters;
 import com.bcbs239.regtech.riskcalculation.domain.parameters.RiskParametersRepository;
-import io.micrometer.observation.annotation.Observed;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +21,6 @@ public class ResetRiskParametersCommandHandler {
     }
 
     @NonNull
-    @Observed(name = "reset-risk-parameters", contextualName = "Reset Risk Parameters")
     public Result<RiskParametersDto> handle(@NonNull ResetRiskParametersCommand command) {
         Optional<RiskParameters> existingParams = repository.findByBankId(command.bankId());
         

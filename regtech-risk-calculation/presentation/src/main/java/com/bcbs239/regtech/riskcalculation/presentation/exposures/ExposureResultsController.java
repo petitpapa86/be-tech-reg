@@ -5,7 +5,6 @@ import com.bcbs239.regtech.riskcalculation.presentation.dto.ClassifiedExposureDT
 import com.bcbs239.regtech.riskcalculation.presentation.dto.PagedResponse;
 import com.bcbs239.regtech.riskcalculation.presentation.dto.ProtectedExposureDTO;
 import com.bcbs239.regtech.riskcalculation.presentation.services.ExposureQueryService;
-import io.micrometer.observation.annotation.Observed;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import org.slf4j.Logger;
@@ -50,7 +49,6 @@ public class ExposureResultsController extends BaseController {
      * @throws IllegalArgumentException if parameters are invalid
      */
     @GetMapping("/{batchId}/classified")
-    @Observed(name = "risk-calculation.api.exposures.classified", contextualName = "get-classified-exposures")
     public ResponseEntity<PagedResponse<ClassifiedExposureDTO>> getClassifiedExposures(
             @PathVariable String batchId,
             @RequestParam(required = false) String sector,
@@ -99,7 +97,6 @@ public class ExposureResultsController extends BaseController {
      * @return ResponseEntity containing paged protected exposures
      */
     @GetMapping("/{batchId}/protected")
-    @Observed(name = "risk-calculation.api.exposures.protected", contextualName = "get-protected-exposures")
     public ResponseEntity<PagedResponse<ProtectedExposureDTO>> getProtectedExposures(
             @PathVariable String batchId,
             @RequestParam(defaultValue = "0") @Min(0) Integer page,

@@ -24,7 +24,6 @@ import com.bcbs239.regtech.riskcalculation.domain.services.IFileStorageService;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BankInfo;
 import com.bcbs239.regtech.riskcalculation.domain.shared.valueobjects.BatchId;
 
-import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,15 +60,12 @@ public class CalculateRiskMetricsCommandHandler {
     private final IFileStorageService fileStorageService;
     private final ICalculationResultsStorage calculationResultsStorageService;
     private final BaseUnitOfWork unitOfWork;
-    private final IPerformanceMetrics performanceMetrics;
     private final BatchDataParsing batchDataParsing;
     private final ExposureProcessingService exposureProcessingService;
 
     @Transactional
-    @Observed(name = "riskcalculation.batch.process", contextualName = "calculate-risk-metrics")
     public Result<Void> handle(CalculateRiskMetricsCommand command) {
         String batchId = command.getBatchId();
-        performanceMetrics.recordBatchStart(batchId);
 
         log.info("Starting risk calculation for batch: {} from bank: {}", batchId, command.getBankId());
 
@@ -169,13 +165,11 @@ public class CalculateRiskMetricsCommandHandler {
             unitOfWork.registerEntity(analysis);
             unitOfWork.saveChanges();
             
-            performanceMetrics.recordBatchSuccess(batchId, protectedExposures.size());
             log.info("Risk calculation completed for batch: {}", batchId);
 
             return Result.success();
 
         } catch (BatchDataParsingException e) {
-            performanceMetrics.recordBatchFailure(batchId, e.getMessage());
             return Result.failure(ErrorDetail.of("BATCH_PARSING_FAILED", ErrorType.BUSINESS_RULE_ERROR,
                 "Failed to parse batch data: " + e.getMessage(), "calculation.parsing.failed"));
         } catch (Exception e) {
@@ -191,13 +185,11 @@ public class CalculateRiskMetricsCommandHandler {
                 "Failed to download exposure data", "calculation.file.download.failed")
         );
         log.error("File download failed for batch: {}", batchId);
-        performanceMetrics.recordBatchFailure(batchId, error.getMessage());
         return Result.failure(error);
     }
 
     private Result<Void> handleBatchSaveFailure(String batchId, Result<Void> batchSaveResult) {
         log.error("Failed to save batch aggregate: {}", batchId);
-        performanceMetrics.recordBatchFailure(batchId, "Batch save failed");
         return batchSaveResult;
     }
 
@@ -220,7 +212,6 @@ public class CalculateRiskMetricsCommandHandler {
         unitOfWork.registerEntity(analysis);
         unitOfWork.saveChanges();
         
-        performanceMetrics.recordBatchFailure(batch.getId().value(), error.getMessage());
         return Result.failure(error);
     }
 
@@ -237,7 +228,6 @@ public class CalculateRiskMetricsCommandHandler {
         }
         
         log.error("Unexpected error during risk calculation for batch: {}", batchId, e);
-        performanceMetrics.recordBatchFailure(batchId, e.getMessage());
         return Result.failure(ErrorDetail.of("CALCULATION_FAILED", ErrorType.SYSTEM_ERROR,
             "Risk calculation failed: " + e.getMessage(), "calculation.failed"));
     }

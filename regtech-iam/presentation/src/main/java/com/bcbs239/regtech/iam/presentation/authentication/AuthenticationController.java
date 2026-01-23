@@ -5,7 +5,6 @@ import com.bcbs239.regtech.core.infrastructure.securityauthorization.SecurityCon
 import com.bcbs239.regtech.core.presentation.apiresponses.ApiResponse;
 import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.iam.application.authentication.*;
-import io.micrometer.observation.annotation.Observed;
 import jakarta.servlet.ServletException;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -45,7 +44,6 @@ public class AuthenticationController extends BaseController {
      * Handles user login requests
      * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5
      */
-    @Observed(name = "iam.api.auth.login", contextualName = "login")
     public ServerResponse loginHandler(ServerRequest request) throws ServletException, IOException {
         // 1. Parse request
         LoginRequest req = request.body(LoginRequest.class);
@@ -107,7 +105,6 @@ public class AuthenticationController extends BaseController {
      * Handles token refresh requests
      * Requirements: 2.1, 2.2, 2.3, 2.4, 2.5
      */
-    @Observed(name = "iam.api.auth.refresh", contextualName = "refresh-token")
     public ServerResponse refreshTokenHandler(ServerRequest request) throws ServletException, IOException {
         // 1. Parse request
         RefreshTokenRequest req = request.body(RefreshTokenRequest.class);
@@ -162,7 +159,6 @@ public class AuthenticationController extends BaseController {
      * Handles bank selection requests
      * Requirements: 3.1, 3.2, 3.3, 3.4, 3.5
      */
-    @Observed(name = "iam.api.auth.select-bank", contextualName = "select-bank")
     public ServerResponse selectBankHandler(ServerRequest request) throws ServletException, IOException {
         // 1. Parse request
         SelectBankRequest req = request.body(SelectBankRequest.class);
@@ -219,7 +215,6 @@ public class AuthenticationController extends BaseController {
      * Handles logout requests
      * Requirements: 4.1, 4.2, 4.3, 4.4, 4.5
      */
-    @Observed(name = "iam.api.auth.logout", contextualName = "logout")
     public ServerResponse logoutHandler(ServerRequest request) throws ServletException, IOException {
         // 1. Get user ID from security context
         var securityContext = SecurityContextHolder.getContext();

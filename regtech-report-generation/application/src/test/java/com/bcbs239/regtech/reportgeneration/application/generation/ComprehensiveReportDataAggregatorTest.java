@@ -31,13 +31,11 @@ class ComprehensiveReportDataAggregatorTest {
     @Mock
     private ObjectMapper objectMapper;
 
-    private MeterRegistry meterRegistry = new SimpleMeterRegistry();
-
     private ComprehensiveReportDataAggregator aggregator;
 
     @BeforeEach
     void setUp() {
-        aggregator = new ComprehensiveReportDataAggregator(storageService, objectMapper, meterRegistry);
+        aggregator = new ComprehensiveReportDataAggregator(storageService, objectMapper);
     }
 
     @Test

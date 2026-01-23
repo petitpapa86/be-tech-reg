@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Security Audit Logging system provides comprehensive audit logging for authentication, authorization, sensitive data access, and security violations. All audit logs automatically include trace IDs and span IDs for correlation with distributed traces via Spring Boot 4's Micrometer Tracing.
+The Security Audit Logging system provides comprehensive audit logging for authentication, authorization, sensitive data access, and security violations.
 
 ## Components
 
@@ -689,6 +689,4 @@ If you experience performance issues:
 
 ## Additional Resources
 
-- [Spring Boot 4 Observability Documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/actuator.html#actuator.observability)
-- [Micrometer Tracing Documentation](https://micrometer.io/docs/tracing)
 - [Logback Configuration](https://logback.qos.ch/manual/configuration.html)

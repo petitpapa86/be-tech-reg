@@ -9,7 +9,6 @@
 #   - Spring application settings
 #   - Database configuration (datasource, JPA, Flyway)
 #   - Logging configuration
-#   - Metrics and monitoring (Spring Actuator)
 #   - Security configuration (JWT, OAuth2, public paths)
 #   - Event processing (inbox/outbox)
 #
@@ -167,7 +166,7 @@ spring:
       - dataquality
       - riskcalculation
       - reportgeneration
-      - metrics
+
   
   docker:
     compose:
@@ -205,8 +204,6 @@ logging:
     org.springframework.security: WARN
     org.springframework: WARN
     org.springframework.scheduling: INFO
-    org.springframework.boot.actuate: WARN
-    org.springframework.boot.actuate.endpoint: WARN
     
     # Database
     org.hibernate.SQL: WARN
@@ -216,92 +213,7 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
-# ============================================================================
-# SPRING BOOT 4 OBSERVABILITY CONFIGURATION (Hetzner Deployment)
-# ============================================================================
-# Spring Boot 4 OpenTelemetry auto-configuration with Hetzner-specific settings
-# Requirements: 1.1, 2.1, 3.1
-management:
-  # OpenTelemetry resource attributes (Hetzner-specific)
-  opentelemetry:
-    resource-attributes:
-      service.name: bcbs239-platform
-      service.version: ${app.version:0.0.1-SNAPSHOT}
-      deployment.environment: ${spring.profiles.active:development}
-      deployment.provider: hetzner
-      deployment.region: ${HETZNER_DATACENTER:fsn1}  # Falkenstein datacenter
-      deployment.zone: ${HETZNER_ZONE:fsn1-dc14}
-  
-  # Distributed tracing configuration
-  tracing:
-    enabled: true
-    baggage:
-      remote-fields: bank-id,user-id,batch-id
-      correlation:
-        fields: bank-id,user-id,batch-id
-    sampling:
-      probability: ${TRACE_SAMPLING_RATE:0.1}  # 10% sampling for production, 100% for dev
-    export:
-      otlp:
-        endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://localhost:4318/v1/traces}
-        timeout: 10s
-        compression: gzip
-  
-  # Metrics export configuration
-  metrics:
-    export:
-      prometheus:
-        enabled: true
-      otlp:
-        enabled: true
-        endpoint: ${OTEL_COLLECTOR_ENDPOINT:http://localhost:4318/v1/metrics}
-        timeout: 10s
-    enable:
-      jvm: true
-      process: true
-      system: true
-      http: true
-      logback: true
-    distribution:
-      percentiles-histogram:
-        http.server.requests: true
-    tags:
-      application: ${spring.application.name}
-      environment: ${spring.profiles.active}
-      deployment.provider: hetzner
-  
-  # Observation annotations support
-  observations:
-    annotations:
-      enabled: true
 
-  # Actuator endpoints for Hetzner deployment
-  endpoints:
-    web:
-      exposure:
-        include: health,metrics,prometheus,info
-      base-path: /actuator
-  
-  endpoint:
-    health:
-      show-details: when-authorized
-      show-components: always
-      roles: ACTUATOR
-    metrics:
-      enabled: true
-      roles: ACTUATOR
-    prometheus:
-      enabled: true
-  
-  health:
-    diskspace:
-      enabled: true
-    ssl:
-      enabled: true
-
-  # Security for production Hetzner deployment
-  security:
-    enabled: true
 
 # ============================================================================
 # OBSERVABILITY NOTIFICATIONS CONFIGURATION

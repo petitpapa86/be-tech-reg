@@ -8,7 +8,6 @@ import com.bcbs239.regtech.core.presentation.controllers.BaseController;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommand;
 import com.bcbs239.regtech.iam.application.users.RegisterUserCommandHandler;
 import com.bcbs239.regtech.iam.application.users.RegisterUserResponse;
-import io.micrometer.observation.annotation.Observed;
 import jakarta.servlet.ServletException;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,7 +31,6 @@ public class UserController extends BaseController {
         this.registerUserCommandHandler = registerUserCommandHandler;
     }
 
-    @Observed(name = "iam.api.users.register", contextualName = "register-user")
     public ServerResponse registerUserHandler(ServerRequest request) throws ServletException, IOException {
 
             RegisterUserRequest req = request.body(RegisterUserRequest.class);
@@ -85,7 +83,6 @@ public class UserController extends BaseController {
 
     }
 
-    @Observed(name = "iam.api.users.profile", contextualName = "get-user-profile")
     public ServerResponse getUserProfileHandler(ServerRequest request) {
         try {
             var ctx = SecurityContextHolder.getContext();
