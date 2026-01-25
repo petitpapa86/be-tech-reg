@@ -18,7 +18,9 @@ The module follows Domain-Driven Design (DDD) principles within a modular monoli
 - **S3 Storage**: Enterprise-grade storage with encryption, versioning, and lifecycle policies
 - **Bank Enrichment**: Integrates with Bank Registry service for bank information
 - **Event Publishing**: Uses outbox pattern for guaranteed event delivery
-- **Monitoring**: Comprehensive logging, metrics, and health checks
+- **Observability**: Real-time metrics via Prometheus/Grafana and distributed tracing via Zipkin.
+  - See [Ingestion Dashboard](../../observability/grafana/dashboards/ingestion-dashboard.json)
+  - See [Observability Guide](../../observability/README.md)
 
 ## Dependencies
 

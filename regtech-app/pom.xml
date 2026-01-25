@@ -181,6 +181,17 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         
+        <!-- Observability: Metrics -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        
         <!-- Spring Boot Starter Test (includes test dependencies) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -193,6 +204,16 @@
             <groupId>net.logstash.logback</groupId>
             <artifactId>logstash-logback-encoder</artifactId>
             <version>8.0</version>
+        </dependency>
+
+        <!-- Distributed Tracing -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
         </dependency>
         
         <!-- Resilience4j for circuit breaker pattern in health checks -->
@@ -232,6 +253,16 @@
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-signal-domain</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        
+        <!-- Observability: Tracing -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
         </dependency>
         <dependency>
             <groupId>com.bcbs239</groupId>

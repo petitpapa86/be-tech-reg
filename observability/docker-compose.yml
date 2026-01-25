@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: regtech-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - regtech-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: regtech-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - regtech-network
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: regtech-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - regtech-network
+
+  loki:
+    image: grafana/loki:2.9.2
+    container_name: regtech-loki
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - regtech-network
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    container_name: regtech-promtail
+    volumes:
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+      - ../logs:/var/log/regtech
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - regtech-network
+
+networks:
+  regtech-network:
+    driver: bridge
+
+volumes:
+  grafana-data:

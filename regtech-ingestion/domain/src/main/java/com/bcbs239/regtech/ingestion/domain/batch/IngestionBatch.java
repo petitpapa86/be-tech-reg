@@ -45,6 +45,8 @@ public class IngestionBatch extends Entity {
         this.status = BatchStatus.UPLOADED;
         this.uploadedAt = Instant.now();
         this.updatedAt = Instant.now();
+        
+        addDomainEvent(new BatchUploadedEvent(batchId, bankId, fileMetadata, uploadedAt, batchId.value()));
     }
     
     /**

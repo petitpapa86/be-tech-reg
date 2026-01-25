@@ -220,6 +220,22 @@ logging:
 # ============================================================================
 # Alert notification configuration for multiple channels
 # Requirements: 5.1, 5.2, 5.3, 5.4, 5.5
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false  # Disable OTLP metrics export (we use Prometheus)
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  tracing:
+    sampling:
+      probability: 1.0 # Sample 100% of requests for development
+  zipkin:
+    tracing:
+      endpoint: http://localhost:9411/api/v2/spans
+
 observability:
   notifications:
     # Email notifications

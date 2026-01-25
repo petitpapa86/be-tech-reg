@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import io.micrometer.observation.annotation.Observed;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -185,13 +186,10 @@ public class UploadAndProcessFileCommandHandler {
                     try {
                         if (throwable != null) {
                             log.error("Async batch processing failed with exception; details={}", Map.of("batchId", batchId.value()), throwable);
-                            publishProcessingFailureEvent(batchId, bankId, validatedFileName.getValue(), throwable.getMessage(), "EXCEPTION", tempFileKey);
                         } else if (processResult != null && processResult.isFailure()) {
                             ErrorDetail error = processResult.getError().orElse(null);
                             String errorMessage = error != null ? error.getMessage() : "Unknown error";
-                            String errorType = error != null ? error.getErrorType().name() : "UNKNOWN";
                             log.info("Async batch processing failed; details={}", Map.of("batchId", batchId.value(), "error", errorMessage));
-                            publishProcessingFailureEvent(batchId, bankId, validatedFileName.getValue(), errorMessage, errorType, tempFileKey);
                         }
                     } finally {
                         // IMPORTANT: cleanup temp file only after processing completes
@@ -237,34 +235,4 @@ public class UploadAndProcessFileCommandHandler {
                     "MD5 algorithm not available", "checksum.md5_unavailable"));
         }
     }
-
-    private void publishProcessingFailureEvent(
-            BatchId batchId,
-            BankId bankId,
-            String fileName,
-            String errorMessage,
-            String errorType,
-            String tempFileKey) {
-        try {
-            BatchProcessingFailedEvent event = new BatchProcessingFailedEvent(
-                batchId.value(),
-                bankId.value(),
-                fileName,
-                errorMessage,
-                errorType,
-                tempFileKey
-            );
-            eventPublisher.publishEvent(event);
-            log.info("Published batch processing failure event; details={}", Map.of(
-                "batchId", batchId.value(),
-                "bankId", bankId.value(),
-                "fileName", fileName
-             ));
-         } catch (Exception e) {
-             log.error("Failed to publish batch processing failure event; details={}", Map.of(
-                 "batchId", batchId.value(),
-                 "errorMessage", e.getMessage()
-             ), e);
-         }
-     }
- }
+}

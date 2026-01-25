@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.ingestion.infrastructure.batchtracking;
 
+import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -13,6 +14,7 @@ import com.bcbs239.regtech.ingestion.infrastructure.batchtracking.persistence.In
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +35,8 @@ public class IngestionBatchRepositoryImpl implements IIngestionBatchRepository {
     
     private static final Logger log = LoggerFactory.getLogger(IngestionBatchRepositoryImpl.class);
     private final IngestionBatchJpaRepository jpaRepository;
-    
+    private final ApplicationEventPublisher eventPublisher;
+
     @Override
     @Transactional(readOnly = true)
     public Optional<IngestionBatch> findByBatchId(BatchId batchId) {
@@ -52,7 +55,7 @@ public class IngestionBatchRepositoryImpl implements IIngestionBatchRepository {
             IngestionBatchEntity entity = IngestionBatchEntity.fromDomain(batch);
             IngestionBatchEntity savedEntity = jpaRepository.save(entity);
             IngestionBatch savedBatch = savedEntity.toDomain();
-            
+
             log.debug("Successfully saved batch: {}", batch.getBatchId().value());
             return Result.success(savedBatch);
             
