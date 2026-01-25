@@ -61,6 +61,14 @@ public class JpaComplianceReportRepository implements ComplianceReportRepository
     }
 
     @Override
+    public List<ComplianceReport> findForMonth(BankId bankId, LocalDate periodStart, LocalDate periodEnd, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Page<ComplianceReportEntity> entities = springDataRepository
+                .findByBankIdAndReportingDateBetweenOrderByReportingDateDescGeneratedAtDesc(bankId.getValue(), periodStart, periodEnd, pageable);
+        return entities.stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public int countForMonth(BankId bankId, LocalDate periodStart, LocalDate periodEnd) {
         return springDataRepository.countByBankIdAndReportingDateBetween(bankId.getValue(), periodStart, periodEnd);
     }

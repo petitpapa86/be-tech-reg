@@ -12,5 +12,7 @@ public interface ComplianceReportRepository {
 
     List<ComplianceReport> findRecentForMonth(BankId bankId, LocalDate periodStart, LocalDate periodEnd, int limit);
 
+    List<ComplianceReport> findForMonth(BankId bankId, LocalDate periodStart, LocalDate periodEnd, int page, int size);
+
     int countForMonth(BankId bankId, LocalDate periodStart, LocalDate periodEnd);
 }

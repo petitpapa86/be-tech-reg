@@ -15,5 +15,7 @@ public interface FileRepository {
 
     List<ComplianceFile> findByBankIdAndDateBetween(BankId bankId, String startDate, String endDate);
 
+    List<ComplianceFile> findByBankIdAndDateBetween(BankId bankId, String startDate, String endDate, int page, int size);
+
     ComplianceFile save(ComplianceFile file);
 }

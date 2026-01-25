@@ -7,4 +7,5 @@ import java.util.List;
 public interface SpringDataFileRepository extends JpaRepository<FileEntity, Long> {
     List<FileEntity> findByBankId(String bankId);
     List<FileEntity> findByBankIdAndDateBetween(String bankId, String startDate, String endDate);
+    org.springframework.data.domain.Page<FileEntity> findByBankIdAndDateBetweenOrderByDateDesc(String bankId, String startDate, String endDate, org.springframework.data.domain.Pageable pageable);
 }

@@ -36,7 +36,7 @@ public class DashboardUseCase {
         this.signalPublisher = signalPublisher;
     }
 
-    public DashboardResult execute(BankId bankId) {
+    public DashboardResult execute(BankId bankId, int page, int size) {
         // compute start-of-month and today in ISO format (yyyy-MM-dd)
         java.time.LocalDate now = timeProvider.nowLocalDateTime().toLocalDate();
         java.time.LocalDate startOfMonth = now.withDayOfMonth(1);
@@ -47,11 +47,12 @@ public class DashboardUseCase {
 
 
 
-        List<ComplianceReport> reports = complianceReportRepository.findRecentForMonth(
+        List<ComplianceReport> reports = complianceReportRepository.findForMonth(
                 bankId,
                 startOfMonth,
                 now,
-                10
+                page,
+                size
         );
 
         int reportCount = complianceReportRepository.countForMonth(bankId, startOfMonth, now);
@@ -71,7 +72,7 @@ public class DashboardUseCase {
                 metrics.getBcbsRulesScore(),
                 metrics.getCompletenessScore()
         );
-        List<ComplianceFile> files = fileRepository.findByBankIdAndDateBetween(bankId, start, end);
+        List<ComplianceFile> files = fileRepository.findByBankIdAndDateBetween(bankId, start, end, page, size);
         // Keep behavior minimal for now: last-batch violations derived from the displayed file list.
         return new DashboardResult(summary, compliance, files, reports, computeLastBatchViolations(files));
     }

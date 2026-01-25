@@ -34,6 +34,13 @@ public class JpaFileRepository implements FileRepository {
     }
 
     @Override
+    public List<ComplianceFile> findByBankIdAndDateBetween(BankId bankId, String startDate, String endDate, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return repo.findByBankIdAndDateBetweenOrderByDateDesc(bankId.getValue(), startDate, endDate, pageable)
+                .stream().map(this::toDomain).collect(Collectors.toList());
+    }
+
+    @Override
     public ComplianceFile save(ComplianceFile file) {
         FileEntity entity = toEntity(file);
         FileEntity saved = repo.save(entity);

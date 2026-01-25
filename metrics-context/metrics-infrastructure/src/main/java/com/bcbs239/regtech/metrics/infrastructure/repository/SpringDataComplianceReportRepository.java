@@ -14,5 +14,12 @@ public interface SpringDataComplianceReportRepository extends JpaRepository<Comp
             LocalDate end
     );
 
+    org.springframework.data.domain.Page<ComplianceReportEntity> findByBankIdAndReportingDateBetweenOrderByReportingDateDescGeneratedAtDesc(
+            String bankId,
+            LocalDate start,
+            LocalDate end,
+            org.springframework.data.domain.Pageable pageable
+    );
+
     int countByBankIdAndReportingDateBetween(String bankId, LocalDate start, LocalDate end);
 }

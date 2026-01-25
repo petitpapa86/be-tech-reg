@@ -42,7 +42,10 @@ public class DashboardController {
         String bankIdParam = request.param("bankId").orElse(null);
         BankId bankId = BankId.of(bankIdParam);
 
-        DashboardResult result = dashboardUseCase.execute(bankId);
+        int page = request.param("page").map(Integer::parseInt).orElse(0);
+        int size = request.param("size").map(Integer::parseInt).orElse(10);
+
+        DashboardResult result = dashboardUseCase.execute(bankId, page, size);
 
         List<ComplianceFile> filesDomain = result.files;
 
