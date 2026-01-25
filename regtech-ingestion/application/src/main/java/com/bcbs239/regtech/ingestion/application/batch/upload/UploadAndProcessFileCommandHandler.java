@@ -11,7 +11,6 @@ import io.micrometer.observation.annotation.Observed;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +27,6 @@ import com.bcbs239.regtech.ingestion.domain.bankinfo.IBankInfoRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.FileMetadata;
 import com.bcbs239.regtech.ingestion.domain.batch.IIngestionBatchRepository;
 import com.bcbs239.regtech.ingestion.domain.batch.IngestionBatch;
-import com.bcbs239.regtech.ingestion.domain.batch.events.BatchProcessingFailedEvent;
 import com.bcbs239.regtech.ingestion.domain.file.ContentType;
 import com.bcbs239.regtech.ingestion.domain.file.FileName;
 import com.bcbs239.regtech.ingestion.domain.file.FileSize;
@@ -45,23 +43,21 @@ public class UploadAndProcessFileCommandHandler {
     private final IBankInfoRepository bankInfoRepository;
     private final TemporaryFileStorageService temporaryFileStorage;
     private final AsyncBatchProcessor asyncBatchProcessor;
-    private final ApplicationEventPublisher eventPublisher;
     private static final Logger log = LoggerFactory.getLogger(UploadAndProcessFileCommandHandler.class);
 
     public UploadAndProcessFileCommandHandler(
             IIngestionBatchRepository ingestionBatchRepository,
             IBankInfoRepository bankInfoRepository,
             TemporaryFileStorageService temporaryFileStorage,
-            AsyncBatchProcessor asyncBatchProcessor,
-            ApplicationEventPublisher eventPublisher) {
+            AsyncBatchProcessor asyncBatchProcessor) {
         this.ingestionBatchRepository = ingestionBatchRepository;
         this.bankInfoRepository = bankInfoRepository;
         this.temporaryFileStorage = temporaryFileStorage;
         this.asyncBatchProcessor = asyncBatchProcessor;
-        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
+    @Observed(name = "ingestion.batch.upload", contextualName = "upload-and-process")
     public Result<BatchId> handle(UploadAndProcessFileCommand command) {
         long startTime = System.currentTimeMillis();
 
