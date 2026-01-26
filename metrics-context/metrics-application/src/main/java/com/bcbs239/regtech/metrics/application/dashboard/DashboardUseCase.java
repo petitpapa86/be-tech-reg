@@ -4,8 +4,6 @@ import com.bcbs239.regtech.core.application.TimeProvider;
 import com.bcbs239.regtech.metrics.application.compliance.port.ComplianceReportRepository;
 import com.bcbs239.regtech.metrics.application.dashboard.port.DashboardMetricsRepository;
 import com.bcbs239.regtech.metrics.application.dashboard.port.FileRepository;
-import com.bcbs239.regtech.metrics.application.signal.ApplicationSignalPublisher;
-import com.bcbs239.regtech.metrics.application.signal.DashboardQueriedSignal;
 import com.bcbs239.regtech.metrics.domain.BankId;
 import com.bcbs239.regtech.metrics.domain.ComplianceFile;
 import com.bcbs239.regtech.metrics.domain.ComplianceReport;
@@ -20,20 +18,17 @@ public class DashboardUseCase {
     private final DashboardMetricsRepository dashboardMetricsRepository;
     private final ComplianceReportRepository complianceReportRepository;
     private final TimeProvider timeProvider;
-    private final ApplicationSignalPublisher signalPublisher;
 
     public DashboardUseCase(
             FileRepository fileRepository,
             DashboardMetricsRepository dashboardMetricsRepository,
             ComplianceReportRepository complianceReportRepository,
-            TimeProvider timeProvider,
-            ApplicationSignalPublisher signalPublisher
+            TimeProvider timeProvider
     ) {
         this.fileRepository = fileRepository;
         this.dashboardMetricsRepository = dashboardMetricsRepository;
         this.complianceReportRepository = complianceReportRepository;
         this.timeProvider = timeProvider;
-        this.signalPublisher = signalPublisher;
     }
 
     public DashboardResult execute(BankId bankId, int page, int size) {
@@ -42,10 +37,6 @@ public class DashboardUseCase {
         java.time.LocalDate startOfMonth = now.withDayOfMonth(1);
         String start = startOfMonth.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
         String end = now.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
-
-        signalPublisher.publish(new DashboardQueriedSignal(bankId.getValue(), start, end));
-
-
 
         List<ComplianceReport> reports = complianceReportRepository.findForMonth(
                 bankId,

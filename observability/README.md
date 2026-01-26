@@ -6,9 +6,9 @@ This document tracks the implementation of the observability stack for the RegTe
 
 We have implemented a comprehensive observability layer to monitor the health, performance, and business metrics of the application. The stack includes:
 
-*   **Metrics**: Prometheus (Collection) + Micrometer (Instrumentation)
+*   **Metrics**: Prometheus (Collection) + Micrometer (Instrumentation) + OpenTelemetry (Export)
 *   **Visualization**: Grafana
-*   **Tracing**: Zipkin (Distributed Tracing)
+*   **Tracing**: OpenTelemetry Collector → Zipkin (Distributed Tracing)
 *   **Logging**: Loki (Aggregation) + Promtail (Collection)
 
 ## 2. Infrastructure Setup
@@ -19,8 +19,10 @@ The infrastructure is containerized using Docker Compose. The configuration is l
 
 | Service | Port | Description |
 | :--- | :--- | :--- |
-| **Prometheus** | `9090` | Scrapes metrics from the application's `/actuator/prometheus` endpoint. |
+| **Prometheus** | `9090` | Scrapes metrics from the application's `/actuator/prometheus` endpoint and OTEL collector. |
 | **Grafana** | `3000` | Visualizes metrics. Default login: `admin` / `admin`. |
+| **OpenTelemetry Collector** | `4317` (gRPC), `4318` (HTTP), `8889` (metrics) | Receives OTLP traces/metrics and forwards to Tempo/Zipkin/Prometheus. |
+| **Tempo** | `3200` (query), `4317/4318` (OTLP) | Distributed tracing backend for OTLP traces. |
 | **Zipkin** | `9411` | Collects and visualizes distributed traces. |
 | **Loki** | `3100` | Aggregates logs. |
 | **Promtail** | - | Ships logs from `./logs` to Loki. |
@@ -28,7 +30,9 @@ The infrastructure is containerized using Docker Compose. The configuration is l
 ### Configuration Files
 
 *   **[docker-compose.yml](docker-compose.yml)**: Defines the services and network.
-*   **[prometheus.yml](prometheus.yml)**: Configures Prometheus.
+*   **[prometheus.yml](prometheus.yml)**: Configures Prometheus to scrape app and OTEL collector.
+*   **[otel-collector-config.yaml](otel-collector-config.yaml)**: Configures OpenTelemetry Collector.
+*   **[tempo.yaml](tempo.yaml)**: Configures Tempo distributed tracing backend.
 *   **[loki.yaml](loki.yaml)**: Configures Loki.
 *   **[promtail-config.yaml](promtail-config.yaml)**: Configures Promtail to scrape logs from `../logs` (relative to observability folder).
 *   **[grafana/](grafana/)**: Contains Grafana provisioning configuration (Dashboards and Datasources).
@@ -48,8 +52,8 @@ We added the following dependencies to the `pom.xml` (managed via Spring Boot 4 
 
 *   `spring-boot-starter-actuator`: Exposes operational endpoints.
 *   `io.micrometer:micrometer-registry-prometheus`: Exposes metrics in Prometheus format.
-*   `io.micrometer:micrometer-tracing-bridge-brave`: Adds tracing support.
-*   `io.zipkin.reporter2:zipkin-reporter-brave`: Reports traces to Zipkin.
+*   `io.micrometer:micrometer-tracing-bridge-otel`: Adds OpenTelemetry tracing support.
+*   `io.opentelemetry:opentelemetry-exporter-otlp`: Exports traces/metrics via OTLP protocol.
 
 ### Event-Driven Metrics Strategy
 

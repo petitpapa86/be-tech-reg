@@ -48,6 +48,9 @@ spring:
       - report-generation
       - signal
       - observability
+      - metrics
+      - metrics
+      - metrics
   
   mvc:
     favicon:
@@ -63,10 +66,10 @@ spring:
   
   # Database configuration
   datasource:
-    url: jdbc:postgresql://localhost:5432/regtech
+    url: jdbc:postgresql://localhost:5433/regtech
     driver-class-name: org.postgresql.Driver
-    username: postgres #${DB_USERNAME:myuser}
-    password: dracons86 #${DB_PASSWORD:secret}
+    username: ${DB_USERNAME:myuser}
+    password: ${DB_PASSWORD:secret}
 
     # Connection pool (HikariCP)
     # Spring Boot uses HikariCP by default when it's on the classpath; these settings make it explicit and tunable.
@@ -221,20 +224,17 @@ logging:
 # Alert notification configuration for multiple channels
 # Requirements: 5.1, 5.2, 5.3, 5.4, 5.5
 management:
-  otlp:
-    metrics:
-      export:
-        enabled: false  # Disable OTLP metrics export (we use Prometheus)
   endpoints:
     web:
       exposure:
         include: health,info,metrics,prometheus
-  tracing:
-    sampling:
-      probability: 1.0 # Sample 100% of requests for development
-  zipkin:
+  otlp:
+    metrics:
+      export:
+        enabled: true  # Enable OTLP metrics export
+        url: http://localhost:4318/v1/metrics  # OTEL collector endpoint
     tracing:
-      endpoint: http://localhost:9411/api/v2/spans
+      endpoint: http://localhost:4318/v1/traces  # OTEL collector endpoint
 
 observability:
   notifications:
@@ -438,9 +438,9 @@ spring:
   
   # Development database settings
   datasource:
-    url: jdbc:postgresql://localhost:5432/regtech
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:dracons86}
+    url: jdbc:postgresql://localhost:5433/regtech
+    username: ${DB_USERNAME:myuser}
+    password: ${DB_PASSWORD:secret}
 
 # Disable S3 in development (use local filesystem)
 ingestion:

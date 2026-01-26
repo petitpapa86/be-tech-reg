@@ -15,4 +15,3 @@ scrape_configs:
           - localhost
         labels:
           job: regtech_logs
-          __path__: /var/log/regtech/*.log

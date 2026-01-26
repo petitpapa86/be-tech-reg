@@ -37,6 +37,35 @@ services:
     networks:
       - regtech-network
 
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: regtech-otel-collector
+    ports:
+      - "4317:4317"  # OTLP gRPC
+      - "4318:4318"  # OTLP HTTP
+      - "8889:8889"  # Prometheus metrics
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml
+    command: ["--config=/etc/otelcol/config.yaml"]
+    depends_on:
+      - zipkin
+    networks:
+      - regtech-network
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: regtech-tempo
+    ports:
+      - "3200:3200"  # Tempo query port
+      - "9095:9095"  # Tempo metrics port
+      - "4319:4319"  # OTLP gRPC
+      - "4320:4320"  # OTLP HTTP
+    volumes:
+      - ./tempo.yaml:/etc/tempo/tempo.yaml
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    networks:
+      - regtech-network
+
   loki:
     image: grafana/loki:2.9.2
     container_name: regtech-loki

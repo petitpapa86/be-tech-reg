@@ -1,15 +1,16 @@
 package com.bcbs239.regtech.iam.domain.users;
 
-import com.bcbs239.regtech.core.domain.shared.Entity;
-import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
-import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredEvent;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import com.bcbs239.regtech.core.domain.shared.Entity;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
+import com.bcbs239.regtech.iam.domain.users.events.UserRegisteredEvent;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 @Setter
@@ -28,6 +29,8 @@ public class User extends Entity {
     private List<BankAssignment> bankAssignments;
     private String username;
 
+    private String invitationToken;
+
     private User() {
         this.bankAssignments = new ArrayList<>();
     }
@@ -44,10 +47,11 @@ public class User extends Entity {
         user.username = email.getValue();
         user.firstName = firstName;
         user.lastName = lastName;
-        user.status = UserStatus.PENDING_PAYMENT; // New users need payment verification
+        user.status = UserStatus.ACTIVE; // Default to ACTIVE unless payment required
         user.createdAt = Instant.now();
         user.updatedAt = Instant.now();
         user.version = 0;
+        user.invitationToken = null;
         return user;
     }
 
@@ -91,7 +95,8 @@ public class User extends Entity {
     public static User createFromPersistence(UserId id, Email email, Password password, String username, String firstName,
                                              String lastName, UserStatus status, String googleId, String facebookId,
                                              Instant createdAt, Instant updatedAt, long version,
-                                             List<BankAssignment> bankAssignments) {
+                                             List<BankAssignment> bankAssignments,
+                                             String invitationToken) {
         User user = new User();
         user.id = id.getValue();
         user.email = email;
@@ -106,7 +111,15 @@ public class User extends Entity {
         user.updatedAt = updatedAt;
         user.version = version;
         user.bankAssignments = new ArrayList<>(bankAssignments);
+        user.invitationToken = invitationToken;
         return user;
+    }
+    public String getInvitationToken() {
+        return invitationToken;
+    }
+
+    public void setInvitationToken(String invitationToken) {
+        this.invitationToken = invitationToken;
     }
 
     // Getter for username
@@ -191,10 +204,14 @@ public class User extends Entity {
     }
 
     /**
-     * Sets user to pending payment status
+     * Sets user to pending payment status. Invitation token must be set (DB constraint).
      */
-    public void setPendingPayment() {
+    public void setPendingPayment(String invitationToken) {
+        if (invitationToken == null || invitationToken.isBlank()) {
+            throw new IllegalArgumentException("invitationToken must be set for PENDING_PAYMENT status (see DB constraint)");
+        }
         this.status = UserStatus.PENDING_PAYMENT;
+        this.invitationToken = invitationToken;
         this.updatedAt = Instant.now();
         this.version++;
     }

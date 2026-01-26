@@ -1,21 +1,29 @@
 package com.bcbs239.regtech.iam.application.users;
 
-import com.bcbs239.regtech.iam.domain.users.*;
-import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.shared.ErrorType;
-import com.bcbs239.regtech.core.domain.shared.FieldError;
-import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.FieldError;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
+import com.bcbs239.regtech.iam.domain.users.BankId;
+import com.bcbs239.regtech.iam.domain.users.Password;
+import com.bcbs239.regtech.iam.domain.users.User;
+import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.iam.domain.users.UserRepository;
+import com.bcbs239.regtech.iam.domain.users.UserStatus;
+
+import lombok.RequiredArgsConstructor;
+import lombok.Value;
 
 /**
  * Command Handler: Invite new user
@@ -86,7 +94,7 @@ public class InviteUserHandler {
         }
         
         // 6. Check if user already exists in this bank (business rule validation)
-        if (userRepository.existsByEmailAndBankId(email, bankId.getAsLong())) {
+        if (bankId != null && userRepository.existsByEmailAndBankId(email, bankId.getAsLong())) {
             log.warn("InviteUserHandler - user already exists - email={}, bankId={}", command.email, bankId.getValue());
             return Result.failure(
                 ErrorDetail.of("USER_EXISTS", ErrorType.BUSINESS_RULE_ERROR,
@@ -99,32 +107,39 @@ public class InviteUserHandler {
         byte[] tokenBytes = new byte[32];
         RANDOM.nextBytes(tokenBytes);
         String invitationToken = Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
-        
+
         // 8. Create temporary password hash (will be replaced when user accepts invitation)
         // For pending invitations, we use a placeholder hash since the real password will be set later
         Password tempPassword = Password.fromHash("PENDING_INVITATION_" + invitationToken.substring(0, 16));
-        
+
         // 9. Create user using EXISTING factory method
         User user = User.create(email, tempPassword, command.firstName.trim(), command.lastName.trim());
-        
+
+        // Set invitation token on user
+        user.setInvitationToken(invitationToken);
+
+        // Set status to INVITED (not PENDING_PAYMENT)
+        user.setStatus(UserStatus.INVITED);
+
         // 10. Assign to bank (adds BankAssignment)
-        user.assignToBank(bankId.getValue(), "USER");
-        
-        // User status is already PENDING_PAYMENT by default from factory
-        // Store invitation metadata (will be added to User entity or separate table)
-        
+        if (bankId != null) {
+            user.assignToBank(bankId.getValue(), "USER");
+        }
+
+        // Store invitation metadata (now added to User entity)
+
         // 11. Save user
         Result<UserId> saveResult = userRepository.userSaver(user);
         if (saveResult.isFailure()) {
             log.error("InviteUserHandler - failed to save user - email={}, error={}", command.email, saveResult.getError().get().getMessage());
             return Result.failure(saveResult.getError().get());
         }
-        
+
         var newUserId = saveResult.getValue().get();
-        log.info("User invited - userId={}, email={}, bankId={}", newUserId.getValue(), user.getEmail().getValue(), bankId.getValue());
-        
+        log.info("User invited - userId={}, email={}, bankId={}", newUserId.getValue(), user.getEmail().getValue(), bankId != null ? bankId.getValue() : null);
+
         // TODO: Send invitation email with token
-        
+
         return Result.success(user);
     }
 }

@@ -104,12 +104,9 @@ public class AddNewUserHandler {
         
         // 9. Create user using EXISTING factory method
         User user = User.create(email, password, command.firstName.trim(), command.lastName.trim());
-        
         // 10. Assign to bank (adds BankAssignment)
         user.assignToBank(bankId.getValue(), command.roleName.trim());
-        
-        // 11. Activate user immediately (change status from PENDING_PAYMENT to ACTIVE)
-        user.activate();
+        // 11. User is ACTIVE by default (no invitation, no payment required)
         
         // 12. Save user
         Result<UserId> saveResult = userRepository.userSaver(user);

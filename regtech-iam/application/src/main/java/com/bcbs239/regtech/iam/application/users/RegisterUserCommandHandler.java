@@ -116,7 +116,7 @@ public class RegisterUserCommandHandler {
         UserId userId = saveResult.getValue().get();
 
         // 10. Create user role with validation
-        Result<UserRole> roleResult = UserRole.create(userId, "SYSTEM_ADMIN", "default-org");
+        Result<UserRole> roleResult = UserRole.create(userId, "SYSTEM_ADMIN", command.getBankId());
         if (roleResult.isFailure()) {
             return Result.failure(roleResult.getError().get());
         }

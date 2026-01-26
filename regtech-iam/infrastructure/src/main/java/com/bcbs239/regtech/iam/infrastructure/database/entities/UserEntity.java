@@ -1,18 +1,30 @@
 package com.bcbs239.regtech.iam.infrastructure.database.entities;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
 import com.bcbs239.regtech.iam.domain.users.Password;
 import com.bcbs239.regtech.iam.domain.users.User;
 import com.bcbs239.regtech.iam.domain.users.UserId;
 import com.bcbs239.regtech.iam.domain.users.UserStatus;
-import jakarta.persistence.*;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * JPA Entity for users table with proper domain conversion.
@@ -34,6 +46,9 @@ public class UserEntity {
     @Column(name = "id")
     private UUID id;
 
+    @Column(name = "bank_id", nullable = false, length = 50)
+    private String bankId;
+
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
@@ -53,8 +68,12 @@ public class UserEntity {
     @Column(name = "status", nullable = false, length = 50)
     private UserStatus status;
 
+
     @Column(name = "google_id", length = 255)
     private String googleId;
+
+    @Column(name = "invitation_token", length = 128)
+    private String invitationToken;
 
     @Column(name = "facebook_id", length = 255)
     private String facebookId;
@@ -97,11 +116,21 @@ public class UserEntity {
         entity.updatedAt = user.getUpdatedAt();
         // Set version to null for new entities so Hibernate treats them as transient
         entity.version = null;
-        
+
         // Convert bank assignments
         entity.bankAssignments = user.getBankAssignments().stream()
             .map(assignment -> UserBankAssignmentEntity.fromDomain(assignment, entity.id))
             .toList();
+
+        // Set bankId for single-bank context (first assignment)
+        if (!user.getBankAssignments().isEmpty()) {
+            entity.bankId = user.getBankAssignments().get(0).getBankId();
+        } else {
+            entity.bankId = null;
+        }
+
+        // Set invitationToken if present
+        entity.invitationToken = user.getInvitationToken();
 
         return entity;
     }
@@ -113,9 +142,6 @@ public class UserEntity {
         // Create email and password value objects
         Email emailVO = Email.create(email).getValue().get();
         Password passwordVO = Password.fromHash(passwordHash);
-        
-        // Use reflection or package-private constructor to create domain object
-        // This is a simplified approach - in practice you might need a more sophisticated builder
 
         return User.createFromPersistence(
             new UserId(id),
@@ -132,7 +158,8 @@ public class UserEntity {
             version,
             bankAssignments.stream()
                 .map(UserBankAssignmentEntity::toDomain)
-                .toList()
+                .toList(),
+            invitationToken
         );
     }
 

@@ -5,6 +5,7 @@ package com.bcbs239.regtech.iam.domain.users;
  */
 public enum UserStatus {
     PENDING_PAYMENT,
+    INVITED,
     ACTIVE,
     SUSPENDED,
     CANCELLED

@@ -53,15 +53,18 @@ import org.springframework.scheduling.annotation.EnableAsync;
         "com.bcbs239.regtech.riskcalculation.infrastructure.config",
         "com.bcbs239.regtech.riskcalculation.presentation",
         "com.bcbs239.regtech.reportgeneration",
-        "com.bcbs239.regtech.signal"
+        "com.bcbs239.regtech.signal",
+        "com.bcbs239.regtech.metrics"
         // Ensure module presentation packages are scanned so functional RouterFunction beans are registered
 }, excludeFilters = {
 })
 @EntityScan(basePackages = {
-    "com.bcbs239.regtech.core.infrastructure"
+    "com.bcbs239.regtech.core.infrastructure",
+    "com.bcbs239.regtech.metrics.infrastructure.entity"
 })
 @EnableJpaRepositories(basePackages = {
-    "com.bcbs239.regtech.core.infrastructure"
+    "com.bcbs239.regtech.core.infrastructure",
+    "com.bcbs239.regtech.metrics.infrastructure.repository"
 })
 @EnableAspectJAutoProxy
 public class RegtechApplication {

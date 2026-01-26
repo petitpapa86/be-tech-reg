@@ -29,7 +29,11 @@ ALTER TABLE iam.users
 ADD COLUMN IF NOT EXISTS invitation_token VARCHAR(64),
 ADD COLUMN IF NOT EXISTS invited_at TIMESTAMP,
 ADD COLUMN IF NOT EXISTS invited_by VARCHAR(100),
-ADD COLUMN IF NOT EXISTS last_access TIMESTAMP;
+ADD COLUMN IF NOT EXISTS last_access TIMESTAMP,
+ADD COLUMN IF NOT EXISTS status VARCHAR(50);
+
+-- Backfill status for existing users
+UPDATE iam.users SET status = 'ACTIVE' WHERE status IS NULL;
 
 -- 5. Add constraint: PENDING_PAYMENT status means invitation pending
 ALTER TABLE iam.users

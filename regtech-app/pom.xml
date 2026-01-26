@@ -206,14 +206,15 @@
             <version>8.0</version>
         </dependency>
 
-        <!-- Distributed Tracing -->
+        <!-- Distributed Tracing with OpenTelemetry -->
         <dependency>
             <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.zipkin.reporter2</groupId>
-            <artifactId>zipkin-reporter-brave</artifactId>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>1.40.0</version>
         </dependency>
         
         <!-- Resilience4j for circuit breaker pattern in health checks -->
@@ -246,6 +247,28 @@
             <artifactId>regtech-core-presentation</artifactId>
             <version>0.0.1-SNAPSHOT</version>
             <scope>compile</scope>
+        </dependency>
+
+        <!-- Metrics module (adds dashboard and metrics capabilities) -->
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>metrics-domain</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>metrics-application</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>metrics-infrastructure</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>metrics-presentation</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
         </dependency>
 
         <!-- Signal module (adds event/signal processing capabilities) -->

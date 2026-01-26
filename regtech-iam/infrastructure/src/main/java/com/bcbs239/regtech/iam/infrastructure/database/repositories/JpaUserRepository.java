@@ -1,21 +1,26 @@
 package com.bcbs239.regtech.iam.infrastructure.database.repositories;
 
-import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
-import com.bcbs239.regtech.core.domain.shared.ErrorType;
-import com.bcbs239.regtech.core.domain.shared.Maybe;
-import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
-import com.bcbs239.regtech.iam.domain.users.*;
-import com.bcbs239.regtech.iam.infrastructure.database.entities.RoleEntity;
-import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
-import com.bcbs239.regtech.iam.infrastructure.database.entities.UserRoleEntity;
+import java.util.List;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Map;
+import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
+import com.bcbs239.regtech.core.domain.shared.ErrorType;
+import com.bcbs239.regtech.core.domain.shared.Maybe;
+import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.Email;
+import com.bcbs239.regtech.iam.domain.users.JwtToken;
+import com.bcbs239.regtech.iam.domain.users.User;
+import com.bcbs239.regtech.iam.domain.users.UserId;
+import com.bcbs239.regtech.iam.domain.users.UserRole;
+import com.bcbs239.regtech.iam.domain.users.UserStatus;
+import com.bcbs239.regtech.iam.infrastructure.database.entities.RoleEntity;
+import com.bcbs239.regtech.iam.infrastructure.database.entities.UserEntity;
+import com.bcbs239.regtech.iam.infrastructure.database.entities.UserRoleEntity;
 
 /**
  * Consolidated JPA repository for User aggregate operations using Spring Data JPA repositories.
@@ -92,7 +97,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                 // For updates, find existing entity and update its fields
                 UserEntity existingEntity = userRepository.findById(user.getId().getUUID())
                         .orElseThrow(() -> new IllegalStateException("User not found for update: " + user.getId().getValue()));
-                
+
                 // Update fields from domain
                 existingEntity.setEmail(user.getEmail().getValue());
                 existingEntity.setUsername(user.getUsername());
@@ -103,11 +108,14 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
                 existingEntity.setGoogleId(user.getGoogleId());
                 existingEntity.setFacebookId(user.getFacebookId());
                 existingEntity.setUpdatedAt(user.getUpdatedAt());
-                
+                // Set bankId for single-bank context (first assignment)
+                if (!user.getBankAssignments().isEmpty()) {
+                    existingEntity.setBankId(user.getBankAssignments().get(0).getBankId());
+                }
                 // For bank assignments, we don't update them in this scenario
                 // They are managed separately through other operations
                 // Clearing the collection causes Hibernate to try setting user_id to null
-                
+
                 savedEntity = userRepository.save(existingEntity);
             } else {
                 // For new entities, create fresh entity
@@ -130,7 +138,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
         try {
             return userRoleRepository.findByUserIdAndActiveTrue(userId.getUUID())
                     .stream()
-                    .map(entity -> convertToDomain(entity))
+                    .map(this::convertToDomain)
                     .toList();
         } catch (Exception e) {
             log.error("Failed to find user roles; details={}", Map.of("userId", userId.getValue(), "error", e.getMessage()), e);
@@ -146,7 +154,7 @@ public class JpaUserRepository implements com.bcbs239.regtech.iam.domain.users.U
         try {
             return userRoleRepository.findByUserIdAndOrganizationIdAndActiveTrue(query.userId().getUUID(), query.organizationId())
                     .stream()
-                    .map(entity -> convertToDomain(entity))
+                    .map(this::convertToDomain)
                     .toList();
         } catch (Exception e) {
             log.error("Failed to find user org roles; details={}", Map.of("userId", query.userId().getValue(), "organizationId", query.organizationId(), "error", e.getMessage()), e);

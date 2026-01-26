@@ -26,7 +26,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 2: Amount Required
 INSERT INTO dataquality.business_rules (
@@ -48,7 +48,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 3: Currency Required
 INSERT INTO dataquality.business_rules (
@@ -70,7 +70,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 4: Country Required
 INSERT INTO dataquality.business_rules (
@@ -92,7 +92,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 5: Sector Required
 INSERT INTO dataquality.business_rules (
@@ -114,7 +114,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 6: LEI for Corporates
 INSERT INTO dataquality.business_rules (
@@ -136,7 +136,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 7: Maturity for Term Exposures
 INSERT INTO dataquality.business_rules (
@@ -158,7 +158,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 8: Internal Rating Required
 INSERT INTO dataquality.business_rules (
@@ -180,7 +180,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 9: Counterparty ID Required
 INSERT INTO dataquality.business_rules (
@@ -202,7 +202,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- =====================================================
 -- ACCURACY RULES (5 rules)
@@ -228,7 +228,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 2: Valid Currency Codes
 INSERT INTO dataquality.business_rules (
@@ -250,7 +250,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 2 Parameter: Valid Currencies List
 INSERT INTO dataquality.rule_parameters (
@@ -266,7 +266,7 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Rule 3: Valid Country Codes
 INSERT INTO dataquality.business_rules (
@@ -288,7 +288,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 3 Parameter: Valid Countries List
 INSERT INTO dataquality.rule_parameters (
@@ -304,7 +304,7 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Rule 4: Valid LEI Format
 INSERT INTO dataquality.business_rules (
@@ -326,7 +326,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 5: Reasonable Amount
 INSERT INTO dataquality.business_rules (
@@ -348,7 +348,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 5 Parameter: Max Reasonable Amount
 INSERT INTO dataquality.rule_parameters (
@@ -367,7 +367,7 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Rule 6: Valid Product Type
 INSERT INTO dataquality.business_rules (
@@ -389,7 +389,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 6 Parameter: Valid Product Types List
 INSERT INTO dataquality.rule_parameters (
@@ -405,7 +405,7 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Rule 7: Valid Internal Rating Format
 INSERT INTO dataquality.business_rules (
@@ -427,7 +427,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 7 Parameter: Valid Internal Ratings List
 INSERT INTO dataquality.rule_parameters (
@@ -443,7 +443,7 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Rule 8: Valid Maturity Date Format
 INSERT INTO dataquality.business_rules (
@@ -465,7 +465,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 9: Valid Risk Weight Range
 INSERT INTO dataquality.business_rules (
@@ -487,7 +487,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 10: Valid Counterparty Type
 INSERT INTO dataquality.business_rules (
@@ -509,7 +509,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 10 Parameter: Valid Counterparty Types List
 INSERT INTO dataquality.rule_parameters (
@@ -525,7 +525,7 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- =====================================================
 -- TIMELINESS RULES (3 rules)
@@ -551,7 +551,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 1 Parameter: Max Reporting Age
 INSERT INTO dataquality.rule_parameters (
@@ -570,7 +570,7 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Rule 2: No Future Date
 INSERT INTO dataquality.business_rules (
@@ -592,7 +592,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 3: Recent Valuation
 INSERT INTO dataquality.business_rules (
@@ -614,7 +614,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- =====================================================
 -- CONSISTENCY RULES (3 rules - disabled, require custom implementation)
@@ -640,7 +640,7 @@ INSERT INTO dataquality.business_rules (
     false,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 2: Sector-Counterparty Type Consistency
 INSERT INTO dataquality.business_rules (
@@ -662,7 +662,7 @@ INSERT INTO dataquality.business_rules (
     false,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 3: Rating-Risk Category Consistency
 INSERT INTO dataquality.business_rules (
@@ -684,7 +684,7 @@ INSERT INTO dataquality.business_rules (
     false,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- =====================================================
 -- UNIQUENESS RULES (2 rules - disabled, require batch-level implementation)
@@ -710,7 +710,7 @@ INSERT INTO dataquality.business_rules (
     false,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 2: Unique Counterparty-Exposure Pairs
 INSERT INTO dataquality.business_rules (
@@ -732,7 +732,7 @@ INSERT INTO dataquality.business_rules (
     false,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- =====================================================
 -- VALIDITY RULES (3 rules)
@@ -758,7 +758,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 1 Parameter: Valid Sectors List
 INSERT INTO dataquality.rule_parameters (
@@ -774,7 +774,7 @@ INSERT INTO dataquality.rule_parameters (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id, parameter_name) DO NOTHING;
 
 -- Rule 2: Risk Weight Range
 INSERT INTO dataquality.business_rules (
@@ -796,7 +796,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- Rule 3: Maturity After Reporting
 INSERT INTO dataquality.business_rules (
@@ -818,7 +818,7 @@ INSERT INTO dataquality.business_rules (
     true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
-);
+) ON CONFLICT (rule_id) DO NOTHING;
 
 -- =====================================================
 -- Migration Summary
