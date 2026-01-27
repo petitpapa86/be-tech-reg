@@ -114,6 +114,14 @@ public class QualityReport extends Entity {
      * Initializes the report in PENDING status ready for validation.
      */
     public static QualityReport createForBatch(BatchId batchId, BankId bankId) {
+        return createForBatch(batchId, bankId, null);
+    }
+
+    /**
+     * Factory method to create a new quality report for a batch with file metadata.
+     * Initializes the report in PENDING status ready for validation.
+     */
+    public static QualityReport createForBatch(BatchId batchId, BankId bankId, FileMetadata fileMetadata) {
         if (batchId == null) {
             throw new IllegalArgumentException("Batch ID cannot be null");
         }
@@ -128,6 +136,7 @@ public class QualityReport extends Entity {
         report.status = QualityStatus.PENDING;
         report.createdAt = Instant.now();
         report.updatedAt = Instant.now();
+        report.fileMetadata = fileMetadata;
         
         return report;
     }

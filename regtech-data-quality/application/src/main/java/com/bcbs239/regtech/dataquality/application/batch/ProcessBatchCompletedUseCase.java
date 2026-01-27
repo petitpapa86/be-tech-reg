@@ -30,6 +30,7 @@ public class ProcessBatchCompletedUseCase {
 
     private ValidateBatchQualityCommand createValidationCommand(BatchCompletedInboundEvent event) {
         String correlationId = event.getCorrelationId();
+        String fileFormat = extractFileExtension(event.getFilename());
 
         if (correlationId != null && !correlationId.isEmpty()) {
             return ValidateBatchQualityCommand.withCorrelation(
@@ -38,7 +39,9 @@ public class ProcessBatchCompletedUseCase {
                     event.getS3Uri(),
                     event.getTotalExposures(),
                     correlationId,
-                    event.getFilename()
+                    event.getFilename(),
+                    event.getFileSizeBytes(),
+                    fileFormat
             );
         }
 
@@ -47,7 +50,16 @@ public class ProcessBatchCompletedUseCase {
                 new BankId(event.getBankId()),
                 event.getS3Uri(),
                 event.getTotalExposures(),
-                event.getFilename()
+                event.getFilename(),
+                event.getFileSizeBytes(),
+                fileFormat
         );
+    }
+
+    private String extractFileExtension(String filename) {
+        if (filename == null || filename.lastIndexOf('.') == -1) {
+            return "unknown";
+        }
+        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase();
     }
 }

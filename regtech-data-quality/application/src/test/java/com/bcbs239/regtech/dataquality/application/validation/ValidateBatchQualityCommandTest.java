@@ -20,7 +20,7 @@ class ValidateBatchQualityCommandTest {
         
         // Act
         ValidateBatchQualityCommand command = ValidateBatchQualityCommand.of(
-            batchId, bankId, s3Uri, 100, "test.json"
+            batchId, bankId, s3Uri, 100, "test.json", 1024L, "json"
         );
         
         // Assert
@@ -29,6 +29,8 @@ class ValidateBatchQualityCommandTest {
         assertEquals(bankId, command.bankId());
         assertEquals(s3Uri, command.s3Uri());
         assertEquals(100, command.expectedExposureCount());
+        assertEquals(1024L, command.fileSize());
+        assertEquals("json", command.fileFormat());
     }
     
     @Test
@@ -40,7 +42,9 @@ class ValidateBatchQualityCommandTest {
             BankId.of("bank-1"),
             "s3://bucket/path/file.json",
             50,
-            "test.json"
+            "test.json",
+            2048L,
+            "json"
         );
         
         // Act & Assert
@@ -56,7 +60,7 @@ class ValidateBatchQualityCommandTest {
             BankId.of("bank-1"),
             "s3://bucket/path/file.json",
             50,
-            null,null,"test.json"
+            null,null,"test.json", 100L, "json"
         );
         
         // Act & Assert
@@ -72,7 +76,7 @@ class ValidateBatchQualityCommandTest {
             null,
             "s3://bucket/path/file.json",
             50,
-            null,null,"test.json"
+            null,null,"test.json", 100L, "json"
         );
         
         // Act & Assert
@@ -88,7 +92,7 @@ class ValidateBatchQualityCommandTest {
             BankId.of("bank-1"),
             null,
             50,
-            null,null,"test.json"
+            null,null,"test.json", 100L, "json"
         );
         
         // Act & Assert

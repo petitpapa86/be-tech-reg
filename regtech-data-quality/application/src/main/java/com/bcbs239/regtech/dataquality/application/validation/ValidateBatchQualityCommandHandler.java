@@ -10,6 +10,7 @@ import com.bcbs239.regtech.dataquality.application.rulesengine.RuleViolationRepo
 import com.bcbs239.regtech.dataquality.application.validation.timeliness.TimelinessValidator;
 import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
+import com.bcbs239.regtech.dataquality.domain.report.FileMetadata;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;
@@ -79,7 +80,13 @@ public class ValidateBatchQualityCommandHandler {
 
         QualityReport report;
         try {
-            report = QualityReport.createForBatch(command.batchId(), command.bankId());
+            FileMetadata fileMetadata = FileMetadata.of(
+                    command.filename(),
+                    command.fileFormat(),
+                    command.fileSize()
+            );
+            
+            report = QualityReport.createForBatch(command.batchId(), command.bankId(), fileMetadata);
             report.startValidation(CorrelationContext.correlationId());
 
             Result<QualityReport> saveResult = qualityReportRepository.save(report);

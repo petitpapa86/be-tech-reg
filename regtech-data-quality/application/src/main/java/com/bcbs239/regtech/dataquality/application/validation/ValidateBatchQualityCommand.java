@@ -17,7 +17,9 @@ public record ValidateBatchQualityCommand(
         int expectedExposureCount,
         @Nullable LocalDate uploadDate,
         String correlationId,
-        String filename
+        String filename,
+        long fileSize,
+        String fileFormat
 ) {
 
     /**
@@ -28,7 +30,9 @@ public record ValidateBatchQualityCommand(
             BankId bankId,
             String s3Uri,
             int expectedExposureCount,
-            String filename
+            String filename,
+            long fileSize,
+            String fileFormat
     ) {
         return new ValidateBatchQualityCommand(
                 batchId,
@@ -37,7 +41,9 @@ public record ValidateBatchQualityCommand(
                 expectedExposureCount,
                 null,
                 null,
-                filename
+                filename,
+                fileSize,
+                fileFormat
         );
     }
 
@@ -50,7 +56,9 @@ public record ValidateBatchQualityCommand(
             String s3Uri,
             int expectedExposureCount,
             String correlationId,
-            String filename
+            String filename,
+            long fileSize,
+            String fileFormat
     ) {
         return new ValidateBatchQualityCommand(
                 batchId,
@@ -59,7 +67,9 @@ public record ValidateBatchQualityCommand(
                 expectedExposureCount,
                 null,
                 correlationId,
-                filename
+                filename,
+                fileSize,
+                fileFormat
         );
     }
 
@@ -78,6 +88,9 @@ public record ValidateBatchQualityCommand(
         }
         if (expectedExposureCount < 0) {
             throw new IllegalArgumentException("Expected exposure count cannot be negative");
+        }
+        if (fileSize < 0) {
+            throw new IllegalArgumentException("File size cannot be negative");
         }
     }
 
