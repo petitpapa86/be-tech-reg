@@ -2,6 +2,7 @@ package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
 import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,7 +17,7 @@ import java.util.Optional;
  * Provides database access methods for quality reports.
  */
 @Repository
-public interface QualityReportJpaRepository extends JpaRepository<QualityReportEntity, String> {
+public interface QualityReportJpaRepository extends JpaRepository<QualityReportEntity, String>, JpaSpecificationExecutor<QualityReportEntity> {
     
     /**
      * Find a quality report by batch ID.

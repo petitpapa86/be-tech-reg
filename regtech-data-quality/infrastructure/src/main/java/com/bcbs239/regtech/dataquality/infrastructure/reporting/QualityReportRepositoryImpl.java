@@ -8,16 +8,21 @@ import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
 import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
+import jakarta.persistence.criteria.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -84,6 +89,57 @@ public class QualityReportRepositoryImpl implements IQualityReportRepository {
         }
     }
     
+    @Override
+    @Transactional(readOnly = true)
+    public Page<QualityReport> findWithFilters(
+        BankId bankId,
+        QualityStatus status,
+        Instant dateFrom,
+        String format,
+        String searchQuery,
+        Pageable pageable
+    ) {
+        try {
+            Specification<QualityReportEntity> spec = (root, query, cb) -> {
+                List<Predicate> predicates = new ArrayList<>();
+                
+                // Bank ID Filter (Mandatory)
+                predicates.add(cb.equal(root.get("bankId"), bankId.value()));
+                
+                // Status Filter
+                if (status != null) {
+                    predicates.add(cb.equal(root.get("status"), status));
+                }
+                
+                // Date Filter (from date)
+                if (dateFrom != null) {
+                    predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), dateFrom));
+                }
+                
+                // Format Filter
+                if (format != null && !format.equals("all")) {
+                    predicates.add(cb.equal(root.get("fileFormat"), format));
+                }
+                
+                // Search Query (Filename)
+                if (searchQuery != null && !searchQuery.isBlank()) {
+                    String pattern = "%" + searchQuery.toLowerCase() + "%";
+                    predicates.add(cb.like(cb.lower(root.get("filename")), pattern));
+                }
+                
+                return cb.and(predicates.toArray(new Predicate[0]));
+            };
+            
+            return jpaRepository.findAll(spec, pageable)
+                .map(mapper::toDomain);
+                
+        } catch (DataAccessException e) {
+            logger.error("Error finding quality reports with filters: bankId={}, status={}", 
+                bankId.value(), status, e);
+            return Page.empty(pageable);
+        }
+    }
+
     @Override
     public Result<QualityReport> save(QualityReport report) {
         try {

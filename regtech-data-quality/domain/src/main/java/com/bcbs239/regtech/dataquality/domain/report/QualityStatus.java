@@ -54,5 +54,23 @@ public enum QualityStatus {
     public boolean isSuccessful() {
         return this == COMPLETED;
     }
+
+    /**
+     * Safely parses a string to QualityStatus.
+     * Returns null if the input is null, blank, "all", or invalid.
+     * 
+     * @param value The string value to parse
+     * @return QualityStatus or null
+     */
+    public static QualityStatus from(String value) {
+        if (value == null || value.isBlank() || "all".equalsIgnoreCase(value)) {
+            return null;
+        }
+        try {
+            return QualityStatus.valueOf(value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
 }
 

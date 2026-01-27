@@ -70,6 +70,15 @@ public class QualityReportEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "quality_grade", length = 20)
     private QualityGrade qualityGrade;
+
+    @Column(name = "filename")
+    private String filename;
+
+    @Column(name = "file_format", length = 50)
+    private String fileFormat;
+
+    @Column(name = "file_size")
+    private Long fileSize;
     
     // Validation Summary
     @Column(name = "total_exposures")

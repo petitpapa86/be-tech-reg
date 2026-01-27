@@ -57,6 +57,10 @@ public class QualityReport extends Entity {
     private Instant createdAt;
     private Instant updatedAt;
     private QualityGrade qualityGrade;
+    
+    // File Metadata
+    private FileMetadata fileMetadata;
+
     // Processing metadata (persisted/auditable)
     private Instant processingStartTime;
     private Instant processingEndTime;
@@ -474,6 +478,9 @@ public class QualityReport extends Entity {
     // =====================================================================
 
     private String extractFileName() {
+        if (this.fileMetadata != null) {
+            return this.fileMetadata.filename();
+        }
         if (batchId == null || batchId.value() == null) {
             return "esposizioni.xlsx";
         }
@@ -498,6 +505,14 @@ public class QualityReport extends Entity {
     }
 
     private String calculateFileSize(ValidationSummary summary) {
+        if (this.fileMetadata != null) {
+             long bytes = this.fileMetadata.size();
+             if (bytes < 1024L * 1024L) {
+                 return String.format(Locale.ITALY, "%.1f KB", bytes / 1024.0);
+             }
+             return String.format(Locale.ITALY, "%.1f MB", bytes / (1024.0 * 1024.0));
+        }
+        
         int total = summary != null ? summary.totalExposures() : 0;
         long bytes = total * 150L;
 

@@ -2,6 +2,7 @@ package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
+import com.bcbs239.regtech.dataquality.domain.report.FileMetadata;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
@@ -86,6 +87,13 @@ public class QualityReportMapper {
         entity.setProcessingStartTime(domainReport.getProcessingStartTime());
         entity.setProcessingEndTime(domainReport.getProcessingEndTime());
         entity.setProcessingDurationMs(domainReport.getProcessingDurationMs());
+
+        // Map file metadata
+        if (domainReport.getFileMetadata() != null) {
+            entity.setFilename(domainReport.getFileMetadata().filename());
+            entity.setFileFormat(domainReport.getFileMetadata().format());
+            entity.setFileSize(domainReport.getFileMetadata().size());
+        }
         
         // Map audit fields
         entity.setCreatedAt(domainReport.getCreatedAt());
@@ -192,6 +200,15 @@ public class QualityReportMapper {
         // Set error message if available
         if (entity.getErrorMessage() != null) {
             domainReport.setErrorMessage(entity.getErrorMessage());
+        }
+
+        // Set file metadata
+        if (entity.getFilename() != null && entity.getFileFormat() != null) {
+            domainReport.setFileMetadata(FileMetadata.of(
+                entity.getFilename(),
+                entity.getFileFormat(),
+                entity.getFileSize() != null ? entity.getFileSize() : 0L
+            ));
         }
         
         // Set processing metadata

@@ -3,6 +3,8 @@ package com.bcbs239.regtech.dataquality.domain.report;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.util.List;
@@ -115,6 +117,18 @@ public interface IQualityReportRepository {
      */
     Optional<QualityReport> findMostRecentByBankIdAndStatus(BankId bankId, QualityStatus status);
     
+    /**
+     * Find quality reports with dynamic filters.
+     */
+    Page<QualityReport> findWithFilters(
+        BankId bankId,
+        QualityStatus status,
+        Instant dateFrom,
+        String format,
+        String searchQuery,
+        Pageable pageable
+    );
+
     /**
      * Find quality reports with compliance issues (non-compliant status).
      */
