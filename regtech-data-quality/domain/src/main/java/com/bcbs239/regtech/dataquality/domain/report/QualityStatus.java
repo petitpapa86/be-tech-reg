@@ -72,5 +72,27 @@ public enum QualityStatus {
             return null;
         }
     }
+
+    /**
+     * Get the color code associated with this status.
+     */
+    public String getColor() {
+        return switch (this) {
+            case COMPLETED -> "green";
+            case IN_PROGRESS, PENDING -> "blue";
+            case FAILED -> "red";
+        };
+    }
+
+    /**
+     * Get the icon symbol associated with this status.
+     */
+    public String getIcon() {
+        return switch (this) {
+            case COMPLETED -> "✓";
+            case IN_PROGRESS, PENDING -> "⟳";
+            case FAILED -> "✗";
+        };
+    }
 }
 

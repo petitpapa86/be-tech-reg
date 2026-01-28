@@ -68,15 +68,21 @@ public class QualityReportController extends BaseController implements IEndpoint
     
     /**
      * Get quality report for a specific batch with detailed exposure results.
-     * Endpoint: GET /api/v1/data-quality/reports?bankId=...
+     * Endpoint: GET /api/v1/data-quality/reports?fileId=...
+     * Headers: X-Bank-Id
      *
-     * Returns the most recent COMPLETED report for the given bank.
+     * Returns the report for the given file ID and bank.
      */
     public ServerResponse getQualityReport(ServerRequest request) {
         try {
-            String bankIdStr = request.param("bankId").orElse(null);
+            String bankIdStr = request.headers().header("X-Bank-Id").stream()
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Missing required header: X-Bank-Id"));
 
-            logger.debug("Processing quality report request for bankId={}", bankIdStr);
+            String fileId = request.param("fileId")
+                .orElseThrow(() -> new IllegalArgumentException("Missing required parameter: fileId"));
+
+            logger.debug("Processing quality report request for bankId={} fileId={}", bankIdStr, fileId);
 
             // Extract and validate bankId
             Result<BankId> bankIdResult = requestValidator.validateBankId(bankIdStr);
@@ -85,14 +91,8 @@ public class QualityReportController extends BaseController implements IEndpoint
             }
             BankId bankId = bankIdResult.getValue().orElseThrow();
 
-            // Verify user has access to this batch (bank-level security)
-//            Result<Void> accessResult = securityService.verifyBatchAccess(batchId);
-//            if (accessResult.isFailure()) {
-//                return handleErrorResponse(accessResult.getError().orElseThrow());
-//            }
-
             // Generate presentation model (new frontend payload)
-            QualityReportPresentation presentation = presentationService.getLatestFrontendPresentation(bankId);
+            QualityReportPresentation presentation = presentationService.getLatestFrontendPresentation(bankId, fileId);
 
             // Handle response
             return handleSuccessResult(

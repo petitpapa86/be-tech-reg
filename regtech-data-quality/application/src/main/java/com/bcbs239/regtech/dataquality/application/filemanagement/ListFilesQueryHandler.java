@@ -25,6 +25,8 @@ import java.util.stream.Collectors;
 @Component
 public class ListFilesQueryHandler {
 
+    private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(ListFilesQueryHandler.class);
+
     private final IQualityReportRepository qualityReportRepository;
     private final FileResponseMapper fileResponseMapper;
 
@@ -34,8 +36,12 @@ public class ListFilesQueryHandler {
     }
 
     public FileListResponse handle(ListFilesQuery query) {
+        logger.info("Handling ListFilesQuery for bankId: {}, dateFrom: {}, format: {}", 
+            query.bankId().value(), query.dateFrom(), query.format());
+
         // Prepare filters
         QualityStatus status = QualityStatus.from(query.status());
+        logger.debug("Applied status filter: {}", status);
         
         // Prepare Pageable
         // Note: query.page() is 1-based from controller usually, but Spring PageRequest is 0-based.
@@ -44,6 +50,7 @@ public class ListFilesQueryHandler {
         // Build sort using Value Object
         FileSortCriteria sortCriteria = FileSortCriteria.from(query.sortBy(), query.sortOrder());
         Pageable pageable = PageRequest.of(pageIndex, query.size(), sortCriteria.toSpringSort());
+        logger.debug("Pagination prepared: pageIndex={}, size={}, sort={}", pageIndex, query.size(), sortCriteria.toSpringSort());
 
         // Execute query
         Page<QualityReport> page = qualityReportRepository.findWithFilters(
@@ -54,6 +61,7 @@ public class ListFilesQueryHandler {
             query.searchQuery(),
             pageable
         );
+        logger.info("Query executed. Found {} total elements, {} pages", page.getTotalElements(), page.getTotalPages());
 
         // Map results
         List<FileResponse> fileResponses = page.getContent().stream()
@@ -79,6 +87,7 @@ public class ListFilesQueryHandler {
             query.searchQuery()
         );
 
+        logger.info("Returning FileListResponse with {} items", fileResponses.size());
         return new FileListResponse(fileResponses, pagination, filters);
     }
 }

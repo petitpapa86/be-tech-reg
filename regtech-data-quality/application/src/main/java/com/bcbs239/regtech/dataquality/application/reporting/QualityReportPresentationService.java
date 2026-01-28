@@ -6,6 +6,7 @@ import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
+import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
@@ -32,31 +33,31 @@ public class QualityReportPresentationService {
     private final StoredValidationResultsReader storedResultsReader;
 
     /**
-     * Returns the frontend presentation for the most recent report for a bank in a given status.
+     * Returns the frontend presentation for a specific report identified by fileId (QualityReportId) for a bank.
      *
-     * <p>Used by the API endpoint that doesn't expose batchId directly.</p>
+     * <p>Used by the API endpoint to view specific report details.</p>
      */
-    public QualityReportPresentation getLatestFrontendPresentation(BankId bankId, QualityStatus status) {
-        if (bankId == null) {
-            throw new IllegalArgumentException("bankId is required");
+    public QualityReportPresentation getLatestFrontendPresentation(BankId bankId, String fileId) {
+        
+        if (fileId == null || fileId.isBlank()) {
+            throw new IllegalArgumentException("fileId is required");
         }
-        QualityStatus effectiveStatus = status != null ? status : QualityStatus.COMPLETED;
 
-        QualityReport report = repository.findMostRecentByBankIdAndStatus(bankId, effectiveStatus)
+        QualityReportId reportId = QualityReportId.of(fileId);
+
+        QualityReport report = repository.findByReportId(reportId)
             .orElseThrow(() -> new IllegalArgumentException(
-                "QualityReport not found for bankId=" + bankId.value() + " with status=" + effectiveStatus
+                "QualityReport not found for fileId=" + fileId
             ));
+
+        if (!report.getBankId().equals(bankId)) {
+            // Use IllegalArgumentException to avoid leaking existence of reports for other banks
+            throw new IllegalArgumentException("QualityReport not found for fileId=" + fileId);
+        }
 
         List<LargeExposure> largeExposures = calculator.calculate(report);
         ValidationSummary summaryOverride = buildSummaryOverrideFromStoredDetails(report);
         return report.toFrontendPresentation(largeExposures, summaryOverride);
-    }
-
-    /**
-     * Returns the frontend presentation for the most recent COMPLETED report for a bank.
-     */
-    public QualityReportPresentation getLatestFrontendPresentation(BankId bankId) {
-        return getLatestFrontendPresentation(bankId, QualityStatus.COMPLETED);
     }
 
     private ValidationSummary buildSummaryOverrideFromStoredDetails(QualityReport report) {

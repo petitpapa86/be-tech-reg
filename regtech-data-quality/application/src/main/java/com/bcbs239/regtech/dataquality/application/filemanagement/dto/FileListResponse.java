@@ -1,11 +1,14 @@
 package com.bcbs239.regtech.dataquality.application.filemanagement.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+
 import java.util.List;
 
+@Getter
 public class FileListResponse {
-    @JsonProperty("data")
-    private List<FileResponse> data;
+    @JsonProperty("files")
+    private List<FileResponse> files;
     
     @JsonProperty("pagination")
     private PaginationResponse pagination;
@@ -14,13 +17,9 @@ public class FileListResponse {
     private FiltersApplied filters;
 
     public FileListResponse(List<FileResponse> data, PaginationResponse pagination, FiltersApplied filters) {
-        this.data = data;
+        this.files = data;
         this.pagination = pagination;
         this.filters = filters;
     }
 
-    // Getters
-    public List<FileResponse> getData() { return data; }
-    public PaginationResponse getPagination() { return pagination; }
-    public FiltersApplied getFilters() { return filters; }
 }

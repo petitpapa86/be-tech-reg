@@ -78,8 +78,10 @@ public class FileManagementController {
     }
 
     private String extractBankId(ServerRequest request) {
-        // TODO: Extract from JWT token or security context
-        return request.param("bankId").orElse("BANK001");
+        // Extract from X-Bank-Id header
+        return request.headers().header("X-Bank-Id").stream()
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Missing required header: X-Bank-Id"));
     }
 
     private Instant calculateDateFrom(String period) {

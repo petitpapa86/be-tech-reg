@@ -35,12 +35,12 @@ public class QualityReportQueryHandler {
         try {
             query.validate();
             
-            logger.debug("Retrieving quality report for batch {}", query.batchId().value());
+            logger.info("Handling GetQualityReportQuery for batch {}", query.batchId().value());
             
             Optional<QualityReport> reportOptional = qualityReportRepository.findByBatchId(query.batchId());
             
             if (reportOptional.isEmpty()) {
-                logger.debug("Quality report not found for batch {}", query.batchId().value());
+                logger.info("Quality report not found for batch {}", query.batchId().value());
                 return Result.failure(ErrorDetail.of(
                     "QUALITY_REPORT_NOT_FOUND",
                     ErrorType.NOT_FOUND_ERROR,
@@ -52,7 +52,7 @@ public class QualityReportQueryHandler {
             QualityReport report = reportOptional.get();
             QualityReportDto dto = QualityReportDto.fromDomain(report);
             
-            logger.debug("Successfully retrieved quality report {} for batch {}", 
+            logger.info("Successfully retrieved quality report {} for batch {}", 
                 report.getReportId().value(), query.batchId().value());
             
             return Result.success(dto);

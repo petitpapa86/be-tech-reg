@@ -86,8 +86,6 @@ public class S3StorageServiceImpl implements S3StorageService {
     @Override
     @Retryable(value = {software.amazon.awssdk.services.s3.model.S3Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public Result<List<ExposureRecord>> downloadExposures(String s3Uri) {
-        logger.info("Starting download of exposures from URI: {}", s3Uri);
-        long startTime = System.currentTimeMillis();
         
         try {
             List<ExposureRecord> exposures;
@@ -107,9 +105,6 @@ public class S3StorageServiceImpl implements S3StorageService {
                 }
             }
             
-            long duration = System.currentTimeMillis() - startTime;
-            logger.info("Successfully downloaded {} exposures in {} ms", exposures.size(), duration);
-            
             return Result.success(exposures);
             
         } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
@@ -126,8 +121,6 @@ public class S3StorageServiceImpl implements S3StorageService {
     
     @Override
     public Result<com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata> downloadBatchWithMetadata(String s3Uri) {
-        logger.info("Starting download of batch with metadata from URI: {}", s3Uri);
-        long startTime = System.currentTimeMillis();
         
         try {
             com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata batch;
@@ -144,10 +137,6 @@ public class S3StorageServiceImpl implements S3StorageService {
                 }
                 batch = com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata.withoutMetadata(exposuresResult.getValueOrThrow());
             }
-            
-            long duration = System.currentTimeMillis() - startTime;
-            logger.info("Successfully downloaded batch with {} exposures, declaredCount={}, reportDate={} in {} ms",
-                batch.exposures().size(), batch.declaredCount(), batch.reportDate(), duration);
             
             return Result.success(batch);
             
@@ -171,8 +160,6 @@ public class S3StorageServiceImpl implements S3StorageService {
         // Convert file:// URI to file path using proper parsing
         String filePath = parseFileUri(fileUri);
 
-        logger.info("Reading batch with metadata from local file: {}", filePath);
-        
         java.nio.file.Path path = java.nio.file.Paths.get(filePath);
         if (!java.nio.file.Files.exists(path)) {
             throw new IOException("File not found: " + filePath);
@@ -184,42 +171,34 @@ public class S3StorageServiceImpl implements S3StorageService {
             
             // Support new format with bank_info at top level - deserialize to BatchDataDTO
             if (rootNode.has("exposures") && rootNode.has("bank_info")) {
-                logger.info("Detected new BatchDataDTO format with exposures and bank_info fields");
                 BatchDataDTO batchData = objectMapper.treeToValue(rootNode, BatchDataDTO.class);
                 
                 // Extract metadata from bank_info
                 Integer declaredCount = batchData.bankInfo().totalExposures();
                 java.time.LocalDate reportDate = batchData.bankInfo().reportDate();
                 
-                // Log bank information if available
-                logger.info("Processing batch for bank: {} (ABI: {}, LEI: {}), Report date: {}, Total exposures: {}",
-                    batchData.bankInfo().bankName(),
-                    batchData.bankInfo().abiCode(),
-                    batchData.bankInfo().leiCode(),
-                    reportDate,
-                    declaredCount);
+                List<ExposureRecord> exposures = new ArrayList<>();
+                if (batchData.exposures() != null) {
+                    // Convert DTO exposures to domain ExposureRecord
+                    JsonNode exposuresNode = rootNode.get("exposures");
+                    exposures = objectMapper.readerForListOf(ExposureRecord.class).readValue(exposuresNode);
+                }
                 
-                // Convert ExposureDTOs to ExposureRecords
-                List<ExposureRecord> exposures = batchData.exposures().stream()
-                    .map(ExposureRecord::fromDTO)
-                    .toList();
-                
-                logger.info("Successfully parsed {} exposures from BatchDataDTO format with metadata (declaredCount={}, reportDate={})", 
-                    exposures.size(), declaredCount, reportDate);
-                
-                return new com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata(exposures, declaredCount, reportDate);
+                return new com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata(
+                    exposures, 
+                    declaredCount, 
+                    reportDate
+                );
             }
             
             // Backward compatibility: support old direct array format (no metadata)
             if (rootNode.isArray()) {
-                logger.info("Detected legacy direct array format (no metadata)");
                 List<ExposureRecord> exposures = parseExposuresFromArray(rootNode);
                 return com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata.withoutMetadata(exposures);
             }
             
             // Backward compatibility: support old loan_portfolio format (no metadata)
             if (rootNode.has("loan_portfolio")) {
-                logger.info("Detected legacy loan_portfolio format (no metadata)");
                 JsonNode loanPortfolioNode = rootNode.get("loan_portfolio");
                 List<ExposureRecord> exposures = parseExposuresFromArray(loanPortfolioNode);
                 return com.bcbs239.regtech.dataquality.application.validation.BatchWithMetadata.withoutMetadata(exposures);
@@ -268,8 +247,6 @@ public class S3StorageServiceImpl implements S3StorageService {
         // Write content to file
         java.nio.file.Files.writeString(fullPath, content, StandardCharsets.UTF_8);
         
-        logger.info("Successfully stored file to local path: {}", fullPath);
-        
         // Return a file:// URI as S3Reference (bucket will be "local", key is the relative path)
         return S3Reference.of("local", key, "0");
     }
@@ -277,8 +254,6 @@ public class S3StorageServiceImpl implements S3StorageService {
     @Override
     @Retryable(value = {software.amazon.awssdk.services.s3.model.S3Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2))
     public Result<S3Reference> storeDetailedResults(BatchId batchId, ValidationResult validationResult) {
-        logger.info("Starting storage of detailed validation results for batch: {}", batchId.value());
-        long startTime = System.currentTimeMillis();
         
         try {
             // Create key for detailed results
@@ -299,9 +274,6 @@ public class S3StorageServiceImpl implements S3StorageService {
                 reference = S3Reference.of(resultsBucket, key, "0");
             }
 
-            long duration = System.currentTimeMillis() - startTime;
-            logger.info("Successfully stored detailed results for batch {} in {} ms", batchId.value(), duration);
-
             return Result.success(reference);
             
         } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
@@ -318,9 +290,7 @@ public class S3StorageServiceImpl implements S3StorageService {
     
     @Override
     public Result<S3Reference> storeDetailedResults(BatchId batchId, ValidationResult validationResult, java.util.Map<String, String> metadata) {
-        logger.info("Starting storage of detailed validation results for batch: {} (with custom metadata)", batchId.value());
-        long startTime = System.currentTimeMillis();
-
+        
         try {
             // Create key for results
             String key = String.format("quality/quality_%s.json", batchId.value());
@@ -341,9 +311,6 @@ public class S3StorageServiceImpl implements S3StorageService {
                 reference = S3Reference.of(resultsBucket, key, "0");
             }
 
-            long duration = System.currentTimeMillis() - startTime;
-            logger.info("Successfully stored detailed results for batch {} in {} ms", batchId.value(), duration);
-
             return Result.success(reference);
 
         } catch (software.amazon.awssdk.services.s3.model.S3Exception e) {
@@ -362,8 +329,6 @@ public class S3StorageServiceImpl implements S3StorageService {
     public Result<S3Reference> storeDetailedResults(BatchId batchId, ValidationResult validationResult, 
                                                      java.util.Map<String, String> metadata,
                                                      java.util.List<com.bcbs239.regtech.core.domain.recommendations.QualityInsight> recommendations) {
-        logger.info("Starting storage of detailed validation results with recommendations for batch: {}", batchId.value());
-        long startTime = System.currentTimeMillis();
 
         try {
             // Create key for results
@@ -385,10 +350,6 @@ public class S3StorageServiceImpl implements S3StorageService {
                 coreS3Service.putString(resultsBucket, key, jsonContent, "application/json", merged, encryptionKeyId);
                 reference = S3Reference.of(resultsBucket, key, "0");
             }
-
-            long duration = System.currentTimeMillis() - startTime;
-            logger.info("Successfully stored detailed results with {} recommendations for batch {} in {} ms", 
-                recommendations != null ? recommendations.size() : 0, batchId.value(), duration);
 
             return Result.success(reference);
 
@@ -417,37 +378,23 @@ public class S3StorageServiceImpl implements S3StorageService {
             
             // Support new format with bank_info at top level - deserialize to BatchDataDTO
             if (rootNode.has("exposures") && rootNode.has("bank_info")) {
-                logger.info("Detected new BatchDataDTO format with exposures and bank_info fields");
                 BatchDataDTO batchData = objectMapper.treeToValue(rootNode, BatchDataDTO.class);
-                
-                // Log bank information if available
-                if (batchData.bankInfo() != null) {
-                    logger.info("Processing batch for bank: {} (ABI: {}, LEI: {}), Report date: {}, Total exposures: {}",
-                        batchData.bankInfo().bankName(),
-                        batchData.bankInfo().abiCode(),
-                        batchData.bankInfo().leiCode(),
-                        batchData.bankInfo().reportDate(),
-                        batchData.bankInfo().totalExposures());
-                }
                 
                 // Convert ExposureDTOs to ExposureRecords
                 List<ExposureRecord> exposures = batchData.exposures().stream()
                     .map(ExposureRecord::fromDTO)
                     .toList();
                 
-                logger.info("Successfully parsed {} exposures from BatchDataDTO format", exposures.size());
                 return exposures;
             }
             
             // Backward compatibility: support old direct array format
             if (rootNode.isArray()) {
-                logger.info("Detected legacy direct array format");
                 return parseExposuresFromArray(rootNode);
             }
             
             // Backward compatibility: support old loan_portfolio format
             if (rootNode.has("loan_portfolio")) {
-                logger.info("Detected legacy loan_portfolio format");
                 JsonNode loanPortfolioNode = rootNode.get("loan_portfolio");
                 return parseExposuresFromArray(loanPortfolioNode);
             }
@@ -484,14 +431,8 @@ public class S3StorageServiceImpl implements S3StorageService {
         for (JsonNode exposureNode : arrayNode) {
             ExposureRecord exposure = parseExposureRecord(exposureNode);
             exposures.add(exposure);
-            
-            // Log progress for large files
-            if (exposures.size() % 10000 == 0) {
-                logger.debug("Parsed {} exposures so far", exposures.size());
-            }
         }
         
-        logger.info("Successfully parsed {} exposures from array format", exposures.size());
         return exposures;
     }
     

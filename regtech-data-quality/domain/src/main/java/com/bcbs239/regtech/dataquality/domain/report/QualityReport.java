@@ -20,6 +20,7 @@ import com.bcbs239.regtech.dataquality.domain.model.valueobject.LargeExposure;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
+import com.bcbs239.regtech.dataquality.domain.validation.ViolationSummary;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -65,6 +66,52 @@ public class QualityReport extends Entity {
     private Instant processingStartTime;
     private Instant processingEndTime;
     private Long processingDurationMs;
+
+    // Domain Logic
+
+    /**
+     * Calculates the compliance score based on BCBS 239 Principles.
+     * Average of Accuracy, Completeness, and Timeliness.
+     */
+    public Double getComplianceScore() {
+        if (this.scores == null) {
+            return null;
+        }
+        // BCBS 239 Principles 3, 4, 5
+        double accuracy = scores.accuracyScore();
+        double completeness = scores.completenessScore();
+        double timeliness = scores.timelinessScore();
+        
+        // Simple average
+        return (accuracy + completeness + timeliness) / 3.0;
+    }
+
+    /**
+     * Builds a summary of violations grouped by severity.
+     * Maps Quality Dimensions to Severity Levels.
+     */
+    public ViolationSummary getViolationSummary() {
+        if (this.validationSummary == null || this.validationSummary.totalErrors() == 0) {
+            return null;
+        }
+        
+        int critical = validationSummary.getErrorCountForDimension(QualityDimension.COMPLETENESS);
+        int high = validationSummary.getErrorCountForDimension(QualityDimension.ACCURACY);
+        
+        int medium = validationSummary.getErrorCountForDimension(QualityDimension.CONSISTENCY) +
+                     validationSummary.getErrorCountForDimension(QualityDimension.TIMELINESS);
+        
+        int low = validationSummary.getErrorCountForDimension(QualityDimension.VALIDITY) +
+                  validationSummary.getErrorCountForDimension(QualityDimension.UNIQUENESS);
+        
+        return new ViolationSummary(
+            validationSummary.totalErrors(),
+            critical,
+            high,
+            medium,
+            low
+        );
+    }
 
     // Private constructor - use factory methods
     private QualityReport() {}

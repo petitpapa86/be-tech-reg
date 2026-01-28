@@ -36,7 +36,12 @@ public record QualityThresholds(
     double uniquenessAcceptable,     // 75.0%
     
     double validityExcellent,        // 90.0%
-    double validityAcceptable        // 75.0%
+    double validityAcceptable,       // 75.0%
+    
+    // Violation thresholds (count)
+    int violationCriticalThreshold,  // > 100
+    int violationHighThreshold,      // > 50
+    int violationMediumThreshold     // > 10
 ) {
     
     /**
@@ -50,7 +55,8 @@ public record QualityThresholds(
             90.0, 75.0,  // Timeliness
             90.0, 75.0,  // Consistency
             90.0, 75.0,  // Uniqueness
-            90.0, 75.0   // Validity
+            90.0, 75.0,  // Validity
+            100, 50, 10  // Violations
         );
     }
     
@@ -98,5 +104,49 @@ public record QualityThresholds(
         if (isAcceptable(score)) return "C";
         if (isPoor(score)) return "D";
         return "F";
+    }
+
+    // UI Helper Methods
+
+    public String getQualityScoreColor(Double score) {
+        if (score == null) return "gray";
+        if (isExcellent(score)) return "green";
+        if (isGood(score) || isAcceptable(score)) return "amber";
+        return "red";
+    }
+
+    public String getQualityScoreBadge(Double score) {
+        if (score == null) return "N/A";
+        if (isExcellent(score)) return "Eccellente";
+        if (isGood(score) || isAcceptable(score)) return "Accettabile";
+        return "Scarso";
+    }
+
+    public String getComplianceScoreColor(Double score) {
+        if (score == null) return "gray";
+        if (isExcellent(score)) return "green";
+        return "red";
+    }
+
+    public String getComplianceBadge(Double score) {
+        if (score == null) return "N/A";
+        if (isExcellent(score)) return "Conforme";
+        return "Non Conforme";
+    }
+
+    public String getViolationsColor(Integer totalViolations) {
+        if (totalViolations == null || totalViolations == 0) return "green";
+        if (totalViolations > violationCriticalThreshold) return "red";
+        if (totalViolations > violationHighThreshold) return "orange";
+        if (totalViolations > violationMediumThreshold) return "yellow";
+        return "green";
+    }
+
+    public String getViolationsSeverity(Integer totalViolations) {
+        if (totalViolations == null || totalViolations == 0) return "Nessuna";
+        if (totalViolations > violationCriticalThreshold) return "Critica";
+        if (totalViolations > violationHighThreshold) return "Alta";
+        if (totalViolations > violationMediumThreshold) return "Media";
+        return "Bassa";
     }
 }

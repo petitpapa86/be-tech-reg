@@ -119,14 +119,28 @@ public class YamlRecommendationRuleLoader implements RecommendationRuleLoader {
                     acceptableThreshold = getDoubleValue(acceptable, "value", 75.0);
                 }
             }
+
+            // Read error_distribution thresholds
+            Map<String, Object> errorDistribution = (Map<String, Object>) yamlConfig.get("error_distribution");
+            Map<String, Object> errorThresholds = errorDistribution != null 
+                ? (Map<String, Object>) errorDistribution.get("thresholds")
+                : null;
+            
+            int violationCritical = 100;
+            int violationHigh = 50;
+            int violationMedium = 10;
+            
+            if (errorThresholds != null) {
+                Map<String, Object> errCritical = (Map<String, Object>) errorThresholds.get("critical");
+                Map<String, Object> errHigh = (Map<String, Object>) errorThresholds.get("high");
+                Map<String, Object> errMedium = (Map<String, Object>) errorThresholds.get("medium");
+                
+                if (errCritical != null) violationCritical = getIntValue(errCritical, "value", 100);
+                if (errHigh != null) violationHigh = getIntValue(errHigh, "value", 50);
+                if (errMedium != null) violationMedium = getIntValue(errMedium, "value", 10);
+            }
             
             // Build QualityThresholds with values from YAML
-            // Threshold hierarchy from YAML severity levels:
-            // - critical: < 65% (critical quality)
-            // - high: < 75% (poor quality) 
-            // - medium: < 85% (acceptable quality)
-            // - low: >= 85% (good quality)
-            // - excellent: >= 90%
             return new QualityThresholds(
                 excellentThreshold,      // 90.0% - excellent
                 lowThreshold,            // 85.0% - good
@@ -139,12 +153,34 @@ public class YamlRecommendationRuleLoader implements RecommendationRuleLoader {
                 excellentThreshold, acceptableThreshold,  // Consistency
                 excellentThreshold, acceptableThreshold,  // Timeliness
                 excellentThreshold, acceptableThreshold,  // Uniqueness
-                excellentThreshold, acceptableThreshold   // Validity
+                excellentThreshold, acceptableThreshold,  // Validity
+                violationCritical, violationHigh, violationMedium // Violations
             );
             
         } catch (Exception e) {
             log.error("Failed to parse thresholds from YAML, using defaults", e);
             return QualityThresholds.bcbs239Defaults();
+        }
+    }
+
+    /**
+     * Safely extract int value from map
+     */
+    private int getIntValue(Map<String, Object> map, String key, int defaultValue) {
+        if (map == null || !map.containsKey(key)) {
+            return defaultValue;
+        }
+        
+        Object value = map.get(key);
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            log.warn("Failed to parse int value for key {}: {}, using default {}", key, value, defaultValue);
+            return defaultValue;
         }
     }
     
