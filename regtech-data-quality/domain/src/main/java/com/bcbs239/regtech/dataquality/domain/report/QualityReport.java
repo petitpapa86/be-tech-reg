@@ -6,6 +6,7 @@ import com.bcbs239.regtech.core.domain.shared.valueobjects.QualityReportId;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
+import com.bcbs239.regtech.core.domain.quality.QualityThresholds;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityGrade;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
@@ -17,6 +18,7 @@ import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPr
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.ActionPresentation;
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.ExposurePresentation;
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.ViolationPresentation;
+import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.DimensionPresentation;
 import com.bcbs239.regtech.dataquality.domain.model.valueobject.LargeExposure;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
@@ -124,7 +126,11 @@ public class QualityReport extends Entity {
      * This is a read-only presentation model and does not mutate domain state.</p>
      */
     public QualityReportPresentation toFrontendPresentation(List<LargeExposure> largeExposures) {
-        return toFrontendPresentation(largeExposures, null);
+        return toFrontendPresentation(largeExposures, null, null, null);
+    }
+
+    public QualityReportPresentation toFrontendPresentation(List<LargeExposure> largeExposures, QualityThresholds thresholds) {
+        return toFrontendPresentation(largeExposures, null, null, thresholds);
     }
 
     /**
@@ -134,8 +140,27 @@ public class QualityReport extends Entity {
      * {@link ValidationSummary} from stored detailed results without performing I/O in the domain.
      * The aggregate is not mutated.</p>
      */
-    public QualityReportPresentation toFrontendPresentation(List<LargeExposure> largeExposures, ValidationSummary summaryOverride) {
-        return toFrontendPresentation(largeExposures, summaryOverride, null);
+    public QualityReportPresentation toFrontendPresentation(
+        List<LargeExposure> largeExposures, 
+        ValidationSummary summaryOverride
+    ) {
+        return toFrontendPresentation(largeExposures, summaryOverride, null, null);
+    }
+
+    public QualityReportPresentation toFrontendPresentation(
+        List<LargeExposure> largeExposures, 
+        ValidationSummary summaryOverride,
+        QualityThresholds thresholds
+    ) {
+        return toFrontendPresentation(largeExposures, summaryOverride, null, thresholds);
+    }
+
+    public QualityReportPresentation toFrontendPresentation(
+        List<LargeExposure> largeExposures,
+        ValidationSummary summaryOverride,
+        List<ActionPresentation> externalActions
+    ) {
+        return toFrontendPresentation(largeExposures, summaryOverride, externalActions, null);
     }
 
     /**
@@ -144,7 +169,8 @@ public class QualityReport extends Entity {
     public QualityReportPresentation toFrontendPresentation(
         List<LargeExposure> largeExposures,
         ValidationSummary summaryOverride,
-        List<ActionPresentation> externalActions
+        List<ActionPresentation> externalActions,
+        QualityThresholds thresholds
     ) {
         ValidationSummary safeSummary = summaryOverride != null
             ? summaryOverride
@@ -152,6 +178,7 @@ public class QualityReport extends Entity {
 
         QualityScores safeScores = scores != null ? scores : QualityScores.empty();
         List<LargeExposure> safeLargeExposures = largeExposures != null ? largeExposures : List.of();
+        QualityThresholds safeThresholds = thresholds != null ? thresholds : QualityThresholds.bcbs239Defaults();
 
         return new QualityReportPresentation(
             extractFileName(),
@@ -161,6 +188,15 @@ public class QualityReport extends Entity {
             roundScore(safeSummary.getValidationRatePercentage()),
             countCriticalViolations(safeSummary, safeScores),
             safeLargeExposures.size(),
+            
+            // UI Metadata
+            safeThresholds.getQualityScoreColor(safeScores.overallScore()),
+            safeThresholds.getQualityScoreBadge(safeScores.overallScore()),
+            safeThresholds.getComplianceScoreColor(getComplianceScore()),
+            safeThresholds.getComplianceBadge(getComplianceScore()),
+            
+            // Arrays
+            generateDimensionScores(safeScores, safeThresholds),
             generateViolations(safeSummary, safeScores, safeLargeExposures),
             generateTopExposures(safeLargeExposures),
             generateActions(safeSummary, safeScores, safeLargeExposures, externalActions)
@@ -608,6 +644,28 @@ public class QualityReport extends Entity {
         return bySeverity.getOrDefault(ValidationError.ErrorSeverity.CRITICAL, 0);
     }
 
+    private List<DimensionPresentation> generateDimensionScores(QualityScores scores, QualityThresholds thresholds) {
+        if (scores == null) return List.of();
+
+        return Arrays.stream(QualityDimension.values())
+            .sorted(Comparator.comparing(QualityDimension::ordinal))
+            .map(dim -> {
+                Double score = scores.getScore(dim);
+                String color = thresholds.getQualityScoreColor(score);
+                String badge = thresholds.getQualityScoreBadge(score);
+                
+                return new DimensionPresentation(
+                    dim.name(),
+                    getItalianDimensionName(dim),
+                    score,
+                    color,
+                    badge,
+                    getDimensionDescription(dim)
+                );
+            })
+            .collect(Collectors.toList());
+    }
+
     private List<ViolationPresentation> generateViolations(
         ValidationSummary summary,
         QualityScores safeScores,
@@ -636,7 +694,8 @@ public class QualityReport extends Entity {
                         "Esposizione", formatCurrency(exposure.amount()),
                         "Percentuale", formatPercent(exposure.percentOfCapital()) + "%",
                         "Limite", "25.00%"
-                    )
+                    ),
+                    "red"
                 )
             ));
 
@@ -678,7 +737,8 @@ public class QualityReport extends Entity {
                     "Campo", "Data Scadenza",
                     "Record Interessati", formatNumber(missingMaturityDate),
                     "Percentuale", formatPercent((missingMaturityDate * 100.0) / total) + "%"
-                )
+                ),
+                "red"
             ));
         }
 
@@ -693,7 +753,8 @@ public class QualityReport extends Entity {
                     "Tipo", "Data",
                     "Record Interessati", formatNumber(invalidDateFormat),
                     "Percentuale", formatPercent((invalidDateFormat * 100.0) / total) + "%"
-                )
+                ),
+                "orange"
             ));
         }
 
@@ -736,10 +797,11 @@ public class QualityReport extends Entity {
         errorRate = Math.min(100.0, Math.max(0.0, errorRate));
 
         String dimensionName = getItalianDimensionName(dimension);
+        String severity = calculateSeverity(score, errorRate);
 
         return new ViolationPresentation(
             String.format("%s - %s Errori", dimensionName, formatNumber(errorCount)),
-            calculateSeverity(score, errorRate),
+            severity,
             String.format(Locale.ITALY, "%s record con errori di %s (%.2f%% del totale)",
                 formatNumber(exposuresWithErrors),
                 dimensionName.toLowerCase(Locale.ITALY),
@@ -750,7 +812,8 @@ public class QualityReport extends Entity {
                 "Errori", formatNumber(errorCount),
                 "Record Interessati", formatNumber(exposuresWithErrors),
                 "Score", String.format(Locale.ITALY, "%.1f%%", score)
-            )
+            ),
+            getSeverityColor(severity)
         );
     }
 
@@ -812,7 +875,9 @@ public class QualityReport extends Entity {
                 e.counterparty(),
                 formatCurrency(e.amount()),
                 formatPercent(e.percentOfCapital()) + "%",
-                e.exceedsLimit() ? "Violazione" : "Conforme"
+                e.exceedsLimit() ? "Violazione" : "Conforme",
+                e.exceedsLimit() ? "red" : "green",
+                e.exceedsLimit() ? List.of("Supera il limite del 25%") : List.of()
             ))
             .collect(Collectors.toList());
     }
@@ -948,6 +1013,29 @@ public class QualityReport extends Entity {
         }
         String italianName = dimension.getItalianName();
         return (italianName == null || italianName.isBlank()) ? dimension.getDisplayName() : italianName;
+    }
+
+    private String getSeverityColor(String severity) {
+        if (severity == null) return "blue";
+        return switch (severity.toUpperCase()) {
+            case "CRITICA" -> "red";
+            case "ALTA" -> "orange";
+            case "MEDIA" -> "amber";
+            default -> "green";
+        };
+    }
+
+    private String getDimensionDescription(QualityDimension dim) {
+        if (dim == null) return "";
+        return switch (dim) {
+            case COMPLETENESS -> "Tutti i dati richiesti sono presenti e popolati";
+            case CONSISTENCY -> "I dati sono uniformi tra diverse fonti e nel tempo";
+            case UNIQUENESS -> "Non ci sono duplicazioni nei dati";
+            case ACCURACY -> "I dati riflettono correttamente la realtà";
+            case VALIDITY -> "I dati rispettano le regole di business e i formati attesi";
+            case TIMELINESS -> "I dati sono aggiornati e disponibili quando necessari";
+            default -> "";
+        };
     }
 
 }

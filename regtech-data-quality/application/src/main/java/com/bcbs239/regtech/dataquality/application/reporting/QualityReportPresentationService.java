@@ -8,6 +8,8 @@ import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.QualityReportId;
+import com.bcbs239.regtech.core.application.recommendations.ports.RecommendationRuleLoader;
+import com.bcbs239.regtech.core.domain.quality.QualityThresholds;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
@@ -33,6 +35,7 @@ public class QualityReportPresentationService {
     private final IQualityReportRepository repository;
     private final LargeExposureCalculator calculator;
     private final StoredValidationResultsReader storedResultsReader;
+    private final RecommendationRuleLoader ruleLoader;
 
     /**
      * Returns the frontend presentation for a specific report identified by reportId (QualityReportId) for a bank.
@@ -65,8 +68,9 @@ public class QualityReportPresentationService {
         List<LargeExposure> largeExposures = calculator.calculate(report);
         ValidationSummary summaryOverride = buildSummaryOverrideFromStoredDetails(report, stored);
         List<ActionPresentation> externalActions = buildActionsFromStoredResults(stored);
+        QualityThresholds thresholds = ruleLoader.loadThresholds();
 
-        return report.toFrontendPresentation(largeExposures, summaryOverride, externalActions);
+        return report.toFrontendPresentation(largeExposures, summaryOverride, externalActions, thresholds);
     }
 
     private ValidationSummary buildSummaryOverrideFromStoredDetails(QualityReport report, StoredValidationResults stored) {

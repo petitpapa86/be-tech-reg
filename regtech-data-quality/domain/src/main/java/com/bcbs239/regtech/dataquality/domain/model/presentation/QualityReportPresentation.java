@@ -22,24 +22,43 @@ public record QualityReportPresentation(
     int criticalViolations,
     int largeExposures,
 
+    // UI Metadata
+    String overallColor,
+    String overallBadge,
+    String complianceColor,
+    String complianceBadge,
+
     // Arrays
+    List<DimensionPresentation> dimensionScores,
     List<ViolationPresentation> violations,
     List<ExposurePresentation> topExposures,
     List<ActionPresentation> recommendedActions
 ) {
 
+    public record DimensionPresentation(
+        String name,
+        String label,
+        double score,
+        String color,
+        String badge,
+        String description
+    ) {}
+
     public record ViolationPresentation(
         String title,
         String severity,
         String description,
-        Map<String, String> details
+        Map<String, String> details,
+        String color
     ) {}
 
     public record ExposurePresentation(
         String counterparty,
         String exposure,
         String percent,
-        String status
+        String status,
+        String color,
+        List<String> errors
     ) {}
 
     public record ActionPresentation(
