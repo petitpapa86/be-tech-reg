@@ -2,6 +2,8 @@ package com.bcbs239.regtech.dataquality.application.reporting;
 
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation;
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.ActionPresentation;
+import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.DimensionDetailPresentation;
+import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.GroupedErrorPresentation;
 import com.bcbs239.regtech.dataquality.domain.model.valueobject.LargeExposure;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
@@ -17,6 +19,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,8 +75,101 @@ public class QualityReportPresentationService {
         ValidationSummary summaryOverride = buildSummaryOverrideFromStoredDetails(report, stored);
         List<ActionPresentation> externalActions = buildActionsFromStoredResults(stored);
         QualityThresholds thresholds = ruleLoader.loadThresholds();
+        List<DimensionDetailPresentation> dimensionDetails = buildDimensionDetails(stored);
 
-        return report.toFrontendPresentation(largeExposures, summaryOverride, externalActions, thresholds);
+        return report.toFrontendPresentation(largeExposures, summaryOverride, externalActions, thresholds, dimensionDetails);
+    }
+
+    private List<DimensionDetailPresentation> buildDimensionDetails(StoredValidationResults stored) {
+        if (stored == null || stored.exposureResults() == null) {
+            return List.of();
+        }
+
+        Map<QualityDimension, Map<String, ErrorAggregator>> groupedErrors = new EnumMap<>(QualityDimension.class);
+
+        for (DetailedExposureResult exposure : stored.exposureResults()) {
+            if (exposure.errors() == null) {
+                continue;
+            }
+
+            for (DetailedExposureResult.DetailedError error : exposure.errors()) {
+                if (error.dimension() == null || error.dimension().isBlank()) {
+                    continue;
+                }
+
+                QualityDimension dim;
+                try {
+                    dim = QualityDimension.valueOf(error.dimension().trim().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    continue; // Skip unknown dimensions
+                }
+
+                groupedErrors.putIfAbsent(dim, new HashMap<>());
+                Map<String, ErrorAggregator> dimensionMap = groupedErrors.get(dim);
+
+                String ruleCode = error.ruleCode() != null ? error.ruleCode() : "UNKNOWN";
+                
+                ErrorAggregator aggregator = dimensionMap.computeIfAbsent(ruleCode, k -> {
+                    ErrorAggregator agg = new ErrorAggregator();
+                    agg.code = ruleCode;
+                    // Use message as title if available, otherwise code
+                    agg.title = error.message() != null && !error.message().isBlank() ? error.message() : ruleCode;
+                    agg.message = error.message();
+                    agg.severity = error.severity();
+                    return agg;
+                });
+
+                aggregator.count++;
+                if (exposure.exposureId() != null) {
+                    aggregator.affectedRecords.add(exposure.exposureId());
+                }
+            }
+        }
+
+        List<DimensionDetailPresentation> result = new ArrayList<>();
+        for (Map.Entry<QualityDimension, Map<String, ErrorAggregator>> entry : groupedErrors.entrySet()) {
+            QualityDimension dim = entry.getKey();
+            List<GroupedErrorPresentation> errors = entry.getValue().values().stream()
+                .map(agg -> new GroupedErrorPresentation(
+                    agg.code,
+                    agg.title,
+                    agg.message,
+                    agg.severity,
+                    mapSeverityToColor(agg.severity),
+                    agg.count,
+                    agg.affectedRecords
+                ))
+                .collect(Collectors.toList());
+            
+            result.add(new DimensionDetailPresentation(
+                dim.name(),
+                dim.getItalianName(),
+                errors
+            ));
+        }
+        
+        return result;
+    }
+
+    private String mapSeverityToColor(String severity) {
+        if (severity == null) return "gray";
+        switch (severity.trim().toUpperCase()) {
+            case "CRITICAL": return "red";
+            case "HIGH": return "orange";
+            case "MEDIUM": return "yellow";
+            case "LOW": return "blue";
+            case "SUCCESS": return "green";
+            default: return "gray";
+        }
+    }
+
+    private static class ErrorAggregator {
+        String code;
+        String title;
+        String message;
+        String severity;
+        int count = 0;
+        List<String> affectedRecords = new ArrayList<>();
     }
 
     private ValidationSummary buildSummaryOverrideFromStoredDetails(QualityReport report, StoredValidationResults stored) {

@@ -32,7 +32,8 @@ public record QualityReportPresentation(
     List<DimensionPresentation> dimensionScores,
     List<ViolationPresentation> violations,
     List<ExposurePresentation> topExposures,
-    List<ActionPresentation> recommendedActions
+    List<ActionPresentation> recommendedActions,
+    List<DimensionDetailPresentation> dimensionDetails
 ) {
 
     public record DimensionPresentation(
@@ -67,5 +68,21 @@ public record QualityReportPresentation(
         String deadline,
         String priority,
         String color
+    ) {}
+
+    public record DimensionDetailPresentation(
+        String dimensionName,
+        String label,
+        List<GroupedErrorPresentation> errors
+    ) {}
+
+    public record GroupedErrorPresentation(
+        String code,
+        String title,
+        String message,
+        String severity,
+        String color,
+        int count,
+        List<String> affectedRecords
     ) {}
 }

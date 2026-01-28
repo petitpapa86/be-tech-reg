@@ -19,6 +19,7 @@ import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPr
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.ExposurePresentation;
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.ViolationPresentation;
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.DimensionPresentation;
+import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.DimensionDetailPresentation;
 import com.bcbs239.regtech.dataquality.domain.model.valueobject.LargeExposure;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationResult;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
@@ -126,11 +127,11 @@ public class QualityReport extends Entity {
      * This is a read-only presentation model and does not mutate domain state.</p>
      */
     public QualityReportPresentation toFrontendPresentation(List<LargeExposure> largeExposures) {
-        return toFrontendPresentation(largeExposures, null, null, null);
+        return toFrontendPresentation(largeExposures, null, null, null, null);
     }
 
     public QualityReportPresentation toFrontendPresentation(List<LargeExposure> largeExposures, QualityThresholds thresholds) {
-        return toFrontendPresentation(largeExposures, null, null, thresholds);
+        return toFrontendPresentation(largeExposures, null, null, thresholds, null);
     }
 
     /**
@@ -144,7 +145,7 @@ public class QualityReport extends Entity {
         List<LargeExposure> largeExposures, 
         ValidationSummary summaryOverride
     ) {
-        return toFrontendPresentation(largeExposures, summaryOverride, null, null);
+        return toFrontendPresentation(largeExposures, summaryOverride, null, null, null);
     }
 
     public QualityReportPresentation toFrontendPresentation(
@@ -152,7 +153,7 @@ public class QualityReport extends Entity {
         ValidationSummary summaryOverride,
         QualityThresholds thresholds
     ) {
-        return toFrontendPresentation(largeExposures, summaryOverride, null, thresholds);
+        return toFrontendPresentation(largeExposures, summaryOverride, null, thresholds, null);
     }
 
     public QualityReportPresentation toFrontendPresentation(
@@ -160,7 +161,16 @@ public class QualityReport extends Entity {
         ValidationSummary summaryOverride,
         List<ActionPresentation> externalActions
     ) {
-        return toFrontendPresentation(largeExposures, summaryOverride, externalActions, null);
+        return toFrontendPresentation(largeExposures, summaryOverride, externalActions, null, null);
+    }
+
+    public QualityReportPresentation toFrontendPresentation(
+        List<LargeExposure> largeExposures,
+        ValidationSummary summaryOverride,
+        List<ActionPresentation> externalActions,
+        QualityThresholds thresholds
+    ) {
+        return toFrontendPresentation(largeExposures, summaryOverride, externalActions, thresholds, null);
     }
 
     /**
@@ -170,7 +180,8 @@ public class QualityReport extends Entity {
         List<LargeExposure> largeExposures,
         ValidationSummary summaryOverride,
         List<ActionPresentation> externalActions,
-        QualityThresholds thresholds
+        QualityThresholds thresholds,
+        List<DimensionDetailPresentation> dimensionDetails
     ) {
         ValidationSummary safeSummary = summaryOverride != null
             ? summaryOverride
@@ -179,6 +190,7 @@ public class QualityReport extends Entity {
         QualityScores safeScores = scores != null ? scores : QualityScores.empty();
         List<LargeExposure> safeLargeExposures = largeExposures != null ? largeExposures : List.of();
         QualityThresholds safeThresholds = thresholds != null ? thresholds : QualityThresholds.bcbs239Defaults();
+        List<DimensionDetailPresentation> safeDimensionDetails = dimensionDetails != null ? dimensionDetails : List.of();
 
         return new QualityReportPresentation(
             extractFileName(),
@@ -199,7 +211,8 @@ public class QualityReport extends Entity {
             generateDimensionScores(safeScores, safeThresholds),
             generateViolations(safeSummary, safeScores, safeLargeExposures),
             generateTopExposures(safeLargeExposures),
-            generateActions(safeSummary, safeScores, safeLargeExposures, externalActions)
+            generateActions(safeSummary, safeScores, safeLargeExposures, externalActions),
+            safeDimensionDetails
         );
     }
 
