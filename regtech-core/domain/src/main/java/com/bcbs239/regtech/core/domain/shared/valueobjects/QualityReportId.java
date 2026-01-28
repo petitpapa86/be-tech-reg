@@ -1,4 +1,4 @@
-package com.bcbs239.regtech.dataquality.domain.report;
+package com.bcbs239.regtech.core.domain.shared.valueobjects;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -40,4 +40,3 @@ public record QualityReportId(String value) {
         return value;
     }
 }
-

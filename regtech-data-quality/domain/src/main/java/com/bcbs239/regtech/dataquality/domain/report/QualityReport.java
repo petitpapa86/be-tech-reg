@@ -2,6 +2,7 @@ package com.bcbs239.regtech.dataquality.domain.report;
 
 
 import com.bcbs239.regtech.core.domain.shared.Entity;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.QualityReportId;
 import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
@@ -134,6 +135,17 @@ public class QualityReport extends Entity {
      * The aggregate is not mutated.</p>
      */
     public QualityReportPresentation toFrontendPresentation(List<LargeExposure> largeExposures, ValidationSummary summaryOverride) {
+        return toFrontendPresentation(largeExposures, summaryOverride, null);
+    }
+
+    /**
+     * Generate frontend presentation model using optional summary override and external actions.
+     */
+    public QualityReportPresentation toFrontendPresentation(
+        List<LargeExposure> largeExposures,
+        ValidationSummary summaryOverride,
+        List<ActionPresentation> externalActions
+    ) {
         ValidationSummary safeSummary = summaryOverride != null
             ? summaryOverride
             : (validationSummary != null ? validationSummary : ValidationSummary.empty());
@@ -151,7 +163,7 @@ public class QualityReport extends Entity {
             safeLargeExposures.size(),
             generateViolations(safeSummary, safeScores, safeLargeExposures),
             generateTopExposures(safeLargeExposures),
-            generateActions(safeSummary, safeScores, safeLargeExposures)
+            generateActions(safeSummary, safeScores, safeLargeExposures, externalActions)
         );
     }
 
@@ -808,13 +820,18 @@ public class QualityReport extends Entity {
     private List<ActionPresentation> generateActions(
         ValidationSummary summary,
         QualityScores safeScores,
-        List<LargeExposure> largeExposures
+        List<LargeExposure> largeExposures,
+        List<ActionPresentation> externalActions
     ) {
         ValidationSummary safeSummary = summary != null ? summary : ValidationSummary.empty();
         QualityScores scoresSafe = safeScores != null ? safeScores : QualityScores.empty();
         List<LargeExposure> safeLarge = largeExposures != null ? largeExposures : List.of();
 
         List<ActionPresentation> actions = new ArrayList<>();
+
+        if (externalActions != null && !externalActions.isEmpty()) {
+            actions.addAll(externalActions);
+        }
 
         // Action for large exposure violations
         safeLarge.stream()

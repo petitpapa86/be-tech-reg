@@ -13,7 +13,8 @@ public record StoredValidationResults(
     int validExposures,
     int totalErrors,
     List<DetailedExposureResult> exposureResults,
-    List<DetailedExposureResult.DetailedError> batchErrors
+    List<DetailedExposureResult.DetailedError> batchErrors,
+    List<StoredRecommendation> recommendations
 ) {
 
     public StoredValidationResults {
@@ -23,5 +24,20 @@ public record StoredValidationResults(
         if (batchErrors == null) {
             batchErrors = List.of();
         }
+        if (recommendations == null) {
+            recommendations = List.of();
+        }
     }
+
+    public record StoredRecommendation(
+        String severity,
+        String color,
+        List<String> actionItems,
+        boolean hasActions,
+        String icon,
+        String ruleId,
+        int priority,
+        String message,
+        String locale
+    ) {}
 }

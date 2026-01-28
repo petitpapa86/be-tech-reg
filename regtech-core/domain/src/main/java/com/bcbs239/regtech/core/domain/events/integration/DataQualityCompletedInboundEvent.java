@@ -35,6 +35,7 @@ public class DataQualityCompletedInboundEvent extends DomainEvent {
 
     private final String eventVersion;
     private final String filename;
+    private final String reportId;
 
 
     @JsonCreator
@@ -56,7 +57,8 @@ public class DataQualityCompletedInboundEvent extends DomainEvent {
             @JsonProperty("uniquenessScore") Double uniquenessScore,
             @JsonProperty("validityScore") Double validityScore,
             @JsonProperty("correlationId") String correlationId,
-            @JsonProperty("fileName") String filename
+            @JsonProperty("fileName") String filename,
+            @JsonProperty("reportId") String reportId
     ) {
         super(correlationId);
         this.batchId = batchId;
@@ -80,6 +82,7 @@ public class DataQualityCompletedInboundEvent extends DomainEvent {
         this.eventVersion = EVENT_VERSION;
 
         this.filename = filename;
+        this.reportId = reportId;
 
     }
 

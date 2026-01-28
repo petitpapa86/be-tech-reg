@@ -2,6 +2,7 @@ package com.bcbs239.regtech.metrics.application.dashboard;
 
 import com.bcbs239.regtech.core.application.TimeProvider;
 import com.bcbs239.regtech.core.domain.events.integration.DataQualityCompletedInboundEvent;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.QualityReportId;
 import com.bcbs239.regtech.metrics.application.dashboard.port.DashboardMetricsRepository;
 import com.bcbs239.regtech.metrics.application.dashboard.port.FileRepository;
 import com.bcbs239.regtech.metrics.domain.BankId;
@@ -56,7 +57,8 @@ public class UpdateDashboardMetricsOnDataQualityCompletedUseCase {
             event.getCompletenessScore(),
             event.getComplianceStatus() ? "COMPLIANT" : "NON_COMPLIANT",
             event.getBatchId(),
-            bankId
+            bankId,
+            event.getReportId() != null ? QualityReportId.of(event.getReportId()) : null
         );
         fileRepository.save(file);
 

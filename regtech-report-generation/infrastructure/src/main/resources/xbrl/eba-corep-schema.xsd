@@ -18,20 +18,135 @@
            elementFormDefault="qualified"
            attributeFormDefault="unqualified">
   
+  <xs:import namespace="http://www.xbrl.org/2003/instance" schemaLocation="xbrl-instance-mock.xsd"/>
+  
   <!-- LE1 Template Elements (Counterparty Details) -->
-  <xs:element name="LE1_CounterpartyName" type="xs:string"/>
-  <xs:element name="LE1_LEICode" type="xs:string"/>
-  <xs:element name="LE1_IdentifierType" type="xs:string"/>
-  <xs:element name="LE1_AlternateIdentifier" type="xs:string"/>
-  <xs:element name="LE1_CountryCode" type="xs:string"/>
-  <xs:element name="LE1_SectorCode" type="xs:string"/>
+  <xs:element name="LE1_CounterpartyName">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="LE1_LEICode">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="LE1_IdentifierType">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="LE1_AlternateIdentifier">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="LE1_CountryCode">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="LE1_SectorCode">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:string">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
   
   <!-- LE2 Template Elements (Exposure Amounts) -->
-  <xs:element name="LE2_OriginalExposure" type="xs:decimal"/>
-  <xs:element name="LE2_ExposureAfterCRM" type="xs:decimal"/>
-  <xs:element name="LE2_TradingBookPortion" type="xs:decimal"/>
-  <xs:element name="LE2_NonTradingBookPortion" type="xs:decimal"/>
-  <xs:element name="LE2_PercentageOfCapital" type="xs:decimal"/>
+  <xs:element name="LE2_OriginalExposure">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:decimal">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:attribute name="unitRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="LE2_ExposureAfterCRM">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:decimal">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:attribute name="unitRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="LE2_TradingBookPortion">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:decimal">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:attribute name="unitRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="LE2_NonTradingBookPortion">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:decimal">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:attribute name="unitRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
+
+  <xs:element name="LE2_PercentageOfCapital">
+    <xs:complexType>
+      <xs:simpleContent>
+        <xs:extension base="xs:decimal">
+          <xs:attribute name="contextRef" type="xs:string"/>
+          <xs:attribute name="unitRef" type="xs:string"/>
+          <xs:anyAttribute processContents="skip"/>
+        </xs:extension>
+      </xs:simpleContent>
+    </xs:complexType>
+  </xs:element>
   
   <!-- Dimension Elements -->
   <xs:element name="CP" type="xs:string"/>

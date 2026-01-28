@@ -68,10 +68,10 @@ public class QualityReportController extends BaseController implements IEndpoint
     
     /**
      * Get quality report for a specific batch with detailed exposure results.
-     * Endpoint: GET /api/v1/data-quality/reports?fileId=...
+     * Endpoint: GET /api/v1/data-quality/reports?reportId=...
      * Headers: X-Bank-Id
      *
-     * Returns the report for the given file ID and bank.
+     * Returns the report for the given report ID and bank.
      */
     public ServerResponse getQualityReport(ServerRequest request) {
         try {
@@ -79,10 +79,10 @@ public class QualityReportController extends BaseController implements IEndpoint
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Missing required header: X-Bank-Id"));
 
-            String fileId = request.param("fileId")
-                .orElseThrow(() -> new IllegalArgumentException("Missing required parameter: fileId"));
+            String reportId = request.param("reportId")
+                .orElseThrow(() -> new IllegalArgumentException("Missing required parameter: reportId"));
 
-            logger.debug("Processing quality report request for bankId={} fileId={}", bankIdStr, fileId);
+            logger.debug("Processing quality report request for bankId={} reportId={}", bankIdStr, reportId);
 
             // Extract and validate bankId
             Result<BankId> bankIdResult = requestValidator.validateBankId(bankIdStr);
@@ -92,7 +92,7 @@ public class QualityReportController extends BaseController implements IEndpoint
             BankId bankId = bankIdResult.getValue().orElseThrow();
 
             // Generate presentation model (new frontend payload)
-            QualityReportPresentation presentation = presentationService.getLatestFrontendPresentation(bankId, fileId);
+            QualityReportPresentation presentation = presentationService.getLatestFrontendPresentation(bankId, reportId);
 
             // Handle response
             return handleSuccessResult(

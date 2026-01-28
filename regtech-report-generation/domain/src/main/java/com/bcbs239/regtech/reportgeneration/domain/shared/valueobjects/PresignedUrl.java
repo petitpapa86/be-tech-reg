@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.NonNull;
 
 import java.time.Instant;
@@ -8,6 +9,7 @@ import java.time.Instant;
  * Presigned URL value object with expiration tracking
  * Represents a temporary authenticated URL for secure file access
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record PresignedUrl(@NonNull String url, @NonNull Instant expiresAt, boolean valid) {
     
     /**

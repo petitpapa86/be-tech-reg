@@ -20,7 +20,6 @@ public class ComplianceReportGeneratedIntegrationEventListener {
         if (CorrelationContext.isInboxReplay()) {
             return;
         }
-
         ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())
                 .where(CorrelationContext.INBOX_REPLAY, true)
                 .run(() -> useCase.process(event));

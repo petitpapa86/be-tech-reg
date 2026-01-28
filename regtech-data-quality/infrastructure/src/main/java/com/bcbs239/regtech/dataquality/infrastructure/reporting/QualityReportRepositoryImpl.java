@@ -4,7 +4,7 @@ import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
-import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.QualityReportId;
 import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;

@@ -14,6 +14,8 @@ public record S3Uri(@JsonValue @NonNull String value) {
     
     private static final Pattern S3_URI_PATTERN = Pattern.compile("^s3://[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]/.*$");
     private static final Pattern FILE_URI_PATTERN = Pattern.compile("^file:///.*$");
+    // Allow local paths starting with ./ (relative), / (absolute unix), or drive letter (absolute windows)
+    private static final Pattern LOCAL_PATH_PATTERN = Pattern.compile("^(\\.|/|[a-zA-Z]:).*$");
     
     /**
      * Compact constructor with validation
@@ -22,9 +24,11 @@ public record S3Uri(@JsonValue @NonNull String value) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("Storage URI cannot be null or blank");
         }
-        if (!S3_URI_PATTERN.matcher(value).matches() && !FILE_URI_PATTERN.matcher(value).matches()) {
+        if (!S3_URI_PATTERN.matcher(value).matches() && 
+            !FILE_URI_PATTERN.matcher(value).matches() && 
+            !LOCAL_PATH_PATTERN.matcher(value).matches()) {
             throw new IllegalArgumentException(
-                "Invalid storage URI format. Expected s3://bucket/key or file:///path, got: " + value
+                "Invalid storage URI format. Expected s3://bucket/key, file:///path, or local path, got: " + value
             );
         }
     }
@@ -37,10 +41,10 @@ public record S3Uri(@JsonValue @NonNull String value) {
     }
     
     /**
-     * Check if this is a file URI
+     * Check if this is a file URI or local path
      */
     public boolean isFileUri() {
-        return value.startsWith("file://");
+        return !isS3Uri();
     }
     
     /**

@@ -9,10 +9,13 @@ import com.bcbs239.regtech.dataquality.application.reporting.StoredValidationRes
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 /**
@@ -28,13 +31,16 @@ public class LocalDetailedResultsReader implements StoredValidationResultsReader
 
     private final IStorageService storageService;
     private final ObjectMapper objectMapper;
+    private final String localBasePath;
 
     public LocalDetailedResultsReader(
         IStorageService storageService,
-        ObjectMapper objectMapper
+        ObjectMapper objectMapper,
+        @Value("${data-quality.storage.local.base-path:${user.dir}/data/quality}") String localBasePath
     ) {
         this.storageService = storageService;
         this.objectMapper = objectMapper;
+        this.localBasePath = localBasePath;
     }
 
     /**
@@ -58,9 +64,18 @@ public class LocalDetailedResultsReader implements StoredValidationResultsReader
             return null;
         }
 
+        String effectiveUri = detailsUri;
+        // Handle legacy s3://local/ format by mapping to configured local base path
+        if (detailsUri.startsWith("s3://local/")) {
+            String key = detailsUri.substring("s3://local/".length());
+            Path path = Paths.get(localBasePath, key);
+            effectiveUri = path.toUri().toString();
+            logger.debug("Mapped legacy s3://local URI '{}' to local file URI '{}'", detailsUri, effectiveUri);
+        }
+
         try {
             // Parse URI using shared StorageUri
-            StorageUri uri = StorageUri.parse(detailsUri);
+            StorageUri uri = StorageUri.parse(effectiveUri);
 
             // Download JSON content using shared storage service
             Result<String> downloadResult = storageService.download(uri);
@@ -120,6 +135,11 @@ public class LocalDetailedResultsReader implements StoredValidationResultsReader
             ? objectMapper.convertValue(batchErrorsNode, new TypeReference<List<DetailedExposureResult.DetailedError>>() {})
             : List.of();
 
-        return new StoredValidationResults(totalExposures, validExposures, totalErrors, exposureResults, batchErrors);
+        JsonNode recommendationsNode = rootNode.get("recommendations");
+        List<StoredValidationResults.StoredRecommendation> recommendations = (recommendationsNode != null && recommendationsNode.isArray())
+            ? objectMapper.convertValue(recommendationsNode, new TypeReference<List<StoredValidationResults.StoredRecommendation>>() {})
+            : List.of();
+
+        return new StoredValidationResults(totalExposures, validExposures, totalErrors, exposureResults, batchErrors, recommendations);
     }
 }

@@ -1,12 +1,13 @@
 package com.bcbs239.regtech.dataquality.application.reporting;
 
 import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation;
+import com.bcbs239.regtech.dataquality.domain.model.presentation.QualityReportPresentation.ActionPresentation;
 import com.bcbs239.regtech.dataquality.domain.model.valueobject.LargeExposure;
 import com.bcbs239.regtech.dataquality.domain.report.IQualityReportRepository;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.report.QualityStatus;
-import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.QualityReportId;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationError;
 import com.bcbs239.regtech.dataquality.domain.validation.ValidationSummary;
@@ -17,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Application service for producing the frontend presentation model.
@@ -33,39 +35,41 @@ public class QualityReportPresentationService {
     private final StoredValidationResultsReader storedResultsReader;
 
     /**
-     * Returns the frontend presentation for a specific report identified by fileId (QualityReportId) for a bank.
+     * Returns the frontend presentation for a specific report identified by reportId (QualityReportId) for a bank.
      *
      * <p>Used by the API endpoint to view specific report details.</p>
      */
-    public QualityReportPresentation getLatestFrontendPresentation(BankId bankId, String fileId) {
+    public QualityReportPresentation getLatestFrontendPresentation(BankId bankId, String reportIdStr) {
         
-        if (fileId == null || fileId.isBlank()) {
-            throw new IllegalArgumentException("fileId is required");
+        if (reportIdStr == null || reportIdStr.isBlank()) {
+            throw new IllegalArgumentException("reportId is required");
         }
 
-        QualityReportId reportId = QualityReportId.of(fileId);
+        QualityReportId reportId = QualityReportId.of(reportIdStr);
 
         QualityReport report = repository.findByReportId(reportId)
             .orElseThrow(() -> new IllegalArgumentException(
-                "QualityReport not found for fileId=" + fileId
+                "QualityReport not found for reportId=" + reportIdStr
             ));
 
         if (!report.getBankId().equals(bankId)) {
             // Use IllegalArgumentException to avoid leaking existence of reports for other banks
-            throw new IllegalArgumentException("QualityReport not found for fileId=" + fileId);
+            throw new IllegalArgumentException("QualityReport not found for reportId=" + reportIdStr);
+        }
+
+        StoredValidationResults stored = null;
+        if (report.getDetailsReference() != null && report.getDetailsReference().uri() != null) {
+            stored = storedResultsReader.load(report.getDetailsReference().uri());
         }
 
         List<LargeExposure> largeExposures = calculator.calculate(report);
-        ValidationSummary summaryOverride = buildSummaryOverrideFromStoredDetails(report);
-        return report.toFrontendPresentation(largeExposures, summaryOverride);
+        ValidationSummary summaryOverride = buildSummaryOverrideFromStoredDetails(report, stored);
+        List<ActionPresentation> externalActions = buildActionsFromStoredResults(stored);
+
+        return report.toFrontendPresentation(largeExposures, summaryOverride, externalActions);
     }
 
-    private ValidationSummary buildSummaryOverrideFromStoredDetails(QualityReport report) {
-        if (report.getDetailsReference() == null || report.getDetailsReference().uri() == null) {
-            return null;
-        }
-
-        StoredValidationResults stored = storedResultsReader.load(report.getDetailsReference().uri());
+    private ValidationSummary buildSummaryOverrideFromStoredDetails(QualityReport report, StoredValidationResults stored) {
         if (stored == null) {
             return null;
         }
@@ -113,6 +117,49 @@ public class QualityReportPresentationService {
             errorsByCode,
             overallValidationRate
         );
+    }
+
+    private List<ActionPresentation> buildActionsFromStoredResults(StoredValidationResults stored) {
+        if (stored == null || stored.recommendations() == null) {
+            return List.of();
+        }
+
+        return stored.recommendations().stream()
+            .map(this::mapRecommendation)
+            .collect(Collectors.toList());
+    }
+
+    private ActionPresentation mapRecommendation(StoredValidationResults.StoredRecommendation rec) {
+        String title = rec.message() != null && !rec.message().isBlank()
+            ? rec.message()
+            : (rec.ruleId() != null ? rec.ruleId() : "Raccomandazione");
+
+        String description = rec.actionItems() != null
+            ? String.join("\n", rec.actionItems())
+            : "";
+
+        String priority = mapSeverityToPriority(rec.severity());
+        String color = rec.color() != null ? rec.color() : "blue";
+
+        return new ActionPresentation(
+            title,
+            description,
+            "", // deadline not available in stored results
+            priority,
+            color
+        );
+    }
+
+    private String mapSeverityToPriority(String severity) {
+        if (severity == null) return "Media";
+        switch (severity.trim().toUpperCase()) {
+            case "CRITICAL": return "Critica";
+            case "HIGH": return "Alta";
+            case "MEDIUM": return "Media";
+            case "LOW": return "Bassa";
+            case "SUCCESS": return "Info";
+            default: return "Media";
+        }
     }
 
     private void accumulateError(

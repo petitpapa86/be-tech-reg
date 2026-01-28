@@ -65,8 +65,8 @@ public class BatchQualityCompletedEventPublisher {
                     uniquenessScore,
                     validityScore,
                     event.getCorrelationId(),
-                    event.getFilename()
-
+                    event.getFilename(),
+                    event.getReportId().value()
             );
 
             ScopedValue.where(CorrelationContext.CORRELATION_ID, event.getCorrelationId())

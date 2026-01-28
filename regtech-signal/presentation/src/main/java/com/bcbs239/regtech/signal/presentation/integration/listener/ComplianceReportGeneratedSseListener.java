@@ -36,8 +36,10 @@ public class ComplianceReportGeneratedSseListener {
             log.info("Published ComplianceReportGeneratedInboundEvent to SSE: reportId={}, eventId={}", event.getReportId(), signal.getId());
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize ComplianceReportGeneratedInboundEvent for SSE (reportId={})", event.getReportId(), e);
+            throw new RuntimeException("Failed to serialize SSE payload", e);
         } catch (Exception e) {
             log.error("Unexpected error while publishing ComplianceReportGeneratedInboundEvent to SSE (reportId={})", event.getReportId(), e);
+            throw e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);
         }
     }
 }

@@ -6,12 +6,14 @@ public class FileItem {
     public final String date;
     public final Double score;
     public final String status;
+    public final String reportId;
 
-    public FileItem(long id, String filename, String date, Double score, String status) {
+    public FileItem(long id, String filename, String date, Double score, String status, String reportId) {
         this.id = id;
         this.filename = filename;
         this.date = date;
         this.score = score;
         this.status = status;
+        this.reportId = reportId;
     }
 }

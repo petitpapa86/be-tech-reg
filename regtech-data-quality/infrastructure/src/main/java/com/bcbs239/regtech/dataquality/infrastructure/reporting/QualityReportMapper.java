@@ -4,7 +4,7 @@ import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
 import com.bcbs239.regtech.dataquality.domain.report.FileMetadata;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
-import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.QualityReportId;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.dataquality.domain.shared.S3Reference;

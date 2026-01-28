@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.metrics.domain;
 
+import com.bcbs239.regtech.core.domain.shared.valueobjects.QualityReportId;
 import lombok.Getter;
 
 /**
@@ -15,16 +16,10 @@ public class ComplianceFile {
     private final String status;
     private final String batchId;
     private final BankId bankId;
+    private final QualityReportId reportId;
 
-    public ComplianceFile(String filename, String date, Double score, Double completenessScore, String status) {
-        this(null, filename, date, score, completenessScore, status, null, null);
-    }
 
-    public ComplianceFile(String filename, String date, Double score, Double completenessScore, String status, String batchId, BankId bankId) {
-        this(null, filename, date, score, completenessScore, status, batchId, bankId);
-    }
-
-    public ComplianceFile(Long id, String filename, String date, Double score, Double completenessScore, String status, String batchId, BankId bankId) {
+    public ComplianceFile(Long id, String filename, String date, Double score, Double completenessScore, String status, String batchId, BankId bankId, QualityReportId reportId) {
         this.id = id;
         this.filename = filename;
         this.date = date;
@@ -33,6 +28,7 @@ public class ComplianceFile {
         this.status = status;
         this.batchId = batchId;
         this.bankId = bankId;
+        this.reportId = reportId;
     }
 
     /**

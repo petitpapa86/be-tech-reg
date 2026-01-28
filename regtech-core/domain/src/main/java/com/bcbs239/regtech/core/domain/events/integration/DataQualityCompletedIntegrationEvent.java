@@ -37,6 +37,7 @@ public class DataQualityCompletedIntegrationEvent extends IntegrationEvent {
     private final String correlationId;
 
     private final String filename;
+    private final String reportId;
 
     @JsonCreator
     public DataQualityCompletedIntegrationEvent(
@@ -57,7 +58,8 @@ public class DataQualityCompletedIntegrationEvent extends IntegrationEvent {
             @JsonProperty("uniquenessScore") Double uniquenessScore,
             @JsonProperty("validityScore") Double validityScore,
             @JsonProperty("correlationId") String correlationId,
-            @JsonProperty("filename") String filename
+            @JsonProperty("filename") String filename,
+            @JsonProperty("reportId") String reportId
     ) {
         super(correlationId);
         this.batchId = batchId;
@@ -82,6 +84,7 @@ public class DataQualityCompletedIntegrationEvent extends IntegrationEvent {
         this.correlationId = correlationId;
 
         this.filename = filename;
+        this.reportId = reportId;
     }
 
 }

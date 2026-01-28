@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * XBRL Schema Validator
@@ -168,7 +169,7 @@ public class XbrlSchemaValidator implements XbrlValidator {
                     
                     // Round and format
                     String format = "%." + precision + "f";
-                    String rounded = String.format(format, value);
+                    String rounded = String.format(Locale.US, format, value);
                     element.setTextContent(rounded);
                     
                 } catch (NumberFormatException e) {
@@ -201,13 +202,11 @@ public class XbrlSchemaValidator implements XbrlValidator {
                 return createPermissiveSchema();
             }
             
-            try (InputStream schemaStream = resource.getInputStream()) {
-                SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-                Schema loadedSchema = schemaFactory.newSchema(new javax.xml.transform.stream.StreamSource(schemaStream));
-                
-                log.info("EBA COREP schema loaded successfully");
-                return loadedSchema;
-            }
+            SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+            Schema loadedSchema = schemaFactory.newSchema(resource.getURL());
+            
+            log.info("EBA COREP schema loaded successfully");
+            return loadedSchema;
             
         } catch (SAXException e) {
             log.error("Failed to parse EBA schema", e);

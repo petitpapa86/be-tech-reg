@@ -31,37 +31,41 @@ public class MetricsFileDevSeeder implements ApplicationRunner {
         try {
             // Idempotent dev seeding: safe to run on every startup.
             int inserted1 = jdbcTemplate.update(
-                    "INSERT INTO metrics.metrics_file (filename, date, score, status, batch_id, bank_id) " +
-                            "VALUES (?, ?, ?, ?, ?, ?) " +
+                    "INSERT INTO metrics.metrics_file (filename, date, score, status, batch_id, bank_id, report_id) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?) " +
                         "ON CONFLICT (filename) DO UPDATE SET " +
                         "date = EXCLUDED.date, " +
                         "score = EXCLUDED.score, " +
                         "status = EXCLUDED.status, " +
                         "batch_id = EXCLUDED.batch_id, " +
-                        "bank_id = EXCLUDED.bank_id",
+                        "bank_id = EXCLUDED.bank_id, " +
+                        "report_id = EXCLUDED.report_id",
                     "esposizioni_settembre.xlsx",
                 today,
                     87.2,
                     "VIOLATIONS",
                     "batch-202509",
-                    "BANK-XYZ"
+                    "BANK-XYZ",
+                    "qr_dev1"
             );
 
             int inserted2 = jdbcTemplate.update(
-                    "INSERT INTO metrics.metrics_file (filename, date, score, status, batch_id, bank_id) " +
-                            "VALUES (?, ?, ?, ?, ?, ?) " +
+                    "INSERT INTO metrics.metrics_file (filename, date, score, status, batch_id, bank_id, report_id) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?) " +
                         "ON CONFLICT (filename) DO UPDATE SET " +
                         "date = EXCLUDED.date, " +
                         "score = EXCLUDED.score, " +
                         "status = EXCLUDED.status, " +
                         "batch_id = EXCLUDED.batch_id, " +
-                        "bank_id = EXCLUDED.bank_id",
+                        "bank_id = EXCLUDED.bank_id, " +
+                        "report_id = EXCLUDED.report_id",
                     "grandi_esposizioni_agosto.xlsx",
                     today,
                     94.1,
                     "COMPLIANT",
                     "batch-202508",
-                    "BANK-XYZ"
+                    "BANK-XYZ",
+                    "qr_dev2"
             );
 
             int insertedTotal = inserted1 + inserted2;

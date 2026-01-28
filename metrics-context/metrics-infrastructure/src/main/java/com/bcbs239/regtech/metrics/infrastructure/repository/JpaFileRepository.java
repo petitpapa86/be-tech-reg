@@ -4,6 +4,7 @@ import com.bcbs239.regtech.metrics.application.dashboard.port.FileRepository;
 import com.bcbs239.regtech.metrics.domain.ComplianceFile;
 import com.bcbs239.regtech.metrics.domain.BankId;
 import com.bcbs239.regtech.metrics.infrastructure.entity.FileEntity;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.QualityReportId;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -49,11 +50,13 @@ public class JpaFileRepository implements FileRepository {
 
     private ComplianceFile toDomain(FileEntity e) {
         BankId bid = e.getBankId() == null ? BankId.unknown() : BankId.of(e.getBankId());
-        return new ComplianceFile(e.getId(), e.getFilename(), e.getDate(), e.getScore(), e.getCompletenessScore(), e.getStatus(), e.getBatchId(), bid);
+        QualityReportId reportId = e.getReportId() == null ? null : QualityReportId.of(e.getReportId());
+        return new ComplianceFile(e.getId(), e.getFilename(), e.getDate(), e.getScore(), e.getCompletenessScore(), e.getStatus(), e.getBatchId(), bid, reportId);
     }
 
     private FileEntity toEntity(ComplianceFile f) {
         String bank = f.getBankId() == null ? null : f.getBankId().getValue();
-        return new FileEntity(f.getFilename(), f.getDate(), f.getScore(), f.getCompletenessScore(), f.getStatus(), f.getBatchId(), bank);
+        String reportId = f.getReportId() == null ? null : f.getReportId().value();
+        return new FileEntity(f.getFilename(), f.getDate(), f.getScore(), f.getCompletenessScore(), f.getStatus(), f.getBatchId(), bank, reportId);
     }
 }

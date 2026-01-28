@@ -2,7 +2,7 @@ package com.bcbs239.regtech.dataquality.domain.report.events;
 
 import com.bcbs239.regtech.core.domain.events.DomainEvent;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityScores;
-import com.bcbs239.regtech.dataquality.domain.report.QualityReportId;
+import com.bcbs239.regtech.core.domain.shared.valueobjects.QualityReportId;
 import com.bcbs239.regtech.dataquality.domain.shared.BankId;
 import com.bcbs239.regtech.core.domain.shared.valueobjects.BatchId;
 import com.fasterxml.jackson.annotation.JsonCreator;

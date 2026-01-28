@@ -55,7 +55,8 @@ public class DashboardController {
                         file.getFilename(),
                         formatDate(file.getDate()),
                         file.getScore(),
-                        file.getStatus()
+                        file.getStatus(),
+                        file.getReportId() != null ? file.getReportId().value() : null
                 ))
                 .toList();
 

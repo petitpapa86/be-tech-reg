@@ -44,14 +44,17 @@ public class FileEntity {
     @Column(name = "bank_id", length = 255)
     private String bankId;
 
+    @Column(name = "report_id", length = 255)
+    private String reportId;
+
     public FileEntity() {
     }
 
-    public FileEntity(String filename, String date, Double score, String status, String batchId, String bankId) {
-        this(filename, date, score, null, status, batchId, bankId);
+    public FileEntity(String filename, String date, Double score, String status, String batchId, String bankId, String reportId) {
+        this(filename, date, score, null, status, batchId, bankId, reportId);
     }
 
-    public FileEntity(String filename, String date, Double score, Double completenessScore, String status, String batchId, String bankId) {
+    public FileEntity(String filename, String date, Double score, Double completenessScore, String status, String batchId, String bankId, String reportId) {
         this.filename = filename;
         this.date = date;
         this.score = score;
@@ -59,6 +62,7 @@ public class FileEntity {
         this.status = status;
         this.batchId = batchId;
         this.bankId = bankId;
+        this.reportId = reportId;
     }
 
 }

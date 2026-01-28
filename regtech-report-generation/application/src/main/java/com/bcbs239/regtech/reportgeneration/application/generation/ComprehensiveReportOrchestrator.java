@@ -273,8 +273,8 @@ public class ComprehensiveReportOrchestrator {
             );
 
             // Upload using shared storage service
-            StorageUri uri = StorageUri.parse("s3://" + storageMetadataService.getStorageBucket() + "/html/" + fileName);
-            Result<StorageResult> uploadResult = storageService.upload(htmlContent, uri, metadataTags);
+            String subPath = "html/" + fileName;
+            Result<StorageResult> uploadResult = storageService.uploadToStorage(htmlContent, subPath, metadataTags);
             if (uploadResult.isFailure()) {
                 ErrorDetail err = ErrorDetail.of("HTML_UPLOAD_FAILED", ErrorType.SYSTEM_ERROR,
                         "Failed to upload HTML report to storage: " + uploadResult.getError().orElseThrow().getMessage(),
@@ -285,7 +285,8 @@ public class ComprehensiveReportOrchestrator {
             StorageResult storageResult = uploadResult.getValueOrThrow();
 
             // Generate presigned URL for 7 days
-            Result<String> presignedUrlResult = storageService.generatePresignedUrl(uri, java.time.Duration.ofDays(7));
+            // Note: For local storage, this will return the file path or a dummy URL
+            Result<String> presignedUrlResult = storageService.generatePresignedUrl(storageResult.uri(), java.time.Duration.ofDays(7));
             String presignedUrlStr = presignedUrlResult.isSuccess()
                     ? presignedUrlResult.getValueOrThrow()
                     : storageResult.uri().toString(); // Fallback to storage URI for local files
@@ -364,8 +365,8 @@ public class ComprehensiveReportOrchestrator {
             );
 
             // Upload using shared storage service
-            StorageUri uri = StorageUri.parse("s3://" + storageMetadataService.getStorageBucket() + "/xbrl/" + fileName);
-            Result<StorageResult> uploadResult = storageService.upload(xbrlContent, uri, metadataTags);
+            String subPath = "xbrl/" + fileName;
+            Result<StorageResult> uploadResult = storageService.uploadToStorage(xbrlContent, subPath, metadataTags);
             if (uploadResult.isFailure()) {
                 ErrorDetail err = ErrorDetail.of("XBRL_UPLOAD_FAILED", ErrorType.SYSTEM_ERROR,
                         "Failed to upload XBRL report to storage: " + uploadResult.getError().orElseThrow().getMessage(),
@@ -374,8 +375,8 @@ public class ComprehensiveReportOrchestrator {
             }
 
             StorageResult storageResult = uploadResult.getValueOrThrow();
-
-            Result<String> presignedUrlResult = storageService.generatePresignedUrl(uri, java.time.Duration.ofDays(7));
+            
+            Result<String> presignedUrlResult = storageService.generatePresignedUrl(storageResult.uri(), java.time.Duration.ofDays(7));
             String presignedUrlStr = presignedUrlResult.isSuccess()
                     ? presignedUrlResult.getValueOrThrow()
                     : storageResult.uri().toString();
