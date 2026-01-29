@@ -27,6 +27,10 @@ public record QualityReportPresentation(
     String overallBadge,
     String complianceColor,
     String complianceBadge,
+    
+    // Error Badge
+    String errorBadgeLabel,
+    String errorBadgeColor,
 
     // Arrays
     List<DimensionPresentation> dimensionScores,

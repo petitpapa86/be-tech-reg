@@ -192,6 +192,8 @@ public class QualityReport extends Entity {
         QualityThresholds safeThresholds = thresholds != null ? thresholds : QualityThresholds.bcbs239Defaults();
         List<DimensionDetailPresentation> safeDimensionDetails = dimensionDetails != null ? dimensionDetails : List.of();
 
+        QualityThresholds.ErrorBadgeInfo errorBadge = safeThresholds.determineErrorBadge(safeSummary.totalErrors());
+
         return new QualityReportPresentation(
             extractFileName(),
             calculateFileSize(safeSummary),
@@ -206,6 +208,10 @@ public class QualityReport extends Entity {
             safeThresholds.getQualityScoreBadge(safeScores.overallScore()),
             safeThresholds.getComplianceScoreColor(getComplianceScore()),
             safeThresholds.getComplianceBadge(getComplianceScore()),
+            
+            // Error Badge
+            errorBadge.getLabel(),
+            errorBadge.getColor(),
             
             // Arrays
             generateDimensionScores(safeScores, safeThresholds),

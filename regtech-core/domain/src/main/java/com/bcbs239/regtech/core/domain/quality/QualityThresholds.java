@@ -41,7 +41,17 @@ public record QualityThresholds(
     // Violation thresholds (count)
     int violationCriticalThreshold,  // > 100
     int violationHighThreshold,      // > 50
-    int violationMediumThreshold     // > 10
+    int violationMediumThreshold,    // > 10
+    
+    // Error badges
+    String criticalErrorLabel,
+    String criticalErrorColor,
+    String highErrorLabel,
+    String highErrorColor,
+    String mediumErrorLabel,
+    String mediumErrorColor,
+    String lowErrorLabel,
+    String lowErrorColor
 ) {
     
     /**
@@ -56,7 +66,11 @@ public record QualityThresholds(
             90.0, 75.0,  // Consistency
             90.0, 75.0,  // Uniqueness
             90.0, 75.0,  // Validity
-            100, 50, 10  // Violations
+            100, 50, 10,  // Violations
+            "Critico", "red",
+            "Alto", "orange",
+            "Medio", "yellow",
+            "Basso", "green"
         );
     }
     
@@ -148,5 +162,32 @@ public record QualityThresholds(
         if (totalViolations > violationHighThreshold) return "Alta";
         if (totalViolations > violationMediumThreshold) return "Media";
         return "Bassa";
+    }
+
+    // Metodo helper per determinare badge e color basati sul count 
+    public ErrorBadgeInfo determineErrorBadge(int errorCount) { 
+        if (errorCount > violationCriticalThreshold) { 
+            return new ErrorBadgeInfo(criticalErrorLabel, criticalErrorColor); 
+        } else if (errorCount > violationHighThreshold) { 
+            return new ErrorBadgeInfo(highErrorLabel, highErrorColor); 
+        } else if (errorCount > violationMediumThreshold) { 
+            return new ErrorBadgeInfo(mediumErrorLabel, mediumErrorColor); 
+        } else { 
+            return new ErrorBadgeInfo(lowErrorLabel, lowErrorColor); 
+        } 
+    } 
+    
+    // Inner class per il risultato 
+    public static class ErrorBadgeInfo { 
+        private final String label; 
+        private final String color; 
+        
+        public ErrorBadgeInfo(String label, String color) { 
+            this.label = label; 
+            this.color = color; 
+        } 
+        
+        public String getLabel() { return label; } 
+        public String getColor() { return color; } 
     }
 }

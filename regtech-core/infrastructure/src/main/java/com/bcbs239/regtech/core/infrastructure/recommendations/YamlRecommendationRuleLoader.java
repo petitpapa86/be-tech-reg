@@ -130,14 +130,41 @@ public class YamlRecommendationRuleLoader implements RecommendationRuleLoader {
             int violationHigh = 50;
             int violationMedium = 10;
             
+            // NUOVO: Read labels and colors
+            String criticalErrorLabel = "Situazione critica!";
+            String criticalErrorColor = "red";
+            String highErrorLabel = "Richiede attenzione";
+            String highErrorColor = "orange";
+            String mediumErrorLabel = "Errori moderati";
+            String mediumErrorColor = "yellow";
+            String lowErrorLabel = "Errori minimi";
+            String lowErrorColor = "green";
+            
             if (errorThresholds != null) {
                 Map<String, Object> errCritical = (Map<String, Object>) errorThresholds.get("critical");
                 Map<String, Object> errHigh = (Map<String, Object>) errorThresholds.get("high");
                 Map<String, Object> errMedium = (Map<String, Object>) errorThresholds.get("medium");
+                Map<String, Object> errLow = (Map<String, Object>) errorThresholds.get("low");
                 
-                if (errCritical != null) violationCritical = getIntValue(errCritical, "value", 100);
-                if (errHigh != null) violationHigh = getIntValue(errHigh, "value", 50);
-                if (errMedium != null) violationMedium = getIntValue(errMedium, "value", 10);
+                if (errCritical != null) {
+                    violationCritical = getIntValue(errCritical, "value", 100);
+                    criticalErrorLabel = getStringValue(errCritical, "label_it", "Situazione critica!");
+                    criticalErrorColor = getStringValue(errCritical, "color_scheme", "red");
+                }
+                if (errHigh != null) {
+                    violationHigh = getIntValue(errHigh, "value", 50);
+                    highErrorLabel = getStringValue(errHigh, "label_it", "Richiede attenzione");
+                    highErrorColor = getStringValue(errHigh, "color_scheme", "orange");
+                }
+                if (errMedium != null) {
+                    violationMedium = getIntValue(errMedium, "value", 10);
+                    mediumErrorLabel = getStringValue(errMedium, "label_it", "Errori moderati");
+                    mediumErrorColor = getStringValue(errMedium, "color_scheme", "yellow");
+                }
+                if (errLow != null) {
+                    lowErrorLabel = getStringValue(errLow, "label_it", "Errori minimi");
+                    lowErrorColor = getStringValue(errLow, "color_scheme", "green");
+                }
             }
             
             // Build QualityThresholds with values from YAML
@@ -154,7 +181,11 @@ public class YamlRecommendationRuleLoader implements RecommendationRuleLoader {
                 excellentThreshold, acceptableThreshold,  // Timeliness
                 excellentThreshold, acceptableThreshold,  // Uniqueness
                 excellentThreshold, acceptableThreshold,  // Validity
-                violationCritical, violationHigh, violationMedium // Violations
+                violationCritical, violationHigh, violationMedium, // Violations
+                criticalErrorLabel, criticalErrorColor,
+                highErrorLabel, highErrorColor,
+                mediumErrorLabel, mediumErrorColor,
+                lowErrorLabel, lowErrorColor
             );
             
         } catch (Exception e) {
@@ -182,6 +213,18 @@ public class YamlRecommendationRuleLoader implements RecommendationRuleLoader {
             log.warn("Failed to parse int value for key {}: {}, using default {}", key, value, defaultValue);
             return defaultValue;
         }
+    }
+
+    /**
+     * Safely extract String value from map
+     */
+    private String getStringValue(Map<String, Object> map, String key, String defaultValue) {
+        if (map == null || !map.containsKey(key)) {
+            return defaultValue;
+        }
+        
+        Object value = map.get(key);
+        return value != null ? String.valueOf(value) : defaultValue;
     }
     
     /**
