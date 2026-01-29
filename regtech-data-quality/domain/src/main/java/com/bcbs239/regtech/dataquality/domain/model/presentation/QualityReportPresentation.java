@@ -17,6 +17,8 @@ public record QualityReportPresentation(
     String fileName,
     String fileSize,
     int totalRecords,
+    Integer validRecords,        // NUOVO
+    Double validationRate,       // NUOVO
     double complianceScore,
     double dataQuality,
     int criticalViolations,

@@ -198,8 +198,10 @@ public class QualityReport extends Entity {
             extractFileName(),
             calculateFileSize(safeSummary),
             safeSummary.totalExposures(),
-            roundScore(safeScores.overallScore()),
-            roundScore(safeSummary.getValidationRatePercentage()),
+            safeSummary.validExposures(),
+            safeSummary.getValidationRatePercentage(),
+            getComplianceScore() != null ? getComplianceScore() : 0.0,
+            safeScores.overallScore(),
             countCriticalViolations(safeSummary, safeScores),
             safeLargeExposures.size(),
             
