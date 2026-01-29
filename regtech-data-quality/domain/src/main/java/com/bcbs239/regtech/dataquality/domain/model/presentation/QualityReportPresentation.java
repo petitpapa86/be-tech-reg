@@ -16,28 +16,18 @@ public record QualityReportPresentation(
     // Basic info
     String fileName,
     String fileSize,
-    int totalRecords,
-    Integer validRecords,        // NUOVO
-    Double validationRate,       // NUOVO
-    double complianceScore,
-    double dataQuality,
-    int criticalViolations,
-    int largeExposures,
+    
+    // Grouped Stats
+    ValidationStats validationStats,
+    
+    // Grouped Scores
+    ScoreSummary scores,
+    
+    // Grouped Metrics
+    KeyMetrics metrics,
 
-    // UI Metadata
-    String overallColor,
-    String overallBadge,
-    String complianceColor,
-    String complianceBadge,
-    
-    // Error Badge
-    String errorBadgeLabel,
-    String errorBadgeColor,
-    
-    // Validation Rate Badge
-    String validationRateBadgeLabel,
-    String validationRateBadgeColor,
-    String validationRateBadgeIcon,
+    // Grouped Badges
+    ReportBadges badges,
 
     // Arrays
     List<DimensionPresentation> dimensionScores,
@@ -46,6 +36,40 @@ public record QualityReportPresentation(
     List<ActionPresentation> recommendedActions,
     List<DimensionDetailPresentation> dimensionDetails
 ) {
+
+    public record ValidationStats(
+        int totalRecords,
+        Integer validRecords,
+        Double validationRate
+    ) {}
+
+    public record ScoreSummary(
+        double complianceScore,
+        double dataQualityScore
+    ) {}
+
+    public record KeyMetrics(
+        int criticalViolations,
+        int largeExposuresCount
+    ) {}
+
+    public record ReportBadges(
+        Badge overall,
+        Badge compliance,
+        Badge error,
+        IconBadge validationRate
+    ) {}
+
+    public record Badge(
+        String label,
+        String color
+    ) {}
+
+    public record IconBadge(
+        String label,
+        String color,
+        String icon
+    ) {}
 
     public record DimensionPresentation(
         String name,

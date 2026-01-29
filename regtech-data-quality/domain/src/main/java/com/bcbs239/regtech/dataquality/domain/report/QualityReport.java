@@ -198,28 +198,50 @@ public class QualityReport extends Entity {
         return new QualityReportPresentation(
             extractFileName(),
             calculateFileSize(safeSummary),
-            safeSummary.totalExposures(),
-            safeSummary.validExposures(),
-            safeSummary.getValidationRatePercentage(),
-            getComplianceScore() != null ? getComplianceScore() : 0.0,
-            safeScores.overallScore(),
-            countCriticalViolations(safeSummary, safeScores),
-            safeLargeExposures.size(),
             
-            // UI Metadata
-            safeThresholds.getQualityScoreColor(safeScores.overallScore()),
-            safeThresholds.getQualityScoreBadge(safeScores.overallScore()),
-            safeThresholds.getComplianceScoreColor(getComplianceScore()),
-            safeThresholds.getComplianceBadge(getComplianceScore()),
+            // Grouped Stats
+            new QualityReportPresentation.ValidationStats(
+                safeSummary.totalExposures(),
+                safeSummary.validExposures(),
+                safeSummary.getValidationRatePercentage()
+            ),
             
-            // Error Badge
-            errorBadge.getLabel(),
-            errorBadge.getColor(),
+            // Grouped Scores
+            new QualityReportPresentation.ScoreSummary(
+                getComplianceScore() != null ? getComplianceScore() : 0.0,
+                safeScores.overallScore()
+            ),
             
-            // Validation Rate Badge
-            validationRateBadge.getLabel(),
-            validationRateBadge.getColor(),
-            validationRateBadge.getIcon(),
+            // Grouped Metrics
+            new QualityReportPresentation.KeyMetrics(
+                countCriticalViolations(safeSummary, safeScores),
+                safeLargeExposures.size()
+            ),
+            
+            // Grouped Badges
+            new QualityReportPresentation.ReportBadges(
+                // Overall
+                new QualityReportPresentation.Badge(
+                    safeThresholds.getQualityScoreBadge(safeScores.overallScore()),
+                    safeThresholds.getQualityScoreColor(safeScores.overallScore())
+                ),
+                // Compliance
+                new QualityReportPresentation.Badge(
+                    safeThresholds.getComplianceBadge(getComplianceScore()),
+                    safeThresholds.getComplianceScoreColor(getComplianceScore())
+                ),
+                // Error
+                new QualityReportPresentation.Badge(
+                    errorBadge.getLabel(),
+                    errorBadge.getColor()
+                ),
+                // Validation Rate
+                new QualityReportPresentation.IconBadge(
+                    validationRateBadge.getLabel(),
+                    validationRateBadge.getColor(),
+                    validationRateBadge.getIcon()
+                )
+            ),
             
             // Arrays
             generateDimensionScores(safeScores, safeThresholds),
