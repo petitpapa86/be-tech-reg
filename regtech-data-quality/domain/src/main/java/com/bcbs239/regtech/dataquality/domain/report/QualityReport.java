@@ -193,6 +193,7 @@ public class QualityReport extends Entity {
         List<DimensionDetailPresentation> safeDimensionDetails = dimensionDetails != null ? dimensionDetails : List.of();
 
         QualityThresholds.ErrorBadgeInfo errorBadge = safeThresholds.determineErrorBadge(safeSummary.totalErrors());
+        QualityThresholds.ValidationRateBadgeInfo validationRateBadge = safeThresholds.determineValidationRateBadge(safeSummary.getValidationRatePercentage());
 
         return new QualityReportPresentation(
             extractFileName(),
@@ -214,6 +215,11 @@ public class QualityReport extends Entity {
             // Error Badge
             errorBadge.getLabel(),
             errorBadge.getColor(),
+            
+            // Validation Rate Badge
+            validationRateBadge.getLabel(),
+            validationRateBadge.getColor(),
+            validationRateBadge.getIcon(),
             
             // Arrays
             generateDimensionScores(safeScores, safeThresholds),

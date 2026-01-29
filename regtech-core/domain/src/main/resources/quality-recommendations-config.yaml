@@ -325,6 +325,46 @@ bcbs239_compliance:
       label_en: "NON-COMPLIANT"
 
 # ============================================
+# RULE FAMILY 6: Validation Rate Badges
+# ============================================
+validation_rate:
+  enabled: true
+  description: "Validation rate badges and colors for valid exposures tracking"
+  
+  thresholds:
+    excellent:
+      value: 90.0
+      operator: ">="
+      color_scheme: "green"
+      label_it: "Eccellente"
+      label_en: "Excellent"
+      icon: "✅"
+      
+    acceptable:
+      value: 75.0
+      operator: ">="
+      color_scheme: "amber"
+      label_it: "Accettabile"
+      label_en: "Acceptable"
+      icon: "✓"
+      
+    weak:
+      value: 50.0
+      operator: ">="
+      color_scheme: "orange"
+      label_it: "Debole"
+      label_en: "Weak"
+      icon: "⚠️"
+      
+    poor:
+      operator: "<"
+      threshold_value: 50.0
+      color_scheme: "red"
+      label_it: "Scarso"
+      label_en: "Poor"
+      icon: "❌"
+
+# ============================================
 # RULE FAMILY 5: Quality Insights (NEW!)
 # ============================================
 quality_insights:

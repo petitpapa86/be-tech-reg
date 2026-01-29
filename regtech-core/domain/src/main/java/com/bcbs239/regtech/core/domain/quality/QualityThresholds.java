@@ -51,7 +51,29 @@ public record QualityThresholds(
     String mediumErrorLabel,
     String mediumErrorColor,
     String lowErrorLabel,
-    String lowErrorColor
+    String lowErrorColor,
+
+    // Validation Rate Thresholds
+    double validationRateExcellent,
+    double validationRateAcceptable,
+    double validationRateWeak,
+    
+    // Validation Rate Badges
+    String validationRateExcellentLabel,
+    String validationRateExcellentColor,
+    String validationRateExcellentIcon,
+    
+    String validationRateAcceptableLabel,
+    String validationRateAcceptableColor,
+    String validationRateAcceptableIcon,
+    
+    String validationRateWeakLabel,
+    String validationRateWeakColor,
+    String validationRateWeakIcon,
+    
+    String validationRatePoorLabel,
+    String validationRatePoorColor,
+    String validationRatePoorIcon
 ) {
     
     /**
@@ -70,7 +92,13 @@ public record QualityThresholds(
             "Critico", "red",
             "Alto", "orange",
             "Medio", "yellow",
-            "Basso", "green"
+            "Basso", "green",
+            // Validation Rate Defaults
+            90.0, 75.0, 50.0,
+            "Eccellente", "green", "✅",
+            "Accettabile", "amber", "✓",
+            "Debole", "orange", "⚠️",
+            "Scarso", "red", "❌"
         );
     }
     
@@ -176,6 +204,19 @@ public record QualityThresholds(
             return new ErrorBadgeInfo(lowErrorLabel, lowErrorColor); 
         } 
     } 
+
+    // Metodo helper per determinare badge, color e icona per Validation Rate
+    public ValidationRateBadgeInfo determineValidationRateBadge(double rate) {
+        if (rate >= validationRateExcellent) {
+            return new ValidationRateBadgeInfo(validationRateExcellentLabel, validationRateExcellentColor, validationRateExcellentIcon);
+        } else if (rate >= validationRateAcceptable) {
+            return new ValidationRateBadgeInfo(validationRateAcceptableLabel, validationRateAcceptableColor, validationRateAcceptableIcon);
+        } else if (rate >= validationRateWeak) {
+            return new ValidationRateBadgeInfo(validationRateWeakLabel, validationRateWeakColor, validationRateWeakIcon);
+        } else {
+            return new ValidationRateBadgeInfo(validationRatePoorLabel, validationRatePoorColor, validationRatePoorIcon);
+        }
+    }
     
     // Inner class per il risultato 
     public static class ErrorBadgeInfo { 
@@ -189,5 +230,21 @@ public record QualityThresholds(
         
         public String getLabel() { return label; } 
         public String getColor() { return color; } 
+    }
+
+    public static class ValidationRateBadgeInfo {
+        private final String label;
+        private final String color;
+        private final String icon;
+
+        public ValidationRateBadgeInfo(String label, String color, String icon) {
+            this.label = label;
+            this.color = color;
+            this.icon = icon;
+        }
+
+        public String getLabel() { return label; }
+        public String getColor() { return color; }
+        public String getIcon() { return icon; }
     }
 }

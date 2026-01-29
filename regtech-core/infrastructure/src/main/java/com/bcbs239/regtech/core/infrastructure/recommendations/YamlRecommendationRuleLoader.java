@@ -166,6 +166,63 @@ public class YamlRecommendationRuleLoader implements RecommendationRuleLoader {
                     lowErrorColor = getStringValue(errLow, "color_scheme", "green");
                 }
             }
+
+            // Read validation_rate section
+            Map<String, Object> validationRate = (Map<String, Object>) yamlConfig.get("validation_rate");
+            Map<String, Object> validationThresholds = validationRate != null 
+                ? (Map<String, Object>) validationRate.get("thresholds")
+                : null;
+
+            double validationExcellent = 90.0;
+            double validationAcceptable = 75.0;
+            double validationWeak = 50.0;
+            
+            String validationExcellentLabel = "Eccellente";
+            String validationExcellentColor = "green";
+            String validationExcellentIcon = "✅";
+            
+            String validationAcceptableLabel = "Accettabile";
+            String validationAcceptableColor = "amber";
+            String validationAcceptableIcon = "✓";
+            
+            String validationWeakLabel = "Debole";
+            String validationWeakColor = "orange";
+            String validationWeakIcon = "⚠️";
+            
+            String validationPoorLabel = "Scarso";
+            String validationPoorColor = "red";
+            String validationPoorIcon = "❌";
+
+            if (validationThresholds != null) {
+                Map<String, Object> valExcellent = (Map<String, Object>) validationThresholds.get("excellent");
+                Map<String, Object> valAcceptable = (Map<String, Object>) validationThresholds.get("acceptable");
+                Map<String, Object> valWeak = (Map<String, Object>) validationThresholds.get("weak");
+                Map<String, Object> valPoor = (Map<String, Object>) validationThresholds.get("poor");
+                
+                if (valExcellent != null) {
+                    validationExcellent = getDoubleValue(valExcellent, "value", 90.0);
+                    validationExcellentLabel = getStringValue(valExcellent, "label_it", "Eccellente");
+                    validationExcellentColor = getStringValue(valExcellent, "color_scheme", "green");
+                    validationExcellentIcon = getStringValue(valExcellent, "icon", "✅");
+                }
+                if (valAcceptable != null) {
+                    validationAcceptable = getDoubleValue(valAcceptable, "value", 75.0);
+                    validationAcceptableLabel = getStringValue(valAcceptable, "label_it", "Accettabile");
+                    validationAcceptableColor = getStringValue(valAcceptable, "color_scheme", "amber");
+                    validationAcceptableIcon = getStringValue(valAcceptable, "icon", "✓");
+                }
+                if (valWeak != null) {
+                    validationWeak = getDoubleValue(valWeak, "value", 50.0);
+                    validationWeakLabel = getStringValue(valWeak, "label_it", "Debole");
+                    validationWeakColor = getStringValue(valWeak, "color_scheme", "orange");
+                    validationWeakIcon = getStringValue(valWeak, "icon", "⚠️");
+                }
+                if (valPoor != null) {
+                    validationPoorLabel = getStringValue(valPoor, "label_it", "Scarso");
+                    validationPoorColor = getStringValue(valPoor, "color_scheme", "red");
+                    validationPoorIcon = getStringValue(valPoor, "icon", "❌");
+                }
+            }
             
             // Build QualityThresholds with values from YAML
             return new QualityThresholds(
@@ -185,7 +242,13 @@ public class YamlRecommendationRuleLoader implements RecommendationRuleLoader {
                 criticalErrorLabel, criticalErrorColor,
                 highErrorLabel, highErrorColor,
                 mediumErrorLabel, mediumErrorColor,
-                lowErrorLabel, lowErrorColor
+                lowErrorLabel, lowErrorColor,
+                // Validation Rate
+                validationExcellent, validationAcceptable, validationWeak,
+                validationExcellentLabel, validationExcellentColor, validationExcellentIcon,
+                validationAcceptableLabel, validationAcceptableColor, validationAcceptableIcon,
+                validationWeakLabel, validationWeakColor, validationWeakIcon,
+                validationPoorLabel, validationPoorColor, validationPoorIcon
             );
             
         } catch (Exception e) {

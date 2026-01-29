@@ -33,6 +33,11 @@ public record QualityReportPresentation(
     // Error Badge
     String errorBadgeLabel,
     String errorBadgeColor,
+    
+    // Validation Rate Badge
+    String validationRateBadgeLabel,
+    String validationRateBadgeColor,
+    String validationRateBadgeIcon,
 
     // Arrays
     List<DimensionPresentation> dimensionScores,
