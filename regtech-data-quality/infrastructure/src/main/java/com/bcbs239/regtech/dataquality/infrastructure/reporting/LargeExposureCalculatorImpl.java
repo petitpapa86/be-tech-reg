@@ -1,8 +1,8 @@
 package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
 import com.bcbs239.regtech.dataquality.application.reporting.LargeExposureCalculator;
-import com.bcbs239.regtech.dataquality.application.reporting.DetailedExposureResult;
-import com.bcbs239.regtech.dataquality.application.reporting.StoredValidationResults;
+import com.bcbs239.regtech.dataquality.domain.model.reporting.DetailedExposureResult;
+import com.bcbs239.regtech.dataquality.domain.model.reporting.StoredValidationResults;
 import com.bcbs239.regtech.dataquality.application.reporting.StoredValidationResultsReader;
 import com.bcbs239.regtech.dataquality.domain.model.valueobject.LargeExposure;
 import com.bcbs239.regtech.dataquality.domain.report.QualityReport;
@@ -108,7 +108,7 @@ public class LargeExposureCalculatorImpl implements LargeExposureCalculator {
         }
 
         String detailsUri = report.getDetailsReference().uri();
-        StoredValidationResults stored = detailedResultsReader.load(detailsUri);
+        StoredValidationResults stored = detailedResultsReader.load(detailsUri).orElse(null);
         List<DetailedExposureResult> detailed = stored != null ? stored.exposureResults() : List.of();
         if (detailed == null || detailed.isEmpty()) {
             return List.of();

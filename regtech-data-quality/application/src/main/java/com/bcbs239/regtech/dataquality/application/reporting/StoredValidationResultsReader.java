@@ -1,5 +1,9 @@
 package com.bcbs239.regtech.dataquality.application.reporting;
 
+import com.bcbs239.regtech.dataquality.domain.model.reporting.StoredValidationResults;
+
+import java.util.Optional;
+
 /**
  * Application-facing reader for the stored detailed validation results file.
  *
@@ -7,5 +11,5 @@ package com.bcbs239.regtech.dataquality.application.reporting;
  */
 public interface StoredValidationResultsReader {
 
-    StoredValidationResults load(String detailsUri);
+    Optional<StoredValidationResults> load(String detailsUri);
 }

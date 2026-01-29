@@ -1,11 +1,11 @@
-package com.bcbs239.regtech.dataquality.application.reporting;
+package com.bcbs239.regtech.dataquality.domain.model.reporting;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
 /**
- * DTO for detailed exposure validation results.
+ * Domain model for detailed exposure validation results.
  * Contains the specific rule violations for each exposure.
  */
 public record DetailedExposureResult(

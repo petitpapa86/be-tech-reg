@@ -1,145 +1,145 @@
 package com.bcbs239.regtech.dataquality.infrastructure.reporting;
 
-import com.bcbs239.regtech.core.domain.shared.Result;
-import com.bcbs239.regtech.core.domain.storage.IStorageService;
-import com.bcbs239.regtech.core.domain.storage.StorageUri;
-import com.bcbs239.regtech.dataquality.application.reporting.DetailedExposureResult;
-import com.bcbs239.regtech.dataquality.application.reporting.StoredValidationResults;
+import com.bcbs239.regtech.core.infrastructure.filestorage.CoreS3Service;
+import com.bcbs239.regtech.core.infrastructure.filestorage.S3Utils;
 import com.bcbs239.regtech.dataquality.application.reporting.StoredValidationResultsReader;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.bcbs239.regtech.dataquality.domain.model.reporting.StoredValidationResults;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
+import java.util.Optional;
 
 /**
- * Infrastructure adapter that loads detailed validation results using shared storage service.
+ * Infrastructure adapter that loads detailed validation results.
  *
- * <p>Uses the centralized IStorageService from regtech-core to eliminate duplicate storage logic.</p>
- * <p>Supports S3, local filesystem, and memory storage based on URI scheme.</p>
+ * <p>Uses CoreS3Service for S3 access (if available) and standard File IO for local access.</p>
+ * <p>Supports streaming JSON parsing to handle large files efficiently.</p>
  */
 @Component
 public class LocalDetailedResultsReader implements StoredValidationResultsReader {
 
     private static final Logger logger = LoggerFactory.getLogger(LocalDetailedResultsReader.class);
 
-    private final IStorageService storageService;
+    private final Optional<CoreS3Service> coreS3Service;
     private final ObjectMapper objectMapper;
     private final String localBasePath;
 
     public LocalDetailedResultsReader(
-        IStorageService storageService,
+        Optional<CoreS3Service> coreS3Service,
         ObjectMapper objectMapper,
         @Value("${data-quality.storage.local.base-path:${user.dir}/data/quality}") String localBasePath
     ) {
-        this.storageService = storageService;
+        this.coreS3Service = coreS3Service;
         this.objectMapper = objectMapper;
         this.localBasePath = localBasePath;
     }
 
-    /**
-     * Loads the stored validation results from any supported storage URI.
-     *
-     * <p>Supported URI formats:</p>
-     * <ul>
-     *   <li>s3://bucket/key (S3 or S3-compatible storage)</li>
-     *   <li>file:///absolute/path (local filesystem)</li>
-     *   <li>C:/absolute/path (Windows local filesystem)</li>
-     *   <li>s3://local/path (legacy format, mapped to local storage)</li>
-     * </ul>
-     *
-     * @param detailsUri Storage URI pointing to the validation results JSON
-     * @return Parsed validation results, or null if loading fails
-     */
     @Override
-    public StoredValidationResults load(String detailsUri) {
+    public Optional<StoredValidationResults> load(String detailsUri) {
         if (detailsUri == null || detailsUri.isBlank()) {
-            logger.warn("Cannot load validation results: detailsUri is null or empty");
-            return null;
-        }
-
-        String effectiveUri = detailsUri;
-        // Handle legacy s3://local/ format by mapping to configured local base path
-        if (detailsUri.startsWith("s3://local/")) {
-            String key = detailsUri.substring("s3://local/".length());
-            Path path = Paths.get(localBasePath, key);
-            effectiveUri = path.toUri().toString();
-            logger.debug("Mapped legacy s3://local URI '{}' to local file URI '{}'", detailsUri, effectiveUri);
+            throw new IllegalArgumentException("detailsUri cannot be null or empty");
         }
 
         try {
-            // Parse URI using shared StorageUri
-            StorageUri uri = StorageUri.parse(effectiveUri);
-
-            // Download JSON content using shared storage service
-            Result<String> downloadResult = storageService.download(uri);
-            if (downloadResult.isFailure()) {
-                logger.warn("Failed to download validation results from '{}': {}", 
-                    detailsUri, downloadResult.getError().orElseThrow().getMessage());
-                return null;
+            StoredValidationResults results;
+            // Handle S3 URIs
+            if (detailsUri.startsWith("s3://") && !detailsUri.startsWith("s3://local/")) {
+                results = loadFromS3(detailsUri);
+            } else {
+                // Handle Local URIs
+                results = loadFromLocal(detailsUri);
             }
+            return Optional.ofNullable(results);
 
-            String jsonContent = downloadResult.getValueOrThrow();
-
-            // Parse JSON structure
-            return parseValidationResults(jsonContent);
-
-        } catch (IllegalArgumentException e) {
-            logger.warn("Invalid storage URI '{}': {}", detailsUri, e.getMessage());
-            return null;
+        } catch (RuntimeException e) {
+            throw e;
         } catch (Exception e) {
-            logger.warn("Unexpected error loading validation results from '{}': {}", 
-                detailsUri, e.getMessage(), e);
-            return null;
+            // Wrap checked exceptions (including FileNotFoundException) in RuntimeException
+            // to allow them to propagate without changing the interface signature to throw checked exceptions.
+            // This preserves the intent of "throwing" rather than returning null.
+            throw new RuntimeException("Error loading validation results from " + detailsUri, e);
         }
     }
 
-    /**
-     * Convenience method for callers that only need exposureResults.
-     *
-     * @param detailsUri Storage URI pointing to the validation results JSON
-     * @return List of exposure results, or empty list if loading fails
-     */
-    public List<DetailedExposureResult> loadFromDetailsUri(String detailsUri) {
-        StoredValidationResults results = load(detailsUri);
-        return (results != null) ? results.exposureResults() : List.of();
+    private StoredValidationResults loadFromS3(String uri) throws Exception {
+        if (coreS3Service.isEmpty()) {
+            throw new IllegalStateException("S3 service not available");
+        }
+
+        var parsed = S3Utils.parseS3Uri(uri);
+        if (parsed.isEmpty()) {
+            throw new IllegalArgumentException("Invalid S3 URI: " + uri);
+        }
+
+        try (ResponseInputStream<GetObjectResponse> s3Stream = coreS3Service.get().getObjectStream(parsed.get().bucket(), parsed.get().key())) {
+            return objectMapper.readValue(s3Stream, StoredValidationResults.class);
+        }
     }
 
-    /**
-     * Parses the validation results JSON structure.
-     *
-     * @param jsonContent Raw JSON content
-     * @return Parsed validation results
-     * @throws Exception if JSON parsing fails
-     */
-    private StoredValidationResults parseValidationResults(String jsonContent) throws Exception {
-        JsonNode rootNode = objectMapper.readTree(jsonContent);
+    private StoredValidationResults loadFromLocal(String uri) throws Exception {
+        
+        // Handle legacy s3://local/ mapping
+        if (uri.startsWith("s3://local/")) {
+            String key = uri.substring("s3://local/".length());
+            Path path = Paths.get(localBasePath, key);
+            
+            // Fallback: If running from a module directory (e.g. regtech-data-quality),
+            // the file might be in the project root's data directory.
+            if (!Files.exists(path)) {
+                Path currentDir = Paths.get(System.getProperty("user.dir"));
+                if (currentDir.getFileName().toString().startsWith("regtech-")) {
+                    Path projectRoot = currentDir.getParent();
+                    if (projectRoot != null) {
+                        // Try to find the file in ../data/quality/{key}
+                        // We assume the standard structure is data/quality relative to root
+                        Path fallbackPath = projectRoot.resolve("data/quality").resolve(key);
+                        if (Files.exists(fallbackPath)) {
+                            logger.info("File not found at {}, found at fallback: {}", path, fallbackPath);
+                            return loadFromPath(fallbackPath);
+                        }
+                    }
+                }
+            }
+            return loadFromPath(path);
+        }
 
-        int totalExposures = rootNode.path("totalExposures").asInt(0);
-        int validExposures = rootNode.path("validExposures").asInt(0);
-        int totalErrors = rootNode.path("totalErrors").asInt(0);
+        String pathStr = uri;
+        if (uri.startsWith("file://")) {
+            pathStr = uri.substring(7);
+        } else if (uri.startsWith("file:")) {
+            pathStr = uri.substring(5);
+        }
+        
+        // Handle Windows /C:/ paths
+        if (pathStr.startsWith("/") && System.getProperty("os.name").toLowerCase().contains("win")) {
+             if (pathStr.length() > 2 && pathStr.charAt(2) == ':') {
+                 pathStr = pathStr.substring(1);
+             }
+        }
+        
+        pathStr = URLDecoder.decode(pathStr, StandardCharsets.UTF_8);
+        return loadFromPath(Paths.get(pathStr));
+    }
 
-        JsonNode exposureResultsNode = rootNode.get("exposureResults");
-        List<DetailedExposureResult> exposureResults = (exposureResultsNode != null && exposureResultsNode.isArray())
-            ? objectMapper.convertValue(exposureResultsNode, new TypeReference<List<DetailedExposureResult>>() {})
-            : List.of();
-
-        JsonNode batchErrorsNode = rootNode.get("batchErrors");
-        List<DetailedExposureResult.DetailedError> batchErrors = (batchErrorsNode != null && batchErrorsNode.isArray())
-            ? objectMapper.convertValue(batchErrorsNode, new TypeReference<List<DetailedExposureResult.DetailedError>>() {})
-            : List.of();
-
-        JsonNode recommendationsNode = rootNode.get("recommendations");
-        List<StoredValidationResults.StoredRecommendation> recommendations = (recommendationsNode != null && recommendationsNode.isArray())
-            ? objectMapper.convertValue(recommendationsNode, new TypeReference<List<StoredValidationResults.StoredRecommendation>>() {})
-            : List.of();
-
-        return new StoredValidationResults(totalExposures, validExposures, totalErrors, exposureResults, batchErrors, recommendations);
+    private StoredValidationResults loadFromPath(Path path) throws Exception {
+        if (!Files.exists(path)) {
+            throw new FileNotFoundException("File not found: " + path);
+        }
+        try (InputStream is = Files.newInputStream(path)) {
+            return objectMapper.readValue(is, StoredValidationResults.class);
+        }
     }
 }

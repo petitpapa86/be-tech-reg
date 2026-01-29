@@ -1,5 +1,6 @@
 package com.bcbs239.regtech.dataquality.domain.validation;
 
+import com.bcbs239.regtech.dataquality.domain.model.reporting.DetailedExposureResult;
 import com.bcbs239.regtech.dataquality.domain.quality.DimensionScores;
 import com.bcbs239.regtech.dataquality.domain.quality.QualityDimension;
 import com.bcbs239.regtech.dataquality.domain.validation.consistency.ConsistencyValidationResult;

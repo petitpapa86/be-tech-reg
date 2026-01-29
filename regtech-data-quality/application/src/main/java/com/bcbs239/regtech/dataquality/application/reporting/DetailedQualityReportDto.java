@@ -2,6 +2,7 @@ package com.bcbs239.regtech.dataquality.application.reporting;
 
 import com.bcbs239.regtech.dataquality.application.scoring.QualityScoresDto;
 import com.bcbs239.regtech.dataquality.application.validation.ValidationSummaryDto;
+import com.bcbs239.regtech.dataquality.domain.model.reporting.DetailedExposureResult;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.Instant;
