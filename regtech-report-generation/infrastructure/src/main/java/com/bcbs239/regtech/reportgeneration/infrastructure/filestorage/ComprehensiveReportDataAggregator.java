@@ -280,7 +280,7 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
                 geographicBreakdown = mapGeographicBreakdownFromRisk(summary.path("geographic_breakdown"));
                 sectorBreakdown = mapSectorBreakdownFromRisk(summary.path("sector_breakdown"));
                 concentrationIndices = mapConcentrationIndicesFromRisk(summary.path("concentration_indices"));
-                timestamps = new ProcessingTimestamps(calculatedAt, null, null, calculatedAt, null);
+                timestamps = new ProcessingTimestamps(calculatedAt, null, null, null, calculatedAt, null);
             } else {
                 // Legacy (camelCase) schema
                 batchId = firstNonBlank(root.path("batchId").asText(), event.getBatchId());
@@ -619,6 +619,7 @@ public class ComprehensiveReportDataAggregator implements IReportDataSource {
             Instant.parse(node.path("startedAt").asText()),
             node.has("htmlCompletedAt") ? Instant.parse(node.path("htmlCompletedAt").asText()) : null,
             node.has("xbrlCompletedAt") ? Instant.parse(node.path("xbrlCompletedAt").asText()) : null,
+            node.has("pdfCompletedAt") ? Instant.parse(node.path("pdfCompletedAt").asText()) : null,
             node.has("completedAt") ? Instant.parse(node.path("completedAt").asText()) : null,
             node.has("failedAt") ? Instant.parse(node.path("failedAt").asText()) : null
         );

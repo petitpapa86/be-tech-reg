@@ -3,6 +3,11 @@
 report-generation:
   enabled: true
   
+  # PDF Generation Configuration
+  pdf:
+    chrome-path: ${CHROME_PATH:C:\Program Files\Google\Chrome\Application\chrome.exe}
+    timeout-seconds: 30
+
   # Storage configuration (Requirement 12.1)
   storage:
     # Storage type: 's3' for AWS S3, 'local' for filesystem

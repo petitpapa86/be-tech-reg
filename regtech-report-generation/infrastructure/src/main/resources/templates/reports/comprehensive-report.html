@@ -12,20 +12,118 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
+        @page {
+            size: A4;
+            margin: 0; /* Remove browser default headers/footers */
+        }
         @media print {
-            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            .no-print { display: none; }
+            body { 
+                margin: 0;
+                padding: 10mm; /* Reduced padding */
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact; 
+                font-size: 8pt; /* Further reduced font size */
+                zoom: 0.75; /* Further scale down */
+            }
+            .no-print { display: none !important; }
             .page-break { page-break-before: always; }
+            
+            /* Prevent cutting sections inside */
+            .rounded-lg, .shadow-lg, .card, 
+            div[class*="rounded"], div[class*="shadow"], div[class*="border"] {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+                display: block; /* Ensure block formatting context */
+            }
+            
+            /* Allow tables to break across pages but keep rows intact */
+            table {
+                page-break-inside: auto;
+            }
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            thead {
+                display: table-header-group;
+            }
+            tfoot {
+                display: table-footer-group;
+            }
+            
+            /* Ensure headings stay with their content */
+            h1, h2, h3, h4, h5, h6 {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+
+            /* Adjust spacing for print */
+            .p-8 { padding: 0.75rem !important; }
+            .mb-12 { margin-bottom: 1rem !important; }
+            .gap-6 { gap: 0.5rem !important; }
+            
+            /* Override container width for print */
+            .max-w-7xl {
+                max-width: none !important;
+                width: 100% !important;
+            }
+            
+            /* Fixed Footer for Print */
+            .print-footer {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                z-index: 1000;
+                font-size: 7pt; /* Smaller footer font */
+                background-color: white; /* Ensure readability */
+                padding-top: 5px;
+            }
         }
     </style>
 </head>
 <body class="bg-gray-50">
-    <div class="max-w-7xl mx-auto p-8">
+    <!-- HIDDEN COPILOT INSTRUCTIONS -->
+    <div id="copilot-instructions" style="display:none;">
+        ### ROLE AND CONTEXT 
+        You are processing a BCBS 239 Compliance Report for an Italian banking institution. 
+        This is a dual-section regulatory document combining Large Exposures (Grandi Rischi) 
+        under Banca d'Italia Circular 285/2013 and Data Quality Assessment under BCBS 239 principles. 
+        
+        ### DOCUMENT STRUCTURE RULES (MUST RESPECT) 
+        1. **Hierarchical Sections** : The document has exactly 2 main sections: 
+           -  SECTION 1: Large Exposures (risk data, exposure limits, sector distribution) 
+           -  SECTION 2: Data Quality (6 dimensions: Completeness, Accuracy, Consistency, Timeliness, Uniqueness, Validity) 
+        
+        2. **Visual Encoding System** : 
+           -  Colors indicate severity: Red (Critical >25% limit / Score <65%), Orange (Warning), Green (Compliant >90%) 
+           -  Charts: Doughnut (sector distribution), Horizontal Bar (top exposures), Progress bars (quality scores) 
+           -  Badges: "LIMITE SUPERATO" (red), "CONFORME" (green), "NON CONFORME" (red) 
+        
+        3. **Data Fields to Extract** : 
+           -  Bank metadata: ABI code, Reference date, Batch ID 
+           -  Financial: Capital amounts, Exposure values, Percentages of capital 
+           -  Quality metrics: 6 dimension scores (0-100%), Error counts, Validation rates 
+        
+        4. **Critical Thresholds**  (Regulatory Limits): 
+           -  Large Exposure threshold: ≥10% of eligible capital 
+           -  Legal limit: 25% of eligible capital (breach = "LIMITE SUPERATO") 
+           -  Quality passing score: ≥75% (acceptable), ≥90% (excellent) 
+        
+        5. **Language and Localization** : 
+           -  Primary language: Italian 
+           -  Currency format: € X.XXX.XXX,XX (Italian notation) 
+           -  Date format: DD/MM/YYYY 
+           -  Legal references must remain exact: "Circolare n. 285 del 17 dicembre 2013"
+    </div>
+
+    <div class="max-w-7xl mx-auto p-8 pb-24 print:pb-0">
 
         <!-- ============================================ -->
         <!-- COVER PAGE -->
         <!-- ============================================ -->
-        <section class="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-700 rounded-lg shadow-2xl p-12 mb-8 text-white no-print">
+        <section class="bg-gradient-to-br from-blue-600 via-purple-600 to-blue-700 rounded-lg shadow-2xl p-12 mb-8 text-white">
             <div class="text-center">
                 <div class="mb-8">
                     <div class="inline-block bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 mb-4">
@@ -33,18 +131,18 @@
                     </div>
                 </div>
 
-                <h1 class="text-5xl font-bold mb-4">Rapporto Comprensivo</h1>
-                <h2 class="text-3xl font-light mb-8">Grandi Rischi &amp; Data Quality</h2>
+                <h1 class="text-5xl font-bold mb-4">BCBS 239 RISK AGGREGATION REPORT</h1>
+                <h2 class="text-3xl font-light mb-8">Reference Date: <span th:text="${#temporals.format(metadata.reportingDate.value(), 'yyyy-MM-dd')}">2025-12-15</span></h2>
 
                 <div class="border-t border-white/30 my-8"></div>
 
                 <div class="grid grid-cols-3 gap-6 mb-8">
                     <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                        <p class="text-sm opacity-75 mb-1">Banca</p>
+                        <p class="text-sm opacity-75 mb-1">Bank</p>
                         <p class="text-xl font-bold" th:text="${metadata.bankName}">Banca</p>
                     </div>
                     <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                        <p class="text-sm opacity-75 mb-1">Data Riferimento</p>
+                        <p class="text-sm opacity-75 mb-1">Reference Date</p>
                         <p class="text-xl font-bold" th:text="${#temporals.format(metadata.reportingDate.value(), 'yyyy-MM-dd')}">2025-12-15</p>
                     </div>
                     <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4">
@@ -54,8 +152,8 @@
                 </div>
 
                 <div class="text-sm opacity-75">
-                    <p>Generato automaticamente da BCBS 239 Process Engine</p>
-                    <p class="mt-1">Conforme a Circolare Banca d'Italia n. 285/2013</p>
+                    <p class="font-bold tracking-widest">CONFIDENTIAL / INTERNAL USE ONLY</p>
+                    <p class="mt-1">Generated by BCBS 239 Process Engine</p>
                 </div>
             </div>
         </section>

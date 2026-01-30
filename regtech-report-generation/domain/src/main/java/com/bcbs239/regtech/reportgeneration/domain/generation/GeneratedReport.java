@@ -52,6 +52,7 @@ public class GeneratedReport extends Entity {
     private ReportStatus status;
     private HtmlReportMetadata htmlMetadata;
     private XbrlReportMetadata xbrlMetadata;
+    private PdfReportMetadata pdfMetadata;
     private BigDecimal overallQualityScore;
     private ComplianceStatus complianceStatus;
     private ProcessingTimestamps timestamps;
@@ -89,6 +90,7 @@ public class GeneratedReport extends Entity {
                 ReportStatus.IN_PROGRESS,
                 null, // htmlMetadata - will be set when HTML is generated
                 null, // xbrlMetadata - will be set when XBRL is generated
+                null, // pdfMetadata - will be set when PDF is generated
                 qualityScore,
                 complianceStatus,
                 ProcessingTimestamps.started(),
@@ -123,8 +125,8 @@ public class GeneratedReport extends Entity {
         this.htmlMetadata = htmlMetadata;
         this.timestamps = this.timestamps.withHtmlCompleted();
         
-        // Automatically check if both reports are complete
-        if (this.xbrlMetadata != null) {
+        // Automatically check if all reports are complete
+        if (this.xbrlMetadata != null && this.pdfMetadata != null) {
             markCompleted();
         }
     }
@@ -145,22 +147,44 @@ public class GeneratedReport extends Entity {
         this.xbrlMetadata = xbrlMetadata;
         this.timestamps = this.timestamps.withXbrlCompleted();
         
-        // Automatically check if both reports are complete
-        if (this.htmlMetadata != null) {
+        // Automatically check if all reports are complete
+        if (this.htmlMetadata != null && this.pdfMetadata != null) {
+            markCompleted();
+        }
+    }
+
+    /**
+     * Mark PDF report as generated
+     * Records PDF metadata and automatically checks if report is complete
+     * 
+     * Business rule: Cannot modify a completed report
+     * 
+     * @param pdfMetadata The PDF report metadata including S3 URI, file size, and presigned URL
+     */
+    public void markPdfGenerated(PdfReportMetadata pdfMetadata) {
+        if (this.status == ReportStatus.COMPLETED) {
+            throw new IllegalStateException("Cannot modify a completed report");
+        }
+        
+        this.pdfMetadata = pdfMetadata;
+        this.timestamps = this.timestamps.withPdfCompleted();
+        
+        // Automatically check if all reports are complete
+        if (this.htmlMetadata != null && this.xbrlMetadata != null) {
             markCompleted();
         }
     }
     
     /**
      * Mark report as completed
-     * Private method called automatically when both HTML and XBRL are generated
+     * Private method called automatically when both HTML, XBRL and PDF are generated
      * 
-     * Business rule: Can only complete if both HTML and XBRL reports exist
+     * Business rule: Can only complete if HTML, XBRL and PDF reports exist
      * Raises ReportGeneratedEvent domain event
      */
     private void markCompleted() {
-        if (this.htmlMetadata == null || this.xbrlMetadata == null) {
-            throw new IllegalStateException("Cannot complete report without both HTML and XBRL");
+        if (this.htmlMetadata == null || this.xbrlMetadata == null || this.pdfMetadata == null) {
+            throw new IllegalStateException("Cannot complete report without HTML, XBRL and PDF");
         }
         
         this.status = ReportStatus.COMPLETED;
@@ -176,10 +200,13 @@ public class GeneratedReport extends Entity {
                 this.reportingDate,
                 this.htmlMetadata.s3Uri(),
                 this.xbrlMetadata.s3Uri(),
+                this.pdfMetadata.s3Uri(),
                 this.htmlMetadata.presignedUrl(),
                 this.xbrlMetadata.presignedUrl(),
+                this.pdfMetadata.presignedUrl(),
                 this.htmlMetadata.fileSize(),
                 this.xbrlMetadata.fileSize(),
+                this.pdfMetadata.fileSize(),
                 this.overallQualityScore,
                 this.complianceStatus,
                 this.timestamps.getGenerationDuration(),
@@ -209,10 +236,13 @@ public class GeneratedReport extends Entity {
                 this.reportingDate,
                 this.htmlMetadata != null ? this.htmlMetadata.s3Uri() : null,
                 this.xbrlMetadata != null ? this.xbrlMetadata.s3Uri() : null,
+                this.pdfMetadata != null ? this.pdfMetadata.s3Uri() : null,
                 this.htmlMetadata != null ? this.htmlMetadata.presignedUrl() : null,
                 this.xbrlMetadata != null ? this.xbrlMetadata.presignedUrl() : null,
+                this.pdfMetadata != null ? this.pdfMetadata.presignedUrl() : null,
                 this.htmlMetadata != null ? this.htmlMetadata.fileSize() : null,
                 this.xbrlMetadata != null ? this.xbrlMetadata.fileSize() : null,
+                this.pdfMetadata != null ? this.pdfMetadata.fileSize() : null,
                 this.overallQualityScore,
                 this.complianceStatus,
                 this.timestamps.getGenerationDuration(),
@@ -278,6 +308,15 @@ public class GeneratedReport extends Entity {
     public boolean hasXbrlReport() {
         return xbrlMetadata != null;
     }
+
+    /**
+     * Query method - Check if PDF report exists
+     * 
+     * @return true if PDF metadata is present
+     */
+    public boolean hasPdfReport() {
+        return pdfMetadata != null;
+    }
     
     /**
      * Reconstruction method for infrastructure layer persistence
@@ -312,6 +351,7 @@ public class GeneratedReport extends Entity {
             ReportStatus status,
             HtmlReportMetadata htmlMetadata,
             XbrlReportMetadata xbrlMetadata,
+            PdfReportMetadata pdfMetadata,
             BigDecimal overallQualityScore,
             ComplianceStatus complianceStatus,
             ProcessingTimestamps timestamps,
@@ -326,6 +366,7 @@ public class GeneratedReport extends Entity {
                 status,
                 htmlMetadata,
                 xbrlMetadata,
+                pdfMetadata,
                 overallQualityScore,
                 complianceStatus,
                 timestamps,

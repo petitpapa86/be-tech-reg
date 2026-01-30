@@ -444,10 +444,31 @@ public class StorageServiceAdapter implements IStorageService {
             Files.createDirectories(path.getParent());
         }
         
-        Files.write(path, content);
+        Path finalPath = path;
+        StorageUri finalUri = uri;
+        
+        try {
+            Files.write(path, content);
+        } catch (java.nio.file.FileSystemException e) {
+            // Likely file is locked or other FS issue. Try to write to a new file with unique name.
+            log.warn("Failed to write to {}: {}. Trying with unique filename.", path, e.getClass().getSimpleName());
+            
+            String fileName = path.getFileName().toString();
+            String name = fileName.contains(".") ? fileName.substring(0, fileName.lastIndexOf('.')) : fileName;
+            String ext = fileName.contains(".") ? fileName.substring(fileName.lastIndexOf('.')) : "";
+            
+            String newName = name + "_" + System.currentTimeMillis() + ext;
+            finalPath = path.getParent().resolve(newName);
+            
+            log.info("Writing to new path: {}", finalPath);
+            Files.write(finalPath, content);
+            
+            // Update URI to point to the new file
+            finalUri = StorageUri.local(finalPath.toString());
+        }
         
         StorageResult result = StorageResult.builder()
-            .uri(uri)
+            .uri(finalUri)
             .sizeBytes(content.length)
             .metadata(metadata)
             .uploadedAt(Instant.now())
@@ -566,6 +587,12 @@ public class StorageServiceAdapter implements IStorageService {
     public Result<StorageResult> uploadToStorage(String content, String subPath, Map<String, String> metadata) throws java.io.IOException, com.fasterxml.jackson.core.JsonProcessingException {
         StorageUri uri = buildStorageUri(subPath);
         return upload(content, uri, metadata);
+    }
+
+    @Override
+    public Result<StorageResult> uploadToStorageBytes(byte[] content, String subPath, String contentType, Map<String, String> metadata) throws java.io.IOException {
+        StorageUri uri = buildStorageUri(subPath);
+        return uploadBytes(content, uri, contentType, metadata);
     }
 
     @Override

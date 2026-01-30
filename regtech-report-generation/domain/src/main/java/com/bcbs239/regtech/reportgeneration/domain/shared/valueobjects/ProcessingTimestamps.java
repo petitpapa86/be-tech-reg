@@ -11,6 +11,7 @@ public record ProcessingTimestamps(
     Instant startedAt, 
     Instant htmlCompletedAt,
     Instant xbrlCompletedAt,
+    Instant pdfCompletedAt,
     Instant completedAt,
     Instant failedAt
 ) {
@@ -19,14 +20,14 @@ public record ProcessingTimestamps(
      * Create timestamps for a newly started process
      */
     public static ProcessingTimestamps started() {
-        return new ProcessingTimestamps(Instant.now(), null, null, null, null);
+        return new ProcessingTimestamps(Instant.now(), null, null, null, null, null);
     }
     
     /**
      * Create timestamps with specific start time
      */
     public static ProcessingTimestamps startedAt(Instant startedAt) {
-        return new ProcessingTimestamps(startedAt, null, null, null, null);
+        return new ProcessingTimestamps(startedAt, null, null, null, null, null);
     }
     
     /**
@@ -36,7 +37,7 @@ public record ProcessingTimestamps(
         if (startedAt == null) {
             throw new IllegalStateException("Cannot complete HTML when processing was never started");
         }
-        return new ProcessingTimestamps(startedAt, Instant.now(), xbrlCompletedAt, completedAt, failedAt);
+        return new ProcessingTimestamps(startedAt, Instant.now(), xbrlCompletedAt, pdfCompletedAt, completedAt, failedAt);
     }
     
     /**
@@ -46,7 +47,17 @@ public record ProcessingTimestamps(
         if (startedAt == null) {
             throw new IllegalStateException("Cannot complete XBRL when processing was never started");
         }
-        return new ProcessingTimestamps(startedAt, htmlCompletedAt, Instant.now(), completedAt, failedAt);
+        return new ProcessingTimestamps(startedAt, htmlCompletedAt, Instant.now(), pdfCompletedAt, completedAt, failedAt);
+    }
+
+    /**
+     * Mark PDF generation as completed
+     */
+    public ProcessingTimestamps withPdfCompleted() {
+        if (startedAt == null) {
+            throw new IllegalStateException("Cannot complete PDF when processing was never started");
+        }
+        return new ProcessingTimestamps(startedAt, htmlCompletedAt, xbrlCompletedAt, Instant.now(), completedAt, failedAt);
     }
     
     /**
@@ -59,7 +70,7 @@ public record ProcessingTimestamps(
         if (completedAt != null) {
             throw new IllegalStateException("Processing is already completed");
         }
-        return new ProcessingTimestamps(startedAt, htmlCompletedAt, xbrlCompletedAt, Instant.now(), failedAt);
+        return new ProcessingTimestamps(startedAt, htmlCompletedAt, xbrlCompletedAt, pdfCompletedAt, Instant.now(), failedAt);
     }
     
     /**
@@ -69,7 +80,7 @@ public record ProcessingTimestamps(
         if (startedAt == null) {
             throw new IllegalStateException("Cannot fail processing that was never started");
         }
-        return new ProcessingTimestamps(startedAt, htmlCompletedAt, xbrlCompletedAt, completedAt, Instant.now());
+        return new ProcessingTimestamps(startedAt, htmlCompletedAt, xbrlCompletedAt, pdfCompletedAt, completedAt, Instant.now());
     }
     
     /**

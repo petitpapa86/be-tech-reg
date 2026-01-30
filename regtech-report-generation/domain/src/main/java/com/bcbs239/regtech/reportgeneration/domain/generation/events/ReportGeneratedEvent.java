@@ -30,14 +30,17 @@ public class ReportGeneratedEvent extends DomainEvent {
     // S3 URIs for file locations
     private final S3Uri htmlS3Uri;
     private final S3Uri xbrlS3Uri;
+    private final S3Uri pdfS3Uri;
     
     // Presigned URLs for temporary download access (1-hour expiration)
     private final PresignedUrl htmlPresignedUrl;
     private final PresignedUrl xbrlPresignedUrl;
+    private final PresignedUrl pdfPresignedUrl;
     
     // File sizes
     private final FileSize htmlFileSize;
     private final FileSize xbrlFileSize;
+    private final FileSize pdfFileSize;
     
     // Quality metrics
     private final BigDecimal overallQualityScore;
@@ -58,10 +61,13 @@ public class ReportGeneratedEvent extends DomainEvent {
             @JsonProperty("reportingDate") ReportingDate reportingDate,
             @JsonProperty("htmlS3Uri") S3Uri htmlS3Uri,
             @JsonProperty("xbrlS3Uri") S3Uri xbrlS3Uri,
+            @JsonProperty("pdfS3Uri") S3Uri pdfS3Uri,
             @JsonProperty("htmlPresignedUrl") PresignedUrl htmlPresignedUrl,
             @JsonProperty("xbrlPresignedUrl") PresignedUrl xbrlPresignedUrl,
+            @JsonProperty("pdfPresignedUrl") PresignedUrl pdfPresignedUrl,
             @JsonProperty("htmlFileSize") FileSize htmlFileSize,
             @JsonProperty("xbrlFileSize") FileSize xbrlFileSize,
+            @JsonProperty("pdfFileSize") FileSize pdfFileSize,
             @JsonProperty("overallQualityScore") BigDecimal overallQualityScore,
             @JsonProperty("complianceStatus") ComplianceStatus complianceStatus,
             @JsonProperty("generationDuration") Duration generationDuration,
@@ -74,10 +80,13 @@ public class ReportGeneratedEvent extends DomainEvent {
         this.reportingDate = reportingDate;
         this.htmlS3Uri = htmlS3Uri;
         this.xbrlS3Uri = xbrlS3Uri;
+        this.pdfS3Uri = pdfS3Uri;
         this.htmlPresignedUrl = htmlPresignedUrl;
         this.xbrlPresignedUrl = xbrlPresignedUrl;
+        this.pdfPresignedUrl = pdfPresignedUrl;
         this.htmlFileSize = htmlFileSize;
         this.xbrlFileSize = xbrlFileSize;
+        this.pdfFileSize = pdfFileSize;
         this.overallQualityScore = overallQualityScore;
         this.complianceStatus = complianceStatus;
         this.generationDuration = generationDuration;

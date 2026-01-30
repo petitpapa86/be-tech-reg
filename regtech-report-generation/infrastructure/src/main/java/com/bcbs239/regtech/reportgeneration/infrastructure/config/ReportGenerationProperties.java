@@ -43,6 +43,9 @@ public class ReportGenerationProperties {
     @NotNull(message = "Retry configuration must be specified")
     private RetryProperties retry = new RetryProperties();
 
+    @NotNull(message = "PDF configuration must be specified")
+    private PdfProperties pdf = new PdfProperties();
+
     /**
      * S3 storage configuration
      */
@@ -178,5 +181,17 @@ public class ReportGenerationProperties {
             "software.amazon.awssdk.services.s3.model.NoSuchBucketException",
             "software.amazon.awssdk.core.exception.SdkClientException"
         );
+    }
+
+    /**
+     * PDF generation configuration
+     */
+    @Data
+    public static class PdfProperties {
+        @NotBlank(message = "Chrome path must be specified")
+        private String chromePath;
+
+        @Min(value = 1, message = "Timeout seconds must be at least 1")
+        private int timeoutSeconds = 30;
     }
 }

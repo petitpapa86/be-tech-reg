@@ -71,6 +71,15 @@ public class GeneratedReportEntity {
     @Column(name = "xbrl_validation_status", length = 50)
     private XbrlValidationStatus xbrlValidationStatus;
 
+    @Column(name = "pdf_s3_uri", columnDefinition = "TEXT")
+    private String pdfS3Uri;
+
+    @Column(name = "pdf_file_size")
+    private Long pdfFileSize;
+
+    @Column(name = "pdf_presigned_url", columnDefinition = "TEXT")
+    private String pdfPresignedUrl;
+
     @Column(name = "overall_quality_score", precision = 5, scale = 2)
     private java.math.BigDecimal overallQualityScore;
 
@@ -129,6 +138,14 @@ public class GeneratedReportEntity {
             entity.setXbrlPresignedUrl(xbrlMetadata.presignedUrl().url());
             entity.setXbrlValidationStatus(xbrlMetadata.validationStatus());
         }
+
+        // Map PDF metadata if present
+        if (report.getPdfMetadata() != null) {
+            PdfReportMetadata pdfMetadata = report.getPdfMetadata();
+            entity.setPdfS3Uri(pdfMetadata.s3Uri().value());
+            entity.setPdfFileSize(pdfMetadata.fileSize().bytes());
+            entity.setPdfPresignedUrl(pdfMetadata.presignedUrl().url());
+        }
         
         // Map timestamps
         entity.setGeneratedAt(report.getTimestamps().startedAt());
@@ -177,6 +194,14 @@ public class GeneratedReportEntity {
             this.setXbrlFileSize(xbrlMetadata.fileSize().bytes());
             this.setXbrlPresignedUrl(xbrlMetadata.presignedUrl().url());
             this.setXbrlValidationStatus(xbrlMetadata.validationStatus());
+        }
+
+        // Map PDF metadata if present
+        if (report.getPdfMetadata() != null) {
+            PdfReportMetadata pdfMetadata = report.getPdfMetadata();
+            this.setPdfS3Uri(pdfMetadata.s3Uri().value());
+            this.setPdfFileSize(pdfMetadata.fileSize().bytes());
+            this.setPdfPresignedUrl(pdfMetadata.presignedUrl().url());
         }
         
         // Map timestamps
@@ -232,10 +257,24 @@ public class GeneratedReportEntity {
                     this.generatedAt
             );
         }
+
+        // Create PDF metadata if present
+        PdfReportMetadata pdfMetadata = null;
+        if (this.pdfS3Uri != null) {
+            // PresignedUrl requires URL and expiration time
+            Instant presignedExpiration = Instant.now().plusSeconds(3600);
+            
+            pdfMetadata = new PdfReportMetadata(
+                    new S3Uri(this.pdfS3Uri),
+                    FileSize.ofBytes(this.pdfFileSize),
+                    new PresignedUrl(this.pdfPresignedUrl, presignedExpiration, true),
+                    this.generatedAt
+            );
+        }
         
         // Create timestamps
         ProcessingTimestamps timestamps = this.completedAt != null
-                ? new ProcessingTimestamps(this.generatedAt, null, null, this.completedAt, null)
+                ? new ProcessingTimestamps(this.generatedAt, null, null, null, this.completedAt, null)
                 : ProcessingTimestamps.startedAt(this.generatedAt);
         
         // Create failure reason if present
@@ -253,6 +292,7 @@ public class GeneratedReportEntity {
                 this.status,
                 htmlMetadata,
                 xbrlMetadata,
+                pdfMetadata,
                 this.overallQualityScore,
                 this.complianceStatus,
                 timestamps,

@@ -159,6 +159,23 @@ public interface IStorageService {
     );
     
     /**
+     * Convenience method: build storage URI from configured settings and upload binary content.
+     *
+     * @param content binary content to upload
+     * @param subPath sub-path within configured storage (e.g. "pdf/report.pdf")
+     * @param contentType content type (e.g. "application/pdf")
+     * @param metadata metadata to attach
+     * @return Result with StorageResult or failure
+     * @throws IOException on I/O errors
+     */
+    Result<StorageResult> uploadToStorageBytes(
+        byte[] content,
+        @NonNull String subPath,
+        @NonNull String contentType,
+        @NonNull Map<String, String> metadata
+    ) throws IOException;
+    
+    /**
      * Gets metadata about stored content
      * 
      * @param uri The storage URI

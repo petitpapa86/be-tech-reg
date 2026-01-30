@@ -33,10 +33,12 @@ import com.bcbs239.regtech.reportgeneration.domain.generation.IGeneratedReportRe
 import com.bcbs239.regtech.reportgeneration.domain.generation.RecommendationSection;
 import com.bcbs239.regtech.reportgeneration.domain.generation.ReportMetadata;
 import com.bcbs239.regtech.reportgeneration.domain.generation.XbrlReportGenerator;
+import com.bcbs239.regtech.reportgeneration.domain.generation.PdfReportGenerator;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.BatchId;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.FailureReason;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.FileSize;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.HtmlReportMetadata;
+import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.PdfReportMetadata;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.PresignedUrl;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.ReportStatus;
 import com.bcbs239.regtech.reportgeneration.domain.shared.valueobjects.S3Uri;
@@ -69,6 +71,7 @@ public class ComprehensiveReportOrchestrator {
     private final IReportDataSource dataAggregator;
     private final HtmlReportGenerator htmlGenerator;
     private final XbrlReportGenerator xbrlGenerator;
+    private final PdfReportGenerator pdfGenerator;
     private final IStorageService storageService;  // Changed from IReportStorageService
     private final IGeneratedReportRepository reportRepository;
     private final BatchEventTracker eventTracker;
@@ -149,41 +152,43 @@ public class ComprehensiveReportOrchestrator {
             log.info("Quality recommendations read from storage [batchId:{},count:{},duration:{}ms]",
                     batchId, recommendations.size(), recommendationsDuration);
 
-            CompletableFuture<Result<HtmlReportMetadata>> htmlFuture = CompletableFuture.supplyAsync(() ->
-                    generateHtmlReport(reportData, recommendations, batchId)
+            CompletableFuture<Result<HtmlAndPdfMetadata>> htmlPdfFuture = CompletableFuture.supplyAsync(() ->
+                    generateHtmlAndPdf(reportData, recommendations, batchId)
             );
 
             CompletableFuture<Result<XbrlReportMetadata>> xbrlFuture = CompletableFuture.supplyAsync(() ->
                     generateXbrlReport(reportData.getCalculationResults(), batchId)
             );
 
-            CompletableFuture.allOf(htmlFuture, xbrlFuture).get(30, TimeUnit.SECONDS);
+            CompletableFuture.allOf(htmlPdfFuture, xbrlFuture).get(30, TimeUnit.SECONDS);
 
-            Result<HtmlReportMetadata> htmlResult = htmlFuture.get();
+            Result<HtmlAndPdfMetadata> htmlPdfResult = htmlPdfFuture.get();
             Result<XbrlReportMetadata> xbrlResult = xbrlFuture.get();
 
-            boolean htmlOk = htmlResult.isSuccess();
+            boolean htmlPdfOk = htmlPdfResult.isSuccess();
             boolean xbrlOk = xbrlResult.isSuccess();
 
-            if (htmlOk && xbrlOk) {
-                HtmlReportMetadata htmlMetadata = htmlResult.getValueOrThrow();
+            if (htmlPdfOk && xbrlOk) {
+                HtmlAndPdfMetadata htmlPdfMetadata = htmlPdfResult.getValueOrThrow();
                 XbrlReportMetadata xbrlMetadata = xbrlResult.getValueOrThrow();
-                report.markHtmlGenerated(htmlMetadata);
+                report.markHtmlGenerated(htmlPdfMetadata.htmlMetadata());
+                report.markPdfGenerated(htmlPdfMetadata.pdfMetadata());
                 report.markXbrlGenerated(xbrlMetadata);
-            } else if (htmlOk) {
-                HtmlReportMetadata htmlMetadata = htmlResult.getValueOrThrow();
-                report.markHtmlGenerated(htmlMetadata);
+            } else if (htmlPdfOk) {
+                HtmlAndPdfMetadata htmlPdfMetadata = htmlPdfResult.getValueOrThrow();
+                report.markHtmlGenerated(htmlPdfMetadata.htmlMetadata());
+                report.markPdfGenerated(htmlPdfMetadata.pdfMetadata());
                 String reason = xbrlResult.getError().map(ErrorDetail::getMessage).orElse("XBRL generation failed");
                 handlePartialFailure(batchId, reason);
             } else if (xbrlOk) {
                 XbrlReportMetadata xbrlMetadata = xbrlResult.getValueOrThrow();
                 report.markXbrlGenerated(xbrlMetadata);
-                String reason = htmlResult.getError().map(ErrorDetail::getMessage).orElse("HTML generation failed");
+                String reason = htmlPdfResult.getError().map(ErrorDetail::getMessage).orElse("HTML/PDF generation failed");
                 handlePartialFailure(batchId, reason);
             } else {
                 // Both failed
-                String reason = String.format("HTML: %s | XBRL: %s",
-                        htmlResult.getError().map(ErrorDetail::getMessage).orElse("unknown"),
+                String reason = String.format("HTML/PDF: %s | XBRL: %s",
+                        htmlPdfResult.getError().map(ErrorDetail::getMessage).orElse("unknown"),
                         xbrlResult.getError().map(ErrorDetail::getMessage).orElse("unknown")
                 );
                 handleGenerationFailure(batchId, new Exception(reason));
@@ -223,9 +228,9 @@ public class ComprehensiveReportOrchestrator {
     }
 
     /**
-     * Generates HTML report with all sections and visualizations.
+     * Generates HTML and PDF reports with all sections and visualizations.
      */
-    private Result<HtmlReportMetadata> generateHtmlReport(
+    private Result<HtmlAndPdfMetadata> generateHtmlAndPdf(
             ComprehensiveReportData reportData,
             List<RecommendationSection> recommendations,
             String batchId) {
@@ -233,7 +238,7 @@ public class ComprehensiveReportOrchestrator {
         long startTime = System.currentTimeMillis();
 
         try {
-            log.info("Starting HTML generation [batchId:{}]", batchId);
+            log.info("Starting HTML and PDF generation [batchId:{}]", batchId);
 
             // Create report metadata
             ReportMetadata metadata = new ReportMetadata(
@@ -258,8 +263,8 @@ public class ComprehensiveReportOrchestrator {
             
             String htmlContent = htmlContentResult.getValueOrThrow();
 
-            // Prepare file name
-            String fileName = String.format("Comprehensive_Risk_Analysis_%s_%s.html",
+            // Prepare HTML file name
+            String htmlFileName = String.format("Comprehensive_Risk_Analysis_%s_%s.html",
                     reportData.getBankId().value(),
                     reportData.getReportingDate().toFileNameString());
 
@@ -273,7 +278,7 @@ public class ComprehensiveReportOrchestrator {
             );
 
             // Upload using shared storage service
-            String subPath = "html/" + fileName;
+            String subPath = "html/" + htmlFileName;
             Result<StorageResult> uploadResult = storageService.uploadToStorage(htmlContent, subPath, metadataTags);
             if (uploadResult.isFailure()) {
                 ErrorDetail err = ErrorDetail.of("HTML_UPLOAD_FAILED", ErrorType.SYSTEM_ERROR,
@@ -294,25 +299,111 @@ public class ComprehensiveReportOrchestrator {
             long duration = System.currentTimeMillis() - startTime;
 
             log.info("HTML generation completed [batchId:{},fileName:{},size:{},duration:{}ms]",
-                    batchId, fileName, FileSize.ofBytes(storageResult.sizeBytes()).toHumanReadable(), duration);
+                    batchId, htmlFileName, FileSize.ofBytes(storageResult.sizeBytes()).toHumanReadable(), duration);
 
             Instant expiresAt = Instant.now().plus(Duration.ofHours(24));
 
-            HtmlReportMetadata metadataResult = HtmlReportMetadata.create(
+            HtmlReportMetadata htmlMetadata = HtmlReportMetadata.create(
                     new S3Uri(storageResult.uri().toString()),
                     FileSize.ofBytes(storageResult.sizeBytes()),
                     new PresignedUrl(presignedUrlStr, expiresAt, true)
             );
 
-            return Result.success(metadataResult);
+            // Generate PDF from HTML content
+            Result<PdfReportMetadata> pdfResult = generatePdfReport(htmlContent, reportData, metadataTags);
+            
+            if (pdfResult.isFailure()) {
+                // If PDF generation fails, we should probably fail the whole HTML/PDF process 
+                // because we want consistent output. Or return partial?
+                // For now, let's fail it as requested "true pdf".
+                return Result.failure(pdfResult.getError().orElseThrow());
+            }
+
+            return Result.success(new HtmlAndPdfMetadata(htmlMetadata, pdfResult.getValueOrThrow()));
 
         } catch (Exception e) {
-            log.error("HTML generation failed [batchId:{}]", batchId, e);
-            ErrorDetail err = ErrorDetail.of("HTML_GENERATION_FAILED", ErrorType.SYSTEM_ERROR,
-                    "Failed to generate HTML report: " + e.getMessage(), "report.generation.html_failed");
+            log.error("HTML/PDF generation failed [batchId:{}]", batchId, e);
+            ErrorDetail err = ErrorDetail.of("HTML_PDF_GENERATION_FAILED", ErrorType.SYSTEM_ERROR,
+                    "Failed to generate HTML/PDF report: " + e.getMessage(), "report.generation.html_pdf_failed");
             return Result.failure(err);
         }
     }
+
+    /**
+     * Generates PDF report from HTML content.
+     */
+    private Result<PdfReportMetadata> generatePdfReport(
+            String htmlContent, 
+            ComprehensiveReportData reportData,
+            Map<String, String> metadataTags) {
+            
+        long startTime = System.currentTimeMillis();
+        String batchId = reportData.getBatchId().value();
+        
+        try {
+            log.info("Starting PDF generation [batchId:{}]", batchId);
+            
+            // Generate PDF bytes
+            Result<byte[]> pdfBytesResult = pdfGenerator.generateFromHtml(htmlContent);
+            
+            if (pdfBytesResult.isFailure()) {
+                return Result.failure(pdfBytesResult.getError().orElseThrow());
+            }
+            
+            byte[] pdfBytes = pdfBytesResult.getValueOrThrow();
+            
+            // Prepare PDF file name
+            String pdfFileName = String.format("Comprehensive_Risk_Analysis_%s_%s.pdf",
+                    reportData.getBankId().value(),
+                    reportData.getReportingDate().toFileNameString());
+            
+            // Upload PDF
+            String subPath = "pdf/" + pdfFileName;
+            // Use uploadToStorageBytes which handles URI creation
+            Result<StorageResult> uploadResult = storageService.uploadToStorageBytes(
+                pdfBytes, 
+                subPath,
+                "application/pdf",
+                metadataTags
+            );
+            
+            if (uploadResult.isFailure()) {
+                 ErrorDetail err = ErrorDetail.of("PDF_UPLOAD_FAILED", ErrorType.SYSTEM_ERROR,
+                        "Failed to upload PDF report to storage: " + uploadResult.getError().orElseThrow().getMessage(),
+                        "report.generation.pdf_upload_failed");
+                return Result.failure(err);
+            }
+            
+            StorageResult storageResult = uploadResult.getValueOrThrow();
+            
+            // Generate presigned URL
+            Result<String> presignedUrlResult = storageService.generatePresignedUrl(storageResult.uri(), java.time.Duration.ofDays(7));
+            String presignedUrlStr = presignedUrlResult.isSuccess()
+                    ? presignedUrlResult.getValueOrThrow()
+                    : storageResult.uri().toString();
+                    
+            long duration = System.currentTimeMillis() - startTime;
+            
+            log.info("PDF generation completed [batchId:{},fileName:{},size:{},duration:{}ms]",
+                    batchId, pdfFileName, FileSize.ofBytes(storageResult.sizeBytes()).toHumanReadable(), duration);
+            
+            Instant expiresAt = Instant.now().plus(Duration.ofHours(24));
+            
+            return Result.success(PdfReportMetadata.create(
+                    new S3Uri(storageResult.uri().toString()),
+                    FileSize.ofBytes(storageResult.sizeBytes()),
+                    new PresignedUrl(presignedUrlStr, expiresAt, true)
+            ));
+            
+        } catch (Exception e) {
+            log.error("PDF generation failed [batchId:{}]", batchId, e);
+            ErrorDetail err = ErrorDetail.of("PDF_GENERATION_FAILED", ErrorType.SYSTEM_ERROR,
+                    "Failed to generate PDF report: " + e.getMessage(), "report.generation.pdf_failed");
+            return Result.failure(err);
+        }
+    }
+
+    private record HtmlAndPdfMetadata(HtmlReportMetadata htmlMetadata, PdfReportMetadata pdfMetadata) {}
 
     /**
      * Generates XBRL report conforming to EBA taxonomy.
