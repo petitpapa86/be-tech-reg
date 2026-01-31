@@ -1,6 +1,7 @@
 package com.bcbs239.regtech.metrics.presentation.config;
 
 import com.bcbs239.regtech.metrics.presentation.dashboard.DashboardRoutes;
+import com.bcbs239.regtech.metrics.presentation.report.ReportRoutes;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.function.RouterFunction;
@@ -18,8 +19,10 @@ public class MetricsWebConfig {
      */
     @Bean
     public RouterFunction<ServerResponse> metricsRoutes(
-        DashboardRoutes dashboardRoutes
+        DashboardRoutes dashboardRoutes,
+        ReportRoutes reportRoutes
     ) {
-        return dashboardRoutes.dashboardRouter();
+        return dashboardRoutes.dashboardRouter()
+                .and(reportRoutes.reportRouter());
     }
 }
