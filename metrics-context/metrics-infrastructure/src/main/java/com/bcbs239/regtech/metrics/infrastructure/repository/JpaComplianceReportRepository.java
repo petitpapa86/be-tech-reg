@@ -4,12 +4,14 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 import com.bcbs239.regtech.metrics.application.compliance.port.ComplianceReportRepository;
 import com.bcbs239.regtech.metrics.domain.BankId;
 import com.bcbs239.regtech.metrics.domain.ComplianceReport;
 import com.bcbs239.regtech.metrics.infrastructure.entity.ComplianceReportEntity;
+import com.bcbs239.regtech.metrics.infrastructure.specifications.ComplianceReportSpecifications;
 
 @Component
 public class JpaComplianceReportRepository implements ComplianceReportRepository {
@@ -77,14 +79,15 @@ public class JpaComplianceReportRepository implements ComplianceReportRepository
     @Override
     public List<ComplianceReport> findAllWithFilters(String name, LocalDate generatedAt, LocalDate reportingDate, String status, int page, int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        org.springframework.data.domain.Page<ComplianceReportEntity> entities = springDataRepository
-                .findAllWithFilters(name, generatedAt, reportingDate, status, pageable);
+        Specification<ComplianceReportEntity> spec = ComplianceReportSpecifications.withFilters(name, generatedAt, reportingDate, status);
+        org.springframework.data.domain.Page<ComplianceReportEntity> entities = springDataRepository.findAll(spec, pageable);
         return entities.stream().map(this::toDomain).toList();
     }
 
     @Override
     public int countAllWithFilters(String name, LocalDate generatedAt, LocalDate reportingDate, String status) {
-        return (int) springDataRepository.countAllWithFilters(name, generatedAt, reportingDate, status);
+        Specification<ComplianceReportEntity> spec = ComplianceReportSpecifications.withFilters(name, generatedAt, reportingDate, status);
+        return (int) springDataRepository.count(spec);
     }
 
     private ComplianceReport toDomain(ComplianceReportEntity entity) {
