@@ -142,9 +142,5 @@
 			<artifactId>jqwik</artifactId>
 			<scope>test</scope>
 		</dependency>
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-report-generation-application</artifactId>
-        </dependency>
     </dependencies>
 </project>
