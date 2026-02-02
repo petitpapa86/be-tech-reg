@@ -13,8 +13,9 @@ public class ComplianceReport {
     private final BankId bankId;
     private final LocalDate reportingDate;
     private final String reportType;
-    private final String status;
+    private final ReportStatus status;
     private final Instant generatedAt;
+    private final Instant updatedAt;
 
     private final String htmlS3Uri;
     private final String xbrlS3Uri;
@@ -35,6 +36,7 @@ public class ComplianceReport {
             String reportType,
             String status,
             Instant generatedAt,
+            Instant updatedAt,
             String htmlS3Uri,
             String xbrlS3Uri,
             String htmlPresignedUrl,
@@ -50,8 +52,9 @@ public class ComplianceReport {
         this.bankId = bankId;
         this.reportingDate = reportingDate;
         this.reportType = reportType;
-        this.status = status;
+        this.status = ReportStatus.fromString(status);
         this.generatedAt = generatedAt;
+        this.updatedAt = updatedAt;
         this.htmlS3Uri = htmlS3Uri;
         this.xbrlS3Uri = xbrlS3Uri;
         this.htmlPresignedUrl = htmlPresignedUrl;
@@ -61,6 +64,36 @@ public class ComplianceReport {
         this.overallQualityScore = overallQualityScore;
         this.complianceStatus = complianceStatus;
         this.generationDurationMillis = generationDurationMillis;
+    }
+
+    public String getStatus() {
+        return status != null ? status.name() : null;
+    }
+
+    public ReportStatus getStatusEnum() {
+        return status;
+    }
+
+    public ComplianceReport updateStatus(ReportStatus newStatus) {
+        return new ComplianceReport(
+                this.reportId,
+                this.batchId,
+                this.bankId,
+                this.reportingDate,
+                this.reportType,
+                newStatus.name(),
+                this.generatedAt,
+                Instant.now(), // updatedAt
+                this.htmlS3Uri,
+                this.xbrlS3Uri,
+                this.htmlPresignedUrl,
+                this.xbrlPresignedUrl,
+                this.htmlFileSize,
+                this.xbrlFileSize,
+                this.overallQualityScore,
+                this.complianceStatus,
+                this.generationDurationMillis
+        );
     }
 
 }

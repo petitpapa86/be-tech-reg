@@ -3,6 +3,7 @@ package com.bcbs239.regtech.metrics.presentation.report;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import com.bcbs239.regtech.core.presentation.apiresponses.ResponseUtils;
 import com.bcbs239.regtech.metrics.application.report.ListReportsUseCase;
+import com.bcbs239.regtech.metrics.application.report.UpdateReportUseCase;
 import com.bcbs239.regtech.metrics.presentation.report.dto.*;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -12,21 +13,28 @@ import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
+import jakarta.servlet.ServletException;
+import java.io.IOException;
 import java.util.List;
 
 @Component
 public class ReportController {
 
     private final ListReportsUseCase listReportsUseCase;
+    private final UpdateReportUseCase updateReportUseCase;
 
-    public ReportController(ListReportsUseCase listReportsUseCase) {
+    public ReportController(ListReportsUseCase listReportsUseCase, UpdateReportUseCase updateReportUseCase) {
         this.listReportsUseCase = listReportsUseCase;
+        this.updateReportUseCase = updateReportUseCase;
     }
 
     public RouterFunction<ServerResponse> mapEndpoint() {
         return RouterFunctions.route(
                 RequestPredicates.GET("/api/v1/reports"),
                 this::listReports
+        ).andRoute(
+                RequestPredicates.PUT("/api/v1/reports/{id}"),
+                this::updateReport
         );
     }
 
@@ -109,5 +117,45 @@ public class ReportController {
         return ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(ResponseUtils.success(response, "Reports retrieved successfully"));
+    }
+
+    public ServerResponse updateReport(ServerRequest request) throws ServletException, IOException {
+        String reportId = request.pathVariable("id");
+
+        // Parse request body
+        UpdateReportRequest updateRequest = request.body(UpdateReportRequest.class);
+
+        // Create command
+        UpdateReportUseCase.UpdateReportCommand command = new UpdateReportUseCase.UpdateReportCommand(
+                reportId,
+                updateRequest.status()
+        );
+
+        // Execute use case
+        Result<UpdateReportUseCase.UpdateReportResponse> result = updateReportUseCase.execute(command);
+
+        if (result.isFailure()) {
+            return ServerResponse.status(400)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(ResponseUtils.success(null, result.getError().get().getMessage()));
+        }
+
+        // Convert to presentation DTO
+        UpdateReportUseCase.UpdateReportResponse useCaseResponse = result.getValue().orElseThrow();
+
+        ReportDto reportDto = new ReportDto(
+                useCaseResponse.id(),
+                useCaseResponse.name(),
+                useCaseResponse.size(),
+                useCaseResponse.presignedS3Url(),
+                useCaseResponse.reportType(),
+                useCaseResponse.status(),
+                useCaseResponse.generatedAt(),
+                useCaseResponse.period()
+        );
+
+        return ServerResponse.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ResponseUtils.success(reportDto, "Report updated successfully"));
     }
 }

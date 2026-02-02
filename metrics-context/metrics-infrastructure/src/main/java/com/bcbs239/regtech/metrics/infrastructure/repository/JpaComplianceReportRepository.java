@@ -3,6 +3,7 @@ package com.bcbs239.regtech.metrics.infrastructure.repository;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -32,6 +33,7 @@ public class JpaComplianceReportRepository implements ComplianceReportRepository
         entity.setReportingDate(report.getReportingDate());
         entity.setStatus(report.getStatus());
         entity.setGeneratedAt(report.getGeneratedAt());
+        entity.setUpdatedAt(report.getUpdatedAt());
         entity.setHtmlS3Uri(report.getHtmlS3Uri());
         entity.setXbrlS3Uri(report.getXbrlS3Uri());
         entity.setHtmlPresignedUrl(report.getHtmlPresignedUrl());
@@ -53,6 +55,11 @@ public class JpaComplianceReportRepository implements ComplianceReportRepository
 
         ComplianceReportEntity saved = springDataRepository.save(entity);
         return toDomain(saved);
+    }
+
+    @Override
+    public Optional<ComplianceReport> findById(String reportId) {
+        return springDataRepository.findById(reportId).map(this::toDomain);
     }
 
     @Override
@@ -99,6 +106,7 @@ public class JpaComplianceReportRepository implements ComplianceReportRepository
                 entity.getReportType(),
                 entity.getStatus(),
                 entity.getGeneratedAt(),
+                entity.getUpdatedAt(),
                 entity.getHtmlS3Uri(),
                 entity.getXbrlS3Uri(),
                 entity.getHtmlPresignedUrl(),

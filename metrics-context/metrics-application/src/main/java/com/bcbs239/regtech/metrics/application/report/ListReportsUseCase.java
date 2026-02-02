@@ -76,7 +76,7 @@ public class ListReportsUseCase {
                 report.getHtmlPresignedUrl(),
                 report.getReportType(),
                 report.getStatus(),
-                formatDateTime(report.getGeneratedAt()),
+                formatDateTime(report.getUpdatedAt()), // Use updatedAt for generatedAt field
                 formatPeriod(report.getReportingDate())
         );
     }

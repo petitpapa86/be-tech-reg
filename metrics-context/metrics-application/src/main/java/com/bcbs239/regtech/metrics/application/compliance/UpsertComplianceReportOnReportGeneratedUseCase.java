@@ -38,6 +38,7 @@ public class UpsertComplianceReportOnReportGeneratedUseCase {
                 event.getReportType(),
                 status,
                 event.getGeneratedAt(),
+                event.getGeneratedAt(), // updatedAt initially same as generatedAt
                 event.getHtmlS3Uri(),
                 event.getXbrlS3Uri(),
                 event.getHtmlPresignedUrl(),
