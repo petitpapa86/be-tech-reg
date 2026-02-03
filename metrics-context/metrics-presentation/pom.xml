@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.bcbs239</groupId>
         <artifactId>metrics</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>0.0.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -38,13 +38,13 @@
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>metrics-domain</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>metrics-application</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>
 

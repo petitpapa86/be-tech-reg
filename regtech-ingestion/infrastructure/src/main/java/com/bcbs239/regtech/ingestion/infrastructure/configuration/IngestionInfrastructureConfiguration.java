@@ -8,10 +8,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 /**
- * Module configuration class for the Ingestion module.
+ * Infrastructure configuration class for the Ingestion module.
  * <p>
- * This configuration class aggregates all configurations for the Ingestion module
- * and provides module-level setup.
+ * This configuration class sets up the infrastructure layer and enables
+ * the necessary Spring features for persistence, repositories, and external services.
  * 
  * <p>JPA 3.2 and Hibernate 7.x compatible configuration:
  * <ul>
@@ -20,7 +20,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  *   <li>Uses Jakarta Persistence API (jakarta.persistence.*)</li>
  * </ul>
  */
-@Configuration("ingestionModuleConfiguration")
+@Configuration("ingestionInfrastructureConfiguration")
 //@EnableAsync
 //@EnableScheduling
 @EnableConfigurationProperties({IngestionProperties.class})
@@ -30,7 +30,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EntityScan(basePackages = "com.bcbs239.regtech.ingestion.infrastructure")
 @EnableJpaRepositories(basePackages = "com.bcbs239.regtech.ingestion.infrastructure")
 @ConditionalOnProperty(name = "ingestion.enabled", havingValue = "true", matchIfMissing = true)
-public class IngestionModuleConfiguration {
+public class IngestionInfrastructureConfiguration {
 
     // Configuration beans will be added here as we migrate components
 }

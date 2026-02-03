@@ -13,20 +13,8 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>regtech</name>
-	<description>Demo project for Spring Boot</description>
-	<url/>
-	<licenses>
-		<license/>
-	</licenses>
-	<developers>
-		<developer/>
-	</developers>
-	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
-	</scm>
+	<description>RegTech Platform - Clean Architecture Modular Monolith</description>
+	
 	<properties>
 		<!-- Java version 25 -->
 		<java.version>25</java.version>
@@ -119,13 +107,6 @@
 				<artifactId>commons-compress</artifactId>
 				<version>${commons-compress.version}</version>
 			</dependency>
-			
-			<!-- Spring Retry -->
-<!--			<dependency>-->
-<!--				<groupId>org.springframework.retry</groupId>-->
-<!--				<artifactId>spring-retry</artifactId>-->
-<!--				<version>3.0.0</version>-->
-<!--			</dependency-->
 		</dependencies>
 	</dependencyManagement>
 

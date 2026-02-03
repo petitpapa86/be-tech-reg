@@ -69,11 +69,8 @@ import org.springframework.scheduling.annotation.EnableAsync;
 @EnableAspectJAutoProxy
 public class RegtechApplication {
     
-    private static final Logger logger = LoggerFactory.getLogger(RegtechApplication.class);
-    private static long startTime;
-    
+
     public static void main(String[] args) {
-        startTime = System.currentTimeMillis();
         SpringApplication.run(RegtechApplication.class, args);
     }
 }

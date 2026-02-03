@@ -17,14 +17,15 @@
     </properties>
 
     <dependencies>
-        <!-- Domain Modules -->
+        <!-- ========================================== -->
+        <!-- CORE MODULE -->
+        <!-- ========================================== -->
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-core</artifactId>
             <version>${project.version}</version>
             <type>pom</type>
         </dependency>
-        <!-- Include core domain classes (EventProcessingStatus, entities, etc.) -->
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-core-domain</artifactId>
@@ -32,7 +33,21 @@
         </dependency>
         <dependency>
             <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-iam-presentation</artifactId>
+            <artifactId>regtech-core-presentation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- ========================================== -->
+        <!-- IAM MODULE -->
+        <!-- ========================================== -->
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-iam-domain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-iam-application</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -42,13 +57,16 @@
         </dependency>
         <dependency>
             <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-iam-domain</artifactId>
+            <artifactId>regtech-iam-presentation</artifactId>
             <version>${project.version}</version>
         </dependency>
 
+        <!-- ========================================== -->
+        <!-- BILLING MODULE -->
+        <!-- ========================================== -->
         <dependency>
             <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-iam-application</artifactId>  <!-- ✅ This one! -->
+            <artifactId>regtech-billing-domain</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -61,15 +79,18 @@
             <artifactId>regtech-billing-infrastructure</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-billing-domain</artifactId>
+            <artifactId>regtech-billing-presentation</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- ========================================== -->
+        <!-- INGESTION MODULE -->
+        <!-- ========================================== -->
         <dependency>
             <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-ingestion-presentation</artifactId>
+            <artifactId>regtech-ingestion-domain</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -84,9 +105,13 @@
         </dependency>
         <dependency>
             <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-ingestion-domain</artifactId>
+            <artifactId>regtech-ingestion-presentation</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- ========================================== -->
+        <!-- DATA QUALITY MODULE -->
+        <!-- ========================================== -->
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-data-quality-domain</artifactId>
@@ -107,6 +132,10 @@
             <artifactId>regtech-data-quality-presentation</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <!-- ========================================== -->
+        <!-- RISK CALCULATION MODULE -->
+        <!-- ========================================== -->
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-risk-calculation-domain</artifactId>
@@ -122,170 +151,43 @@
             <artifactId>regtech-risk-calculation-infrastructure</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-risk-calculation-presentation</artifactId>
             <version>${project.version}</version>
         </dependency>
 
+        <!-- ========================================== -->
+        <!-- REPORT GENERATION MODULE -->
+        <!-- ========================================== -->
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-report-generation-domain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-report-generation-application</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>regtech-report-generation-infrastructure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-report-generation-presentation</artifactId>
             <version>${project.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-report-generation-application</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-report-generation-domain</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-report-generation-infrastructure</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <!-- Flyway (required for Spring Boot auto-migration at startup) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-flyway</artifactId>
-        </dependency>
-        
-        <!-- Flyway PostgreSQL support for PostgreSQL 17.2 -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-        </dependency>
-        
-        <!-- Spring Boot Starter -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        
-        <!-- Observability: Metrics -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <!-- Spring Boot Starter Test (includes test dependencies) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        
-        <!-- JSON logging for structured logs -->
-        <dependency>
-            <groupId>net.logstash.logback</groupId>
-            <artifactId>logstash-logback-encoder</artifactId>
-            <version>8.0</version>
-        </dependency>
-
-        <!-- Distributed Tracing with OpenTelemetry -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-otel</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.opentelemetry</groupId>
-            <artifactId>opentelemetry-exporter-otlp</artifactId>
-            <version>1.40.0</version>
-        </dependency>
-        
-        <!-- Resilience4j for circuit breaker pattern in health checks -->
-        <dependency>
-            <groupId>io.github.resilience4j</groupId>
-            <artifactId>resilience4j-circuitbreaker</artifactId>
-            <version>2.2.0</version>
-        </dependency>
-
-        <!-- SendGrid for email notifications -->
-        <dependency>
-            <groupId>com.sendgrid</groupId>
-            <artifactId>sendgrid-java</artifactId>
-            <version>4.10.3</version>
-        </dependency>
-        <!-- <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
-        </dependency> -->
-
-        <!-- Testing (duplicate removed) -->
-        <dependency>
-            <groupId>org.springframework.data</groupId>
-            <artifactId>spring-data-jpa</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>regtech-core-presentation</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <!-- Metrics module (adds dashboard and metrics capabilities) -->
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>metrics-domain</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>metrics-application</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>metrics-infrastructure</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.bcbs239</groupId>
-            <artifactId>metrics-presentation</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
-        </dependency>
-
-        <!-- Signal module (adds event/signal processing capabilities) -->
+        <!-- ========================================== -->
+        <!-- SIGNAL MODULE -->
+        <!-- ========================================== -->
         <dependency>
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-signal-domain</artifactId>
             <version>${project.version}</version>
-        </dependency>
-        
-        <!-- Observability: Tracing -->
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-tracing-bridge-brave</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.zipkin.reporter2</groupId>
-            <artifactId>zipkin-reporter-brave</artifactId>
         </dependency>
         <dependency>
             <groupId>com.bcbs239</groupId>
@@ -301,6 +203,125 @@
             <groupId>com.bcbs239</groupId>
             <artifactId>regtech-signal-presentation</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <!-- ========================================== -->
+        <!-- METRICS MODULE -->
+        <!-- ========================================== -->
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>metrics-domain</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>metrics-application</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>metrics-infrastructure</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.bcbs239</groupId>
+            <artifactId>metrics-presentation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- ========================================== -->
+        <!-- SPRING BOOT STARTERS -->
+        <!-- ========================================== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-jpa</artifactId>
+        </dependency>
+
+        <!-- ========================================== -->
+        <!-- DATABASE -->
+        <!-- ========================================== -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- ========================================== -->
+        <!-- OBSERVABILITY -->
+        <!-- ========================================== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>8.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-otel</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.opentelemetry</groupId>
+            <artifactId>opentelemetry-exporter-otlp</artifactId>
+            <version>1.40.0</version>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-tracing-bridge-brave</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.zipkin.reporter2</groupId>
+            <artifactId>zipkin-reporter-brave</artifactId>
+        </dependency>
+
+        <!-- ========================================== -->
+        <!-- RESILIENCE -->
+        <!-- ========================================== -->
+        <dependency>
+            <groupId>io.github.resilience4j</groupId>
+            <artifactId>resilience4j-circuitbreaker</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+
+        <!-- ========================================== -->
+        <!-- EXTERNAL SERVICES -->
+        <!-- ========================================== -->
+        <dependency>
+            <groupId>com.sendgrid</groupId>
+            <artifactId>sendgrid-java</artifactId>
+            <version>4.10.3</version>
+        </dependency>
+
+        <!-- ========================================== -->
+        <!-- TESTING -->
+        <!-- ========================================== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

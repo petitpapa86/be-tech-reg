@@ -25,9 +25,8 @@
 		<maven.compiler.target>25</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		
-		<!-- Version management for billing module dependencies -->
+		<!-- Stripe SDK for payment processing -->
 		<stripe.version>25.12.0</stripe.version>
-		<jackson.version>2.15.2</jackson.version>
 	</properties>
 	
 	<dependencyManagement>
@@ -67,18 +66,6 @@
 				<groupId>com.stripe</groupId>
 				<artifactId>stripe-java</artifactId>
 				<version>${stripe.version}</version>
-			</dependency>
-			
-			<!-- Jackson for JSON processing -->
-			<dependency>
-				<groupId>com.fasterxml.jackson.core</groupId>
-				<artifactId>jackson-core</artifactId>
-				<version>${jackson.version}</version>
-			</dependency>
-			<dependency>
-				<groupId>com.fasterxml.jackson.core</groupId>
-				<artifactId>jackson-databind</artifactId>
-				<version>${jackson.version}</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

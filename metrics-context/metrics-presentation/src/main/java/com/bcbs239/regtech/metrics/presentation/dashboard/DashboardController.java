@@ -39,7 +39,12 @@ public class DashboardController {
     }
 
     public ServerResponse getDashboard(ServerRequest request) {
-        String bankIdParam = request.param("bankId").orElse(null);
+        String bankIdParam = request.headers().firstHeader("X-Bank-Id");
+        if (bankIdParam == null || bankIdParam.isBlank()) {
+            return ServerResponse.badRequest()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(ResponseUtils.validationError(List.of(), "X-Bank-Id header is required"));
+        }
         BankId bankId = BankId.of(bankIdParam);
 
         int page = request.param("page").map(Integer::parseInt).orElse(0);
@@ -51,7 +56,7 @@ public class DashboardController {
 
         List<FileItem> fileItems = filesDomain.stream()
                 .map(file -> new FileItem(
-                        file.getId(),
+                        String.valueOf(file.getId()),
                         file.getFilename(),
                         formatDate(file.getDate()),
                         file.getScore(),
@@ -81,7 +86,7 @@ public class DashboardController {
 
         DashboardResponse dashboard = new DashboardResponse(summary, fileItems, compliance, reports, lastBatchViolations);
 
-        Object api = ResponseUtils.success(dashboard);
+        Object api = ResponseUtils.success(dashboard, "Dashboard data retrieved successfully");
 
         return ServerResponse.ok()
                 .contentType(MediaType.APPLICATION_JSON)

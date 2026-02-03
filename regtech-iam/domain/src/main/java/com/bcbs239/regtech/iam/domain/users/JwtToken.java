@@ -5,7 +5,10 @@ import com.bcbs239.regtech.core.domain.shared.ErrorDetail;
 import com.bcbs239.regtech.core.domain.shared.ErrorType;
 import com.bcbs239.regtech.core.domain.shared.Result;
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
 
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
@@ -41,11 +44,12 @@ public record JwtToken(String value, Instant expiresAt) {
             );
 
             Instant expiresAt = Instant.now().plus(expiration);
+            SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
             String token = Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(Date.from(Instant.now()))
                 .setExpiration(Date.from(expiresAt))
-                .signWith(SignatureAlgorithm.HS512, secretKey)
+                .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
 
             return Result.success(new JwtToken(token, expiresAt));
@@ -78,11 +82,12 @@ public record JwtToken(String value, Instant expiresAt) {
             );
 
             Instant expiresAt = Instant.now().plus(expiration);
+            SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
             String token = Jwts.builder()
                 .setClaims(claims)
                 .setIssuedAt(Date.from(Instant.now()))
                 .setExpiration(Date.from(expiresAt))
-                .signWith(SignatureAlgorithm.HS512, secretKey)
+                .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
 
             return Result.success(new JwtToken(token, expiresAt));
@@ -99,10 +104,12 @@ public record JwtToken(String value, Instant expiresAt) {
      */
     public static Result<JwtClaims> validate(String token, String secretKey) {
         try {
+            SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
             Claims claims = Jwts.parser()
-                .setSigningKey(secretKey)
-                .parseClaimsJws(token)
-                .getBody();
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
 
             return Result.success(new JwtClaims(claims));
         } catch (ExpiredJwtException e) {
