@@ -152,15 +152,24 @@ public class ComprehensiveReportOrchestrator {
             log.info("Quality recommendations read from storage [batchId:{},count:{},duration:{}ms]",
                     batchId, recommendations.size(), recommendationsDuration);
 
-            CompletableFuture<Result<HtmlAndPdfMetadata>> htmlPdfFuture = CompletableFuture.supplyAsync(() ->
-                    generateHtmlAndPdf(reportData, recommendations, batchId)
-            );
+            log.info("Starting parallel report generation [batchId:{},timeout:{}s]", batchId, 300);
+            long parallelGenerationStart = System.currentTimeMillis();
 
-            CompletableFuture<Result<XbrlReportMetadata>> xbrlFuture = CompletableFuture.supplyAsync(() ->
-                    generateXbrlReport(reportData.getCalculationResults(), batchId)
-            );
+            CompletableFuture<Result<HtmlAndPdfMetadata>> htmlPdfFuture = CompletableFuture.supplyAsync(() -> {
+                log.info("HTML/PDF generation task started [batchId:{}]", batchId);
+                return generateHtmlAndPdf(reportData, recommendations, batchId);
+            });
 
-            CompletableFuture.allOf(htmlPdfFuture, xbrlFuture).get(30, TimeUnit.SECONDS);
+            CompletableFuture<Result<XbrlReportMetadata>> xbrlFuture = CompletableFuture.supplyAsync(() -> {
+                log.info("XBRL generation task started [batchId:{}]", batchId);
+                return generateXbrlReport(reportData.getCalculationResults(), batchId);
+            });
+
+            // Wait for both tasks to complete with 5-minute timeout (increased from 30s for large reports)
+            CompletableFuture.allOf(htmlPdfFuture, xbrlFuture).get(300, TimeUnit.SECONDS);
+
+            long parallelGenerationDuration = System.currentTimeMillis() - parallelGenerationStart;
+            log.info("Parallel report generation completed [batchId:{},duration:{}ms]", batchId, parallelGenerationDuration);
 
             Result<HtmlAndPdfMetadata> htmlPdfResult = htmlPdfFuture.get();
             Result<XbrlReportMetadata> xbrlResult = xbrlFuture.get();

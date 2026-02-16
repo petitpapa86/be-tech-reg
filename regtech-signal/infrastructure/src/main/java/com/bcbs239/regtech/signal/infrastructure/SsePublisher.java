@@ -128,8 +128,44 @@ public class SsePublisher {
             emitter.send(builder);
             log.debug("Successfully sent SSE event: type={}, id={}", event.getType(), event.getId());
         } catch (IOException e) {
-            log.error("Failed to send SSE event: type={}, id={}", event.getType(), event.getId(), e);
+            // Client disconnection is normal (browser closed, network issue, etc.)
+            // Log as DEBUG/INFO, not ERROR, to avoid polluting logs
+            if (isClientDisconnection(e)) {
+                log.debug("Client disconnected during SSE event send: type={}, id={}, reason={}", 
+                    event.getType(), event.getId(), e.getMessage());
+            } else {
+                log.error("Unexpected error sending SSE event: type={}, id={}", 
+                    event.getType(), event.getId(), e);
+            }
             throw new RuntimeException(e);
         }
+    }
+    
+    /**
+     * Checks if the IOException is due to a client disconnection (expected error).
+     * Common patterns:
+     * - "Broken pipe" (client closed connection)
+     * - "Connection reset" (network interruption)
+     * - "Connessione interrotta" (Italian: connection interrupted)
+     * - "ServletOutputStream failed to flush"
+     */
+    private boolean isClientDisconnection(IOException e) {
+        if (e == null) {
+            return false;
+        }
+        
+        String message = e.getMessage();
+        if (message == null) {
+            return false;
+        }
+        
+        String lowerMessage = message.toLowerCase();
+        return lowerMessage.contains("broken pipe")
+            || lowerMessage.contains("connection reset")
+            || lowerMessage.contains("connessione interrotta")
+            || lowerMessage.contains("connection interrupted")
+            || lowerMessage.contains("failed to flush")
+            || lowerMessage.contains("clientabortexception")
+            || lowerMessage.contains("asyncrequestnotusableexception");
     }
 }

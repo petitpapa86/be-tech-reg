@@ -20,7 +20,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
  *   <li>Uses Jakarta Persistence API (jakarta.persistence.*)</li>
  * </ul>
  */
-@Configuration("ingestionModuleConfiguration")
+@Configuration("ingestionInfrastructureConfiguration")
 //@EnableAsync
 //@EnableScheduling
 @EnableConfigurationProperties({IngestionProperties.class})

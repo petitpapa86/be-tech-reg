@@ -1,6 +1,5 @@
 package com.bcbs239.regtech.ingestion.presentation.batch.upload;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerResponse;
@@ -18,8 +17,10 @@ public class UploadAndProcessFileRoutes {
         this.controller = controller;
     }
 
-    @Bean
-    public RouterFunction<ServerResponse> uploadAndProcessRoute() {
+    /**
+     * Creates the route for uploading and processing files.
+     */
+    public RouterFunction<ServerResponse> createRoutes() {
         return withAttributes(
             route(POST("/api/v1/ingestion/upload-and-process"), controller::handle),
             new String[]{"ingestion:upload-process"},

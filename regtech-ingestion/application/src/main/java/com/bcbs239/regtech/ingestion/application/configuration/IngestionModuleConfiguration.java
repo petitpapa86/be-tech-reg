@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
  * a configuration class from the application module without depending on
  * infrastructure directly.
  */
-@Configuration("ingestionModuleConfiguration")
+@Configuration("ingestionApplicationConfiguration")
 @ComponentScan(basePackages = {
     "com.bcbs239.regtech.ingestion.application",
     "com.bcbs239.regtech.ingestion.domain"
